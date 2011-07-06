@@ -13,7 +13,7 @@ XSD_FILES = \
 
 OBJDIR ?= ./
 
-all: gsoaptest xsdtest
+all:
 
 # Must install Ubuntu package gsoap
 gsoaptest:
