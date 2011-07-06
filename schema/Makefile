@@ -45,4 +45,8 @@ gsoapclean:
 	rm -f ${OBJDIR}soapServerLib.cpp ${OBJDIR}cwmp.h ${OBJDIR}soapH.h
 	rm -f ${OBJDIR}soapStub.h ${OBJDIR}*.nsmap
 
-clean: gsoapclean
+xsdclean:
+	rm -f $(patsubst %.xsd,${OBJDIR}%.cxx,$(XSD_FILES))
+	rm -f $(patsubst %.xsd,${OBJDIR}%.hxx,$(XSD_FILES))
+
+clean: gsoapclean xsdclean
