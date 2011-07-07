@@ -1,7 +1,6 @@
 LOCAL_SRC_FILES:= \
 	test_main.cc \
-	soap_envelope.cc \
-	soap_envelope_test.cc
+	cwmp_1_2_test.cc
 
 all: test_main
 
@@ -10,19 +9,48 @@ CPP = g++
 LD = g++
 
 # Directory where object files should be placed
-TARGET_OUT ?= .
+OUTDIR ?= .
 
-$(TARGET_OUT)/%.o: %.cc
-	$(CPP) $(DEFINES) -I${TARGET_OUT} -c -o $@ $<
+$(OUTDIR)/%.o: %.cc
+	$(CPP) $(DEFINES) -I${OUTDIR} -c -o $@ $<
+
+$(OUTDIR)/%.o: %.cxx
+	$(CPP) $(DEFINES) -I${OUTDIR} -c -o $@ $<
 
 OBJFILES = $(LOCAL_SRC_FILES:%.cc=%.o)
 
-DEFINES := -g -I/usr/include/libxml2
-LIBRARIES := -lxml2
+DEFINES := -g
+LIBRARIES := -lxerces-c
 TEST_LIBRARIES := -lgtest
 
-test_main: $(OBJFILES)
-	$(LD) -o $(TARGET_OUT)/$@ $(DEFINES) $(OBJFILES) $(LIBRARIES) ${TEST_LIBRARIES}
+XML_SCHEMAS := cwmp-1-2 soap-envelope soap-encoding
+XSD_XMLFILES = $(XML_SCHEMAS:%=schema/%.xsd)
+XSD_SOURCES = $(XML_SCHEMAS:%=$(OUTDIR)/%.cxx)
+XSD_OBJFILES = $(XML_SCHEMAS:%=$(OUTDIR)/%.o)
+
+$(XSD_OBJFILES) : $(XSD_SOURCES)
+
+# Need to install Ubuntu packages xsdcxx and libxerces-c-dev
+$(XSD_SOURCES) : $(XSD_XMLFILES)
+	xsdcxx cxx-tree \
+		--generate-serialization \
+		--location-regex "%http://schemas.xmlsoap.org/soap/envelope/%soap-envelope.xsd%" \
+		--location-regex "%http://schemas.xmlsoap.org/soap/encoding/%soap-encoding.xsd%" \
+		--namespace-map urn:dslforum-org:cwmp-1-0=cwmp::cwmp_1_0 \
+		--namespace-map urn:dslforum-org:cwmp-1-1=cwmp::cwmp_1_1 \
+		--namespace-map urn:dslforum-org:cwmp-1-2=cwmp::cwmp_1_2 \
+		--namespace-map urn:broadband-forum-org:cwmp:datamodel-1-0=cwmp::dm_1_0 \
+		--namespace-map urn:broadband-forum-org:cwmp:datamodel-1-1=cwmp::dm_1_1 \
+		--namespace-map urn:broadband-forum-org:cwmp:datamodel-1-2=cwmp::dm_1_2 \
+		--namespace-map urn:broadband-forum-org:cwmp:datamodel-1-3=cwmp::dm_1_3 \
+		--namespace-map urn:broadband-forum-org:cwmp:datamodel-report-0-1=cwmp::dm_r_0_1 \
+		--namespace-map urn:broadband-forum-org:cwmp:devicetype-1-0=cwmp::dt_1_0 \
+		--namespace-map urn:broadband-forum-org:cwmp:devicetype-1-1=cwmp::dt_1_1 \
+		--namespace-map urn:broadband-forum-org:cwmp:devicetype-features=cwmp::dt_f \
+		$^
+
+test_main: $(OBJFILES) $(XSD_OBJFILES)
+	$(LD) -o $(OUTDIR)/$@ $(DEFINES) $(OBJFILES) $(XSD_OBJFILES) $(LIBRARIES) ${TEST_LIBRARIES}
 
 clean:
-	rm -f $(TARGET_OUT)/*.o $(TARGET_OUT)/test_main
+	rm -f $(OUTDIR)/*.o $(OUTDIR)/test_main
