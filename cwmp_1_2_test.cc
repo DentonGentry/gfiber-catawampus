@@ -33,10 +33,12 @@ TEST_F(Cwmp_1_2_Test, GenerateInform) {
                                 retry_count, parameter_list);
 
   std::stringstream sstream;
-  cwmp::cwmp_1_2::Inform_(sstream, inform);
+  ::xml_schema::namespace_infomap m;
+  cwmp::cwmp_1_2::Inform_(sstream, inform, m, "UTF-8",
+                          xml_schema::flags::no_xml_declaration);
 
   const std::string expected_xml(
-    "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>\n"
+    "\n"  // http://www.codesynthesis.com/pipermail/xsd-users/2009-December/002625.html
     "<p1:Inform xmlns:p1=\"urn:dslforum-org:cwmp-1-2\">\n"
     "\n"
     "  <DeviceId>\n"
