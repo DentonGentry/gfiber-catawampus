@@ -1,5 +1,7 @@
 LOCAL_SRC_FILES:= \
 	test_main.cc \
+	rand_b64url.cc \
+	rand_b64url_test.cc \
 	cwmp_1_2_test.cc
 
 all: test_main
