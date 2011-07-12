@@ -8,7 +8,7 @@
 
 class RandomBase64 {
  public:
-  explicit RandomBase64(unsigned int seed);
+  explicit RandomBase64(unsigned int seed) : seed_(seed) {}
   virtual ~RandomBase64() {}
 
   virtual std::string GenerateRandomString(int length);

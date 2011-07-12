@@ -12,9 +12,6 @@
 const char RandomBase64::base64url_chars_[kNumBase64Chars + 1] =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
-RandomBase64::RandomBase64(unsigned int seed) : seed_(seed) {
-}
-
 std::string RandomBase64::GenerateRandomString(int length) {
   std::string outurl;
 
