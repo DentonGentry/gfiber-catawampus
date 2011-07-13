@@ -30,9 +30,12 @@ XSD_XMLFILES = $(XML_SCHEMAS:%=schema/%.xsd)
 XSD_SOURCES = $(XML_SCHEMAS:%=$(OUTDIR)/%.cxx)
 XSD_OBJFILES = $(XML_SCHEMAS:%=$(OUTDIR)/%.o)
 
-$(XSD_OBJFILES) : $(XSD_SOURCES)
+$(XSD_OBJFILES) : $(XSD_SOURCES) soap-envelope.cxx
 
-# Need to install Ubuntu packages xsdcxx and libxerces-c-dev
+$(OBJFILES) : soap-envelope.cxx
+
+# Need to install Ubuntu packages:
+#    xsdcxx libxerces-c-dev libgtest-dev libexpat-dev
 $(XSD_SOURCES) : $(XSD_XMLFILES)
 	xsdcxx cxx-tree \
 		--generate-serialization \
@@ -55,4 +58,5 @@ test_main: $(OBJFILES) $(XSD_OBJFILES)
 	$(LD) -o $(OUTDIR)/$@ $(DEFINES) $(OBJFILES) $(XSD_OBJFILES) $(LIBRARIES) ${TEST_LIBRARIES}
 
 clean:
-	rm -f $(OUTDIR)/*.o $(OUTDIR)/test_main
+	rm -f $(OUTDIR)/*.o $(OUTDIR)/test_main *~ .*~ \
+		cwmp-1-2.[ch]xx soap-encoding.[ch]xx soap-envelope.[ch]xx
