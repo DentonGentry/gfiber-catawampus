@@ -21,7 +21,7 @@ $(OUTDIR)/%.o: %.cxx
 
 OBJFILES = $(LOCAL_SRC_FILES:%.cc=%.o)
 
-DEFINES := -g
+DEFINES := -g -Wall
 LIBRARIES := -lxerces-c
 TEST_LIBRARIES := -lgtest
 
