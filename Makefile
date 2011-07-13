@@ -55,7 +55,9 @@ $(XSD_SOURCES) : $(XSD_XMLFILES)
 		$^
 
 test_main: $(OBJFILES) $(XSD_OBJFILES)
-	$(LD) -o $(OUTDIR)/$@ $(DEFINES) $(OBJFILES) $(XSD_OBJFILES) $(LIBRARIES) ${TEST_LIBRARIES}
+	$(LD) -o $(OUTDIR)/$@ $(DEFINES) \
+		$(OBJFILES) $(XSD_OBJFILES) \
+		$(LIBRARIES) ${TEST_LIBRARIES}
 
 clean:
 	rm -f $(OUTDIR)/*.o $(OUTDIR)/test_main *~ .*~ \
