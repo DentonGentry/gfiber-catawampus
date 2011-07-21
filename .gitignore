@@ -1,0 +1,5 @@
+*.o
+test_main
+soap-encoding.[ch]xx
+soap-envelope.[ch]xx
+cwmp-1-2.[ch]xx
