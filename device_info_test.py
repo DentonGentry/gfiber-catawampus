@@ -89,10 +89,11 @@ class DeviceInfoTest(unittest.TestCase):
       self.assertEqual(fake_p, p)
 
   def testDeviceInfo(self):
+    dp = device_info.DeviceInfoUno()
     ut = UptimeMock()
     mi = MemoryInfoMock()
     ps = ProcessStatusMock()
-    di = device_info.DeviceInfoUno(ut, mi, ps)
+    di = device_info.DeviceInfo(dp, ut, mi, ps)
     expected = """<DeviceInfo>
   <Manufacturer>Google</Manufacturer>
   <ManufacturerOUI>00:1a:11:00:00:00</ManufacturerOUI>
