@@ -13,7 +13,7 @@ XSD_SOURCES = $(XML_SCHEMAS:%=schema/%.xsd)
 XSD_PYFILES = $(XML_SCHEMAS:%=$(OUTDIR)/%.py)
 
 $(XSD_PYFILES) : ${OUTDIR}/%.py: schema/%.xsd
-	generateDS.py --silence --no-questions -o $@ $^; \
+	generateDS.py --silence --no-questions -o $@ $^
 
 test_main: $(XSD_PYFILES)
 	echo Done
