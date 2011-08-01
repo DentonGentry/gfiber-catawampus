@@ -1,0 +1,6 @@
+#!/bin/sh
+
+./dm_codegen.py \
+        --dmfile='../schema/tr-181-2-0-1.xml' \
+        --dmfile='../schema/tr-181-2-1-0.xml' \
+        --dmfile='../schema/tr-181-2-2-0.xml'

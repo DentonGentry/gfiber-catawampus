@@ -22,11 +22,11 @@ by generateDS. Its code generation all the way down.
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+from collections import defaultdict
 import cwmp_datamodel_1_3 as dm
 import optparse
 import string
 import sys
-import xml.etree.ElementTree as etree
 
 def EmitPrologue(out):
   """Emit the first few lines of a Python source file.
@@ -60,9 +60,14 @@ def XmlNameMangle(XMLname):
 
 def EmitParameter(param, out, prefix=""):
   """Emit a Python property for a DeviceModel <parameter>
+
+  Args:
+    param - The XML <parameter>.
+    out - list of strings to collect for output.
+    prefix - string to prepend to each output line; generally whitespace.
   """
   defvalue = "None"
-  if hasattr(param.syntax.default, "value"):
+  if param.syntax and hasattr(param.syntax.default, "value"):
     if param.syntax.boolean:
       defvalue = (param.syntax.default.value == "true")
     elif param.syntax.string:
@@ -72,49 +77,78 @@ def EmitParameter(param, out, prefix=""):
   out.append("{0}self.p_{1} = {2}\n".format(prefix, param.name, defvalue))
 
 
-def EmitClassForObj(obj, out):
+def EmitClassForObj(name, objlist, out):
   """Generate a class for a CWMP DeviceModel <object>.
 
   Args:
-    obj - a generateDS object for a DeviceModel <object> node.
+    name - the name of this object, as taken from the XML <object name="...">
+    objlist - a list of generateDS objects for a DeviceModel <object> node.
     out - list of strings to collect for output
   """
-  out.append("class {0}:\n".format(XmlNameMangle(obj.name)))
+  out.append("class {0}:\n".format(XmlNameMangle(name)))
   out.append("  def __init__(self):\n")
 
-  if len(obj.parameter) > 0:
-    out.append("    # <parameter> variables")
+  params = []
+  for obj in objlist:
     for param in obj.parameter:
+      params.append(param)
+
+  if len(params) > 0:
+    out.append("    # <parameter> variables\n")
+    for param in params:
       EmitParameter(param, out, "    ")
-    out.append("\n")
   else:
     out.append("    pass\n")
 
   out.append("\n")
 
 
-def WhatToEmit(objects, emit_these):
-  """Intersect objects with emit_these. If emit_these is empty, return all.
+def DmObjectName(obj):
+  """Get the name of a DeviceModel object.
+
+  The first spec to define a new object will create it as:
+  <object name="ObjName" ...>
+
+  Subsequent specs which extend the object will reference it as:
+  <object base="ObjName" ...>
 
   Args:
-    objects - list of object names
+    obj - the XML node of a DeviceModel <object>
+
+  Returns:
+    The string name, from either the name= or base= attribute.
+  """
+  if obj.name:
+    return obj.name
+  elif obj.base:
+    return obj.base
+  else:
+    return None
+
+
+def DmObjIsInteresting(name, emit_these):
+  """Determine whether to emit a class for the object.
+
+  Args:
+    name - name of the DeviceModel <object>
     emit_these - frozenset of object names to emit
 
   Returns:
-    list of object names to emit
+    boolean
   """
   if emit_these:
-    return [obj for obj in objects if obj in emit_these]
+    return (obj in emit_these)
   else:
-    return objects
+    return True
 
 
-def ParseDeviceModelFile(root, emit_these, out):
-  """Parse an XML file, emitting Python classes for DeviceModel objects.
+def CollectObjectsFromFile(objdict, rootnode, emit_these):
+  """Add all interesting <object> nodes from the DeviceModel XML tree to dict.
 
   The device model is defined in tr-106, which provides an XML schema to
   validate DeviceModel definition files.
   http://www.broadband-forum.org/cwmp/tr-106-1-2-0.xml
+
   The current schema (at the time of this writing) is:
   http://www.broadband-forum.org/cwmp/cwmp-datamodel-1-3.xsd
 
@@ -125,15 +159,19 @@ def ParseDeviceModelFile(root, emit_these, out):
     <model>
       <object> - objects specific to a model
 
+  This function walks through all <objects> in the tree. If they are
+  in emit_these, it adds them to objdict.
+
   Args:
-    root - the XML root node from the tr-106 compatible document
-    emit_these - a frozenset of object names for which classes should be
-      generated.  If None, _all_ objects will be generated.
-    out - list of strings to collect for output
+    objdict - a defaultdict(list) in which to place the objects
+    rootnode - the root of the XML document.
+    emit_these - a frozenset of object names which we are interested in.
   """
-  for model in root.model:
-    for obj in WhatToEmit(model.object, emit_these):
-      EmitClassForObj(obj, out)
+  for model in rootnode.model:
+    for obj in model.object:
+      name = DmObjectName(obj)
+      if DmObjIsInteresting(name, emit_these):
+        objdict[name].append(obj)
 
 
 def ParseCmdline():
@@ -142,19 +180,25 @@ def ParseCmdline():
   optparser = optparse.OptionParser(
       description='Code generator for CWMP DataModel objects')
   optparser.add_option('--outfile', help="filename to write generated code to.")
-  optparser.add_option('--dmfile', action='store',
-      help="CWMP DeviceModel XML file to parse.",
-      default='../schema/tr-181-2-0-1.xml')
+  optparser.add_option('--dmfile', action='append',
+      help="CWMP DeviceModel XML file to parse. Can be repeated",
+      default=['../schema/tr-181-2-0-1.xml'])
   return optparser.parse_args()
 
 
 def main():
   (options, args) = ParseCmdline()
-  dm_objects = frozenset(args)
+
+  emit_these = frozenset(args)
+  objdict = defaultdict(list)
+  for file in options.dmfile:
+    root = dm.parse(file)
+    CollectObjectsFromFile(objdict, root, emit_these)
+
   out = []
   EmitPrologue(out)
-  root = dm.parse(options.dmfile)
-  ParseDeviceModelFile(root, dm_objects, out)
+  for key, obj in sorted(objdict.items()):
+    EmitClassForObj(key, obj, out)
 
   outstr = "".join(out)
   if options.outfile:
