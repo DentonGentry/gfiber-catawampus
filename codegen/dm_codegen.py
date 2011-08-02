@@ -6,6 +6,7 @@
 
 Generates classes to parse and emit XML for objects defined using tr-106
 device models.
+<parameter> turns into an instance variable.
 
 DeviceModel files expected to be passed to be passed to this code generator
 include:
@@ -16,13 +17,13 @@ http://www.broadband-forum.org/cwmp/tr-181-2-0-1.xml
 http://www.broadband-forum.org/cwmp/tr-181-2-1-0.xml
 http://www.broadband-forum.org/cwmp/tr-181-2-2-0.xml
 
-This code generator itself relies on code generated for cwmp-datamodel-1-3.xsd
-by generateDS. Its code generation all the way down.
+This generator itself relies on classes generated for cwmp-datamodel-1-3.xsd
+by generateDS.
+Very clever, young man, very clever, but its code generators all the way down.
 """
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-from collections import defaultdict
 import cwmp_datamodel_1_3 as dm
 import optparse
 import string
@@ -39,6 +40,8 @@ def EmitPrologue(out):
   out.append("# DO NOT MAKE CHANGES HERE, THEY WILL BE OVERWRITTEN.\n\n")
   out.append("\"\"\"Classes to parse and emit XML for DeviceModel objects "
              "defined in CWMP specs.\n\"\"\"\n\n")
+  out.append("import xmlwitch\n")
+  out.append("\n")
 
 
 def XmlNameMangle(XMLname):
@@ -64,7 +67,8 @@ def EmitParameter(param, out, prefix=""):
   Args:
     param - The XML <parameter>.
     out - list of strings to collect for output.
-    prefix - string to prepend to each output line; generally whitespace.
+    prefix - string to prepend to each output line (generally whitespace
+        to get the indentation right)
   """
   defvalue = "None"
   if param.syntax and hasattr(param.syntax.default, "value"):
@@ -75,6 +79,34 @@ def EmitParameter(param, out, prefix=""):
     else:
       defvalue = param.syntax.default.value
   out.append("{0}self.p_{1} = {2}\n".format(prefix, param.name, defvalue))
+
+
+def EmitToXml(objname, params, out, prefix=""):
+  """Emit the ToXml() method for all parameters
+
+  Args:
+    objname - name of this DeviceModel <object>.
+    params - list of generateDS objects for a DeviceModel <parameter> node.
+    out - list of strings to collect for output
+  """
+  # objname is xml.Device.WiFi.AccessPoint., split last path component
+  xmlnodename = objname.split('.')[-2]
+  xmlbasename = '.'.join(objname.split('.')[0:-3])
+
+  out.append(prefix + 'def ToXml(self, xml):\n')
+  out.append(prefix + '\"\"\"Serialize to Xml.\n\n')
+  out.append(prefix + '  Args:\n')
+  out.append(prefix + '    xml: The xmlwitch object for ' + xmlbasename + '\n')
+  out.append(prefix + '\"\"\"\n')
+
+  if params:
+    out.append("{0}with xml.{1}:\n".format(prefix, xmlnodename))
+    for p in params:
+      out.append("{0}  if self.p_{1}:\n".format(prefix, p.name))
+      out.append("{0}    xml.{1} = self.p_{1}\n".format(prefix, p.name))
+  else:
+    out.append(prefix + "{0}  pass\n")
+  out.append("\n")
 
 
 def EmitClassForObj(name, objlist, out):
@@ -93,13 +125,15 @@ def EmitClassForObj(name, objlist, out):
     for param in obj.parameter:
       params.append(param)
 
-  if len(params) > 0:
+  if params:
     out.append("    # <parameter> variables\n")
     for param in params:
       EmitParameter(param, out, "    ")
   else:
     out.append("    pass\n")
 
+  out.append("\n")
+  EmitToXml(name, params, out, "  ")
   out.append("\n")
 
 
@@ -136,10 +170,9 @@ def DmObjIsInteresting(name, emit_these):
   Returns:
     boolean
   """
-  if emit_these:
-    return (obj in emit_these)
-  else:
-    return True
+  for e in emit_these:
+    if name.startswith(e):
+      return True
 
 
 def CollectObjectsFromFile(objdict, rootnode, emit_these):
@@ -163,7 +196,7 @@ def CollectObjectsFromFile(objdict, rootnode, emit_these):
   in emit_these, it adds them to objdict.
 
   Args:
-    objdict - a defaultdict(list) in which to place the objects
+    objdict - dict in which to place the objects
     rootnode - the root of the XML document.
     emit_these - a frozenset of object names which we are interested in.
   """
@@ -171,7 +204,7 @@ def CollectObjectsFromFile(objdict, rootnode, emit_these):
     for obj in model.object:
       name = DmObjectName(obj)
       if DmObjIsInteresting(name, emit_these):
-        objdict[name].append(obj)
+        objdict.setdefault(name, []).append(obj)
 
 
 def ParseCmdline():
@@ -180,9 +213,14 @@ def ParseCmdline():
   optparser = optparse.OptionParser(
       description='Code generator for CWMP DataModel objects')
   optparser.add_option('--outfile', help="filename to write generated code to.")
-  optparser.add_option('--dmfile', action='append',
-      help="CWMP DeviceModel XML file to parse. Can be repeated",
+  optparser.add_option(
+      '--dmfile', action='append',
+      help="CWMP DeviceModel XML file to parse. Can be repeated.",
       default=['../schema/tr-181-2-0-1.xml'])
+  optparser.add_option(
+      '--emit', action='append',
+      help="<object> names to generate classes for. Can be repeated.",
+      default=[])
   return optparser.parse_args()
 
 
@@ -190,10 +228,10 @@ def main():
   (options, args) = ParseCmdline()
 
   emit_these = frozenset(args)
-  objdict = defaultdict(list)
+  objdict = dict()
   for file in options.dmfile:
     root = dm.parse(file)
-    CollectObjectsFromFile(objdict, root, emit_these)
+    CollectObjectsFromFile(objdict, root, options.emit)
 
   out = []
   EmitPrologue(out)
