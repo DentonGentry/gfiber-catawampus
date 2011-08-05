@@ -5,7 +5,7 @@
 """Unit tests for tr-181 DeviceInfo implementation.
 """
 
-__author__ = 'dgentry@google.com (Denny Gentry)'
+__author__ = 'dgentry@google.com (Denton Gentry)'
 
 import device_info
 import unittest

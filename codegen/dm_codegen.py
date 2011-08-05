@@ -94,18 +94,18 @@ def EmitToXml(objname, params, out, prefix=""):
   xmlbasename = '.'.join(objname.split('.')[0:-3])
 
   out.append(prefix + 'def ToXml(self, xml):\n')
-  out.append(prefix + '\"\"\"Serialize to Xml.\n\n')
+  out.append(prefix + '  \"\"\"Serialize to Xml.\n\n')
   out.append(prefix + '  Args:\n')
   out.append(prefix + '    xml: The xmlwitch object for ' + xmlbasename + '\n')
-  out.append(prefix + '\"\"\"\n')
+  out.append(prefix + '  \"\"\"\n')
 
   if params:
-    out.append("{0}with xml.{1}:\n".format(prefix, xmlnodename))
+    out.append("{0}  with xml.{1}:\n".format(prefix, xmlnodename))
     for p in params:
-      out.append("{0}  if self.p_{1}:\n".format(prefix, p.name))
-      out.append("{0}    xml.{1} = self.p_{1}\n".format(prefix, p.name))
+      out.append("{0}    if self.p_{1}:\n".format(prefix, p.name))
+      out.append("{0}      xml.{1} = self.p_{1}\n".format(prefix, p.name))
   else:
-    out.append(prefix + "{0}  pass\n")
+    out.append(prefix + "{0}    pass\n")
   out.append("\n")
 
 
@@ -117,7 +117,7 @@ def EmitClassForObj(name, objlist, out):
     objlist - a list of generateDS objects for a DeviceModel <object> node.
     out - list of strings to collect for output
   """
-  out.append("class {0}:\n".format(XmlNameMangle(name)))
+  out.append("class {0}(object):\n".format(XmlNameMangle(name)))
   out.append("  def __init__(self):\n")
 
   params = []
@@ -170,12 +170,14 @@ def DmObjIsInteresting(name, emit_these):
   Returns:
     boolean
   """
+  if not emit_these:
+    return True
   for e in emit_these:
     if name.startswith(e):
       return True
 
 
-def CollectObjectsFromFile(objdict, rootnode, emit_these):
+def CollectObjects(objdict, rootnode, emit_these):
   """Add all interesting <object> nodes from the DeviceModel XML tree to dict.
 
   The device model is defined in tr-106, which provides an XML schema to
@@ -231,7 +233,7 @@ def main():
   objdict = dict()
   for file in options.dmfile:
     root = dm.parse(file)
-    CollectObjectsFromFile(objdict, root, options.emit)
+    CollectObjects(objdict, root, options.emit)
 
   out = []
   EmitPrologue(out)
