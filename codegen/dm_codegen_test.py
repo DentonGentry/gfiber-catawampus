@@ -25,9 +25,8 @@ dm1_xml = """<dm:document xmlns:dm="urn:broadband-forum-org:cwmp:datamodel-1-2"
       <parameter name="bar" access="readOnly">
         <description>This is the bar parameter</description>
         <syntax>
-          <string>
-            <size maxLength="12"/>
-          </string>
+          <string/>
+          <default type="object" value="BarDefault"/>
         </syntax>
       </parameter>
     </object>
@@ -36,8 +35,16 @@ dm1_xml = """<dm:document xmlns:dm="urn:broadband-forum-org:cwmp:datamodel-1-2"
 
 class DeviceModelCodegenTest(unittest.TestCase):
   def setUp(self):
-    # for xmlwitch
-    sys.path.append('..')
+    sys.path.append('..')  # for xmlwitch
+    pystr = self.DoCodegen(dm1_xml)
+    self.assertTrue(len(pystr))
+    try:
+      exec(pystr, globals(), globals())
+    except (NameError, SyntaxError) as e:
+      print(e)
+      print("In generated code:")
+      print(pystr)
+      self.assertFalse(True)
 
   def DoCodegen(self, xml):
     objdict = dict()
@@ -49,19 +56,23 @@ class DeviceModelCodegenTest(unittest.TestCase):
       dm_codegen.EmitClassForObj(key, obj, out)
     return "".join(out)
 
-  def testSimpleCodegen(self):
-    pystr = self.DoCodegen(dm1_xml)
-    self.assertTrue(len(pystr))
+  def MakeFoo(self):
     try:
-      exec(pystr)
       foo_obj = foo_()
-    except (NameError, SyntaxError) as e:
+    except SyntaxError as e:
       print(e)
-      print("In generated code:")
-      print(pystr)
-      self.assertFalse(True)
+      foo_obj = None
+    self.assertTrue(foo_obj)
+    return foo_obj
+
+  def testCodegenProperties(self):
+    foo_obj = self.MakeFoo()
     self.assertTrue(hasattr(foo_obj, 'p_bar'))
     self.assertFalse(hasattr(foo_obj, 'p_baz'))
+
+  def testDefaultValues(self):
+    foo_obj = self.MakeFoo()
+    self.assertEqual(foo_obj.p_bar, "BarDefault")
 
 
 if __name__ == '__main__':
