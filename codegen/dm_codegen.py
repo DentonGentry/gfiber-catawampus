@@ -73,7 +73,7 @@ def EmitParameter(param, out, prefix=""):
   defvalue = "None"
   if param.syntax and hasattr(param.syntax.default, "value"):
     if param.syntax.boolean:
-      defvalue = (param.syntax.default.value == "true")
+      defvalue = (param.syntax.default.value.lower() == "true")
     elif param.syntax.string:
       defvalue = '"' + param.syntax.default.value + '"'
     else:
@@ -97,6 +97,7 @@ def EmitToXml(objname, params, out, prefix=""):
   out.append(prefix + '  \"\"\"Serialize to Xml.\n\n')
   out.append(prefix + '  Args:\n')
   out.append(prefix + '    xml: The xmlwitch object for ' + xmlbasename + '\n')
+  out.append(prefix + '  Returns: the xmlwitch object after adding fields.\n')
   out.append(prefix + '  \"\"\"\n')
 
   if params:
@@ -104,6 +105,7 @@ def EmitToXml(objname, params, out, prefix=""):
     for p in params:
       out.append("{0}    if self.p_{1}:\n".format(prefix, p.name))
       out.append("{0}      xml.{1} = self.p_{1}\n".format(prefix, p.name))
+    out.append("{0}  return xml\n".format(prefix))
   else:
     out.append(prefix + "{0}    pass\n")
   out.append("\n")
