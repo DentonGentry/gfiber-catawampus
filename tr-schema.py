@@ -70,6 +70,23 @@ def ParseImports(into_spec, root):
             raise KeyError(node.tag)
 
 
+def ParseFile(filename):
+    root = xml.etree.ElementTree.parse(open(filename)).getroot()
+    spec = FixSpec(root.attrib['spec'])
+    Log(NiceSpec(spec))
+    for node in root:
+        if node.tag == 'import':
+            ParseImports(spec, node)
+        elif node.tag in ('component', 'model'):
+            name = node.attrib['name']
+            Log('%-12s %-9s %s' % (NiceSpec(spec), node.tag, name))
+            AddChunk(spec, node.tag, name, (spec, node))
+        elif node.tag in ('description', 'dataType', 'bibliography'):
+            continue
+        else:
+            Log('skip %s' % node.tag)
+
+
 def ResolveImports():
     for k,v in sorted(imports.items()):
         prefix = ' %-12s %-9s %-20s ' % (NiceSpec(k[0]), k[1], k[2])
@@ -86,23 +103,67 @@ def ResolveImports():
             raise KeyError(objtype)
 
 
+def ObjName(spec, name):
+    return "%s_%s" % (re.sub(r'[-\.]', '_', NiceSpec(spec)),
+                      re.sub(r':(\d+)\.(\d+)', r'_v\1_\2', name))
+
+
+def RenderParameter(prefix, xml):
+    name = xml.attrib.get('base', xml.attrib.get('name', '<??>'))
+    print '  %s%s' % (prefix, name)
+
+
+def RenderObject(prefix, spec, xml):
+    name = xml.attrib.get('base', xml.attrib.get('name', '<??>'))
+    prefix += name
+    print '  %s (%s)' % (prefix, xml.tag)
+    for i in xml:
+        if i.tag == 'parameter':
+            RenderParameter(prefix, i)
+        elif i.tag == 'object':
+            RenderObject(prefix, spec, i)
+        elif i.tag in ('description', 'uniqueKey'):
+          pass
+        else:
+            raise KeyError(i.tag)
+
+
+def RenderComponent(prefix, spec, xml):
+    for i in xml:
+        if i.tag == 'parameter':
+            RenderParameter(prefix, i)
+        elif i.tag == 'object':
+            RenderObject(prefix, spec, i)
+        elif i.tag == 'component':
+            refspec, ref = chunks[spec, 'component', i.attrib['ref']]
+            refpath = ref.attrib.get('path', ref.attrib.get('name', '<?>'))
+            RenderComponent(prefix, refspec, ref)
+        elif i.tag in ('profile', 'description'):
+            pass
+        else:
+            raise KeyError(i.tag)
+
+
 def main():
     for filename in sys.argv[1:]:
-        root = xml.etree.ElementTree.parse(open(filename)).getroot()
-        spec = FixSpec(root.attrib['spec'])
-        Log(NiceSpec(spec))
-        for node in root:
-            if node.tag == 'import':
-                ParseImports(spec, node)
-            elif node.tag in ('component', 'model'):
-                name = node.attrib['name']
-                Log('%-12s %-9s %s' % (NiceSpec(spec), node.tag, name))
-                AddChunk(spec, node.tag, name, node)
-            elif node.tag in ('description', 'dataType', 'bibliography'):
-                continue
-            else:
-                Log('skip %s' % node.tag)
+        ParseFile(filename)
     ResolveImports()
+
+    items = sorted(chunks.items(), key=lambda x: (x[0][2], x[0][0]))
+    for (spec, objtype, name),(refspec, xml) in items:
+        if objtype == 'model':
+            objname = ObjName(spec, name)
+            parent = xml.attrib.get('base', None)
+            if refspec != spec:
+                print '%s = %s' % (objname, ObjName(refspec, name))
+                print
+                continue
+            elif parent:
+                print 'class %s(%s):' % (objname, ObjName(spec, parent))
+            else:
+                print 'class %s:' % objname
+            RenderComponent('', refspec, xml)
+            print
 
 
 if __name__ == "__main__":
