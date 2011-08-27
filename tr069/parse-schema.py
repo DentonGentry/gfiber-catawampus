@@ -5,11 +5,13 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-
-import xml.etree.ElementTree
+import errno
+import os
 import re
 import sys
+import xml.etree.ElementTree
 
+DEFAULT_BASE_CLASS = 'ParameterizedObject'
 
 chunks = {}
 imports = {}
@@ -116,6 +118,67 @@ def ResolveImports():
             raise KeyError(objtype)
 
 
+class Object(object):
+    def __init__(self, model, name, prefix):
+        self.model = model
+        self.name = name
+        self.prefix = prefix
+        self.params = []
+        self.object_sequence = []
+
+    def __str__(self):
+        out = []
+        name = re.sub(r'-{i}', '', self.name)  # FIXME
+        parent_class_name = DEFAULT_BASE_CLASS
+        if self.model.parent_model_name:
+            parent_class = self.FindParentClass()
+            if parent_class:
+                parent_class_name = '%s.%s' % (self.model.parent_model_name,
+                                               parent_class.FullName())
+        if parent_class_name.endswith('.'):
+            # Only happens for toplevel Model objects
+            parent_class_name = parent_class_name[:-1]
+        out.append('class %s(%s):' % (name, parent_class_name))
+        for param in self.params:
+            out.append('  %s = 1' % (param,))
+        for obj in self.object_sequence:
+            if len(out) > 1:
+                out.append('')
+            out.append(Indented('  ', obj))
+        if len(out) == 1:
+            out.append('  pass')
+        return '\n'.join(out)
+
+    def FindParentClass(self):
+        Log('parent search: %r.%r' % (self.model.spec.name,
+                               self.model.parent_model_name))
+        parent_model = models[(self.model.spec.name,
+                               self.model.parent_model_name)]
+        while parent_model:
+            parent_class = parent_model.objects.get(self.prefix, None)
+            Log('lookup %r in %r.%r = %r' % (self.prefix,
+                                             parent_model.spec.name,
+                                             parent_model.name,
+                                             parent_class))
+            if parent_class:
+                return parent_class
+            parent_model2 = models.get((parent_model.spec.name,
+                                       parent_model.parent_model_name), None)
+            if parent_model2:
+                Log('parent of %r.%r is %r.%r' % (parent_model.spec.name,
+                                                  parent_model.parent_model_name,
+                                                  parent_model2.spec.name,
+                                                  parent_model2.name))
+            else:
+                Log('parent of %r.%r is None' % (parent_model.spec.name,
+                                                  parent_model.parent_model_name))
+            parent_model = parent_model2
+        return None
+        
+    def FullName(self):
+        return '.'.join(self.prefix[:-1])
+        
+
 models = {}
 
 class Model(object):
@@ -128,6 +191,7 @@ class Model(object):
             self.parent_model_name = None
         self.items = {}
         self.objects = {}
+        self.object_sequence = []
         models[(self.spec.name,self.name)] = self
 
     def AddItem(self, name):
@@ -140,52 +204,31 @@ class Model(object):
             if (i[:len(prefix)-1] == prefix[:-1] and i != prefix):
                 yield i[len(prefix)-1:]
 
-    def Objectify(self, name, parent, prefix):
+    def Objectify(self, name, prefix):
         assert (not prefix) or (prefix[-1] == '')
-        self.objects[prefix] = 1
-        params = []
-        objs = []
-        out = []
+        obj = Object(self, name, prefix)
+        self.objects[prefix] = obj
         for i in self.ItemsMatchingPrefix(prefix):
             if len(i) == 1 and i[0] != '':
                 # a parameter of this object
-                params.append(i[0])
+                obj.params.append(i[0])
             elif len(i) == 2 and i[1] == '':
                 # a sub-object of this object
-                objname = i[0]
-                full_objname = prefix[:-1] + i
-                if self.parent_model_name:
-                    parent_model = models[(self.spec.name,
-                                           self.parent_model_name)]
-                    if parent_model.objects.has_key(full_objname):
-                        # want to declare base class name here
-                        #print 'MODELY'
-                        parent_classname = '%s.%s' \
-                           % (self.parent_model_name,
-                              '.'.join(full_objname[:-1]))
-                    else:
-                        parent_classname = 'Oogle'
-                else:
-                    parent_classname = 'Oogle'
-                parent_classname = re.sub(r'-{i}', '', parent_classname)  # FIXME
-                objs.append((prefix[:-1] + i,
-                             self.Objectify(objname, parent_classname,
-                                            full_objname)))
-        name = re.sub(r'-{i}', '', name)  # FIXME
-        out.append('class %s(%s):' % (name, parent))
-        for param in params:
-            out.append('  %s = 1' % (param,))
-        for objname,obj in objs:
-            if len(out) > 1:
-                out.append('')
-            out.append(Indented('  ', unicode(obj)))
-        if len(out) == 1:
-            out.append('  pass')
-        return '\n'.join(out)
+                subobj = self.Objectify(i[0], prefix[:-1] + i)
+                obj.object_sequence.append(subobj)
+        return obj
+
+    def MakeObjects(self):
+        assert not self.object_sequence
+        obj = self.Objectify(self.name, ('',))
+        self.object_sequence = [obj]
 
     def __str__(self):
-        return self.Objectify(self.name,
-                              self.parent_model_name or 'BaseClass', ('',))
+        out = []
+        for obj in self.object_sequence:
+            out.append(Indented('', obj))
+            out.append('')
+        return '\n'.join(out)
 
 
 def RenderParameter(model, prefix, xml):
@@ -235,29 +278,40 @@ class Spec(object):
 
     def __str__(self):
         out = []
-        out.append('class %s:' % SpecNameForPython(self.name))
         for (fromspec,fromname),(tospec,toname) in self.aliases:
             fromname = ObjNameForPython(fromname)
             tospec = SpecNameForPython(tospec)
             toname = ObjNameForPython(toname)
             if not models.has_key((fromspec,fromname)):
                 models[(fromspec,fromname)] = models[(tospec,toname)]
-            out.append('  %s = %s.%s\n'
-                       % (fromname, tospec, toname))
+                Log('aliased %r' % ((fromspec,fromname),))
+            if toname != fromname:
+                out.append('from %s import %s as %s' 
+                           % (tospec, toname, fromname))
+            else:
+                out.append('from %s import %s' 
+                           % (tospec, toname))
+        out.append('')
         for model in self.models:
-            out.append(Indented('  ', model))
+            out.append(str(model))
             out.append('')
         return '\n'.join(out)
+
+    def MakeObjects(self):
+        for (fromspec,fromname),(tospec,toname) in self.aliases:
+            fromname = ObjNameForPython(fromname)
+            tospec = SpecNameForPython(tospec)
+            toname = ObjNameForPython(toname)
+            if not models.has_key((fromspec,fromname)):
+                models[(fromspec,fromname)] = models[(tospec,toname)]
+                Log('aliased %r' % ((fromspec,fromname),))
             
 
 def main():
-    print 'class BaseClass: pass'
-    print 'class Oogle: pass'
-    print
-    
     for filename in sys.argv[1:]:
         ParseFile(filename)
     ResolveImports()
+    Log('Finished parsing and importing.')
 
     items = sorted(chunks.items())
     for (specname, objtype, name),(refspec, refname, xml) in items:
@@ -275,18 +329,28 @@ def main():
                 else:
                     model = Model(spec, objname, parent_model_name=None)
                 RenderComponent(model, '', refspec, xml)
+                model.MakeObjects()
                 spec.models.append(model)
-    printed = {}
-    def PrintSpec(spec):
-        if printed.get(spec.name, 0) < 1:
-            printed[spec.name] = 1
-            for dep in spec.deps:
-                PrintSpec(specs[dep])
-        if printed.get(spec.name, 0) < 2:
-            printed[spec.name] = 2
-            print spec
+
+    Log('Finished models.')
+
+    try:
+        os.mkdir('std')
+    except OSError, e:
+        if e.errno != errno.EEXIST:
+            raise
+    open('std/__init__.py', 'w')
+    for spec in specs.values():
+        spec.MakeObjects()
     for specname,spec in sorted(specs.items()):
-        PrintSpec(spec)
+        outf = open('std/%s.py' % SpecNameForPython(specname), 'w')
+        outf.write('#\n'
+                   '# AUTO-GENERATED BY parse-schema.py\n'
+                   '#\n'
+                   '# DO NOT EDIT!!\n'
+                   '#\n'
+                   'from objects import ParameterizedObject\n')
+        outf.write(str(spec))
 
 
 if __name__ == "__main__":
