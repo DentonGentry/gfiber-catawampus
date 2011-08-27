@@ -115,18 +115,20 @@ def ResolveImports():
         else:
             raise KeyError(objtype)
 
+
 models = {}
 
 class Model(object):
-    def __init__(self, spec, name, parent):
-        self.spec = SpecNameForPython(spec)
+    def __init__(self, spec, name, parent_model_name):
+        self.spec = spec
         self.name = ObjNameForPython(name)
-        if parent:
-            self.parent = ObjNameForPython(parent)
+        if parent_model_name:
+            self.parent_model_name = ObjNameForPython(parent_model_name)
         else:
-            self.parent = None
+            self.parent_model_name = None
         self.items = {}
-        models[(self.spec,self.name)] = self
+        self.objects = {}
+        models[(self.spec.name,self.name)] = self
 
     def AddItem(self, name):
         parts = tuple(re.sub(r'\.{i}', r'-{i}', name).split('.'))
@@ -140,6 +142,7 @@ class Model(object):
 
     def Objectify(self, name, parent, prefix):
         assert (not prefix) or (prefix[-1] == '')
+        self.objects[prefix] = 1
         params = []
         objs = []
         out = []
@@ -149,8 +152,25 @@ class Model(object):
                 params.append(i[0])
             elif len(i) == 2 and i[1] == '':
                 # a sub-object of this object
+                objname = i[0]
+                full_objname = prefix[:-1] + i
+                if self.parent_model_name:
+                    parent_model = models[(self.spec.name,
+                                           self.parent_model_name)]
+                    if parent_model.objects.has_key(full_objname):
+                        # want to declare base class name here
+                        #print 'MODELY'
+                        parent_classname = '%s.%s' \
+                           % (self.parent_model_name,
+                              '.'.join(full_objname[:-1]))
+                    else:
+                        parent_classname = 'Oogle'
+                else:
+                    parent_classname = 'Oogle'
+                parent_classname = re.sub(r'-{i}', '', parent_classname)  # FIXME
                 objs.append((prefix[:-1] + i,
-                             self.Objectify(i[0], 'Oogle', prefix[:-1] + i)))
+                             self.Objectify(objname, parent_classname,
+                                            full_objname)))
         name = re.sub(r'-{i}', '', name)  # FIXME
         out.append('class %s(%s):' % (name, parent))
         for param in params:
@@ -165,7 +185,7 @@ class Model(object):
 
     def __str__(self):
         return self.Objectify(self.name,
-                              self.parent or 'BaseClass', ('',))
+                              self.parent_model_name or 'BaseClass', ('',))
 
 
 def RenderParameter(model, prefix, xml):
@@ -203,6 +223,32 @@ def RenderComponent(model, prefix, spec, xml):
         else:
             raise KeyError(i.tag)
 
+specs = {}
+
+class Spec(object):
+    def __init__(self, name):
+        self.name = SpecNameForPython(name)
+        self.aliases = []
+        self.models = []
+        self.deps = []
+        specs[name] = self
+
+    def __str__(self):
+        out = []
+        out.append('class %s:' % SpecNameForPython(self.name))
+        for (fromspec,fromname),(tospec,toname) in self.aliases:
+            fromname = ObjNameForPython(fromname)
+            tospec = SpecNameForPython(tospec)
+            toname = ObjNameForPython(toname)
+            if not models.has_key((fromspec,fromname)):
+                models[(fromspec,fromname)] = models[(tospec,toname)]
+            out.append('  %s = %s.%s\n'
+                       % (fromname, tospec, toname))
+        for model in self.models:
+            out.append(Indented('  ', model))
+            out.append('')
+        return '\n'.join(out)
+            
 
 def main():
     print 'class BaseClass: pass'
@@ -214,45 +260,32 @@ def main():
     ResolveImports()
 
     items = sorted(chunks.items())
-    lastspec = None
-    specs = {}
-    specdeps = {}
-    for (spec, objtype, name),(refspec, refname, xml) in items:
-        if spec != lastspec:
-            specout = []
-            specout_pre = []
-            specout_pre.append('class %s:' % SpecNameForPython(spec))
-            lastspec = spec
+    for (specname, objtype, name),(refspec, refname, xml) in items:
+        spec = specs.get(specname, None) or Spec(specname)
         if objtype == 'model':
             objname = ObjNameForPython(name)
             parent = xml.attrib.get('base', None)
-            if refspec != spec:
-                if not specdeps.has_key(spec):
-                    specdeps[spec] = []
-                specdeps[spec].append(refspec)
-                specout_pre.append('  %s = %s.%s\n' 
-                                   % (objname,
-                                      SpecNameForPython(refspec),
-                                      ObjNameForPython(refname)))
+            if SpecNameForPython(refspec) != spec.name:
+                spec.deps.append(refspec)
+                spec.aliases.append(((spec.name,objname),
+                                     (refspec,refname)))
             else:
                 if parent:
-                    model = Model(spec, objname, parent=parent)
+                    model = Model(spec, objname, parent_model_name=parent)
                 else:
-                    model = Model(spec, objname, parent=None)
+                    model = Model(spec, objname, parent_model_name=None)
                 RenderComponent(model, '', refspec, xml)
-                specout.append(Indented('  ', model))
-                specout.append('')
-        specs[spec] = '\n'.join(specout_pre + specout)
+                spec.models.append(model)
     printed = {}
     def PrintSpec(spec):
-        if printed.get(spec, 0) < 1:
-            printed[spec] = 1
-            for dep in specdeps.get(spec, []):
-                PrintSpec(dep)
-        if printed.get(spec, 0) < 2:
-            printed[spec] = 2
-            print specs[spec]
-    for spec,specout in sorted(specs.items()):
+        if printed.get(spec.name, 0) < 1:
+            printed[spec.name] = 1
+            for dep in spec.deps:
+                PrintSpec(specs[dep])
+        if printed.get(spec.name, 0) < 2:
+            printed[spec.name] = 2
+            print spec
+    for specname,spec in sorted(specs.items()):
         PrintSpec(spec)
 
 
