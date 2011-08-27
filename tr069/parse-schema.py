@@ -34,7 +34,15 @@ def FixSpec(spec):
 
 
 def NiceSpec(spec):
-    return re.sub('^urn:broadband-forum-org:', '', spec)
+    return re.sub(r'^urn:broadband-forum-org:', '', spec)
+
+
+def SpecNameForPython(spec):
+    return re.sub(r'tr-(\d+)-(\d+)-(\d+)', r'tr\1_v\2_\3', NiceSpec(spec))
+
+
+def ObjNameForPython(name):
+    return re.sub(r':(\d+)\.(\d+)', r'_v\1_\2', name)
 
 
 _ImportBugFixes = {
@@ -104,20 +112,15 @@ def ResolveImports():
             raise KeyError(objtype)
 
 
-def ObjName(spec, name):
-    return "%s_%s" % (re.sub(r'[-\.]', '_', NiceSpec(spec)),
-                      re.sub(r':(\d+)\.(\d+)', r'_v\1_\2', name))
-
-
 def RenderParameter(prefix, xml):
     name = xml.attrib.get('base', xml.attrib.get('name', '<??>'))
-    print '  %s%s' % (prefix, name)
+    print '    %s%s' % (prefix, name)
 
 
 def RenderObject(prefix, spec, xml):
     name = xml.attrib.get('base', xml.attrib.get('name', '<??>'))
     prefix += name
-    print '  %s (%s)' % (prefix, xml.tag)
+    print '    %s (%s)' % (prefix, xml.tag)
     for i in xml:
         if i.tag == 'parameter':
             RenderParameter(prefix, i)
@@ -150,19 +153,24 @@ def main():
         ParseFile(filename)
     ResolveImports()
 
-    items = sorted(chunks.items(), key=lambda x: (x[0][2], x[0][0]))
+    items = sorted(chunks.items())
+    lastspec = None
     for (spec, objtype, name),(refspec, xml) in items:
+        if spec != lastspec:
+            print 'class %s:' % SpecNameForPython(spec)
+            lastspec = spec
         if objtype == 'model':
-            objname = ObjName(spec, name)
+            objname = ObjNameForPython(name)
             parent = xml.attrib.get('base', None)
             if refspec != spec:
-                print '%s = %s' % (objname, ObjName(refspec, name))
+                print '  %s = %s.%s' % (objname, SpecNameForPython(refspec),
+                                        ObjNameForPython(name))
                 print
                 continue
             elif parent:
-                print 'class %s(%s):' % (objname, ObjName(spec, parent))
+                print '  class %s(%s):' % (objname, ObjNameForPython(parent))
             else:
-                print 'class %s:' % objname
+                print '  class %s:' % objname
             RenderComponent('', refspec, xml)
             print
 
