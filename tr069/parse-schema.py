@@ -126,7 +126,6 @@ class Model(object):
         else:
             self.parent = None
         self.items = {}
-        self.depends = {}
         models[(self.spec,self.name)] = self
 
     def AddItem(self, name):
@@ -134,9 +133,10 @@ class Model(object):
         self.items[parts] = 1
 
     def ItemsMatchingPrefix(self, prefix):
+        assert (not prefix) or (prefix[-1] == '')
         for i in sorted(self.items.keys()):
             if (i[:len(prefix)-1] == prefix[:-1] and i != prefix):
-                yield i
+                yield i[len(prefix)-1:]
 
     def Objectify(self, name, parent, prefix):
         assert (not prefix) or (prefix[-1] == '')
@@ -144,13 +144,13 @@ class Model(object):
         objs = []
         out = []
         for i in self.ItemsMatchingPrefix(prefix):
-            if len(i) == len(prefix) and i[-1] != '':
+            if len(i) == 1 and i[0] != '':
                 # a parameter of this object
-                params.append(i[-1])
-            elif len(i) == len(prefix) + 1 and i[-1] == '':
+                params.append(i[0])
+            elif len(i) == 2 and i[1] == '':
                 # a sub-object of this object
-                objs.append((i[len(prefix)-1],
-                             self.Objectify(i[-2], 'Oogle', i)))
+                objs.append((prefix[:-1] + i,
+                             self.Objectify(i[0], 'Oogle', prefix[:-1] + i)))
         name = re.sub(r'-{i}', '', name)  # FIXME
         out.append('class %s(%s):' % (name, parent))
         for param in params:
@@ -215,25 +215,43 @@ def main():
 
     items = sorted(chunks.items())
     lastspec = None
+    specs = {}
+    specdeps = {}
     for (spec, objtype, name),(refspec, xml) in items:
         if spec != lastspec:
-            print 'class %s:' % SpecNameForPython(spec)
+            specout = []
+            specout.append('class %s:' % SpecNameForPython(spec))
             lastspec = spec
         if objtype == 'model':
             objname = ObjNameForPython(name)
             parent = xml.attrib.get('base', None)
             if refspec != spec:
-                print '  %s = %s.%s' % (objname, SpecNameForPython(refspec),
-                                        ObjNameForPython(name))
-                print
-                continue
-            if parent:
-                model = Model(spec, objname, parent=parent)
+                if not specdeps.has_key(spec):
+                    specdeps[spec] = []
+                specdeps[spec].append(refspec)
+                specout.append('  %s = %s.%s\n' 
+                               % (objname, SpecNameForPython(refspec),
+                                  ObjNameForPython(name)))
             else:
-                model = Model(spec, objname, parent=None)
-            RenderComponent(model, '', refspec, xml)
-            print Indented('  ', model)
-            print
+                if parent:
+                    model = Model(spec, objname, parent=parent)
+                else:
+                    model = Model(spec, objname, parent=None)
+                RenderComponent(model, '', refspec, xml)
+                specout.append(Indented('  ', model))
+                specout.append('')
+        specs[spec] = '\n'.join(specout)
+    printed = {}
+    def PrintSpec(spec):
+        if printed.get(spec, 0) < 1:
+            printed[spec] = 1
+            for dep in specdeps.get(spec, []):
+                PrintSpec(dep)
+        if printed.get(spec, 0) < 2:
+            printed[spec] = 2
+            print specs[spec]
+    for spec,specout in sorted(specs.items()):
+        PrintSpec(spec)
 
 
 if __name__ == "__main__":
