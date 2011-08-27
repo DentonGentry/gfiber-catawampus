@@ -150,29 +150,14 @@ class Object(object):
         return '\n'.join(out)
 
     def FindParentClass(self):
-        Log('parent search: %r.%r' % (self.model.spec.name,
-                               self.model.parent_model_name))
         parent_model = models[(self.model.spec.name,
                                self.model.parent_model_name)]
         while parent_model:
             parent_class = parent_model.objects.get(self.prefix, None)
-            Log('lookup %r in %r.%r = %r' % (self.prefix,
-                                             parent_model.spec.name,
-                                             parent_model.name,
-                                             parent_class))
             if parent_class:
                 return parent_class
-            parent_model2 = models.get((parent_model.spec.name,
-                                       parent_model.parent_model_name), None)
-            if parent_model2:
-                Log('parent of %r.%r is %r.%r' % (parent_model.spec.name,
-                                                  parent_model.parent_model_name,
-                                                  parent_model2.spec.name,
-                                                  parent_model2.name))
-            else:
-                Log('parent of %r.%r is None' % (parent_model.spec.name,
-                                                  parent_model.parent_model_name))
-            parent_model = parent_model2
+            parent_model = models.get((parent_model.spec.name,
+                                        parent_model.parent_model_name), None)
         return None
         
     def FullName(self):
