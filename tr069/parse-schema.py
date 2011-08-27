@@ -71,6 +71,7 @@ def ParseImports(into_spec, root):
 
 
 def ParseFile(filename):
+    Log(filename)
     root = xml.etree.ElementTree.parse(open(filename)).getroot()
     spec = FixSpec(root.attrib['spec'])
     Log(NiceSpec(spec))
