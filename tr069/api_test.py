@@ -5,14 +5,15 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import api
 import objects
 import unittest
 
 
-class ObjectsTest(unittest.TestCase):
-    def testObjects(self):
-        acs = objects.ACS()
-        cpe = objects.CPE(acs)
+class ApiTest(unittest.TestCase):
+    def testApi(self):
+        acs = api.ACS()
+        cpe = api.CPE(acs)
         print acs.GetRPCMethods()
         print cpe.GetRPCMethods()
         (idx1, status) = cpe.AddObject('Test.', 0)
