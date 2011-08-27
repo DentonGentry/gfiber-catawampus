@@ -93,7 +93,7 @@ def ParseFile(filename):
         elif node.tag in ('component', 'model'):
             name = node.attrib['name']
             Log('%-12s %-9s %s' % (NiceSpec(spec), node.tag, name))
-            AddChunk(spec, node.tag, name, (spec, node))
+            AddChunk(spec, node.tag, name, (spec, name, node))
         elif node.tag in ('description', 'dataType', 'bibliography'):
             continue
         else:
@@ -195,7 +195,7 @@ def RenderComponent(model, prefix, spec, xml):
         elif i.tag == 'object':
             RenderObject(model, prefix, spec, i)
         elif i.tag == 'component':
-            refspec, ref = chunks[spec, 'component', i.attrib['ref']]
+            refspec, refname, ref = chunks[spec, 'component', i.attrib['ref']]
             refpath = ref.attrib.get('path', ref.attrib.get('name', '<?>'))
             RenderComponent(model, prefix, refspec, ref)
         elif i.tag in ('profile', 'description'):
@@ -217,10 +217,11 @@ def main():
     lastspec = None
     specs = {}
     specdeps = {}
-    for (spec, objtype, name),(refspec, xml) in items:
+    for (spec, objtype, name),(refspec, refname, xml) in items:
         if spec != lastspec:
             specout = []
-            specout.append('class %s:' % SpecNameForPython(spec))
+            specout_pre = []
+            specout_pre.append('class %s:' % SpecNameForPython(spec))
             lastspec = spec
         if objtype == 'model':
             objname = ObjNameForPython(name)
@@ -229,9 +230,10 @@ def main():
                 if not specdeps.has_key(spec):
                     specdeps[spec] = []
                 specdeps[spec].append(refspec)
-                specout.append('  %s = %s.%s\n' 
-                               % (objname, SpecNameForPython(refspec),
-                                  ObjNameForPython(name)))
+                specout_pre.append('  %s = %s.%s\n' 
+                                   % (objname,
+                                      SpecNameForPython(refspec),
+                                      ObjNameForPython(refname)))
             else:
                 if parent:
                     model = Model(spec, objname, parent=parent)
@@ -240,7 +242,7 @@ def main():
                 RenderComponent(model, '', refspec, xml)
                 specout.append(Indented('  ', model))
                 specout.append('')
-        specs[spec] = '\n'.join(specout)
+        specs[spec] = '\n'.join(specout_pre + specout)
     printed = {}
     def PrintSpec(spec):
         if printed.get(spec, 0) < 1:
