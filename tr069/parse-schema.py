@@ -135,6 +135,7 @@ class Object(object):
             if parent_class:
                 parent_class_name = '%s.%s' % (self.model.parent_model_name,
                                                parent_class.FullName())
+        parent_class_name = re.sub(r'-{i}', '', parent_class_name)  # FIXME
         if parent_class_name.endswith('.'):
             # Only happens for toplevel Model objects
             parent_class_name = parent_class_name[:-1]
