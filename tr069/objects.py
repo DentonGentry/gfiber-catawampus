@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # Copyright 2011 Google Inc. All Rights Reserved.
 #
-"""Test app for TR-069 CPE/ACS interface library."""
+"""Base classes for TR-069 support."""
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
@@ -272,29 +272,3 @@ class CPE(TR069Service):
     raise NotImplementedError()
 
 
-def main():
-  acs = ACS()
-  cpe = CPE(acs)
-  print acs.GetRPCMethods()
-  print cpe.GetRPCMethods()
-  (idx1, status) = cpe.AddObject('Test.', 0)
-  (idx2, status) = cpe.AddObject('Test.Thingy.', 0)
-  name1 = 'Test.%d' % idx1
-  name2 = 'Test.Thingy.%d' % idx2
-  print _objects[name1]
-  print _objects[name2]
-  cpe.SetParameterValues([('%s.word' % name1, 'word1')], 0)
-  print _objects[name1]
-  try:
-    cpe.SetParameterValues([('%s.not_exist' % name1, 'word1')], 0)
-  except KeyError:
-    print 'Got a KeyError - good.'
-  else:
-    assert 0
-  result = cpe.GetParameterValues(['%s.word' % name1])
-  print repr(result)
-  assert result == [('%s.word' % name1, 'word1')]
-
-
-if __name__ == '__main__':
-  main()
