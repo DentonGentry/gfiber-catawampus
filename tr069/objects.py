@@ -12,36 +12,128 @@ ParameterizedObject yourself.
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 
-_objects = {}
-_last_index = 0
+_lastindex = -1
 
 
-def _NextIndex():
-  global _last_index
-  _last_index += 1
-  return _last_index
+class NotAddableError(KeyError):
+    pass
 
 
 class ParameterizedObject(object):
-  """An object containing named parameters that can be get/set."""
+  """An object containing named parameters that can be get/set.
 
-  def __init__(self, name_prefix, params=None, **kwargs):
-    assert name_prefix.endswith('.')
-    self.index = _NextIndex()
-    self.name = '%s%d' % (name_prefix, self.index)
-    self.params = params or {}
-    self.params.update(kwargs)
-    _objects[self.name] = self
+  It can also contain sub-objects with their own parameters, and attributes
+  that represent lists of sub-objects.
+  """
 
-  def __repr__(self):
-    return '%s%r' % (self.name, self.params)
+  def __init__(self):
+    self.export_params = set()
+    self.export_objects = set()
+    self.export_object_lists = set()
 
-  def GetParam(self, name):
-    return self.params[name]
+  def Export(self, params=None, objects=None, lists=None):
+    if params:
+        self.export_params.update(params)
+    if objects:
+        self.export_objects.update(objects)
+    if lists:
+        self.export_object_lists.update(lists)
 
-  def SetParam(self, name, value):
-    self.params[name]  # make sure it already exists
-    self.params[name] = value
+  def ValidateExports(self):
+    for name in self.export_params:
+        self._GetExport(name)
+    for name in self.export_objects:
+        obj = self._GetExport(name)
+        assert isinstance(obj, ParameterizedObject)
+        obj.ValidateExports()
+    for name in self.export_object_lists:
+        l = self._GetExport(name)
+        for obj in l:
+            assert isinstance(obj, ParameterizedObject)
+            obj.ValidateExports()
+            
+  def AssertValidExport(self, name):
+    if (name not in self.export_params and
+        name not in self.export_objects and
+        name not in self.export_object_lists):
+      raise KeyError(name)
 
-  def ListParams(self):
-    return list(sorted(self.params.keys()))
+  def _GetExport(self, name):
+    self.AssertValidExport(name)
+    if name in self.export_object_lists:
+        return getattr(self, name + 'List')
+    else:
+        return getattr(self, name)
+
+  def GetExport(self, name):
+      o = self
+      assert(not name.endswith('.'))
+      for i in name.split('.'):
+          if hasattr(o, '_GetExport'):
+              o = o._GetExport(i)
+          else:
+              o = o[i]
+      return o
+
+  def SetExportParam(self, name, value):
+    if name not in self.export_params:
+        raise KeyError(name)
+    setattr(self, name, value)
+
+  def AddExportObject(self, name, idx=None):
+    objlist = self._GetExport(name)
+    if name not in self.export_object_lists:
+        raise KeyError(name)
+    try:
+        constructor = getattr(self, name)
+    except KeyError:
+        raise NotAddableError(name)
+    if idx is None:
+        global _lastindex
+        _lastindex += 1
+        while _lastindex in objlist:
+            _lastindex += 1
+        idx = _lastindex
+    idx = str(idx)
+    assert '.' not in idx
+    newobj = constructor()
+    objlist[idx] = newobj
+    return newobj
+
+  def DeleteExportObject(self, name, idx):
+    idx = str(idx)
+    objlist = self._GetExport(name)
+    if idx not in objlist:
+        raise KeyError((name,idx))
+    del objlist[idx]
+
+  def _ListExports(self, recursive=False):
+    for name in self.export_params:
+        yield name
+    for name in self.export_objects:
+        yield name + '.'
+        if recursive:
+            obj = self._GetExport(name)
+            for i in obj._ListExports(recursive):
+                yield name + '.' + i
+    for name in self.export_object_lists:
+        yield name + '.'
+        if recursive:
+            objlist = self._GetExport(name)
+            for idx,obj in objlist.iteritems():
+                if obj is not None:
+                    for i in obj._ListExports(recursive):
+                        yield '%s.%s.%s' % (name, idx, i)
+
+  def ListExports(self, recursive=False):
+    return list(sorted(self._ListExports(recursive=recursive)))
+
+
+def Dump(root):
+    out = []
+    for i in root.ListExports(recursive=True):
+        if i.endswith('.'):
+            out.append('  %s' % (i,))
+        else:
+            out.append('  %s = %r' % (i, root.GetExport(i)))
+    return '\n'.join(out)
