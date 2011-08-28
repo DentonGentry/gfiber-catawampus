@@ -6,20 +6,20 @@
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import api
-import objects
+import core
 import unittest
 
 
-class Word(objects.ParameterizedObject):
+class Word(core.Exporter):
     def __init__(self):
-        objects.ParameterizedObject.__init__(self)
+        core.Exporter.__init__(self)
         self.Export(params=['word'])
         self.word = None
 
 
-class TestObject(objects.ParameterizedObject):
+class TestObject(core.Exporter):
     def __init__(self):
-        objects.ParameterizedObject.__init__(self)
+        core.Exporter.__init__(self)
         self.Export(lists=['Thingy'])
         self.ThingyList = {}
         self.Thingy = Word
@@ -27,7 +27,7 @@ class TestObject(objects.ParameterizedObject):
 
 class ApiTest(unittest.TestCase):
     def testApi(self):
-        root = objects.ParameterizedObject()
+        root = core.Exporter()
         root.Export(objects=['Test'])
         root.Test = TestObject()
         root.ValidateExports()

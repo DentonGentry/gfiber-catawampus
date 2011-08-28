@@ -1,18 +1,18 @@
 #!/usr/bin/python
 # Copyright 2011 Google Inc. All Rights Reserved.
 #
-"""Tests for objects.py.."""
+"""Tests for core.py."""
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import objects
+import core
 import unittest
 
 gcount = 0
 
-class SubObj(objects.ParameterizedObject):
+class SubObj(core.Exporter):
     def __init__(self):
-        objects.ParameterizedObject.__init__(self)
+        core.Exporter.__init__(self)
         self.Export(params=['Count'])
         
         global gcount
@@ -20,9 +20,9 @@ class SubObj(objects.ParameterizedObject):
         self.Count = gcount
 
 
-class TestObject(objects.ParameterizedObject):
+class TestObject(core.Exporter):
     def __init__(self):
-        objects.ParameterizedObject.__init__(self)
+        core.Exporter.__init__(self)
         self.Export(params=['TestParam'],
                     objects=['TestObj'],
                     lists=['Counter'])
@@ -32,8 +32,8 @@ class TestObject(objects.ParameterizedObject):
         self.Counter = SubObj
 
 
-class ObjectsTest(unittest.TestCase):
-    def testObjects(self):
+class CoreTest(unittest.TestCase):
+    def testCore(self):
         o = TestObject()
         self.assertTrue(o)
         o.ValidateExports()
@@ -55,12 +55,12 @@ class ObjectsTest(unittest.TestCase):
                           'TestObj.', 'TestObj.Count', 'TestParam'])
         self.assertEqual([(idx,i.Count) for idx,i in o.CounterList.items()],
                          [('0',2),('2',4)])
-        eo = o.AddExportObject('Counter', 'fred')
+        idx,eo = o.AddExportObject('Counter', 'fred')
         eo.Count = 99
         print o.ListExports(recursive=True)
         self.assertEqual([(idx,i.Count) for idx,i in o.CounterList.items()],
                          [('0',2),('2',4),('fred',99)])
-        print objects.Dump(o)
+        print core.Dump(o)
 
 
 if __name__ == '__main__':

@@ -9,11 +9,15 @@ std/parse-schema.stamp: parse-schema.py ${SCHEMA_IN}
 	./parse-schema.py ${SCHEMA_IN}
 	touch $@
 	
-parse-validate.stamp: std/parse-schema.stamp
+parse-validate.stamp: std/parse-schema.stamp *.py
 	rm -f $@ $@.new
-	for d in $(patsubst std/%.py,%,$(wildcard std/tr*.py)); do \
-		echo "import std.$$d"; \
-	done >$@.new
+	( \
+		echo "import os, sys"; \
+		echo "sys.path.append(os.getcwd() + '/..');"; \
+		for d in $(patsubst std/%.py,%,$(wildcard std/tr*.py)); do \
+			echo "import tr069.std.$$d"; \
+		done; \
+	) >$@.new
 	python $@.new
 	mv $@.new $@
 

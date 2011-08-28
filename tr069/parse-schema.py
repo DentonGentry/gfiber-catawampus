@@ -11,7 +11,7 @@ import re
 import sys
 import xml.etree.ElementTree
 
-DEFAULT_BASE_CLASS = 'ParameterizedObject'
+DEFAULT_BASE_CLASS = 'core.Exporter'
 
 chunks = {}
 imports = {}
@@ -335,7 +335,7 @@ def main():
                    '#\n'
                    '# DO NOT EDIT!!\n'
                    '#\n'
-                   'from objects import ParameterizedObject\n')
+                   'from .. import core\n')
         outf.write(str(spec))
 
 

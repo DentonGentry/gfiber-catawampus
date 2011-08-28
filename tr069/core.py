@@ -6,7 +6,7 @@
 The standard subclasses of these objects are auto-generated from the
 tr-*.xml schema files and dropped into the std/ subdirectory.  You can
 also define nonstandard data models by extending those classes or
-ParameterizedObject yourself.
+Exporter yourself.
 """
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
@@ -19,7 +19,7 @@ class NotAddableError(KeyError):
     pass
 
 
-class ParameterizedObject(object):
+class Exporter(object):
   """An object containing named parameters that can be get/set.
 
   It can also contain sub-objects with their own parameters, and attributes
@@ -44,12 +44,12 @@ class ParameterizedObject(object):
         self._GetExport(name)
     for name in self.export_objects:
         obj = self._GetExport(name)
-        assert isinstance(obj, ParameterizedObject)
+        assert isinstance(obj, Exporter)
         obj.ValidateExports()
     for name in self.export_object_lists:
         l = self._GetExport(name)
         for obj in l:
-            assert isinstance(obj, ParameterizedObject)
+            assert isinstance(obj, Exporter)
             obj.ValidateExports()
             
   def AssertValidExport(self, name):

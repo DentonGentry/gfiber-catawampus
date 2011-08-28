@@ -5,7 +5,7 @@
 
 The classes here represent the ACS (Auto Configuration Server) and CPE
 (Customer Premises Equipment) endpoints in the TR-069 standard API.  You can
-hand them an hierarchy of tr069.objects.ParameterizedObject and use the
+hand them an hierarchy of tr069.core.Exporter and use the
 TR-069 access methods to manipulate it.
 
 This file doesn't implement the XML (SOAP-like) wrapper around the TR-069
@@ -14,7 +14,7 @@ API calls; it's just a python version of the API.
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import objects
+import core
 
 
 DEVICE_ID = 'google-test-device-id'
@@ -155,7 +155,7 @@ class CPE(TR069Service):
     # And we ignore next_level_only.
     assert parameter_path.endswith('.')
     obj_name = parameter_path[:-1]
-    base_names = objects._objects[obj_name].ListParams()
+    base_names = self.root.GetExport(obj_name).ListExports()
     out = []
     for i in base_names:
       out.append('%s.%s' % (obj_name, i))
