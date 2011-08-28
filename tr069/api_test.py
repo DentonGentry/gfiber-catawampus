@@ -10,29 +10,45 @@ import objects
 import unittest
 
 
+class Word(objects.ParameterizedObject):
+    def __init__(self):
+        objects.ParameterizedObject.__init__(self)
+        self.Export(params=['word'])
+        self.word = None
+
+
+class TestObject(objects.ParameterizedObject):
+    def __init__(self):
+        objects.ParameterizedObject.__init__(self)
+        self.Export(lists=['Thingy'])
+        self.ThingyList = {}
+        self.Thingy = Word
+
+
 class ApiTest(unittest.TestCase):
     def testApi(self):
+        root = objects.ParameterizedObject()
+        root.Export(objects=['Test'])
+        root.Test = TestObject()
+        root.ValidateExports()
         acs = api.ACS()
-        cpe = api.CPE(acs)
+        cpe = api.CPE(acs, root)
         print acs.GetRPCMethods()
         print cpe.GetRPCMethods()
-        (idx1, status) = cpe.AddObject('Test.', 0)
-        (idx2, status) = cpe.AddObject('Test.Thingy.', 0)
-        name1 = 'Test.%d' % idx1
-        name2 = 'Test.Thingy.%d' % idx2
-        print objects._objects[name1]
-        print objects._objects[name2]
-        cpe.SetParameterValues([('%s.word' % name1, 'word1')], 0)
-        print objects._objects[name1]
+        (idx, status) = cpe.AddObject('Test.Thingy.', 0)
+        name = 'Test.Thingy.%d' % int(idx)
+        print root.GetExport(name).word
+        cpe.SetParameterValues([('%s.word' % name, 'word1')], 0)
+        print root.GetExport(name).word
         try:
-            cpe.SetParameterValues([('%s.not_exist' % name1, 'word1')], 0)
+            cpe.SetParameterValues([('%s.not_exist' % name, 'word1')], 0)
         except KeyError:
             self.assertTrue('Got a KeyError - good.')
         else:
             self.assertTrue(0)
-        result = cpe.GetParameterValues(['%s.word' % name1])
+        result = cpe.GetParameterValues(['%s.word' % name])
         print repr(result)
-        self.assertEqual(result, [('%s.word' % name1, 'word1')])
+        self.assertEqual(result, [('%s.word' % name, 'word1')])
 
 
 if __name__ == '__main__':

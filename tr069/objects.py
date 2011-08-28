@@ -98,7 +98,7 @@ class ParameterizedObject(object):
     assert '.' not in idx
     newobj = constructor()
     objlist[idx] = newobj
-    return newobj
+    return idx,newobj
 
   def DeleteExportObject(self, name, idx):
     idx = str(idx)

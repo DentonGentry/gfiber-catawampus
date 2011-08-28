@@ -27,17 +27,6 @@ def _SetParameterKey(value):
   _last_parameter_key = value
 
 
-class TestObject(objects.ParameterizedObject):
-  def __init__(self, name_prefix, word=None):
-    objects.ParameterizedObject.__init__(self, name_prefix, word=word)
-
-
-_constructors = {
-    'Test.': TestObject,
-    'Test.Thingy.': TestObject,
-}
-
-
 class TR069Service(object):
   """Represents a TR-069 SOAP RPC service."""
 
@@ -100,9 +89,10 @@ class ACS(TR069Service):
 class CPE(TR069Service):
   """Represents a TR-069 CPE (Customer Premises Equipment)."""
 
-  def __init__(self, acs):
+  def __init__(self, acs, root):
     TR069Service.__init__(self)
     self.acs = acs
+    self.root = root
     self.acs.Inform(self, DEVICE_ID,
                     events=[], max_envelopes=1,
                     current_time=None, retry_count=1,
@@ -126,7 +116,7 @@ class CPE(TR069Service):
       _SetParameterKey(value)
     else:
       obj_name, param_name = self._SplitParameterName(name)
-      objects._objects[obj_name].SetParam(param_name, value)
+      self.root.GetExport(obj_name).SetExportParam(param_name, value)
 
   def SetParameterValues(self, parameter_list, parameter_key):
     """Sets parameters on some objects."""
@@ -143,7 +133,7 @@ class CPE(TR069Service):
       return _last_parameter_key
     else:
       obj_name, param_name = self._SplitParameterName(name)
-      return objects._objects[obj_name].GetParam(param_name)
+      return self.root.GetExport(obj_name).GetExport(param_name)
 
   def GetParameterValues(self, parameter_names):
     """Gets parameters from some objects.
@@ -182,10 +172,11 @@ class CPE(TR069Service):
   def AddObject(self, object_name, parameter_key):
     """Create a new object with default parameters."""
     assert object_name.endswith('.')
-    constructor = _constructors[object_name]
-    obj = constructor(object_name)
+    path = object_name.split('.')
+    parent = self.root.GetExport('.'.join(path[:-2]))
+    idx,obj = parent.AddExportObject(path[-2])
     _SetParameterKey(parameter_key)
-    return (obj.index, 0)  # successfully created
+    return (idx, 0)  # successfully created
 
   def DeleteObject(self, object_name, parameter_key):
     """Delete an object and its sub-objects/parameters."""
