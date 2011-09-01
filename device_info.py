@@ -13,128 +13,54 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import collections
 import glob
 import os
+import tr.core
+import tr.tr181_v2_2 as tr181
 import xmlwitch
 
-# Used for Device.DeviceInfo.ProcessStatus.Process.{i}
-Process = collections.namedtuple('Process', ['PID', 'Command', 'Size',
-                                             'Priority', 'CPUTime', 'State'])
+BaseDevice = tr181.Device_v2_2
 
-class DeviceInfo(object):
-  """Outputs TR-181 Device.DeviceInfo nodes.
 
-  DeviceInfo is a composed object of four other platform specific
-  objects. It retrieves data about the platform and formats it according to
-  TR-181.
-
-  Constructor args:
-    device_info_platform: must provide a ToXml method
-    uptime: must provide a GetUptime method
-    memory_info: must provide a GetMemoryInfo method
-    process_status: must provide a GetProcessStatus method
-  """
-  def __init__(self, device_info_platform, uptime, memory_info, process_status):
-    self._device_info_platform = device_info_platform
-    self._uptime = uptime
-    self._memory_info = memory_info
-    self._process_status = process_status
-
-  def _MemoryInfoToXml(self, xml):
-    """Outputs memory information to Device.DeviceInfo.MemoryStatus.
-
-    The memory_info object implements an abstraction to get memory data
-    from the underlying platform. It deliberately does not contain any
-    TR-181 specifics, so we can more easily swap it out with a mock.
-    This function performs the TR-181 formatting.
-
-    Args:
-      xml: The xmlwitch XML object for Device.DeviceInfo.
-
-    Returns:
-      The xmlwitch object after adding MemoryStatus.
-
-    Raises: None
-    """
-    (totalmem, freemem) = self._memory_info.GetMemInfo()
-    with xml.MemoryStatus:
-      xml.Total(totalmem)
-      xml.Free(freemem)
-    return xml
-
-  def _ProcessStatusToXml(self, xml):
-    """Outputs a process list to Device.DeviceInfo.ProcessStatus.Process.{i}.
-
-    The process_status object implements an abstraction from the underlying
-    platform. It deliberately does not contain any TR-181 specifics, so we
-    can more easily swap it out with a mock. This function performs the
-    TR-181 formatting.
-
-    Args:
-      xml: The xmlwitch XML object for Device.DeviceInfo.
-
-    Raises: None
-    """
-    processes = self._process_status.GetProcesses()
-    with xml.Process:
-      for (num, proc) in enumerate(processes):
-        # Create XML node <0>, <1>, etc.
-        with xml.__getitem__(str(num)):
-          xml.PID(proc.PID)
-          xml.Command(proc.Command)
-          xml.Size(proc.Size)
-          xml.Priority(proc.Priority)
-          xml.CPUTime(proc.CPUTime)
-          xml.State(proc.State)
-
-  def ToXml(self, xml):
-    """Outputs Device.DeviceInfo.
-
-    Calls and formats output from the device_info_platform,
-    uptime, memory_info, and process_status objects.
-
-    Args:
-      xml: The xmlwitch XML object for Device.
-
-    Returns: the xmlwitch object after adding fields.
-
-    Raises: None
-    """
-    with xml.DeviceInfo:
-      self._device_info_platform.ToXml(xml)
-      xml.UpTime(self._uptime.GetUptime())
-      self._MemoryInfoToXml(xml)
-      self._ProcessStatusToXml(xml)
-    return xml
-
-class DeviceInfoUno(object):
+class DeviceInfo(BaseDevice.DeviceInfo):
   """Outputs fields to Device.DeviceInfo specific to the Google Uno platform.
 
   This object handles the manufacturer name, OUI, model, serial number,
   hardware and software versions, etc.
   """
   def __init__(self):
-    self._manufacturer = "Google"
-    self._manufacturer_oui = "00:1a:11:00:00:00"
-    self._model_name = "Uno"
-    self._description = "CPE device for Google Fiber network"
-    self._serial_number = "00000000"
-    self._hardware_version = "0"
-    self._software_version = "0"
+    BaseDevice.DeviceInfo.__init__(self)
+    self.Manufacturer = "Google"
+    self.ManufacturerOUI = "00:1a:11:00:00:00"
+    self.ModelName = "Uno"
+    self.Description = "CPE device for Google Fiber network"
+    self.SerialNumber = "00000000"
+    self.HardwareVersion = "0"
+    self.AdditionalHardwareVersion = "0"
+    self.SoftwareVersion = "0"
+    self.AdditionalSoftwareVersion = "0"
+    self.GetUptime = UptimeLinux26().GetUptime
+    self.MemoryStatus = MemoryStatusLinux26()
+    self.ProcessStatus = ProcessStatusLinux26()
+    self.ProvisioningCode = None  # TODO(apenwarr): fill me
+    self.ProductClass = 'Uno'
+    self.FirstUseDate = None  # TODO(apenwarr): fill me
+    self.ProcessorNumberOfEntries = 0
+    self.VendorConfigFileNumberOfEntries = 0
+    self.VendorLogFileNumberOfEntries = 0
+    self.SupportedDataModelNumberOfEntries = 0
+    self.NetworkProperties = self.NetworkProperties()
+    self.NetworkProperties.MaxTCPWindowSize = 0,  # TODO(apenwarr): fill me
+    self.NetworkProperties.TCPImplementation = '' # TODO(apenwarr): fill me
+    self.TemperatureStatus = self.TemperatureStatus()
+    self.TemperatureStatus.TemperatureSensorNumberOfEntries = 0
+    self.TemperatureStatus.TemperatureSensorList = {}
+    self.VendorLogFileList = {}
+    self.VendorConfigFileList = {}
+    self.SupportedDataModelList = {}
+    self.ProcessorList = {}
 
-  def ToXml(self, xml):
-    """Outputs Device.DeviceInfo fields specific to this platform.
-
-    Args:
-      xml: The xmlwitch XML object for Device.DeviceInfo.
-
-    Raises: None
-    """
-    xml.Manufacturer(self._manufacturer)
-    xml.ManufacturerOUI(self._manufacturer_oui)
-    xml.ModelName(self._model_name)
-    xml.Description(self._description)
-    xml.SerialNumber(self._serial_number)
-    xml.HardwareVersion(self._hardware_version)
-    xml.SoftwareVersion(self._software_version)
+  @property
+  def UpTime(self):
+      return self.GetUptime()
 
 
 class UptimeLinux26(object):
@@ -155,12 +81,12 @@ class UptimeLinux26(object):
     try:
       uptime = float(open(self._proc_uptime).read().split()[0])
     except IOError, KeyError:
-      # TODO(Dgentry) - LOG the exception, but return zeros by default
+      # TODO(dgentry) - LOG the exception, but return zeros by default
       uptime = 0.0
     return str(int(uptime))
 
 
-class MemoryInfoLinux26(object):
+class MemoryStatusLinux26(BaseDevice.DeviceInfo.MemoryStatus):
   """Abstraction to get memory information from the underlying platform.
 
   Reads proc/meminfo to find TotalMem and FreeMem.
@@ -168,7 +94,16 @@ class MemoryInfoLinux26(object):
   Tests can set _proc_meminfo to a file with fake data instead of /proc/meminfo
   """
   def __init__(self):
+    BaseDevice.DeviceInfo.MemoryStatus.__init__(self)
     self._proc_meminfo = "/proc/meminfo"
+
+  @property
+  def Total(self):
+      return int(self.GetMemInfo()[0])
+
+  @property
+  def Free(self):
+      return int(self.GetMemInfo()[1])
 
   def GetMemInfo(self):
     """Fetch TotalMem and FreeMem from the underlying platform.
@@ -195,7 +130,7 @@ class MemoryInfoLinux26(object):
     return (totalmem, freemem)
 
 
-class ProcessStatusLinux26(object):
+class ProcessStatusLinux26(BaseDevice.DeviceInfo.ProcessStatus):
   """Abstraction to get information about running processes from the
   underlying platform.
 
@@ -213,6 +148,7 @@ class ProcessStatusLinux26(object):
   _RSS = 23
 
   def __init__(self):
+    BaseDevice.DeviceInfo.ProcessStatus.__init__(self)
     tick = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
     self._msec_per_jiffy = 1000 / tick
     self._slash_proc = "/proc"
@@ -245,7 +181,16 @@ class ProcessStatusLinux26(object):
   def _RemoveParens(self, command):
     return command[1:-1]
 
-  def GetProcesses(self):
+  @property
+  def CPUUsage(self):
+      return 0   # TODO(apenwarr): figure out what this should do
+
+  @property
+  def ProcessNumberOfEntries(self):
+      return len(list(self.ProcessList))
+
+  @property
+  def ProcessList(self):
     """Walks through /proc/<pid>/stat to return a list of all processes.
 
     Args: none
@@ -253,18 +198,19 @@ class ProcessStatusLinux26(object):
     Returns:
       a list of Process namedtuple objects
     """
-    processes = list()
+    processes = {}
     for proc in glob.glob(self._slash_proc + "/[0123456789]*/stat"):
       try:
          fields = open(proc).read().split()
-         p = Process(PID=fields[self._PID],
-                     Command=self._RemoveParens(fields[self._COMM]),
-                     Size=fields[self._RSS],
-                     Priority=fields[self._PRIO],
-                     CPUTime=self._JiffiesToMsec(fields[self._UTIME],
-                                                 fields[self._STIME]),
-                     State=self._LinuxStateToTr181(fields[self._STATE]))
-         processes.append(p)
+         p = self.Process(PID=fields[self._PID],
+                          Command=self._RemoveParens(fields[self._COMM]),
+                          Size=fields[self._RSS],
+                          Priority=fields[self._PRIO],
+                          CPUTime=self._JiffiesToMsec(fields[self._UTIME],
+                                                      fields[self._STIME]),
+                          State=self._LinuxStateToTr181(fields[self._STATE]))
+         p.ValidateExports()
+         processes[p.PID] = p
       except IOError:
         # This isn't an error. We have a list of files which existed the
         # moment the glob.glob was run. If a process exits before we get
@@ -277,13 +223,9 @@ class ProcessStatusLinux26(object):
 
 
 def main():
-  dp = DeviceInfoUno()
-  ut = UptimeLinux26()
-  mi = MemoryInfoLinux26()
-  ps = ProcessStatusLinux26()
-  di = DeviceInfo(dp, ut, mi, ps)
-  xml = xmlwitch.Builder(encoding='utf-8')
-  print di.ToXml(xml)
+  dp = DeviceInfo()
+  #print tr.core.DumpSchema(dp)
+  print tr.core.Dump(dp)
 
 if __name__ == '__main__':
   main()
