@@ -121,34 +121,57 @@ def ResolveImports():
 class Object(object):
     def __init__(self, model, name, prefix):
         self.model = model
-        self.name = name
+        self.name = re.sub(r'-{i}', '', name)
+        self.is_sequence = (self.name != name)
         self.prefix = prefix
         self.params = []
         self.object_sequence = []
 
     def __str__(self):
+        pre = []
         out = []
-        name = re.sub(r'-{i}', '', self.name)  # FIXME
         parent_class_name = DEFAULT_BASE_CLASS
         if self.model.parent_model_name:
             parent_class = self.FindParentClass()
             if parent_class:
                 parent_class_name = '%s.%s' % (self.model.parent_model_name,
                                                parent_class.FullName())
-        parent_class_name = re.sub(r'-{i}', '', parent_class_name)  # FIXME
         if parent_class_name.endswith('.'):
             # Only happens for toplevel Model objects
             parent_class_name = parent_class_name[:-1]
-        out.append('class %s(%s):' % (name, parent_class_name))
-        for param in self.params:
-            out.append('  %s = 1' % (param,))
+        fullname_with_seq = re.sub(r'-{i}', '.{i}', '.'.join(self.prefix[:-1]))
+        pre.append('# %s.%s' % (self.model.name, fullname_with_seq))
+        pre.append('class %s(%s):' % (self.name, parent_class_name))
+        if self.params or self.object_sequence:
+            pre.append('  def __init__(self):')
+            pre.append('    %s.__init__(self)' % parent_class_name)
+            bits = []
+            space = ',\n                '
+            if self.params:
+                quoted_param_list = ["'%s'" % param for param in self.params]
+                quoted_params = (space+'        ').join(quoted_param_list)
+                bits.append('params=[%s]' % quoted_params)
+            obj_list = [obj.name for obj in self.object_sequence
+                        if not obj.is_sequence]
+            if obj_list:
+                quoted_obj_list = ["'%s'" % obj for obj in obj_list]
+                quoted_objs = (space+'         ').join(quoted_obj_list)
+                bits.append('objects=[%s]' % quoted_objs)
+            objlist_list = [obj.name for obj in self.object_sequence
+                            if obj.is_sequence]
+            if objlist_list:
+                quoted_objlist_list = ["'%s'" % obj for obj in objlist_list]
+                quoted_objlists = (space+'       ').join(quoted_objlist_list)
+                bits.append('lists=[%s]' % quoted_objlists)
+            pre.append('    self.Export(%s)' % (space.join(bits)))
+            pre.append('')
         for obj in self.object_sequence:
-            if len(out) > 1:
+            if out:
                 out.append('')
             out.append(Indented('  ', obj))
-        if len(out) == 1:
+        if not self.params and not out:
             out.append('  pass')
-        return '\n'.join(out)
+        return '\n'.join(pre + out)
 
     def FindParentClass(self):
         parent_model = models[(self.model.spec.name,
@@ -162,7 +185,7 @@ class Object(object):
         return None
         
     def FullName(self):
-        return '.'.join(self.prefix[:-1])
+        return re.sub(r'-{i}', '', '.'.join(self.prefix[:-1]))
         
 
 models = {}
