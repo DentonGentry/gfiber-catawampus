@@ -1,22 +1,19 @@
-all: test_main
+default: all
 
-# Directory where object files should be placed
-OUTDIR ?= .
+all: tr/all
 
-XML_SCHEMAS := cwmp-1-2
-XML_SCHEMAS += cwmp-datamodel-1-3
-#XML_SCHEMAS += cwmp-datamodel-report
-XML_SCHEMAS += cwmp-devicetype-1-1
-#XML_SCHEMAS += cwmp-devicetype-features
+test: all tr/test *_test.py
+	set -e; \
+	for d in $(filter %_test.py,$^); do \
+		python $$d; \
+	done
 
-XSD_SOURCES = $(XML_SCHEMAS:%=schema/%.xsd)
-XSD_PYFILES = $(XML_SCHEMAS:%=$(OUTDIR)/%.py)
+clean: tr/clean
+	rm -f *~ *.pyc
 
-$(XSD_PYFILES) : ${OUTDIR}/%.py: schema/%.xsd
-	generateDS.py --silence --no-questions -o $@ $^
 
-test_main: $(XSD_PYFILES)
-	echo Done
+# Subdir rules
+%/all:; $(MAKE) -C $* all
+%/test:; $(MAKE) -C $* test
+%/clean:; $(MAKE) -C $* clean
 
-clean:
-	rm -f ${XSD_PYFILES}

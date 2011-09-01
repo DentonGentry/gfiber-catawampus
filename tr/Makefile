@@ -2,7 +2,7 @@ default: all
 
 all: std/parse-schema.stamp
 
-SCHEMA_IN = $(wildcard ../schema/tr-*.xml)
+SCHEMA_IN = $(wildcard schema/tr-*.xml)
 std/parse-schema.stamp: parse-schema.py ${SCHEMA_IN}
 	rm -f $@ $@.new
 	rm -rf std
