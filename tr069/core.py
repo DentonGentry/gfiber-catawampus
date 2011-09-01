@@ -19,6 +19,10 @@ class NotAddableError(KeyError):
     pass
 
 
+class SchemaError(Exception):
+    pass
+
+
 class Exporter(object):
   """An object containing named parameters that can be get/set.
 
@@ -39,17 +43,49 @@ class Exporter(object):
     if lists:
         self.export_object_lists.update(lists)
 
-  def ValidateExports(self):
+  def ValidateExports(self, path=None):
+    if not path:
+      path = ['root']
+    def Exc(name, msg):
+      fullname = '.'.join(path+[name])
+      return SchemaError('%s %s' % (fullname, msg))
     for name in self.export_params:
-        self._GetExport(name)
+        try:
+            self._GetExport(name)
+        except AttributeError:
+            raise Exc(name, 'is a param but does not exist')
     for name in self.export_objects:
-        obj = self._GetExport(name)
-        assert isinstance(obj, Exporter)
-        obj.ValidateExports()
+        try:
+            obj = self._GetExport(name)
+        except KeyError:
+            raise Exc(name, 'is an obj but does not exist')
+        if isinstance(obj, type):
+            raise Exc(name, 'is a type; instantiate it')
+        try:
+            obj.Export()
+        except AttributeError:
+            raise Exc(name, 'is %r, must implement core.Exporter'
+                      % type(obj))
+        obj.ValidateExports(path+[name])
     for name in self.export_object_lists:
-        l = self._GetExport(name)
-        for obj in l:
-            assert isinstance(obj, Exporter)
+        try:
+            l = self._GetExport(name)
+        except KeyError:
+            raise Exc(name, 'is an objlist but does not exist')
+        try:
+            for iname,obj in l.iteritems():
+                pass
+        except TypeError:
+            raise Exc(name + 'List', 'is an objlist but failed to iteritems')
+        for iname,obj in l.iteritems():
+            if isinstance(obj, type):
+                raise Exc('%s.%s' % (name, iname),
+                          'is a type; instantiate it')
+            try:
+                obj.Export()
+            except AttributeError:
+                raise Exc(name, 'is %r, must implement core.Exporter'
+                          % type(obj))
             obj.ValidateExports()
             
   def AssertValidExport(self, name):
@@ -126,7 +162,16 @@ class Exporter(object):
                         yield '%s.%s.%s' % (name, idx, i)
 
   def ListExports(self, recursive=False):
+    if recursive:
+        self.ValidateExports()
     return list(sorted(self._ListExports(recursive=recursive)))
+
+
+class TODO(Exporter):
+    def __init__(self):
+        Exporter.__init__(self)
+        self.Export(params=['TODO'])
+        self.TODO = 'CLASS NOT IMPLEMENTED YET'
 
 
 def Dump(root):

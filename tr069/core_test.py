@@ -60,6 +60,7 @@ class CoreTest(unittest.TestCase):
         self.assertEqual([(idx,i.Count) for idx,i in o.CounterList.items()],
                          [('0',2),('2',4),('fred',99)])
         print core.Dump(o)
+        o.ValidateExports()
 
 
 if __name__ == '__main__':
