@@ -47,6 +47,11 @@ class CoreTest(unittest.TestCase):
                          ['Counter.', 'Counter.0.Count',
                           'Counter.1.Count', 'Counter.2.Count',
                           'SubObj.', 'SubObj.Count', 'TestParam'])
+
+        ds1 = core.DumpSchema(TestObject)
+        ds2 = core.DumpSchema(o)
+        self.assertEqual(ds1, ds2)
+
         o.DeleteExportObject('Counter', 1)
         self.assertEqual(o.ListExports(recursive=True),
                          ['Counter.', 'Counter.0.Count',

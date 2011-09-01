@@ -182,3 +182,25 @@ def Dump(root):
         else:
             out.append('  %s = %r' % (i, root.GetExport(i)))
     return '\n'.join(out)
+
+
+def _DumpSchema(root, out, path):
+    if isinstance(root, type):
+        root = root()
+    for i in root.export_params:
+        out.append('.'.join(path + [i]))
+    for i in root.export_objects:
+        out.append('.'.join(path + [i, '']))
+        _DumpSchema(getattr(root, i), out, path + [i])
+    for i in root.export_object_lists:
+        out.append('.'.join(path + [i, '']))
+        out.append('.'.join(path + [i, '{i}']))
+        _DumpSchema(getattr(root, i), out, path + [i, '{i}'])
+
+
+def DumpSchema(root):
+    out = []
+    if isinstance(root, type):
+        root = root()
+    _DumpSchema(root, out, [root.__class__.__name__])
+    return '\n'.join(sorted(out))
