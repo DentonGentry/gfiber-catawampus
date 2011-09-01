@@ -4,7 +4,7 @@
 """Base classes for TR-069 model objects.
 
 The standard subclasses of these objects are auto-generated from the
-tr-*.xml schema files and dropped into the std/ subdirectory.  You can
+tr-*.xml schema files and named tr???_*.py in this directory.  You can
 also define nonstandard data models by extending those classes or
 Exporter yourself.
 """

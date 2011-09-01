@@ -1,3 +1,4 @@
 *.stamp
 *.pyc
-/std
+tr???_*.py*
+stamp.*

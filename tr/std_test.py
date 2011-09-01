@@ -1,17 +1,15 @@
 #!/usr/bin/python
 # Copyright 2011 Google Inc. All Rights Reserved.
 #
-"""Tests for std/*.py."""
+"""Tests for auto-generated tr???_*.py."""
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import core
 import os
 import sys
+import tr098_v1_2 as tr098
 import unittest
-
-sys.path.append(os.getcwd() + '/..')
-import tr.std.tr098_v1_2 as tr098
 
 
 class MyModel(tr098.InternetGatewayDevice_v1_4):

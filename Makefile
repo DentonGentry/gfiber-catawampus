@@ -9,7 +9,7 @@ test: all tr/test *_test.py
 	done
 
 clean: tr/clean
-	rm -f *~ *.pyc
+	rm -f *~ .*~ *.pyc
 
 
 # Subdir rules

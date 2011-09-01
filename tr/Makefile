@@ -1,32 +1,30 @@
 default: all
 
-all: std/parse-schema.stamp
+all: stamp.parsed
 
 SCHEMA_IN = $(wildcard schema/tr-*.xml)
-std/parse-schema.stamp: parse-schema.py ${SCHEMA_IN}
-	rm -f $@ $@.new
+stamp.parsed: parse-schema.py ${SCHEMA_IN}
+	rm -f $@ $@.new tr???_*.py*
 	rm -rf std
 	./parse-schema.py ${SCHEMA_IN}
 	touch $@
 	
-parse-validate.stamp: std/parse-schema.stamp *.py
+stamp.validated: stamp.parsed *.py
 	rm -f $@ $@.new
 	( \
-		echo "import os, sys"; \
-		echo "sys.path.append(os.getcwd() + '/..');"; \
-		for d in $(patsubst std/%.py,%,$(wildcard std/tr*.py)); do \
-			echo "import tr.std.$$d"; \
+		for d in $(patsubst %.py,%,$(wildcard tr???_*.py)); do \
+			echo "import $$d"; \
 		done; \
 	) >$@.new
 	python $@.new
 	mv $@.new $@
 
-test: all parse-validate.stamp $(wildcard *_test.py)
+test: all stamp.validated $(wildcard *_test.py)
 	set -e; \
 	for d in $(filter %_test.py,$^); do \
 		python $$d; \
 	done
 
 clean:
-	rm -f *~ *.pyc *.stamp
+	rm -f *~ .*~ *.pyc *.stamp tr???_*.py* stamp.*
 	rm -rf std
