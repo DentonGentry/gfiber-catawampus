@@ -10,26 +10,25 @@ import unittest
 
 gcount = 0
 
-class SubObj(core.Exporter):
-    def __init__(self):
-        core.Exporter.__init__(self)
-        self.Export(params=['Count'])
-        
-        global gcount
-        gcount += 1
-        self.Count = gcount
-
-
 class TestObject(core.Exporter):
     def __init__(self):
         core.Exporter.__init__(self)
         self.Export(params=['TestParam'],
-                    objects=['TestObj'],
+                    objects=['SubObj'],
                     lists=['Counter'])
         self.TestParam = 5
-        self.TestObj = SubObj()
+        self.SubObj = TestObject.SubObj()
         self.CounterList = {}
-        self.Counter = SubObj
+        self.Counter = TestObject.SubObj
+
+    class SubObj(core.Exporter):
+        def __init__(self):
+            core.Exporter.__init__(self)
+            self.Export(params=['Count'])
+        
+            global gcount
+            gcount += 1
+            self.Count = gcount
 
 
 class CoreTest(unittest.TestCase):
@@ -43,16 +42,16 @@ class CoreTest(unittest.TestCase):
         print o.ListExports(recursive=False)
         print o.ListExports(recursive=True)
         self.assertEqual(o.ListExports(),
-                         ['Counter.', 'TestObj.', 'TestParam'])
+                         ['Counter.', 'SubObj.', 'TestParam'])
         self.assertEqual(o.ListExports(recursive=True),
                          ['Counter.', 'Counter.0.Count',
                           'Counter.1.Count', 'Counter.2.Count',
-                          'TestObj.', 'TestObj.Count', 'TestParam'])
+                          'SubObj.', 'SubObj.Count', 'TestParam'])
         o.DeleteExportObject('Counter', 1)
         self.assertEqual(o.ListExports(recursive=True),
                          ['Counter.', 'Counter.0.Count',
                           'Counter.2.Count',
-                          'TestObj.', 'TestObj.Count', 'TestParam'])
+                          'SubObj.', 'SubObj.Count', 'TestParam'])
         self.assertEqual([(idx,i.Count) for idx,i in o.CounterList.items()],
                          [('0',2),('2',4)])
         idx,eo = o.AddExportObject('Counter', 'fred')
