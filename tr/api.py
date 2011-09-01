@@ -5,7 +5,7 @@
 
 The classes here represent the ACS (Auto Configuration Server) and CPE
 (Customer Premises Equipment) endpoints in the TR-069 standard API.  You can
-hand them an hierarchy of tr069.core.Exporter and use the
+hand them an hierarchy of tr.core.Exporter and use the
 TR-069 access methods to manipulate it.
 
 This file doesn't implement the XML (SOAP-like) wrapper around the TR-069

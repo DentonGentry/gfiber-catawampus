@@ -15,7 +15,7 @@ parse-validate.stamp: std/parse-schema.stamp *.py
 		echo "import os, sys"; \
 		echo "sys.path.append(os.getcwd() + '/..');"; \
 		for d in $(patsubst std/%.py,%,$(wildcard std/tr*.py)); do \
-			echo "import tr069.std.$$d"; \
+			echo "import tr.std.$$d"; \
 		done; \
 	) >$@.new
 	python $@.new

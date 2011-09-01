@@ -11,7 +11,7 @@ import sys
 import unittest
 
 sys.path.append(os.getcwd() + '/..')
-import tr069.std.tr098_v1_2 as tr098
+import tr.std.tr098_v1_2 as tr098
 
 
 class MyModel(tr098.InternetGatewayDevice_v1_4):
