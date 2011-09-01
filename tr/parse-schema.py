@@ -304,6 +304,12 @@ class Spec(object):
         for model in self.models:
             out.append(str(model))
             out.append('')
+
+        if self.models:
+            out.append('')
+            out.append("if __name__ == '__main__':")
+            for model in self.models:
+                out.append("  print core.DumpSchema(%s)" % model.name)
         return '\n'.join(out)
 
     def MakeObjects(self):
