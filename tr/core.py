@@ -30,10 +30,13 @@ class Exporter(object):
   that represent lists of sub-objects.
   """
 
-  def __init__(self):
+  def __init__(self, defaults=None):
     self.export_params = set()
     self.export_objects = set()
     self.export_object_lists = set()
+    if defaults:
+        for key,value in defaults.iteritems():
+            setattr(self, key, value)
 
   def Export(self, params=None, objects=None, lists=None):
     if params:

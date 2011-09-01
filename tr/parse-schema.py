@@ -143,8 +143,9 @@ class Object(object):
         pre.append('# %s.%s' % (self.model.name, fullname_with_seq))
         pre.append('class %s(%s):' % (self.name, parent_class_name))
         if self.params or self.object_sequence:
-            pre.append('  def __init__(self):')
-            pre.append('    %s.__init__(self)' % parent_class_name)
+            pre.append('  def __init__(self, **defaults):')
+            pre.append('    %s.__init__(self, defaults=defaults)'
+                       % parent_class_name)
             bits = []
             space = ',\n                '
             if self.params:
