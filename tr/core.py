@@ -198,7 +198,7 @@ class Exporter(object):
     assert not name.endswith('.')
     for i in name.split('.'):
       if hasattr(o, '_GetExport'):
-        o = o._GetExport(i)
+        o = o._GetExport(i)  #pylint: disable-msg=W0212
       else:
         o = o[i]
     return o
