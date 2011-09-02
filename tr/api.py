@@ -14,17 +14,8 @@ API calls; it's just a python version of the API.
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import core
-
 
 DEVICE_ID = 'google-test-device-id'
-
-_last_parameter_key = None
-
-
-def _SetParameterKey(value):
-  global _last_parameter_key
-  _last_parameter_key = value
 
 
 class TR069Service(object):
@@ -91,12 +82,16 @@ class CPE(TR069Service):
 
   def __init__(self, acs, root):
     TR069Service.__init__(self)
+    self._last_parameter_key = None
     self.acs = acs
     self.root = root
     self.acs.Inform(self, DEVICE_ID,
                     events=[], max_envelopes=1,
                     current_time=None, retry_count=1,
                     parameter_list=[])
+
+  def _SetParameterKey(self, value):
+    self._last_parameter_key = value
 
   def _SplitParameterName(self, name):
     """Split a name like Top.Object.1.Name into (Top.Object.1, Name)."""
@@ -113,7 +108,7 @@ class CPE(TR069Service):
   def _SetParameterValue(self, name, value):
     """Given a parameter (which can include an object), set its value."""
     if name == 'ParameterKey':
-      _SetParameterKey(value)
+      self._SetParameterKey(value)
     else:
       obj_name, param_name = self._SplitParameterName(name)
       self.root.GetExport(obj_name).SetExportParam(param_name, value)
@@ -124,13 +119,13 @@ class CPE(TR069Service):
     # TODO(apenwarr): implement correct handling of invalid parameter names
     for name, value in parameter_list:
       self._SetParameterValue(name, value)
-    _SetParameterKey(parameter_key)
+    self._SetParameterKey(parameter_key)
     return 0  # all values changed successfully
 
   def _GetParameterValue(self, name):
     """Given a parameter (which can include an object), return its value."""
     if name == 'ParameterKey':
-      return _last_parameter_key
+      return self._last_parameter_key
     else:
       obj_name, param_name = self._SplitParameterName(name)
       return self.root.GetExport(obj_name).GetExport(param_name)
@@ -174,8 +169,8 @@ class CPE(TR069Service):
     assert object_name.endswith('.')
     path = object_name.split('.')
     parent = self.root.GetExport('.'.join(path[:-2]))
-    idx,obj = parent.AddExportObject(path[-2])
-    _SetParameterKey(parameter_key)
+    (idx, obj) = parent.AddExportObject(path[-2])  #pylint: disable-msg=W0612
+    self._SetParameterKey(parameter_key)
     return (idx, 0)  # successfully created
 
   def DeleteObject(self, object_name, parameter_key):
