@@ -16,10 +16,12 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 
 class NotAddableError(KeyError):
+  """Raised when AddObject is not allowed on an object list."""
   pass
 
 
 class SchemaError(Exception):
+  """Raised when an object claims to implement a schema but doesn't."""
   pass
 
 
@@ -32,6 +34,10 @@ class AutoDict(object):
   no reason to actually cache the list of filenames; the kernel already has
   that list in real time.  So we provide a dict-like interface, and you
   can implement iteritems, getitem, setitem, etc separately.
+
+  Use this class by either deriving from it or by just passing your own
+  iteritems, getitems, etc to the constructor.  The choice depends on how
+  you want to do your namespacing.
   """
 
   def __init__(self, name, iteritems=None,
@@ -104,6 +110,11 @@ class Exporter(object):
   """
 
   def __init__(self, defaults=None):
+    """Initialize an Exporter.
+
+    Args:
+      defaults: (optional) a dictionary of attrs to set on the object.
+    """
     self.__lastindex = -1
     self.export_params = set()
     self.export_objects = set()
@@ -113,6 +124,20 @@ class Exporter(object):
         setattr(self, key, value)
 
   def Export(self, params=None, objects=None, lists=None):
+    """Export some parameters, objects, or lists to make them visible.
+
+    Once you export these, you still have to manually declare attributes
+    named after the exported names.  The idea is that mostly auto-generated
+    classes will call Export(), but manually-written subclasses will declare
+    the actual attributes.  If you forget to declare an attribute (or you
+    make a typo) then ValidateExports will fail.
+
+    Args:
+      params: a list of parameters in this object.
+      objects: a list of sub-objects in this object.
+      lists: a list of object-list names (lists containing objects) in this
+        object.
+    """
     if params:
       self.export_params.update(params)
     if objects:
@@ -194,6 +219,13 @@ class Exporter(object):
     return getattr(self, self._GetExportName(name))
 
   def GetExport(self, name):
+    """Get a child of this object (a parameter or object).
+
+    Args:
+      name: a dot-separated sub-object name to retrieve.
+    Returns:
+      An Exporter instance or a parameter value.
+    """
     o = self
     assert not name.endswith('.')
     for i in name.split('.'):
@@ -204,6 +236,14 @@ class Exporter(object):
     return o
 
   def SetExportParam(self, name, value):
+    """Set the value of a parameter of this object.
+
+    Args:
+      name: the parameter name to set (parameters only, not objects or lists).
+      value: the value to set it to.
+    Raises:
+      KeyError: if the name is not an exported parameter.
+    """
     if name not in self.export_params:
       raise KeyError(name)
     setattr(self, name, value)
@@ -238,6 +278,14 @@ class Exporter(object):
     return idx, newobj
 
   def DeleteExportObject(self, name, idx):
+    """Delete the object with index idx in the list named name.
+
+    Args:
+      name: the sub-object list to delete from.
+      idx: the index of the objet to delete.
+    Raises:
+      KeyError: if the given index is not in the dictionary.
+    """
     idx = str(idx)
     objlist = self._GetExport(name)
     if idx not in objlist:
@@ -263,12 +311,29 @@ class Exporter(object):
               yield '%s.%s.%s' % (name, idx, i)
 
   def ListExports(self, recursive=False):
+    """Return a sorted list of sub-objects and parameters.
+
+    Args:
+      recursive: true if you want to include children of children.
+    Returns:
+      An iterable of strings that can be passed to GetExport().
+    """
+    # TODO(apenwarr): do sorting incrementally on each _ListExports.
+    #   Sorting at the toplevel requires us to load the whole list into
+    #   memory at once, which would otherwise be unnecessary.
     if recursive:
       self.ValidateExports()
-    return list(sorted(self._ListExports(recursive=recursive)))
+    return sorted(self._ListExports(recursive=recursive))
 
 
 class TODO(Exporter):
+  """Use this class to fake out an Exporter instance.
+
+  Useful when you're implementing a big TR-069 Model hierarchy and you don't
+  want to implement every single class right now.  As a bonus, it'll show up
+  when you grep for TODO in the source code.
+  """
+
   def __init__(self):
     Exporter.__init__(self)
     self.Export(params=['TODO'])
@@ -276,6 +341,17 @@ class TODO(Exporter):
 
 
 def Dump(root):
+  """Return a string representing the contents of an object.
+
+  This function works only if root.ValidateExports() would pass.
+
+  Args:
+    root: the object to dump.
+  Returns:
+    A big string containing lines of the format:
+      Object.SubObject.
+      Object.SubObject.ParameterName = %r
+  """
   out = []
   for i in root.ListExports(recursive=True):
     if i.endswith('.'):
@@ -300,6 +376,23 @@ def _DumpSchema(root, out, path):
 
 
 def DumpSchema(root):
+  """Return a string representing the object model implemented by the object.
+
+  You can use this to show which objects, sub-objects, and parameters *should*
+  be implemented by an object, even if that object isn't fully implemented
+  yet by adding the right attrs in a subclass.  This is useful for figuring
+  out which attrs you *need* to add in a subclass.  Auto-generated tr*.py
+  files run this automatically when you execute them from the command line.
+
+  This function works even if root.ValidateExports() would fail.
+
+  Args:
+    root: the object or type to dump.  If a type, instantiates it.
+  Returns:
+    A big string of the format:
+      Object.SubObject.
+      Object.SubObject.ParameterName
+  """
   out = []
   if isinstance(root, type):
     root = root()
