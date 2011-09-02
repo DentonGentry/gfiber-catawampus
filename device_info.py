@@ -152,6 +152,9 @@ class ProcessStatusLinux26(BaseDevice.DeviceInfo.ProcessStatus):
     tick = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
     self._msec_per_jiffy = 1000 / tick
     self._slash_proc = "/proc"
+    self.ProcessList = tr.core.AutoDict('ProcessList',
+                                        iteritems=self.IterProcesses,
+                                        getitem=self.GetProcess)
 
   def _LinuxStateToTr181(self, linux_state):
     """Maps Linux process states to TR-181 process state names.
@@ -181,49 +184,50 @@ class ProcessStatusLinux26(BaseDevice.DeviceInfo.ProcessStatus):
   def _RemoveParens(self, command):
     return command[1:-1]
 
+  def _ProcFileName(self, pid):
+    return '%s/%s/stat' % (self._slash_proc, pid)
+
   @property
   def CPUUsage(self):
       return 0   # TODO(apenwarr): figure out what this should do
 
   @property
   def ProcessNumberOfEntries(self):
-      return len(list(self.ProcessList))
+    return len(self.ProcessList)
 
-  @property
-  def ProcessList(self):
-    """Walks through /proc/<pid>/stat to return a list of all processes.
-
-    Args: none
-
-    Returns:
-      a list of Process namedtuple objects
-    """
-    processes = {}
-    for proc in glob.glob(self._slash_proc + "/[0123456789]*/stat"):
+  def GetProcess(self, pid):
       try:
-         fields = open(proc).read().split()
-         p = self.Process(PID=fields[self._PID],
-                          Command=self._RemoveParens(fields[self._COMM]),
-                          Size=fields[self._RSS],
-                          Priority=fields[self._PRIO],
-                          CPUTime=self._JiffiesToMsec(fields[self._UTIME],
-                                                      fields[self._STIME]),
-                          State=self._LinuxStateToTr181(fields[self._STATE]))
-         p.ValidateExports()
-         processes[p.PID] = p
+        f = open(self._ProcFileName(pid))
       except IOError:
+        raise KeyError(pid)
+      fields = f.read().split()
+      p = self.Process(PID=fields[self._PID],
+                       Command=self._RemoveParens(fields[self._COMM]),
+                       Size=fields[self._RSS],
+                       Priority=fields[self._PRIO],
+                       CPUTime=self._JiffiesToMsec(fields[self._UTIME],
+                                                   fields[self._STIME]),
+                       State=self._LinuxStateToTr181(fields[self._STATE]))
+      p.ValidateExports()
+      return p
+
+  def IterProcesses(self):
+    """Walks through /proc/<pid>/stat to return a list of all processes."""
+    for filename in glob.glob(self._ProcFileName('[0123456789]*')):
+      pid = int(filename.split('/')[-2])
+      try:
+        proc = self.GetProcess(pid)
+      except KeyError:
         # This isn't an error. We have a list of files which existed the
         # moment the glob.glob was run. If a process exits before we get
         # around to reading it, its /proc files will go away.
         continue
-      except KeyError:
-        # TODO(dgentry) should LOG if exception is not IOError
-        continue
-    return processes
+      yield pid,proc
 
 
 def main():
   dp = DeviceInfo()
+  dp.ProcessStatus.ProcessNumberOfEntries
   #print tr.core.DumpSchema(dp)
   print tr.core.Dump(dp)
 
