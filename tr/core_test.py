@@ -25,7 +25,7 @@ class TestObject(core.Exporter):
         def __init__(self):
             core.Exporter.__init__(self)
             self.Export(params=['Count'])
-        
+
             global gcount
             gcount += 1
             self.Count = gcount

@@ -60,7 +60,7 @@ _ImportBugFixes = {
        'DownloadDiagnostics'),
     ('urn:broadband-forum-org:tr-143-1-0', 'component',
        'UploadDiagnostics_Device2'):
-      ('urn:broadband-forum-org:tr-143-1-0', 'component', 
+      ('urn:broadband-forum-org:tr-143-1-0', 'component',
        'UploadDiagnostics'),
 }
 
@@ -184,10 +184,10 @@ class Object(object):
             parent_model = models.get((parent_model.spec.name,
                                         parent_model.parent_model_name), None)
         return None
-        
+
     def FullName(self):
         return re.sub(r'-{i}', '', '.'.join(self.prefix[:-1]))
-        
+
 
 models = {}
 
@@ -296,10 +296,10 @@ class Spec(object):
                 models[(fromspec,fromname)] = models[(tospec,toname)]
                 Log('aliased %r' % ((fromspec,fromname),))
             if toname != fromname:
-                out.append('from %s import %s as %s' 
+                out.append('from %s import %s as %s'
                            % (tospec, toname, fromname))
             else:
-                out.append('from %s import %s' 
+                out.append('from %s import %s'
                            % (tospec, toname))
         out.append('')
         for model in self.models:
@@ -321,7 +321,7 @@ class Spec(object):
             if not models.has_key((fromspec,fromname)):
                 models[(fromspec,fromname)] = models[(tospec,toname)]
                 Log('aliased %r' % ((fromspec,fromname),))
-            
+
 
 def main():
     for filename in sys.argv[1:]:

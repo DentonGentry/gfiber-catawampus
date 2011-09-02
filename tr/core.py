@@ -34,10 +34,10 @@ class AutoDict(object):
 
   def _Bad(self, funcname):
     def Fn(*args, **kwargs):
-      raise NotImplementedError('%r must override %s' 
+      raise NotImplementedError('%r must override %s'
                                 % (self.__name, funcname))
     return Fn
-  
+
   def iteritems(self):
     return self.__iteritems()
 
@@ -46,7 +46,7 @@ class AutoDict(object):
 
   def __setitem__(self, key, value):
     return self.__setitem(key)
-  
+
   def __delitem__(self, key):
     return self.__delitem(key)
 
@@ -56,7 +56,7 @@ class AutoDict(object):
     except KeyError:
       return False
     return True
-  
+
   def iterkeys(self):
     for k,v in self.iteritems():
       yield k
@@ -145,7 +145,7 @@ class Exporter(object):
                 raise Exc(name, 'is %r, must implement core.Exporter'
                           % type(obj))
             obj.ValidateExports()
-            
+
   def AssertValidExport(self, name, path=None):
     if (name not in self.export_params and
         name not in self.export_objects and
