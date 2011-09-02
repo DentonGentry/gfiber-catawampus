@@ -12,6 +12,18 @@ clean: tr/clean
 	rm -f *~ .*~ *.pyc
 
 
+lint: all
+	set -e; \
+	for dir in . tr; do \
+		( \
+			cd $$dir; \
+			files=$$(ls *.py | \
+				 egrep -v xmlwitch.py); \
+			gpylint $$files; \
+		); \
+	done
+
+
 # Subdir rules
 %/all:; $(MAKE) -C $* all
 %/test:; $(MAKE) -C $* test

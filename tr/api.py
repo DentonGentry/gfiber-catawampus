@@ -143,6 +143,8 @@ class CPE(TR069Service):
       result.append((i, self._GetParameterValue(i)))
     return result
 
+  # TODO(apenwarr): next_level_only is currently unused; disabled lint warning
+  #pylint: disable-msg=W0613
   def GetParameterNames(self, parameter_path, next_level_only):
     """Get the names of parameters or objects (possibly recursively)."""
     # TODO(apenwarr): implement this *correctly* with recursion etc.
