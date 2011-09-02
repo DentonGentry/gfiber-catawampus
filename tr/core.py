@@ -23,6 +23,67 @@ class SchemaError(Exception):
     pass
 
 
+class AutoDict(object):
+  def __init__(self, name, iteritems=None,
+               getitem=None, setitem=None, delitem=None):
+    self.__name = name
+    self.__iteritems = iteritems or self._Bad('iteritems')
+    self.__getitem = getitem or self._Bad('getitem')
+    self.__setitem = setitem or self._Bad('setitem')
+    self.__delitem = delitem or self._Bad('delitem')
+
+  def _Bad(self, funcname):
+    def Fn(*args, **kwargs):
+      raise NotImplementedError('%r must override %s' 
+                                % (self.__name, funcname))
+    return Fn
+  
+  def iteritems(self):
+    return self.__iteritems()
+
+  def __getitem__(self, key):
+    return self.__getitem(key)
+
+  def __setitem__(self, key, value):
+    return self.__setitem(key)
+  
+  def __delitem__(self, key):
+    return self.__delitem(key)
+
+  def __contains__(self, key):
+    try:
+      self[key]
+    except KeyError:
+      return False
+    return True
+  
+  def iterkeys(self):
+    for k,v in self.iteritems():
+      yield k
+
+  def itervalues(self):
+    for k,v in self.iteritems():
+      yield v
+
+  def __iter__(self):
+    return self.iterkeys()
+
+  def __len__(self):
+    count = 0
+    for i in self:
+      count += 1
+    return count
+
+  def keys(self):
+    return list(self.iterkeys())
+
+  def values(self):
+    return list(self.itervalues())
+
+  def items(self):
+    return list(self.iteritems())
+
+
 class Exporter(object):
   """An object containing named parameters that can be get/set.
 
@@ -50,18 +111,14 @@ class Exporter(object):
     if not path:
       path = ['root']
     def Exc(name, msg):
-      fullname = '.'.join(path+[name])
-      return SchemaError('%s %s' % (fullname, msg))
+      fullname = '.'.join(path + [name])
+      return SchemaError('%s%s %s' % (fullname, name, msg))
     for name in self.export_params:
-        try:
-            self._GetExport(name)
-        except AttributeError:
-            raise Exc(name, 'is a param but does not exist')
+        self.AssertValidExport(name, path=path)
+        self._GetExport(name)
     for name in self.export_objects:
-        try:
-            obj = self._GetExport(name)
-        except KeyError:
-            raise Exc(name, 'is an obj but does not exist')
+        self.AssertValidExport(name, path=path)
+        obj = self._GetExport(name)
         if isinstance(obj, type):
             raise Exc(name, 'is a type; instantiate it')
         try:
@@ -71,10 +128,8 @@ class Exporter(object):
                       % type(obj))
         obj.ValidateExports(path+[name])
     for name in self.export_object_lists:
-        try:
-            l = self._GetExport(name)
-        except KeyError:
-            raise Exc(name, 'is an objlist but does not exist')
+        self.AssertValidExport(name, path=path)
+        l = self._GetExport(name)
         try:
             for iname,obj in l.iteritems():
                 pass
@@ -91,18 +146,26 @@ class Exporter(object):
                           % type(obj))
             obj.ValidateExports()
             
-  def AssertValidExport(self, name):
+  def AssertValidExport(self, name, path=None):
     if (name not in self.export_params and
         name not in self.export_objects and
         name not in self.export_object_lists):
       raise KeyError(name)
+    ename = self._GetExportName(name)
+    if not hasattr(self, ename):
+      if not path:
+        path = ['root']
+      fullname = '.'.join(path + [ename])
+      raise SchemaError('%s is exported but does not exist' % fullname)
+
+  def _GetExportName(self, name):
+    if name in self.export_object_lists:
+        return name + 'List'
+    else:
+        return name
 
   def _GetExport(self, name):
-    self.AssertValidExport(name)
-    if name in self.export_object_lists:
-        return getattr(self, name + 'List')
-    else:
-        return getattr(self, name)
+    return getattr(self, self._GetExportName(name))
 
   def GetExport(self, name):
       o = self
