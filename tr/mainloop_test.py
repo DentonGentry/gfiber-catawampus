@@ -5,12 +5,10 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import socket
 import unittest
 import weakref
 import mainloop
 import tornado.ioloop
-import tornado.iostream
 
 
 REQUEST_STRING = 'this is the request\n'
@@ -18,7 +16,7 @@ REQUEST_STRING = 'this is the request\n'
 
 class MainLoopTest(unittest.TestCase):
   """Tests for mainloop.MainLoop."""
-  
+
   def _GotLine(self, line):
     print 'got line: %r' % (line,)
     tornado.ioloop.IOLoop.instance().stop()
@@ -31,7 +29,7 @@ class MainLoopTest(unittest.TestCase):
 
   def _SendRequest(self, stream):
     stream.write(REQUEST_STRING)
-  
+
   def testMainLoop(self):
     self.got = ''
     loop = mainloop.MainLoop()
