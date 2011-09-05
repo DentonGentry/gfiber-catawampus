@@ -42,62 +42,79 @@ class TcpListener(object):
     self.onaccept_func(sock, address)
 
 
-class QuotedBlockReaderWriter(object):
-  def __init__(self, sock, address, handler_func):
+class LineReader(object):
+  def __init__(self, sock, address, gotline_func):
     self.stream = tornado.iostream.IOStream(sock)
     self.address = address
-    self.handler_func = handler_func
+    self.gotline_func = gotline_func
+    self._StartRead()
+
+  def _StartRead(self):
+    self.stream.read_until('\n', self.GotData)
+
+  def GotData(self, bytes):
+    try:
+      result = self.gotline_func(bytes)
+      if result:
+        self.Write(result)
+    finally:
+      self._StartRead()
+
+  def Write(self, bytes):
+    return self.stream.write(bytes)
+
+
+class QuotedBlockProtocol(object):
+  def __init__(self, handle_lines_func):
+    self.handle_lines_func = handle_lines_func
+    self.partial_line = ''
     self.lines = []
-    self.StartRead()
 
-  def StartRead(self, init_bytes=None):
-    if not init_bytes:
-      init_bytes = ''
-    self.stream.read_until('\n',
-                           lambda bytes: self.GotData(init_bytes + bytes))
+  def GotData(self, bytes):
+    line = self.partial_line + bytes
+    firstchar, word = bup.shquote.unfinished_word(line)
+    if word:
+      print 'unfinished: %r' % word
+      self.partial_line = line
+    else:
+      self.partial_line = ''
+      return self.GotLine(line)
 
-  def GotLine(self, bytes):
-    if not bytes.strip():
+  def GotLine(self, line):
+    if line.strip():
+      # a new line in this block
+      parts = bup.shquote.quotesplit(line)
+      self.lines.append([word for offset,word in parts])
+    else:
       # blank line means end of block
       lines = self.lines
       self.lines = []
-      self.handler_func(self, lines)
-    else:
-      # a new line in this block
-      parts = bup.shquote.quotesplit(bytes)
-      self.lines.append([word for offset,word in parts])
+      result = self.handle_lines_func(lines)
+      return self.RenderBlock(result)
 
-  def GotData(self, bytes):
-    print 'got data from %r' % (self.address,)
-    print repr(bytes)
-    firstchar, word = bup.shquote.unfinished_word(bytes)
-    if word:
-      print 'unfinished: %r' % word
-      self.StartRead(bytes)
-    else:
-      self.GotLine(bytes)
-      self.StartRead()
-
-  def Write(self, lines):
+  def RenderBlock(self, lines):
+    out = []
     for line in lines:
-      self.stream.write(bup.shquote.quotify_list(line) + '\r\n')
-    self.stream.write('\r\n')
-
-
-def HandleLines(qbrw, lines):
-  print 'lines: %r' % (lines,)
-  qbrw.Write([['RESPONSE:']] + lines + [['EOR']])
+      out.append(bup.shquote.quotify_list(line) + '\r\n')
+    out.append('\r\n')
+    return ''.join(out)
 
 
 def main():
   ioloop = tornado.ioloop.IOLoop.instance()
-  listener = TcpListener(12999,
-                         lambda sock, address:
-                           QuotedBlockReaderWriter(sock, address, HandleLines))
+
+  def _TestProcessCommand(lines):
+    print 'lines: %r' % (lines,)
+    return [['RESPONSE:']] + lines + [['EOR']]
+
+  def MakeHandler(sock, address):
+    qb = QuotedBlockProtocol(_TestProcessCommand)
+    LineReader(sock, address, qb.GotData)
+    
+  listener = TcpListener(12999, MakeHandler)
   print 'hello'
   ioloop.start()
   
-
 
 if __name__ == "__main__":
   main()
