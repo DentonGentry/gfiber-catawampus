@@ -80,15 +80,7 @@ class QuotedBlockReaderWriter(object):
 
   def Write(self, lines):
     for line in lines:
-      wordout = []
-      for word in line:
-        qtype = bup.shquote.q
-        if word and not re.search(r'\s', word):
-          qtype = ''
-        elif bup.shquote.q in word and bup.shquote.qq not in word:
-          qtype = bup.shquote.qq
-        wordout.append(bup.shquote.quotify(qtype, word, True))
-      self.stream.write(' '.join(wordout) + '\r\n')
+      self.stream.write(bup.shquote.quotify_list(line) + '\r\n')
     self.stream.write('\r\n')
 
 
