@@ -33,7 +33,7 @@ class MainLoopTest(unittest.TestCase):
   def testMainLoop(self):
     self.got = ''
     loop = mainloop.MainLoop()
-    listener = loop.ListenInet6(('', 12999), self._MakeHandler)
+    listener = loop.ListenInet6(('', 0), self._MakeHandler)
     stream = loop.Connect(listener.family, listener.address, self._SendRequest)
     loop.Start(timeout=5)
     print 'after loop 1'

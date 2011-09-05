@@ -166,10 +166,10 @@ class Exporter(object):
 
     for name in self.export_params:
       self.AssertValidExport(name, path=path)
-      self._GetExport(name)
+      self._GetExport(self, name)
     for name in self.export_objects:
       self.AssertValidExport(name, path=path)
-      obj = self._GetExport(name)
+      obj = self._GetExport(self, name)
       if isinstance(obj, type):
         raise Exc(name, 'is a type; instantiate it')
       try:
@@ -180,7 +180,7 @@ class Exporter(object):
       obj.ValidateExports(path+[name])
     for name in self.export_object_lists:
       self.AssertValidExport(name, path=path)
-      l = self._GetExport(name)
+      l = self._GetExport(self, name)
       try:
         for (iname, obj) in l.iteritems():  #pylint: disable-msg=W0612
           pass
@@ -202,21 +202,40 @@ class Exporter(object):
         name not in self.export_objects and
         name not in self.export_object_lists):
       raise KeyError(name)
-    ename = self._GetExportName(name)
+    ename = self._GetExportName(self, name)
     if not hasattr(self, ename):
       if not path:
         path = ['root']
       fullname = '.'.join(path + [ename])
       raise SchemaError('%s is exported but does not exist' % fullname)
 
-  def _GetExportName(self, name):
-    if name in self.export_object_lists:
+  def _GetExportName(self, parent, name):
+    if name in parent.export_object_lists:
       return name + 'List'
     else:
       return name
 
-  def _GetExport(self, name):
-    return getattr(self, self._GetExportName(name))
+  def _GetExport(self, parent, name):
+    if hasattr(parent, '_GetExport'):
+      return getattr(parent, self._GetExportName(parent, name))
+    else:
+      return parent[name]
+
+  def FindExport(self, name):
+    """Navigate through the export hierarchy to find the parent of 'name'.
+
+    Args:
+      name: the name of the sub-object to find the parent of.
+    Returns:
+      (parent, subname): the parent object and the name of the parameter or
+         object referred to by 'name', relative to the parent.
+    """
+    o = self
+    assert not name.endswith('.')
+    parts = name.split('.')
+    for i in parts[:-1]:
+      o = self._GetExport(o, i)
+    return o, parts[-1]
 
   def GetExport(self, name):
     """Get a child of this object (a parameter or object).
@@ -226,14 +245,8 @@ class Exporter(object):
     Returns:
       An Exporter instance or a parameter value.
     """
-    o = self
-    assert not name.endswith('.')
-    for i in name.split('.'):
-      if hasattr(o, '_GetExport'):
-        o = o._GetExport(i)  #pylint: disable-msg=W0212
-      else:
-        o = o[i]
-    return o
+    parent, subname = self.FindExport(name)
+    return self._GetExport(parent, subname)  #pylint: disable-msg=W0212
 
   def SetExportParam(self, name, value):
     """Set the value of a parameter of this object.
@@ -244,9 +257,10 @@ class Exporter(object):
     Raises:
       KeyError: if the name is not an exported parameter.
     """
-    if name not in self.export_params:
+    parent, subname = self.FindExport(name)
+    if subname not in parent.export_params:
       raise KeyError(name)
-    setattr(self, name, value)
+    setattr(parent, subname, value)
 
   def AddExportObject(self, name, idx=None):
     """Create a new object of type 'name' in the list self.'name'List.
@@ -259,7 +273,7 @@ class Exporter(object):
     Raises:
       KeyError: if 'name' is not an exported sub-object type.
     """
-    objlist = self._GetExport(name)
+    objlist = self._GetExport(self, name)
     if name not in self.export_object_lists:
       raise KeyError(name)
     try:
@@ -268,7 +282,7 @@ class Exporter(object):
       raise NotAddableError(name)
     if idx is None:
       self.__lastindex += 1
-      while self.__lastindex in objlist:
+      while str(self.__lastindex) in objlist:
         self.__lastindex += 1
       idx = self.__lastindex
     idx = str(idx)
@@ -286,34 +300,41 @@ class Exporter(object):
     Raises:
       KeyError: if the given index is not in the dictionary.
     """
+    objlist = self.GetExport(name)
     idx = str(idx)
-    objlist = self._GetExport(name)
     if idx not in objlist:
       raise KeyError((name, idx))
     del objlist[idx]
 
-  def _ListExports(self, recursive=False):
+  def _ListExportsFromDict(self, objlist, recursive):
+    for (idx, obj) in objlist.iteritems():
+      if obj is not None:
+        yield '%s.' % (idx,)
+        if recursive:
+          for i in obj._ListExports(recursive):  #pylint: disable-msg=W0212
+            yield '%s.%s' % (idx, i)
+
+  def _ListExports(self, recursive):
     for name in self.export_params:
       yield name
     for name in self.export_objects:
       yield name + '.'
       if recursive:
-        obj = self._GetExport(name)
+        obj = self._GetExport(self, name)
         for i in obj._ListExports(recursive):  #pylint: disable-msg=W0212
           yield name + '.' + i
     for name in self.export_object_lists:
       yield name + '.'
       if recursive:
-        objlist = self._GetExport(name)
-        for (idx, obj) in objlist.iteritems():
-          if obj is not None:
-            for i in obj._ListExports(recursive):  #pylint: disable-msg=W0212
-              yield '%s.%s.%s' % (name, idx, i)
+        objlist = self._GetExport(self, name)
+        for i in self._ListExportsFromDict(objlist, recursive=recursive):
+          yield '%s.%s' % (name, i)
 
-  def ListExports(self, recursive=False):
+  def ListExports(self, name=None, recursive=False):
     """Return a sorted list of sub-objects and parameters.
 
     Args:
+      name: subobject name to start from (if None, starts at this object).
       recursive: true if you want to include children of children.
     Returns:
       An iterable of strings that can be passed to GetExport().
@@ -323,7 +344,14 @@ class Exporter(object):
     #   memory at once, which would otherwise be unnecessary.
     if recursive:
       self.ValidateExports()
-    return sorted(self._ListExports(recursive=recursive))
+    obj = self
+    if name:
+      obj = self.GetExport(name)
+    if hasattr(obj, '_ListExports'):
+      #pylint: disable-msg=W0212
+      return sorted(obj._ListExports(recursive=recursive))
+    else:
+      return sorted(self._ListExportsFromDict(obj, recursive=recursive))
 
 
 class TODO(Exporter):

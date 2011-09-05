@@ -111,6 +111,7 @@ class QuotedBlockProtocol(object):
     out = []
     lines = lines or []
     for line in lines:
+      line = [str(word) for word in line]
       out.append(bup.shquote.quotify_list(line) + '\r\n')
     out.append('\r\n')
     return ''.join(out)

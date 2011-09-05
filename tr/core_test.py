@@ -47,8 +47,10 @@ class CoreTest(unittest.TestCase):
     self.assertEqual(o.ListExports(),
                      ['Counter.', 'SubObj.', 'TestParam'])
     self.assertEqual(o.ListExports(recursive=True),
-                     ['Counter.', 'Counter.0.Count',
-                      'Counter.1.Count', 'Counter.2.Count',
+                     ['Counter.',
+                      'Counter.0.', 'Counter.0.Count',
+                      'Counter.1.', 'Counter.1.Count',
+                      'Counter.2.', 'Counter.2.Count',
                       'SubObj.', 'SubObj.Count', 'TestParam'])
 
     ds1 = core.DumpSchema(TestObject)
@@ -57,8 +59,9 @@ class CoreTest(unittest.TestCase):
 
     o.DeleteExportObject('Counter', 1)
     self.assertEqual(o.ListExports(recursive=True),
-                     ['Counter.', 'Counter.0.Count',
-                      'Counter.2.Count',
+                     ['Counter.',
+                      'Counter.0.', 'Counter.0.Count',
+                      'Counter.2.', 'Counter.2.Count',
                       'SubObj.', 'SubObj.Count', 'TestParam'])
     self.assertEqual([(idx, i.Count) for idx, i in o.CounterList.items()],
                      [('0', 2), ('2', 4)])

@@ -15,6 +15,7 @@ import errno
 import os
 import socket
 import time
+import tornadi_fix       #pylint: disable-msg=W0611
 import tornado.ioloop
 import tornado.iostream  #pylint: disable-msg=W0404
 
@@ -71,7 +72,9 @@ class ListenSocket(object):
     self.address = address
     self.sock = None
     self.sock = _ListenSocket(family, address)
-    self.address = self.sock.getsockname()[:2]
+    if family != socket.AF_UNIX:
+      self.address = self.sock.getsockname()[:2]
+    print 'Listening on %r' % (self.address,)
     ioloop = tornado.ioloop.IOLoop.instance()
     ioloop.add_handler(self.sock.fileno(), self._Accept, ioloop.READ)
 
@@ -126,8 +129,10 @@ class LineReader(object):
       result = self.gotline_func(line)
       if result:
         self.Write(result)
-    finally:
-      self._StartRead()
+    except EOFError:
+      self.stream.close()
+      return
+    self._StartRead()
 
   def Write(self, bytestring):
     return self.stream.write(bytestring)
@@ -234,7 +239,6 @@ def main():
   loop.ListenInet6(('', 12999),
                    lambda sock, address: LineReader(sock, address,
                                                     _TestGotLine))
-  print 'hello'
   loop.Start()
 
 
