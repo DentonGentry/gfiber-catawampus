@@ -44,9 +44,9 @@ class CoreTest(unittest.TestCase):
     o.AddExportObject('Counter')
     print o.ListExports(recursive=False)
     print o.ListExports(recursive=True)
-    self.assertEqual(o.ListExports(),
+    self.assertEqual(list(o.ListExports()),
                      ['Counter.', 'SubObj.', 'TestParam'])
-    self.assertEqual(o.ListExports(recursive=True),
+    self.assertEqual(list(o.ListExports(recursive=True)),
                      ['Counter.',
                       'Counter.0.', 'Counter.0.Count',
                       'Counter.1.', 'Counter.1.Count',
@@ -58,18 +58,18 @@ class CoreTest(unittest.TestCase):
     self.assertEqual(ds1, ds2)
 
     o.DeleteExportObject('Counter', 1)
-    self.assertEqual(o.ListExports(recursive=True),
+    self.assertEqual(list(o.ListExports(recursive=True)),
                      ['Counter.',
                       'Counter.0.', 'Counter.0.Count',
                       'Counter.2.', 'Counter.2.Count',
                       'SubObj.', 'SubObj.Count', 'TestParam'])
     self.assertEqual([(idx, i.Count) for idx, i in o.CounterList.items()],
-                     [('0', 2), ('2', 4)])
+                     [(0, 2), (2, 4)])
     idx, eo = o.AddExportObject('Counter', 'fred')
     eo.Count = 99
     print o.ListExports(recursive=True)
     self.assertEqual([(idx, i.Count) for idx, i in o.CounterList.items()],
-                     [('0', 2), ('2', 4), ('fred', 99)])
+                     [(0, 2), (2, 4), ('fred', 99)])
     print core.Dump(o)
     o.ValidateExports()
 

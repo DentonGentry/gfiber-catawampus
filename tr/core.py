@@ -102,6 +102,14 @@ class AutoDict(object):
     return list(self.iteritems())
 
 
+def _Int(s):
+  """Try to convert s to an int.  If we can't, just return s."""
+  try:
+    return int(s)
+  except ValueError:
+    return s
+
+
 class Exporter(object):
   """An object containing named parameters that can be get/set.
 
@@ -177,7 +185,7 @@ class Exporter(object):
       except AttributeError:
         raise Exc(name, 'is %r, must implement core.Exporter'
                   % type(obj))
-      obj.ValidateExports(path+[name])
+      obj.ValidateExports(path + [name])
     for name in self.export_object_lists:
       self.AssertValidExport(name, path=path)
       l = self._GetExport(self, name)
@@ -218,6 +226,8 @@ class Exporter(object):
   def _GetExport(self, parent, name):
     if hasattr(parent, '_GetExport'):
       return getattr(parent, self._GetExportName(parent, name))
+    elif _Int(name) in parent:
+      return parent[_Int(name)]
     else:
       return parent[name]
 
@@ -288,7 +298,7 @@ class Exporter(object):
     idx = str(idx)
     assert '.' not in idx
     newobj = constructor()
-    objlist[idx] = newobj
+    objlist[_Int(idx)] = newobj
     return idx, newobj
 
   def DeleteExportObject(self, name, idx):
@@ -302,12 +312,16 @@ class Exporter(object):
     """
     objlist = self.GetExport(name)
     idx = str(idx)
-    if idx not in objlist:
+    try:
+      if _Int(idx) in objlist:
+        del objlist[_Int(idx)]
+      else:
+        del objlist[idx]
+    except KeyError:
       raise KeyError((name, idx))
-    del objlist[idx]
 
   def _ListExportsFromDict(self, objlist, recursive):
-    for (idx, obj) in objlist.iteritems():
+    for (idx, obj) in sorted(objlist.iteritems()):
       if obj is not None:
         yield '%s.' % (idx,)
         if recursive:
@@ -315,20 +329,24 @@ class Exporter(object):
             yield '%s.%s' % (idx, i)
 
   def _ListExports(self, recursive):
-    for name in self.export_params:
-      yield name
-    for name in self.export_objects:
-      yield name + '.'
-      if recursive:
-        obj = self._GetExport(self, name)
-        for i in obj._ListExports(recursive):  #pylint: disable-msg=W0212
-          yield name + '.' + i
-    for name in self.export_object_lists:
-      yield name + '.'
-      if recursive:
-        objlist = self._GetExport(self, name)
-        for i in self._ListExportsFromDict(objlist, recursive=recursive):
-          yield '%s.%s' % (name, i)
+    for name in sorted(set().union(self.export_params,
+                                   self.export_objects,
+                                   self.export_object_lists)):
+      if name in self.export_params:
+        yield name
+      elif name in self.export_objects:
+        yield name + '.'
+        if recursive:
+          obj = self._GetExport(self, name)
+          #pylint: disable-msg=W0212
+          for i in obj._ListExports(recursive):
+            yield name + '.' + i
+      if name in self.export_object_lists:
+        yield name + '.'
+        if recursive:
+          objlist = self._GetExport(self, name)
+          for i in self._ListExportsFromDict(objlist, recursive=recursive):
+            yield '%s.%s' % (name, i)
 
   def ListExports(self, name=None, recursive=False):
     """Return a sorted list of sub-objects and parameters.
@@ -339,9 +357,6 @@ class Exporter(object):
     Returns:
       An iterable of strings that can be passed to GetExport().
     """
-    # TODO(apenwarr): do sorting incrementally on each _ListExports.
-    #   Sorting at the toplevel requires us to load the whole list into
-    #   memory at once, which would otherwise be unnecessary.
     if recursive:
       self.ValidateExports()
     obj = self
@@ -349,9 +364,9 @@ class Exporter(object):
       obj = self.GetExport(name)
     if hasattr(obj, '_ListExports'):
       #pylint: disable-msg=W0212
-      return sorted(obj._ListExports(recursive=recursive))
+      return obj._ListExports(recursive=recursive)
     else:
-      return sorted(self._ListExportsFromDict(obj, recursive=recursive))
+      return self._ListExportsFromDict(obj, recursive=recursive)
 
 
 class TODO(Exporter):
