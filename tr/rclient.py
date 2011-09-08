@@ -44,6 +44,14 @@ def HandleFatal(func):
   return Fn
 
 
+def _NormalizePath(path):
+  """Like os.path.normpath, but doesn't remove any trailing slash."""
+  result = os.path.normpath(path)
+  if path.endswith('/') and not result.endswith('/'):
+    result += '/'
+  return result
+
+
 def _DotsToSlashes(s):
   return re.sub(r'([^/.])\.', r'\1/', s)
 
@@ -109,27 +117,44 @@ class Client(object):
   def Run(self, lines):
     self.Send(lines)
     self.loop.Start()
-    return self.result
+    result = self.result
+    self.result = None
+    return result
+
+  def _RequestCompletions(self, prefix):
+    prefix = _NormalizePath(prefix)
+    completions = self.Run([['completions', _SlashesToDots(prefix)]])[1:]
+    for [i] in completions:
+      yield i
 
   def _GetSubstitutions(self, line):
     (qtype, lastword) = bup.shquote.unfinished_word(line)
-    prefix = _SlashesToDots(self.cwd)
-    if prefix and not prefix.endswith('.'):
-      prefix += '.'
-    fullpath = prefix + _SlashesToDots(lastword)
-    result = self.Run([['completions', fullpath]])
-    subs = [_DotsToSlashes(i[0][len(prefix):]) for i in result[1:]]
+    request = os.path.join(self.cwd, _DotsToSlashes(lastword))
+    subs = list(self._RequestCompletions(request))
     cmd = line.split(' ', 1)[0]
-    if cmd.lower() in ('cd', 'ls', 'list', 'rlist', 'add'):
+    if cmd.lower() in ('cd', 'ls', 'list', 'rlist', 'add', 'del'):
       # only return object names, not parameters
-      subs = [i for i in subs if i.endswith('/')]
-    return (qtype, _DotsToSlashes(lastword), subs)
+      subs = [i for i in subs if i.endswith('.')]
+    return (qtype, lastword, subs)
+
+  def _StripPathPrefix(self, oldword, newword):
+    # readline is weird: we have to remove all the parts that were before
+    # the last '/', but not parts before the last '.', because we have to
+    # tell it what to replace everything after the last '/' with.
+    after_slash = oldword.split('/')[-1]
+    dots = after_slash.split('.')
+    if newword.endswith('.'):
+      new_last_dot = '.'.join(newword.split('.')[-2:])
+    else:
+      new_last_dot = newword.split('.')[-1]
+    dots[-1] = new_last_dot
+    return '.'.join(dots)
 
   def ReadlineCompleter(self, text, state):
     """Callback for the readline library to autocomplete a line of text.
 
     Args:
-      text: the current input line
+      text: the current input word (basename following the last slash)
       state: a number of 0..n, where n is the number of substitutions.
     Returns:
       One of the available substitutions.
@@ -141,10 +166,12 @@ class Client(object):
         self._last_res = self._GetSubstitutions(line)
       (qtype, lastword, subs) = self._last_res
       if state < len(subs):
-        is_param = not subs[state].endswith('.')
-        ret = bup.shquote.what_to_add(qtype, lastword, subs[state],
-                                      terminate=is_param)
-        return text + ret
+        new_last_slash = _DotsToSlashes(self._StripPathPrefix(lastword,
+                                                              subs[state]))
+        is_param = not new_last_slash.endswith('/')
+        if is_param and qtype:
+          new_last_slash += qtype
+        return new_last_slash
     except Exception, e:  #pylint: disable-msg=W0703
       Log('\n')
       try:
@@ -180,7 +207,7 @@ def main():
       if not words:
         continue
       cmd, args = (words[0].lower(), words[1:])
-      if cmd in ('cd', 'ls', 'list', 'rlist', 'get', 'set'):
+      if cmd in ('cd', 'ls', 'list', 'rlist', 'add', 'del', 'get', 'set'):
         if not args:
           args = [client.cwd]
         relpath = _DotsToSlashes(args[0])
