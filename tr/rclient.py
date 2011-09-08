@@ -14,6 +14,7 @@ import re
 import readline
 import socket
 import sys
+import traceback
 import bup.shquote
 import mainloop
 import quotedblock
@@ -55,6 +56,8 @@ def _SlashesToDots(s):
 
 
 class Client(object):
+  """Manage the client-side state of an rcommand connection."""
+
   def __init__(self, loop):
     self.loop = loop
     self.stream = None
@@ -62,7 +65,7 @@ class Client(object):
     self._last_res = None
     self.cwd = '/'
     self.quotedblock = quotedblock.QuotedBlockProtocol(
-                                      HandleFatal(self.GotBlock))
+        HandleFatal(self.GotBlock))
     self._StartConnect()
 
   def _StartConnect(self):
@@ -116,13 +119,21 @@ class Client(object):
     fullpath = prefix + _SlashesToDots(lastword)
     result = self.Run([['completions', fullpath]])
     subs = [_DotsToSlashes(i[0][len(prefix):]) for i in result[1:]]
-    cmd, rest = line.split(' ', 1)
+    cmd = line.split(' ', 1)[0]
     if cmd.lower() in ('cd', 'ls', 'list', 'rlist', 'add'):
       # only return object names, not parameters
       subs = [i for i in subs if i.endswith('/')]
     return (qtype, _DotsToSlashes(lastword), subs)
 
   def ReadlineCompleter(self, text, state):
+    """Callback for the readline library to autocomplete a line of text.
+
+    Args:
+      text: the current input line
+      state: a number of 0..n, where n is the number of substitutions.
+    Returns:
+      One of the available substitutions.
+    """
     try:
       text = _DotsToSlashes(text)
       line = readline.get_line_buffer()[:readline.get_endidx()]
@@ -134,12 +145,11 @@ class Client(object):
         ret = bup.shquote.what_to_add(qtype, lastword, subs[state],
                                       terminate=is_param)
         return text + ret
-    except Exception, e:
+    except Exception, e:  #pylint: disable-msg=W0703
       Log('\n')
       try:
-        import traceback
         traceback.print_tb(sys.exc_traceback)
-      except Exception, e2:
+      except Exception, e2:  #pylint: disable-msg=W0703
         Log('Error printing traceback: %s\n' % e2)
     Log('\nError in completion: %s\n' % e)
 
@@ -148,23 +158,24 @@ def main():
   if os.path.exists(HISTORY_FILE):
     readline.read_history_file(HISTORY_FILE)
   client = None
-  try:
+  try:  #pylint: disable-msg=C6405
     loop = mainloop.MainLoop()
     client = Client(loop)
     loop.Start()
 
     readline.set_completer_delims(' \t\n\r/')
     readline.set_completer(client.ReadlineCompleter)
-    readline.parse_and_bind("tab: complete")
-    
+    readline.parse_and_bind('tab: complete')
+
     while True:
       print
       line = raw_input('%s> ' % client.cwd) + '\n'
       while 1:
-        wordstart, word = bup.shquote.unfinished_word(line)
+        word = bup.shquote.unfinished_word(line)[1]
         if not word:
           break
         line += raw_input('%*s> ' % (len(client.cwd), '')) + '\n'
+      #pylint: disable-msg=W0612
       words = [word for (idx, word) in bup.shquote.quotesplit(line)]
       if not words:
         continue
