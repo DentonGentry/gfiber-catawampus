@@ -63,6 +63,15 @@ class RemoteCommandStreamer(quotedblock.QuotedBlockStreamer):
     """Close the current connection."""
     raise EOFError()
 
+  def CmdCompletions(self, prefix):
+    """Return possible completions for the given name prefix."""
+    parts = prefix.split('.')
+    before, after = parts[:-1], parts[-1]
+    for name in self.root.ListExports('.'.join(before), recursive=False):
+      if name.lower().startswith(after.lower()):
+        print '  completion: %r %r' % (before, name)
+        yield ['.'.join(before + [name])]
+
   def CmdGet(self, name):
     """Get the value of the given parameter."""
     return [[name, self.root.GetExport(name)]]

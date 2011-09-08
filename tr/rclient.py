@@ -22,6 +22,13 @@ import quotedblock
 HISTORY_FILE = os.path.expanduser('~/.rclient_history')
 
 
+def Log(s, *args):
+  if args:
+    sys.stderr.write((s+'\n') % args)
+  else:
+    sys.stderr.write(s + '\n')
+
+
 class Fatal(Exception):
   pass
 
@@ -36,10 +43,24 @@ def HandleFatal(func):
   return Fn
 
 
+def _DotsToSlashes(s):
+  return re.sub(r'([^/.])\.', r'\1/', s)
+
+
+def _SlashesToDots(s):
+  name = s.replace('/', '.')
+  if name.startswith('.'):
+    name = name[1:]
+  return name
+
+
 class Client(object):
   def __init__(self, loop):
     self.loop = loop
     self.stream = None
+    self.result = None
+    self._last_res = None
+    self.cwd = '/'
     self.quotedblock = quotedblock.QuotedBlockProtocol(
                                       HandleFatal(self.GotBlock))
     self._StartConnect()
@@ -75,59 +96,91 @@ class Client(object):
     self._StartRead()
 
   def GotBlock(self, lines):
-    print self.quotedblock.RenderBlock(lines).strip()
+    self.result = lines
     self.loop.ioloop.stop()
 
   def Send(self, lines):
     s = self.quotedblock.RenderBlock(lines)
     self.stream.write(s)
 
+  def Run(self, lines):
+    self.Send(lines)
+    self.loop.Start()
+    return self.result
 
-def _DotsToSlashes(s):
-  return re.sub(r'([^/.])\.', r'\1/', s)
+  def _GetSubstitutions(self, line):
+    (qtype, lastword) = bup.shquote.unfinished_word(line)
+    prefix = _SlashesToDots(self.cwd)
+    if prefix and not prefix.endswith('.'):
+      prefix += '.'
+    fullpath = prefix + _SlashesToDots(lastword)
+    result = self.Run([['completions', fullpath]])
+    subs = [_DotsToSlashes(i[0][len(prefix):]) for i in result[1:]]
+    cmd, rest = line.split(' ', 1)
+    if cmd.lower() in ('cd', 'ls', 'list', 'rlist', 'add'):
+      # only return object names, not parameters
+      subs = [i for i in subs if i.endswith('/')]
+    return (qtype, _DotsToSlashes(lastword), subs)
 
-
-def _SlashesToDots(s):
-  name = s.replace('/', '.')
-  if name.startswith('.'):
-    name = name[1:]
-  return name
+  def ReadlineCompleter(self, text, state):
+    try:
+      text = _DotsToSlashes(text)
+      line = readline.get_line_buffer()[:readline.get_endidx()]
+      if not state:
+        self._last_res = self._GetSubstitutions(line)
+      (qtype, lastword, subs) = self._last_res
+      if state < len(subs):
+        is_param = not subs[state].endswith('.')
+        ret = bup.shquote.what_to_add(qtype, lastword, subs[state],
+                                      terminate=is_param)
+        return text + ret
+    except Exception, e:
+      Log('\n')
+      try:
+        import traceback
+        traceback.print_tb(sys.exc_traceback)
+      except Exception, e2:
+        Log('Error printing traceback: %s\n' % e2)
+    Log('\nError in completion: %s\n' % e)
 
 
 def main():
   if os.path.exists(HISTORY_FILE):
     readline.read_history_file(HISTORY_FILE)
-  cwd = '/'
   client = None
   try:
     loop = mainloop.MainLoop()
     client = Client(loop)
     loop.Start()
-  
+
+    readline.set_completer_delims(' \t\n\r/')
+    readline.set_completer(client.ReadlineCompleter)
+    readline.parse_and_bind("tab: complete")
+    
     while True:
       print
-      line = raw_input('%s> ' % cwd) + '\n'
+      line = raw_input('%s> ' % client.cwd) + '\n'
       while 1:
         wordstart, word = bup.shquote.unfinished_word(line)
         if not word:
           break
-        line += raw_input('%*s> ' % (len(cwd), '')) + '\n'
+        line += raw_input('%*s> ' % (len(client.cwd), '')) + '\n'
       words = [word for (idx, word) in bup.shquote.quotesplit(line)]
       if not words:
         continue
       cmd, args = (words[0].lower(), words[1:])
       if cmd in ('cd', 'ls', 'list', 'rlist', 'get', 'set'):
         if not args:
-          args = [cwd]
+          args = [client.cwd]
         relpath = _DotsToSlashes(args[0])
-        abspath = os.path.normpath(os.path.join(cwd, relpath))
+        abspath = os.path.normpath(os.path.join(client.cwd, relpath))
         args[0] = _SlashesToDots(abspath)
       if cmd == 'cd':
-        cwd = os.path.normpath(os.path.join(cwd, relpath))
+        client.cwd = os.path.normpath(os.path.join(client.cwd, relpath))
       else:
         line = [cmd] + args
-        client.Send([line])
-        loop.Start()
+        result = client.Run([line])
+        print client.quotedblock.RenderBlock(result).strip()
   except Fatal, e:
     sys.stderr.write('%s\n' % e)
     sys.exit(1)
@@ -139,4 +192,3 @@ def main():
 
 if __name__ == '__main__':
   main()
-    
