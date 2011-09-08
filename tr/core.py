@@ -272,17 +272,7 @@ class Exporter(object):
       raise KeyError(name)
     setattr(parent, subname, value)
 
-  def AddExportObject(self, name, idx=None):
-    """Create a new object of type 'name' in the list self.'name'List.
-
-    Args:
-      name: the name of the object class.  The list name is self.(name+'List').
-      idx: the dictionary key to store it under.  Default is auto-generated.
-    Returns:
-      An tuple of (idx, obj), where idx is the key and obj is the new object.
-    Raises:
-      KeyError: if 'name' is not an exported sub-object type.
-    """
+  def _AddExportObject(self, name, idx):
     objlist = self._GetExport(self, name)
     if name not in self.export_object_lists:
       raise KeyError(name)
@@ -298,8 +288,24 @@ class Exporter(object):
     idx = str(idx)
     assert '.' not in idx
     newobj = constructor()
+    newobj.ValidateExports()
     objlist[_Int(idx)] = newobj
     return idx, newobj
+
+  def AddExportObject(self, name, idx=None):
+    """Create a new object of type 'name' in the list self.'name'List.
+
+    Args:
+      name: the name of the object class.  The list name is self.(name+'List').
+      idx: the dictionary key to store it under.  Default is auto-generated.
+    Returns:
+      An tuple of (idx, obj), where idx is the key and obj is the new object.
+    Raises:
+      KeyError: if 'name' is not an exported sub-object type.
+    """
+    parent, subname = self.FindExport(name)
+    #pylint: disable-msg=W0212
+    return parent._AddExportObject(subname, idx)
 
   def DeleteExportObject(self, name, idx):
     """Delete the object with index idx in the list named name.
