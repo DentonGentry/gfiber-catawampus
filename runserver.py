@@ -13,6 +13,7 @@ import device_info
 import tr.core
 import tr.mainloop
 import tr.rcommand
+import tr.tornado.autoreload
 import traceroute
 
 
@@ -32,6 +33,7 @@ class Root(tr.core.Exporter):
 
 
 def main():
+  tr.tornado.autoreload.start()
   loop = tr.mainloop.MainLoop()
   root = Root(loop)
   loop.ListenInet6(('', 12999),
