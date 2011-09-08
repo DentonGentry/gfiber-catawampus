@@ -46,10 +46,6 @@ class DeviceInfo(BASEDEVICE.DeviceInfo):
     self.ProvisioningCode = None  # TODO(apenwarr): fill me
     self.ProductClass = 'Uno'
     self.FirstUseDate = None  # TODO(apenwarr): fill me
-    self.ProcessorNumberOfEntries = 0
-    self.VendorConfigFileNumberOfEntries = 0
-    self.VendorLogFileNumberOfEntries = 0
-    self.SupportedDataModelNumberOfEntries = 0
     self.NetworkProperties = self.NetworkProperties()
     self.NetworkProperties.MaxTCPWindowSize = 0,   # TODO(apenwarr): fill me
     self.NetworkProperties.TCPImplementation = ''  # TODO(apenwarr): fill me
@@ -64,6 +60,22 @@ class DeviceInfo(BASEDEVICE.DeviceInfo):
   @property
   def UpTime(self):
     return self.GetUptime()
+
+  @property
+  def VendorLogFileNumberOfEntries(self):
+    return len(self.VendorLogFileList)
+
+  @property
+  def VendorConfigFileNumberOfEntries(self):
+    return len(self.VendorConfigFileList)
+
+  @property
+  def ProcessorNumberOfEntries(self):
+    return len(self.ProcessorList)
+
+  @property
+  def SupportedDataModelNumberOfEntries(self):
+    return len(self.SupportedDataModelList)
 
 
 class UptimeLinux26(object):
