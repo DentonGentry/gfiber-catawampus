@@ -76,13 +76,15 @@ class RemoteCommandStreamer(quotedblock.QuotedBlockStreamer):
     prefix = name and ('%s.' % name) or ''
     for k in self.root.ListExports(name, recursive=recursive):
       if k.endswith('.'):
-        yield [prefix + k]
+        yield [k]
       else:
-        yield [prefix + k, self.root.GetExport(prefix + k)]
+        yield [k, self.root.GetExport(prefix + k)]
 
   def CmdList(self, name=None):
     """Return a list of objects, non-recursively starting at the given name."""
     return self._CmdList(name, recursive=False)
+
+  CmdLs = CmdList
 
   def CmdRlist(self, name=None):
     """Return a list of objects, recursively starting at the given name."""

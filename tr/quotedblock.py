@@ -37,7 +37,7 @@ import mainloop
 class QuotedBlockProtocol(object):
   """Implement the QuotedBlock protocol.
 
-  You should call GotData() every time you receive incoming data
+  You should call GotData() every time you receive incoming data.
 
   Calls a callback function with an array of lines at the end of each block.
   The callback function returns a list that is then quoted and returned
@@ -104,7 +104,10 @@ class QuotedBlockProtocol(object):
       lines = self.lines
       self.lines = []
       result = self.handle_lines_func(lines)
-      return self.RenderBlock(result)
+      if result is None:
+        return None
+      else:
+        return self.RenderBlock(result)
 
   def RenderBlock(self, lines):
     """Quote the given lines array back into a parseable string."""
