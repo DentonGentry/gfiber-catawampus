@@ -72,7 +72,7 @@ def Enterable(func):
 
 
 @Enterable
-def SoapEnvelope(request_id, hold_requests):
+def Envelope(request_id, hold_requests):
   xml = xmlwitch.Builder(version='1.0', encoding='utf-8')
   attrs = { 'xmlns:soap': 'http://schemas.xmlsoap.org/soap/envelope/',
             'xmlns:soap-enc': 'http://schemas.xmlsoap.org/soap/encoding/',
@@ -92,7 +92,7 @@ def SoapEnvelope(request_id, hold_requests):
 
 
 @Enterable
-def SoapFault(xml, fault, faultstring):
+def Fault(xml, fault, faultstring):
   fault_code, fault_type = fault
   with xml['soap:Fault']:
     xml.faultcode(fault_type)
@@ -112,7 +112,7 @@ def GetParameterNames(xml, path, nextlevel):
 
 
 def SetParameterValuesFault(xml, faults):
-  with SoapFault(xml, CpeFault.INVALID_ARGUMENTS, 'Invalid arguments') as xml:
+  with Fault(xml, CpeFault.INVALID_ARGUMENTS, 'Invalid arguments') as xml:
     for parameter, code, string in faults:
       with xml.SetParameterValuesFault:
         xml.ParameterName(parameter)
@@ -122,9 +122,9 @@ def SetParameterValuesFault(xml, faults):
 
 
 def main():
-  with SoapEnvelope(1234, False) as xml:
+  with Envelope(1234, False) as xml:
     print GetParameterNames(xml, 'System.', 1)
-  with SoapEnvelope(None, None) as xml:
+  with Envelope(None, None) as xml:
     print SetParameterValuesFault(xml,
                                   [('Object.x.y', CpeFault.INVALID_PARAM_TYPE, 'stupid error'),
                                    ('Object.y.z', CpeFault.INVALID_PARAM_NAME, 'blah error')])
