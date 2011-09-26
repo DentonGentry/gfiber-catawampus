@@ -10,48 +10,65 @@ import api
 import soap
 
 
-class TR069Service(object):
+class SoapHandler(object):
   def __init__(self, impl):
     self.impl = impl
-    self.out_queue = []
+    #self.out_queue = []
 
-  def send(self, xml, immediate, callback):
+  def TODO_send(self, xml, immediate, callback):
     xml = str(xml)
     if immediate:
       self.out_queue.insert(0, (xml, True, callback))
     else:
       self.out_queue.append((xml, False, callback))
 
-  def pop(self, hold_requests):
+  def TODO_pop(self, hold_requests):
     for i in len(self.out_queue):
       xml, override_hold = self.out_queue[i]
       if override_hold or not hold_requests:
         self.out_queue.pop(i)
         return xml
 
-  def handle(self, obj):
-    pass
+  def Handle(self, body):
+    obj = soap.Parse(body)
+    request_id = obj.Header.get('ID', None)
+    req = obj.Body[0]
+    reqname = req.name
+    if not reqname.endswith('Response'):
+      reqname += 'Request'
+    return str(getattr(self, reqname)(request_id, req))
 
-  def GetRPCMethodsRequest(self, obj):
-    with soap.Envelope(1234, None) as xml:
+  def GetRPCMethodsRequest(self, request_id, req):
+    with soap.Envelope(request_id, None) as xml:
       with xml['cwmp:GetRPCMethodsResponse']:
         with xml.MethodList:
           for method in self.impl.GetRPCMethods():
             xml.string(method)
-    self.send(xml, immediate=True, callback=None)
+    return xml
+
+
+class ACS(SoapHandler):
+  def __init__(self, acs):
+    SoapHandler.__init__(self, impl=acs)
 
   def GetRPCMethodsResponse(self, obj):
     print obj
 
 
-class ACS(TR069Service):
-  def __init__(self, acs):
-    TR069Service.__init__(self, impl=acs)
-
-
-class CPE(TR069Service):
+class CPE(SoapHandler):
   def __init__(self, cpe):
-    TR069Service.__init__(self, impl=cpe)
+    SoapHandler.__init__(self, impl=cpe)
+
+  def GetParameterNamesRequest(self, request_id, req):
+    names = self.impl.GetParameterNames(str(req.ParameterPath),
+                                        int(req.NextLevel))
+    with soap.Envelope(request_id=request_id, hold_requests=None) as xml:
+      with xml['cwmp:GetParameterNamesResponse']:
+        for name in names:
+          with xml['ParameterInfoStruct']:
+            xml.Name(name)
+            xml.Writable('1')  # TODO(apenwarr): detect true writability here
+    return xml
 
 
 def main():

@@ -40,6 +40,7 @@ class ACS(TR069Service):
              device_id, events, max_envelopes,
              current_time, retry_count, parameter_list):
     """Called when the CPE first connects to the ACS."""
+    print 'ACS.Inform'
     pass
 
   def TransferComplete(self, cpe,
@@ -220,3 +221,9 @@ class CPE(TR069Service):
   def ChangeDUState(self, operations, command_key):
     """Trigger an install, update, or uninstall operation."""
     raise NotImplementedError()
+
+  def _PingReceived(self):
+    self.acs.Inform(self, DEVICE_ID,
+                    events=[('6 CONNECTION REQUEST', '')], max_envelopes=1,
+                    current_time=None, retry_count=1,
+                    parameter_list=[])

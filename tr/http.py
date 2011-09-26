@@ -10,13 +10,18 @@
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import random
+import api_soap
 import soap
 import tornadi_fix       #pylint: disable-msg=W0611
 import tornado.httpclient
 import tornado.web
 
 
+# TODO(apenwarr): We should never do http synchronously.
+# ...because it'll freeze our app while it runs.  But this is easier than
+# doing async callbacks for now.
 def SyncClient(url, postdata):
+  """HTTP POST the given postdata to the given url, returning the result."""
   cli = tornado.httpclient.HTTPClient()
   postdata = str(postdata)
   if postdata:
@@ -29,46 +34,26 @@ def SyncClient(url, postdata):
 
 
 class PingHandler(tornado.web.RequestHandler):
-  def get(self):
-    self.write("hello, world")
-
-
-class CpeHandler(tornado.web.RequestHandler):
   def __init__(self, cpe, *args, **kwargs):
     self.cpe = cpe
+    tornado.web.RequestHandler.__init__(self, *args, **kwargs)
+    
+  def get(self):
+    self.cpe._PingReceived()
+
+
+class Handler(tornado.web.RequestHandler):
+  def __init__(self, soap_handler, *args, **kwargs):
+    self.soap_handler = soap_handler
     tornado.web.RequestHandler.__init__(self, *args, **kwargs)
     
   def get(self):
     self.write("this is the cpe")
 
   def post(self):
-    obj = soap.Parse(self.request.body)
-    print 'cpe request received:\n%s' % obj
-    reqid = obj.Header.get('ID', None)
-    req = obj.Body[0]
-    if req.name == 'GetParameterNames':
-      names = list(self.cpe.GetParameterNames(str(req.ParameterPath),
-                                              int(req.NextLevel)))
-      with soap.Envelope(request_id=reqid, hold_requests=None) as xml:
-        with xml['cwmp:GetParameterNamesResponse']:
-          for name in names:
-            with xml['ParameterInfoStruct']:
-              xml.Name(name)
-              xml.Writable('1')
-      self.write(str(xml))
-
-
-class AcsHandler(tornado.web.RequestHandler):
-  def __init__(self, acs, *args, **kwargs):
-    self.acs = acs
-    tornado.web.RequestHandler.__init__(self, *args, **kwargs)
-    
-  def get(self):
-    self.write("this is the acs")
-
-  def post(self):
-    obj = soap.Parse(self.request.body)
-    self.write('acs request received: data=%r' % obj)
+    print 'TR-069 server: request received:\n%s' % self.request.body
+    result = self.soap_handler(self.request.body)
+    self.write(str(result))
 
 
 def Listen(port, ping_path, cpe, acs):
@@ -78,13 +63,15 @@ def Listen(port, ping_path, cpe, acs):
     ping_path = ping_path[1:]
   handlers = []
   if acs:
-    handlers.append(('/acs', lambda *args: AcsHandler(acs, *args)))
+    acshandler = api_soap.ACS(acs).Handle
+    handlers.append(('/acs', lambda *args: Handler(acshandler, *args)))
     print 'TR-069 ACS at http://localhost:%d/acs' % port
   if cpe:
-    handlers.append(('/cpe', lambda *args: CpeHandler(cpe, *args)))
+    cpehandler = api_soap.CPE(cpe).Handle
+    handlers.append(('/cpe', lambda *args: Handler(cpehandler, *args)))
     print 'TR-069 CPE at http://localhost:%d/cpe' % port
   if ping_path:
-    handlers.append(('/' + ping_path, PingHandler))
+    handlers.append(('/' + ping_path, lambda *args: PingHandler(cpe, *args)))
     print 'TR-069 callback at http://localhost:%d/%s' % (port, ping_path)
   webapp = tornado.web.Application(handlers)
   webapp.listen(port)
@@ -92,9 +79,10 @@ def Listen(port, ping_path, cpe, acs):
 
 def main():
   with soap.Envelope(1234, False) as xml:
-    postdata = soap.GetParameterNames(xml, '', True)
+    #soap.GetParameterNames(xml, '', True)
+    xml.GetRPCMethods(None)
   print 'Response:'
-  print SyncClient('http://localhost:7547/cpe', postdata)
+  print SyncClient('http://localhost:7547/cpe', xml)
 
 
 if __name__ == '__main__':
