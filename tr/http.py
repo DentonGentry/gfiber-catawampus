@@ -79,8 +79,8 @@ def Listen(port, ping_path, cpe, acs):
 
 def main():
   with soap.Envelope(1234, False) as xml:
-    #soap.GetParameterNames(xml, '', True)
-    xml.GetRPCMethods(None)
+    soap.GetParameterNames(xml, '', True)
+    #xml.GetRPCMethods(None)
   print 'Response:'
   print SyncClient('http://localhost:7547/cpe', xml)
 

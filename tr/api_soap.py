@@ -13,21 +13,6 @@ import soap
 class SoapHandler(object):
   def __init__(self, impl):
     self.impl = impl
-    #self.out_queue = []
-
-  def TODO_send(self, xml, immediate, callback):
-    xml = str(xml)
-    if immediate:
-      self.out_queue.insert(0, (xml, True, callback))
-    else:
-      self.out_queue.append((xml, False, callback))
-
-  def TODO_pop(self, hold_requests):
-    for i in len(self.out_queue):
-      xml, override_hold = self.out_queue[i]
-      if override_hold or not hold_requests:
-        self.out_queue.pop(i)
-        return xml
 
   def Handle(self, body):
     obj = soap.Parse(body)
