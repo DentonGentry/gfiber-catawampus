@@ -35,7 +35,7 @@ cpe-listener Let CPE listen for http requests (not TR-069 compliant)
 """
 
 
-class Root(tr.core.Exporter):
+class TemporaryRoot(tr.core.Exporter):
   """A fake class that doesn't represent any real device model at all.
 
   Eventually, we'll replace this with one derived from a real toplevel model
@@ -57,7 +57,7 @@ def main():
   
   tr.tornado.autoreload.start()
   loop = tr.mainloop.MainLoop()
-  root = Root(loop)
+  root = TemporaryRoot(loop)
   if opt.rcmd_port:
     loop.ListenInet6(('', opt.rcmd_port),
                      tr.rcommand.MakeRemoteCommandStreamer(root))

@@ -6,6 +6,8 @@
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 
+import re
+import xml.etree.ElementTree
 import xmlwitch
 
 
@@ -121,14 +123,84 @@ def SetParameterValuesFault(xml, faults):
   return xml
 
 
+def _StripNamespace(tagname):
+  return re.sub(r'^\{.*\}', '', tagname)
+
+
+class NodeWrapper(object):
+  def __init__(self, name, attrib, items):
+    self.name = name
+    self.attrib = attrib
+    self._list = []
+    self._dict = {}
+    for key, value in items:
+      self._list.append((key, value))
+      self._dict[key] = value
+
+  def _Get(self, key):
+    if isinstance(key, slice):
+      return self._list[key]
+    try:
+      return self._dict[key]
+    except KeyError, e:
+      try:
+        idx = int(key)
+      except ValueError:
+        pass
+      else:
+        return self._list[idx][1]
+      raise e
+
+  def get(self, key, defval=None):
+    try:
+      return self._Get(key)
+    except KeyError:
+      return defval
+
+  def __getattr__(self, key):
+    return self._Get(key)
+
+  def __getitem__(self, key):
+    return self._Get(key)
+
+  def __str__(self):
+    out = []
+    for key, value in self._list:
+      value = str(value)
+      if '\n' in value:
+        value = '\n' + re.sub(re.compile(r'^', re.M), '  ', value)
+      out.append('%s: %s' % (key, value))
+    return '\n'.join(out)
+    
+  def __repr__(self):
+    return str(self._list)
+
+
+def _Parse(node):
+  if node.text and node.text.strip():
+    return node.text
+  else:
+    return NodeWrapper(_StripNamespace(node.tag), node.attrib,
+                       [(_StripNamespace(sub.tag), _Parse(sub))
+                        for sub in node])
+
+
+def Parse(xmlstring):
+  root = xml.etree.ElementTree.fromstring(xmlstring)
+  return _Parse(root)
+
+
 def main():
   with Envelope(1234, False) as xml:
     print GetParameterNames(xml, 'System.', 1)
-  with Envelope(None, None) as xml:
+  with Envelope(11, None) as xml:
     print SetParameterValuesFault(xml,
                                   [('Object.x.y', CpeFault.INVALID_PARAM_TYPE, 'stupid error'),
                                    ('Object.y.z', CpeFault.INVALID_PARAM_NAME, 'blah error')])
-                                 
+  parsed = Parse(str(xml))
+  print repr(parsed)
+  print parsed.Body
+  print parsed.Body.Fault.detail.Fault[2:4]
 
 
 if __name__ == '__main__':

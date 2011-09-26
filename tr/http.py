@@ -10,8 +10,22 @@
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import random
+import soap
 import tornadi_fix       #pylint: disable-msg=W0611
+import tornado.httpclient
 import tornado.web
+
+
+def SyncClient(url, postdata):
+  cli = tornado.httpclient.HTTPClient()
+  postdata = str(postdata)
+  if postdata:
+    headers = { 'Content-Type': 'text/xml; charset="utf-8"',
+                'SOAPAction': '' }
+  else:
+    headers = {}
+  result = cli.fetch(url, method="POST", headers=headers, body=postdata)
+  return result.body
 
 
 class PingHandler(tornado.web.RequestHandler):
@@ -27,6 +41,22 @@ class CpeHandler(tornado.web.RequestHandler):
   def get(self):
     self.write("this is the cpe")
 
+  def post(self):
+    obj = soap.Parse(self.request.body)
+    print 'cpe request received:\n%s' % obj
+    reqid = obj.Header.get('ID', None)
+    req = obj.Body[0]
+    if req.name == 'GetParameterNames':
+      names = list(self.cpe.GetParameterNames(str(req.ParameterPath),
+                                              int(req.NextLevel)))
+      with soap.Envelope(request_id=reqid, hold_requests=None) as xml:
+        with xml['cwmp:GetParameterNamesResponse']:
+          for name in names:
+            with xml['ParameterInfoStruct']:
+              xml.Name(name)
+              xml.Writable('1')
+      self.write(str(xml))
+
 
 class AcsHandler(tornado.web.RequestHandler):
   def __init__(self, acs, *args, **kwargs):
@@ -36,6 +66,9 @@ class AcsHandler(tornado.web.RequestHandler):
   def get(self):
     self.write("this is the acs")
 
+  def post(self):
+    obj = soap.Parse(self.request.body)
+    self.write('acs request received: data=%r' % obj)
 
 
 def Listen(port, ping_path, cpe, acs):
@@ -55,4 +88,14 @@ def Listen(port, ping_path, cpe, acs):
     print 'TR-069 callback at http://localhost:%d/%s' % (port, ping_path)
   webapp = tornado.web.Application(handlers)
   webapp.listen(port)
-  
+
+
+def main():
+  with soap.Envelope(1234, False) as xml:
+    postdata = soap.GetParameterNames(xml, '', True)
+  print 'Response:'
+  print SyncClient('http://localhost:7547/cpe', postdata)
+
+
+if __name__ == '__main__':
+  main()

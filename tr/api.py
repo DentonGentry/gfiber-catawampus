@@ -143,20 +143,9 @@ class CPE(TR069Service):
       result.append((i, self._GetParameterValue(i)))
     return result
 
-  # TODO(apenwarr): next_level_only is currently unused; disabled lint warning
-  #pylint: disable-msg=W0613
   def GetParameterNames(self, parameter_path, next_level_only):
     """Get the names of parameters or objects (possibly recursively)."""
-    # TODO(apenwarr): implement this *correctly* with recursion etc.
-    # For now, we assume parameter_path just names an object.
-    # And we ignore next_level_only.
-    assert parameter_path.endswith('.')
-    obj_name = parameter_path[:-1]
-    base_names = self.root.GetExport(obj_name).ListExports()
-    out = []
-    for i in base_names:
-      out.append('%s.%s' % (obj_name, i))
-    return out
+    return self.root.ListExports(parameter_path, not next_level_only)
 
   def SetParameterAttributes(self, parameter_list):
     """Set attributes (access control, notifications) on some parameters."""
