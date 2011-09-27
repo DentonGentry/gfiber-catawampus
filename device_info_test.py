@@ -19,40 +19,34 @@ class DeviceInfoTest(unittest.TestCase):
   """Tests for device_info.py."""
 
   def testUptimeSuccess(self):
-    ut = device_info.UptimeLinux26()
-    ut._proc_uptime = 'testdata/device_info/uptime'
-    expected = '123'
-    self.assertEqual(ut.GetUptime(), expected)
+    ut = device_info.UptimeLinux26('testdata/device_info/uptime')
+    self.assertEqual(ut.GetUptime(), '123')
 
   def testUptimeFailure(self):
-    ut = device_info.UptimeLinux26()
-    ut._proc_uptime = 'testdata/device_info/please_do_not_create_this_file'
-    expected = '0'
-    self.assertEqual(ut.GetUptime(), expected)
+    ut = device_info.UptimeLinux26(
+        'testdata/device_info/please_do_not_create_this_file')
+    self.assertEqual(ut.GetUptime(), '0')
 
   def testMemoryStatusSuccess(self):
-    mi = device_info.MemoryStatusLinux26()
-    mi._proc_meminfo = 'testdata/device_info/meminfo'
-    expected = ('123456', '654321')
-    self.assertEqual(mi.GetMemInfo(), expected)
+    mi = device_info.MemoryStatusLinux26('testdata/device_info/meminfo')
+    self.assertEqual(mi.Total, 123456)
+    self.assertEqual(mi.Free, 654321)
 
   def testMemoryStatusNonexistant(self):
-    mi = device_info.MemoryStatusLinux26()
-    mi._proc_meminfo = 'testdata/device_info/please_do_not_create_this_file'
-    expected = ('0', '0')
-    self.assertEqual(mi.GetMemInfo(), expected)
+    mi = device_info.MemoryStatusLinux26(
+        'testdata/device_info/please_do_not_create_this_file')
+    self.assertEqual(mi.Total, 0)
+    self.assertEqual(mi.Free, 0)
 
   def testMemoryStatusTotal(self):
-    mi = device_info.MemoryStatusLinux26()
-    mi._proc_meminfo = 'testdata/device_info/meminfo_total'
-    expected = ('123456', '0')
-    self.assertEqual(mi.GetMemInfo(), expected)
+    mi = device_info.MemoryStatusLinux26('testdata/device_info/meminfo_total')
+    self.assertEqual(mi.Total, 123456)
+    self.assertEqual(mi.Free, 0)
 
   def testMemoryStatusFree(self):
-    mi = device_info.MemoryStatusLinux26()
-    mi._proc_meminfo = 'testdata/device_info/meminfo_free'
-    expected = ('0', '654321')
-    self.assertEqual(mi.GetMemInfo(), expected)
+    mi = device_info.MemoryStatusLinux26('testdata/device_info/meminfo_free')
+    self.assertEqual(mi.Total, 0)
+    self.assertEqual(mi.Free, 654321)
 
   def testProcessStatusReal(self):
     ps = device_info.ProcessStatusLinux26()
@@ -85,8 +79,7 @@ class DeviceInfoTest(unittest.TestCase):
                        Priority='20', CPUTime='5515790',
                        State='Uninterruptible')
         }
-    ps = device_info.ProcessStatusLinux26()
-    ps._slash_proc = 'testdata/device_info/processes'
+    ps = device_info.ProcessStatusLinux26('testdata/device_info/processes')
     processes = ps.ProcessList
     self.assertEqual(len(processes), 6)
     for p in processes.values():

@@ -73,11 +73,11 @@ class UptimeLinux26(object):
   Returns this as a string of the integer number of seconds, which is what
   TR-181 needs.
 
-  Tests can set _proc_uptime to a file with fake data, instead of /proc/uptime.
+  Tests can set proc_uptime to a file with fake data, instead of /proc/uptime.
   """
 
-  def __init__(self):
-    self._proc_uptime = '/proc/uptime'
+  def __init__(self, proc_uptime='/proc/uptime'):
+    self._proc_uptime = proc_uptime
 
   def GetUptime(self):
     """Returns a string of the number of seconds since the system booted."""
@@ -94,39 +94,43 @@ class MemoryStatusLinux26(BASEDEVICE.DeviceInfo.MemoryStatus):
 
   Reads proc/meminfo to find TotalMem and FreeMem.
 
-  Tests can set _proc_meminfo to a file with fake data instead of /proc/meminfo
+  Tests can set proc_meminfo to a file with fake data instead of /proc/meminfo
   """
 
-  def __init__(self):
+  def __init__(self, proc_meminfo='/proc/meminfo'):
     BASEDEVICE.DeviceInfo.MemoryStatus.__init__(self)
-    self._proc_meminfo = '/proc/meminfo'
+    self._proc_meminfo = proc_meminfo
+    (self._totalmem, self._freemem) = self._GetMemInfo(proc_meminfo)
 
   @property
   def Total(self):
-    return int(self.GetMemInfo()[0])
+    return self._totalmem
 
   @property
   def Free(self):
-    return int(self.GetMemInfo()[1])
+    return self._freemem
 
-  def GetMemInfo(self):
+  def _GetMemInfo(self, proc_meminfo):
     """Fetch TotalMem and FreeMem from the underlying platform.
 
+    Args:
+      proc_meminfo - path to /proc/meminfo (tests can override with fake data)
+
     Returns:
-        a list of two strings, (totalmem, freemem)
+      a list of two integers, (totalmem, freemem)
     """
-    totalmem = '0'
-    freemem = '0'
+    totalmem = 0
+    freemem = 0
     try:
-      pfile = open(self._proc_meminfo)
+      pfile = open(proc_meminfo)
       for line in pfile:
         fields = line.split()
         name = fields[0]
         value = fields[1]
         if name == 'MemTotal:':
-          totalmem = value
+          totalmem = int(value)
         elif name == 'MemFree:':
-          freemem = value
+          freemem = int(value)
     except IOError:
       # TODO(dgentry): LOG the exception, but return zeros by default
       pass
@@ -138,7 +142,7 @@ class ProcessStatusLinux26(BASEDEVICE.DeviceInfo.ProcessStatus):
 
   Reads /proc/<pid> to get information about processes.
 
-  Tests can set _slash_proc to a directory structure with fake data.
+  Tests can set slash_proc to a directory structure with fake data.
   """
   # Field ordering in /proc/<pid>/stat
   _PID = 0
@@ -149,11 +153,11 @@ class ProcessStatusLinux26(BASEDEVICE.DeviceInfo.ProcessStatus):
   _PRIO = 17
   _RSS = 23
 
-  def __init__(self):
+  def __init__(self, slash_proc='/proc'):
     BASEDEVICE.DeviceInfo.ProcessStatus.__init__(self)
     tick = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
     self._msec_per_jiffy = 1000 / tick
-    self._slash_proc = '/proc'
+    self._slash_proc = slash_proc
     self.ProcessList = tr.core.AutoDict('ProcessList',
                                         iteritems=self.IterProcesses,
                                         getitem=self.GetProcess)
