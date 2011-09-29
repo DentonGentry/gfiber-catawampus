@@ -17,9 +17,17 @@ import string
 import tr.core
 import tr.tr181_v2_2 as tr181
 
-BASEDEVICE = tr181.Device_v2_2
+BASEETHERNET = tr181.Device_v2_2.Device.Ethernet
 
-class EthernetStatsLinux26(BASEDEVICE.Device.Ethernet.Interface.Stats):
+class EthernetInterface(BASEETHERNET.Interface):
+  def __init__(self, ifname, upstream):
+    BASEETHERNET.Interface.__init__(self)
+    self.Name = ifname
+    self.Upstream = upstream
+    self.Stats = EthernetInterfaceStatsLinux26(ifname)
+
+
+class EthernetInterfaceStatsLinux26(BASEETHERNET.Interface.Stats):
   # Fields in /proc/net/dev
   _RX_BYTES = 0
   _RX_PKTS = 1
@@ -37,75 +45,74 @@ class EthernetStatsLinux26(BASEDEVICE.Device.Ethernet.Interface.Stats):
   _TX_CARRIER = 13
   _TX_COMPRESSED = 14
 
-  def __init__(self, proc_netdev='/proc/net/dev'):
-    BASEDEVICE.Device.Ethernet.Interface.Stats.__init__(self)
-    self._net_devices = self._ReadProcNetDev(proc_netdev)
+  def __init__(self, ifname, proc_net_dev='/proc/net/dev'):
+    BASEETHERNET.Interface.Stats.__init__(self)
+    self._net_devices = self._ReadProcNetDev(ifname, proc_net_dev)
 
-  def _ReadProcNetDev(self, proc_netdev):
-    f = open(proc_netdev)
+  def _ReadProcNetDev(self, ifname, proc_net_dev):
+    f = open(proc_net_dev)
     devices = dict()
     for line in f:
       fields = line.split(':')
-      if len(fields) == 2:
-        devices[fields[0].strip()] = fields[1].split()
+      if (len(fields) == 2) and (fields[0].strip() == ifname):
+        self._ifstats = fields[1].split()
     return devices
 
-  def BroadcastPacketsReceived(self, ifname):
+  def BroadcastPacketsReceived(self):
     return None
 
-  def BroadcastPacketsSent(self, ifname):
+  def BroadcastPacketsSent(self):
     # TODO(dgentry) - Linux doesn't track TX Broadcast.
     return None
 
-  def BytesReceived(self, ifname):
-    return self._net_devices[ifname][self._RX_BYTES]
+  def BytesReceived(self):
+    return self._ifstats[self._RX_BYTES]
 
-  def BytesSent(self, ifname):
-    return self._net_devices[ifname][self._TX_BYTES]
+  def BytesSent(self):
+    return self._ifstats[self._TX_BYTES]
 
-  def DiscardPacketsReceived(self, ifname):
-    return self._net_devices[ifname][self._RX_DROP]
+  def DiscardPacketsReceived(self):
+    return self._ifstats[self._RX_DROP]
 
-  def DiscardPacketsSent(self, ifname):
-    return self._net_devices[ifname][self._TX_DROP]
+  def DiscardPacketsSent(self):
+    return self._ifstats[self._TX_DROP]
 
-  def ErrorsReceived(self, ifname):
-    netdev = self._net_devices[ifname]
-    errs = int(netdev[self._RX_ERRS]) + int(netdev[self._RX_FRAME])
-    return str(errs)
+  def ErrorsReceived(self):
+    err = int(self._ifstats[self._RX_ERRS]) + int(self._ifstats[self._RX_FRAME])
+    return str(err)
 
-  def ErrorsSent(self, ifname):
-    return self._net_devices[ifname][self._TX_FIFO]
+  def ErrorsSent(self):
+    return self._ifstats[self._TX_FIFO]
 
-  def MulticastPacketsReceived(self, ifname):
-    return self._net_devices[ifname][self._RX_MCAST]
+  def MulticastPacketsReceived(self):
+    return self._ifstats[self._RX_MCAST]
 
-  def MulticastPacketsSent(self, ifname):
+  def MulticastPacketsSent(self):
     return None
 
-  def PacketsReceived(self, ifname):
-    return self._net_devices[ifname][self._RX_PKTS]
+  def PacketsReceived(self):
+    return self._ifstats[self._RX_PKTS]
 
-  def PacketsSent(self, ifname):
-    return self._net_devices[ifname][self._TX_PKTS]
+  def PacketsSent(self):
+    return self._ifstats[self._TX_PKTS]
 
-  def UnicastPacketsReceived(self, ifname):
-    netdev = self._net_devices[ifname]
-    uni_rx = int(netdev[self._RX_PKTS]) - int(netdev[self._RX_MCAST])
-    return str(uni_rx)
+  def UnicastPacketsReceived(self):
+    rx = int(self._ifstats[self._RX_PKTS]) - int(self._ifstats[self._RX_MCAST])
+    return str(rx)
 
-  def UnicastPacketsSent(self, ifname):
+  def UnicastPacketsSent(self):
     # Linux doesn't break out transmit uni/multi/broadcast, but we don't
     # want to return None for all of them. So we return all transmitted
     # packets as unicast, though some were surely multicast or broadcast.
-    return self._net_devices[ifname][self._TX_PKTS]
+    return self._ifstats[self._TX_PKTS]
 
-  def UnknownProtoPacketsReceived(self, ifname):
+  def UnknownProtoPacketsReceived(self):
     return None
 
 
+
 def main():
-  eth = EthernetStatsLinux26()
+  pass
 
 if __name__ == '__main__':
   main()
