@@ -48,7 +48,7 @@ class Handler(tornado.web.RequestHandler):
     tornado.web.RequestHandler.__init__(self, *args, **kwargs)
     
   def get(self):
-    self.write("this is the cpe")
+    self.write("this is the cpe/acs handler")
 
   def post(self):
     print 'TR-069 server: request received:\n%s' % self.request.body
@@ -56,7 +56,7 @@ class Handler(tornado.web.RequestHandler):
     self.write(str(result))
 
 
-def Listen(port, ping_path, cpe, acs):
+def Listen(port, ping_path, acs, cpe, cpe_listener):
   if not ping_path:
     ping_path = '/ping/%x' % random.getrandbits(128)
   while ping_path.startswith('/'):
@@ -66,7 +66,7 @@ def Listen(port, ping_path, cpe, acs):
     acshandler = api_soap.ACS(acs).Handle
     handlers.append(('/acs', lambda *args: Handler(acshandler, *args)))
     print 'TR-069 ACS at http://localhost:%d/acs' % port
-  if cpe:
+  if cpe and cpe_listener:
     cpehandler = api_soap.CPE(cpe).Handle
     handlers.append(('/cpe', lambda *args: Handler(cpehandler, *args)))
     print 'TR-069 CPE at http://localhost:%d/cpe' % port
