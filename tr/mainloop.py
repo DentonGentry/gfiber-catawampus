@@ -156,8 +156,10 @@ class MainLoop(object):
     # can get their refcounts down to zero, so their destructors can be
     # called
     if self.ioloop:
-      self.ioloop._handlers = None
-      self.ioloop._events = None
+      for fd in self.ioloop._handlers.keys():
+        self.ioloop.remove_handler(fd)
+      self.ioloop._handlers.clear()
+      self.ioloop._events.clear()
 
   def Start(self, timeout=None):
     """Run the mainloop repetitively until the program is finished.
@@ -190,6 +192,7 @@ class MainLoop(object):
     Args:
       timeout: same meaning as in Start().
     """
+    # TODO(apenwarr): timeout is effectively always 0 for now.  Oops.
     r, w = os.pipe()
     try:
       os.write(w, 'x')
