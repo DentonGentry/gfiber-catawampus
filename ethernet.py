@@ -13,6 +13,7 @@ in http://www.broadband-forum.org/cwmp/tr-181-2-2-0.html
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import pynetlinux
 import string
 import subprocess
 import tr.core
@@ -21,13 +22,33 @@ import tr.tr181_v2_2 as tr181
 BASEETHERNET = tr181.Device_v2_2.Device.Ethernet
 
 class EthernetInterface(BASEETHERNET.Interface):
-  def __init__(self, ifname, upstream,
-               path_to_ethtool='/usr/sbin/ethtool'):
+  def __init__(self, ifname, upstream, ifstats=None, pynet=None):
     BASEETHERNET.Interface.__init__(self)
+    if pynet is None:
+      pynet=pynetlinux.ifconfig.Interface(ifname)
+    if ifstats is None:
+      ifstats = EthernetInterfaceStatsLinux26(ifname)
+    self.Alias = ifname
+    self.DuplexMode = "Auto"
+    self.Enable = True
+    self.LastChange = 0  # TODO(dgentry) figure out date format
+    self.LowerLayers = None  # Ethernet.Interface is L1, nothing below it.
+    self.MACAddress = pynet.get_mac()
+    self.MaxBitRate = -1
     self.Name = ifname
+    self.Stats = ifstats
+    self.Status = self._GetStatus(pynet)
     self.Upstream = upstream
-    self.Stats = EthernetInterfaceStatsLinux26(ifname)
+    pynet = None
 
+  def _GetStatus(self, pynet):
+    if not pynet.is_up():
+      return "Down"
+    (speed, duplex, auto, link_up) = pynet.get_link_info()
+    if link_up:
+      return "Up"
+    else:
+      return "Dormant"
 
 
 class EthernetInterfaceStatsLinux26(BASEETHERNET.Interface.Stats):

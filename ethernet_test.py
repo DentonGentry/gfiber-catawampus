@@ -13,11 +13,14 @@ import os
 import unittest
 import ethernet
 import tr.core
+import tr.tr181_v2_2 as tr181
+
+BASEETHERNET = tr181.Device_v2_2.Device.Ethernet
 
 
 class EthernetTest(unittest.TestCase):
   """Tests for ethernet.py."""
-  def testGoodIfName(self):
+  def testStatsGoodIfName(self):
     eth = ethernet.EthernetInterfaceStatsLinux26("foo0",
                                                  "testdata/ethernet/net_dev")
     try:
@@ -41,7 +44,7 @@ class EthernetTest(unittest.TestCase):
     self.assertEqual(eth.UnicastPacketsSent, '10')
     self.assertEqual(eth.UnknownProtoPacketsReceived, None)
 
-  def testRealLinuxCorpus(self):
+  def testStatsRealLinuxCorpus(self):
     # A test using a /proc/net/dev line taken from a running Linux 2.6.32
     # system. Most of the fields are zero, so we exercise the other handling
     # using the foo0 fake data instead.
@@ -68,9 +71,87 @@ class EthernetTest(unittest.TestCase):
     self.assertEqual(eth.UnicastPacketsSent, '80960002')
     self.assertEqual(eth.UnknownProtoPacketsReceived, None)
 
-  def testNonexistentIfname(self):
+  def testStatsNonexistentIfname(self):
     self.assertRaises(TypeError, ethernet.EthernetInterfaceStatsLinux26,
                       "doesnotexist0", "testdata/ethernet/net_dev")
+
+  def _CheckEthernetInterfaceParameters(self, ifname, upstream, eth, pynet):
+    self.assertEqual(eth.Alias, ifname)
+    self.assertEqual(eth.DuplexMode, 'Auto')
+    self.assertEqual(eth.Enable, True)
+    self.assertEqual(eth.LastChange, 0)
+    self.assertEqual(eth.LowerLayers, None)
+    self.assertEqual(eth.MACAddress, pynet.v_mac)
+    self.assertEqual(eth.MaxBitRate, -1)
+    self.assertEqual(eth.Name, ifname)
+    self.assertEqual(eth.Upstream, upstream)
+
+  def testInterfaceGood(self):
+    ifstats = MockIfStats()
+    pynet = MockPynet()
+    ifname = "foo0"
+    upstream = True
+
+    eth = ethernet.EthernetInterface(ifname, upstream, ifstats, pynet)
+    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, pynet)
+
+    upstream = False
+    eth = ethernet.EthernetInterface(ifname, upstream, ifstats, pynet)
+    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, pynet)
+
+    pynet.v_is_up = False
+    eth = ethernet.EthernetInterface(ifname, upstream, ifstats, pynet)
+    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, pynet)
+
+    pynet.v_duplex = False
+    eth = ethernet.EthernetInterface(ifname, upstream, ifstats, pynet)
+    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, pynet)
+
+    pynet.v_auto = False
+    eth = ethernet.EthernetInterface(ifname, upstream, ifstats, pynet)
+    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, pynet)
+
+    pynet.v_link_up = False
+    eth = ethernet.EthernetInterface(ifname, upstream, ifstats, pynet)
+    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, pynet)
+
+    eth.ValidateExports()
+
+
+class MockPynet(object):
+  v_is_up = True
+  v_mac = "00:11:22:33:44:55"
+  v_speed = 1000
+  v_duplex = True
+  v_auto = True
+  v_link_up = True
+
+  def is_up(self):
+    return self.v_is_up
+
+  def get_mac(self):
+    return self.v_mac
+
+  def get_link_info(self):
+    return (self.v_speed, self.v_duplex, self.v_auto, self.v_link_up)
+
+
+class MockIfStats(BASEETHERNET.Interface.Stats):
+  BroadcastPacketsReceived = None
+  BroadcastPacketsSent = None
+  BytesReceived = None
+  BytesSent = None
+  DiscardPacketsReceived = None
+  DiscardPacketsSent = None
+  ErrorsReceived = None
+  ErrorsSent = None
+  MulticastPacketsReceived = None
+  MulticastPacketsSent = None
+  PacketsReceived = None
+  PacketsSent = None
+  UnicastPacketsReceived = None
+  UnicastPacketsSent = None
+  UnknownProtoPacketsReceived = None
 
 
 if __name__ == '__main__':
