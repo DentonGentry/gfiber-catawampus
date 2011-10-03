@@ -101,8 +101,11 @@ class SoapHandler(object):
     reqname = req.name
     with soap.Envelope(request_id, None) as xml:
       responder = getattr(self, reqname)
-      responder(xml, req)
-    return xml
+      result = responder(xml, req)
+    if result is not None:
+      return xml
+    else:
+      return ''
 
   def GetRPCMethods(self, xml, req):
     with xml['cwmp:GetRPCMethodsResponse']:
@@ -121,11 +124,15 @@ class ACS(SoapHandler):
       self.impl.Inform(None, req.DeviceId, req.Event, req.MaxEnvelopes,
                        req.CurrentTime, req.RetryCount, req.ParameterList)
       xml.MaxEnvelopes(str(1))
+    return xml
 
 
 class CPE(SoapHandler):
   def __init__(self, cpe):
     SoapHandler.__init__(self, impl=cpe)
+
+  def InformResponse(self, xml, req):
+    return
 
   def GetParameterNames(self, xml, req):
     with xml['cwmp:GetParameterNamesResponse']:

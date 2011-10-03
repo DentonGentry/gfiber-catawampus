@@ -84,10 +84,6 @@ class CPE(TR069Service):
     self._last_parameter_key = None
     self.acs = acs
     self.root = root
-    self.acs.Inform(self, DEVICE_ID,
-                    events=[], max_envelopes=1,
-                    current_time=None, retry_count=1,
-                    parameter_list=[])
 
   def _SetParameterKey(self, value):
     self._last_parameter_key = value

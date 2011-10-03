@@ -77,9 +77,8 @@ def main():
       cpe = tr.api.CPE(acs, root)
       if not opt.cpe_listener:
         print 'CPE API is client mode only.'
-    if acs or (cpe and opt.cpe_listener):
-      tr.http.Listen(opt.port, opt.ping_path, acs, cpe,
-                     cpe and opt.cpe_listener)
+    tr.http.Listen(opt.port, opt.ping_path, acs, opt.acs_url,
+                   cpe, cpe and opt.cpe_listener)
 
   loop.Start()
 
