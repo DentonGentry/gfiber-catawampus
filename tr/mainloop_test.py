@@ -50,6 +50,13 @@ class MainLoopTest(unittest.TestCase):
     # defeating our test.
     self.assertEqual(self.handler(), None)
 
+  def testMainLoop2(self):
+    loop = mainloop.MainLoop()
+    loop.RunOnce()
+    del loop
+    loop = mainloop.MainLoop()
+    loop.RunOnce()
+
 
 if __name__ == '__main__':
   unittest.main()

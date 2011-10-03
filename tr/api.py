@@ -36,20 +36,22 @@ class TR069Service(object):
 class ACS(TR069Service):
   """Represents a TR-069 ACS (Auto Configuration Server)."""
 
-  def Inform(self, cpe,
-             device_id, events, max_envelopes,
+  def __init__(self):
+    TR069Service.__init__(self)
+    self.cpe = None
+
+  def Inform(self, cpe, device_id, events, max_envelopes,
              current_time, retry_count, parameter_list):
     """Called when the CPE first connects to the ACS."""
     print 'ACS.Inform'
-    pass
+    self.cpe = cpe
 
-  def TransferComplete(self, cpe,
-                       command_key, fault_struct,
+  def TransferComplete(self, command_key, fault_struct,
                        start_time, complete_time):
     """A file transfer requested by the ACS has been completed."""
     raise NotImplementedError()
 
-  def AutonomousTransferComplete(self, cpe,
+  def AutonomousTransferComplete(self,
                                  announce_url, transfer_url,
                                  is_download, file_type,
                                  file_size, target_filename, fault_struct,
@@ -57,23 +59,19 @@ class ACS(TR069Service):
     """A file transfer *not* requested by the ACS has been completed."""
     raise NotImplementedError()
 
-  def Kicked(self, cpe,
-             command, referer, arg, next_url):
+  def Kicked(self, command, referer, arg, next_url):
     """Called whenever the CPE is kicked by the ACS."""
     raise NotImplementedError()
 
-  def RequestDownload(self, cpe,
-                      file_type, file_type_args):
+  def RequestDownload(self, file_type, file_type_args):
     """The CPE wants us to tell it to download something."""
     raise NotImplementedError()
 
-  def DUStateChangeComplete(self, cpe,
-                            results, command_key):
+  def DUStateChangeComplete(self, results, command_key):
     """A requested ChangeDUState has completed."""
     raise NotImplementedError()
 
-  def AutonomousDUStateChangeComplete(self, cpe,
-                                      results):
+  def AutonomousDUStateChangeComplete(self, results):
     """A DU state change that was not requested by the ACS has completed."""
     raise NotImplementedError()
 
@@ -86,10 +84,6 @@ class CPE(TR069Service):
     self._last_parameter_key = None
     self.acs = acs
     self.root = root
-    self.acs.Inform(self, DEVICE_ID,
-                    events=[], max_envelopes=1,
-                    current_time=None, retry_count=1,
-                    parameter_list=[])
 
   def _SetParameterKey(self, value):
     self._last_parameter_key = value
@@ -111,8 +105,7 @@ class CPE(TR069Service):
     if name == 'ParameterKey':
       self._SetParameterKey(value)
     else:
-      obj_name, param_name = self._SplitParameterName(name)
-      self.root.GetExport(obj_name).SetExportParam(param_name, value)
+      self.root.SetExportParam(name, value)
 
   def SetParameterValues(self, parameter_list, parameter_key):
     """Sets parameters on some objects."""
@@ -128,8 +121,7 @@ class CPE(TR069Service):
     if name == 'ParameterKey':
       return self._last_parameter_key
     else:
-      obj_name, param_name = self._SplitParameterName(name)
-      return self.root.GetExport(obj_name).GetExport(param_name)
+      return self.root.GetExport(name)
 
   def GetParameterValues(self, parameter_names):
     """Gets parameters from some objects.
@@ -159,15 +151,17 @@ class CPE(TR069Service):
   def AddObject(self, object_name, parameter_key):
     """Create a new object with default parameters."""
     assert object_name.endswith('.')
-    path = object_name.split('.')
-    parent = self.root.GetExport('.'.join(path[:-2]))
-    (idx, obj) = parent.AddExportObject(path[-2])  #pylint: disable-msg=W0612
+    #pylint: disable-msg=W0612
+    (idx, obj) = self.root.AddExportObject(object_name[:-1])
     self._SetParameterKey(parameter_key)
     return (idx, 0)  # successfully created
 
   def DeleteObject(self, object_name, parameter_key):
     """Delete an object and its sub-objects/parameters."""
-    raise NotImplementedError()
+    path = object_name.split('.')
+    self.root.DeleteExportObject('.'.join(path[:-1]), path[-1])
+    self._SetParameterKey(parameter_key)
+    return 0  # successfully deleted
 
   def Download(self, command_key, file_type, url,
                username, password, file_size, target_filename,
