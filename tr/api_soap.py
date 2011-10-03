@@ -62,7 +62,7 @@ def main():
   real_cpe = api.CPE(real_acs, core.Exporter())
   acs = ACS(real_acs)
   cpe = CPE(real_cpe)
-  acs.DoGetRPCMethods(None)
+  acs.GetRPCMethodsRequest(None, None)
 
 
 if __name__ == '__main__':

@@ -36,20 +36,22 @@ class TR069Service(object):
 class ACS(TR069Service):
   """Represents a TR-069 ACS (Auto Configuration Server)."""
 
-  def Inform(self, cpe,
-             device_id, events, max_envelopes,
+  def __init__(self):
+    TR069Service.__init__(self)
+    self.cpe = None
+
+  def Inform(self, cpe, device_id, events, max_envelopes,
              current_time, retry_count, parameter_list):
     """Called when the CPE first connects to the ACS."""
     print 'ACS.Inform'
-    pass
+    self.cpe = cpe
 
-  def TransferComplete(self, cpe,
-                       command_key, fault_struct,
+  def TransferComplete(self, command_key, fault_struct,
                        start_time, complete_time):
     """A file transfer requested by the ACS has been completed."""
     raise NotImplementedError()
 
-  def AutonomousTransferComplete(self, cpe,
+  def AutonomousTransferComplete(self,
                                  announce_url, transfer_url,
                                  is_download, file_type,
                                  file_size, target_filename, fault_struct,
@@ -57,23 +59,19 @@ class ACS(TR069Service):
     """A file transfer *not* requested by the ACS has been completed."""
     raise NotImplementedError()
 
-  def Kicked(self, cpe,
-             command, referer, arg, next_url):
+  def Kicked(self, command, referer, arg, next_url):
     """Called whenever the CPE is kicked by the ACS."""
     raise NotImplementedError()
 
-  def RequestDownload(self, cpe,
-                      file_type, file_type_args):
+  def RequestDownload(self, file_type, file_type_args):
     """The CPE wants us to tell it to download something."""
     raise NotImplementedError()
 
-  def DUStateChangeComplete(self, cpe,
-                            results, command_key):
+  def DUStateChangeComplete(self, results, command_key):
     """A requested ChangeDUState has completed."""
     raise NotImplementedError()
 
-  def AutonomousDUStateChangeComplete(self, cpe,
-                                      results):
+  def AutonomousDUStateChangeComplete(self, results):
     """A DU state change that was not requested by the ACS has completed."""
     raise NotImplementedError()
 
