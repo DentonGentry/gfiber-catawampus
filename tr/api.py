@@ -109,8 +109,7 @@ class CPE(TR069Service):
     if name == 'ParameterKey':
       self._SetParameterKey(value)
     else:
-      obj_name, param_name = self._SplitParameterName(name)
-      self.root.GetExport(obj_name).SetExportParam(param_name, value)
+      self.root.SetExportParam(name, value)
 
   def SetParameterValues(self, parameter_list, parameter_key):
     """Sets parameters on some objects."""
@@ -126,8 +125,7 @@ class CPE(TR069Service):
     if name == 'ParameterKey':
       return self._last_parameter_key
     else:
-      obj_name, param_name = self._SplitParameterName(name)
-      return self.root.GetExport(obj_name).GetExport(param_name)
+      return self.root.GetExport(name)
 
   def GetParameterValues(self, parameter_names):
     """Gets parameters from some objects.
@@ -157,15 +155,17 @@ class CPE(TR069Service):
   def AddObject(self, object_name, parameter_key):
     """Create a new object with default parameters."""
     assert object_name.endswith('.')
-    path = object_name.split('.')
-    parent = self.root.GetExport('.'.join(path[:-2]))
-    (idx, obj) = parent.AddExportObject(path[-2])  #pylint: disable-msg=W0612
+    #pylint: disable-msg=W0612
+    (idx, obj) = self.root.AddExportObject(object_name[:-1])
     self._SetParameterKey(parameter_key)
     return (idx, 0)  # successfully created
 
   def DeleteObject(self, object_name, parameter_key):
     """Delete an object and its sub-objects/parameters."""
-    raise NotImplementedError()
+    path = object_name.split('.')
+    self.root.DeleteExportObject('.'.join(path[:-1]), path[-1])
+    self._SetParameterKey(parameter_key)
+    return 0  # successfully deleted
 
   def Download(self, command_key, file_type, url,
                username, password, file_size, target_filename,
