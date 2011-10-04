@@ -21,6 +21,69 @@ import tr.tr181_v2_2 as tr181
 
 BASEETHERNET = tr181.Device_v2_2.Device.Ethernet
 
+class NetdevStatsLinux26(object):
+  # Fields in /proc/net/dev
+  _RX_BYTES = 0
+  _RX_PKTS = 1
+  _RX_ERRS = 2
+  _RX_DROP = 3
+  _RX_FIFO = 4
+  _RX_FRAME = 5
+  _RX_COMPRESSED = 6
+  _RX_MCAST = 7
+  _TX_BYTES = 8
+  _TX_PKTS = 9
+  _TX_DROP = 10
+  _TX_FIFO = 11
+  _TX_COLLISIONS = 12
+  _TX_CARRIER = 13
+  _TX_COMPRESSED = 14
+
+  def __init__(self, proc_net_dev='/proc/net/dev'):
+    self._proc_net_dev = proc_net_dev
+
+  def get_stats(self, ifname, ethstat):
+    ifstats = self._ReadProcNetDev(ifname, self._proc_net_dev)
+    ethstat.BroadcastPacketsReceived = None
+    ethstat.BroadcastPacketsSent = None
+    ethstat.BytesReceived = ifstats[self._RX_BYTES]
+    ethstat.BytesSent = ifstats[self._TX_BYTES]
+    ethstat.DiscardPacketsReceived = ifstats[self._RX_DROP]
+    ethstat.DiscardPacketsSent = ifstats[self._TX_DROP]
+
+    err = int(ifstats[self._RX_ERRS]) + int(ifstats[self._RX_FRAME])
+    ethstat.ErrorsReceived = str(err)
+
+    ethstat.ErrorsSent = ifstats[self._TX_FIFO]
+    ethstat.MulticastPacketsReceived = ifstats[self._RX_MCAST]
+    ethstat.MulticastPacketsSent = None
+    ethstat.PacketsReceived = ifstats[self._RX_PKTS]
+    ethstat.PacketsSent = ifstats[self._TX_PKTS]
+
+    rx = int(ifstats[self._RX_PKTS]) - int(ifstats[self._RX_MCAST])
+    ethstat.UnicastPacketsReceived = str(rx)
+
+    # Linux doesn't break out transmit uni/multi/broadcast, but we don't
+    # want to return None for all of them. So we return all transmitted
+    # packets as unicast, though some were surely multicast or broadcast.
+    ethstat.UnicastPacketsSent = ifstats[self._TX_PKTS]
+    ethstat.UnknownProtoPacketsReceived = None
+
+  def _ReadProcNetDev(self, ifname, proc_net_dev):
+    f = open(proc_net_dev)
+    devices = dict()
+    for line in f:
+      fields = line.split(':')
+      if (len(fields) == 2) and (fields[0].strip() == ifname):
+        return fields[1].split()
+
+
+class EthernetInterfaceStats(BASEETHERNET.Interface.Stats):
+  def __init__(self, ifname, devstat=NetdevStatsLinux26()):
+    BASEETHERNET.Interface.Stats.__init__(self)
+    devstat.get_stats(ifname, self)
+
+
 class EthernetInterface(BASEETHERNET.Interface):
   def __init__(self, ifname, upstream, ifstats=None, pynet=None):
     BASEETHERNET.Interface.__init__(self)
@@ -51,59 +114,30 @@ class EthernetInterface(BASEETHERNET.Interface):
       return "Dormant"
 
 
-class EthernetInterfaceStatsLinux26(BASEETHERNET.Interface.Stats):
-  # Fields in /proc/net/dev
-  _RX_BYTES = 0
-  _RX_PKTS = 1
-  _RX_ERRS = 2
-  _RX_DROP = 3
-  _RX_FIFO = 4
-  _RX_FRAME = 5
-  _RX_COMPRESSED = 6
-  _RX_MCAST = 7
-  _TX_BYTES = 8
-  _TX_PKTS = 9
-  _TX_DROP = 10
-  _TX_FIFO = 11
-  _TX_COLLISIONS = 12
-  _TX_CARRIER = 13
-  _TX_COMPRESSED = 14
+class Ethernet(BASEETHERNET):
+  def __init__(self):
+    BASEETHERNET.__init__(self)
 
-  def __init__(self, ifname, proc_net_dev='/proc/net/dev'):
-    BASEETHERNET.Interface.Stats.__init__(self)
-    ifstats = self._ReadProcNetDev(ifname, proc_net_dev)
-    self.BroadcastPacketsReceived = None
-    self.BroadcastPacketsSent = None
-    self.BytesReceived = ifstats[self._RX_BYTES]
-    self.BytesSent = ifstats[self._TX_BYTES]
-    self.DiscardPacketsReceived = ifstats[self._RX_DROP]
-    self.DiscardPacketsSent = ifstats[self._TX_DROP]
+  def add_interface(self, interface):
+    self.InterfaceList.append(interface)
 
-    err = int(ifstats[self._RX_ERRS]) + int(ifstats[self._RX_FRAME])
-    self.ErrorsReceived = str(err)
+  @property
+  def InterfaceNumberOfEntries(self):
+    return len(self.InterfaceList)
 
-    self.ErrorsSent = ifstats[self._TX_FIFO]
-    self.MulticastPacketsReceived = ifstats[self._RX_MCAST]
-    self.MulticastPacketsSent = None
-    self.PacketsReceived = ifstats[self._RX_PKTS]
-    self.PacketsSent = ifstats[self._TX_PKTS]
+  def add_link(self, link):
+    self.LinkList.append(link)
 
-    rx = int(ifstats[self._RX_PKTS]) - int(ifstats[self._RX_MCAST])
-    self.UnicastPacketsReceived = str(rx)
+  @property
+  def LinkNumberOfEntries(self):
+    return len(self.LinkList)
 
-    # Linux doesn't break out transmit uni/multi/broadcast, but we don't
-    # want to return None for all of them. So we return all transmitted
-    # packets as unicast, though some were surely multicast or broadcast.
-    self.UnicastPacketsSent = ifstats[self._TX_PKTS]
-    self.UnknownProtoPacketsReceived = None
+  def add_vlan(self, vlan):
+    self.VLANTerminationList.append(vlan)
 
-  def _ReadProcNetDev(self, ifname, proc_net_dev):
-    f = open(proc_net_dev)
-    devices = dict()
-    for line in f:
-      fields = line.split(':')
-      if (len(fields) == 2) and (fields[0].strip() == ifname):
-        return fields[1].split()
+  @property
+  def VLANTerminationNumberOfEntries(self):
+    return len(self.VLANTerminationList)
 
 
 def main():
