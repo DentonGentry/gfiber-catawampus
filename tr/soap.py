@@ -80,7 +80,7 @@ def Envelope(request_id, hold_requests):
             'xmlns:soap-enc': 'http://schemas.xmlsoap.org/soap/encoding/',
             'xmlns:xsd': 'http://www.w3.org/2001/XMLSchema',
             'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-            'xmlns:cwmp': 'urn:dslforum-org:cwmp-1-1' }
+            'xmlns:cwmp': 'urn:dslforum-org:cwmp-1-2' }
   with xml['soap:Envelope'](**attrs):
     with xml['soap:Header']:
       must_understand_attrs = { 'soap:mustUnderstand': '1' }
@@ -205,4 +205,3 @@ def main():
 
 if __name__ == '__main__':
   main()
-
