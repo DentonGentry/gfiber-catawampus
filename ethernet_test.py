@@ -20,9 +20,9 @@ BASEETHERNET = tr181.Device_v2_2.Device.Ethernet
 
 class EthernetTest(unittest.TestCase):
   """Tests for ethernet.py."""
-  def testStatsGoodIfName(self):
-    eth = ethernet.EthernetInterfaceStatsLinux26("foo0",
-                                                 "testdata/ethernet/net_dev")
+  def testInterfaceStatsGood(self):
+    devstat = ethernet.NetdevStatsLinux26("testdata/ethernet/net_dev")
+    eth = ethernet.EthernetInterfaceStats("foo0", devstat)
     try:
       eth.ValidateExports()
     except SchemaError:
@@ -44,12 +44,12 @@ class EthernetTest(unittest.TestCase):
     self.assertEqual(eth.UnicastPacketsSent, '10')
     self.assertEqual(eth.UnknownProtoPacketsReceived, None)
 
-  def testStatsRealLinuxCorpus(self):
+  def testInterfaceStatsReal(self):
     # A test using a /proc/net/dev line taken from a running Linux 2.6.32
     # system. Most of the fields are zero, so we exercise the other handling
     # using the foo0 fake data instead.
-    eth = ethernet.EthernetInterfaceStatsLinux26("eth0",
-                                                 "testdata/ethernet/net_dev")
+    devstat = ethernet.NetdevStatsLinux26("testdata/ethernet/net_dev")
+    eth = ethernet.EthernetInterfaceStats("eth0", devstat)
     try:
       eth.ValidateExports()
     except SchemaError:
@@ -71,9 +71,10 @@ class EthernetTest(unittest.TestCase):
     self.assertEqual(eth.UnicastPacketsSent, '80960002')
     self.assertEqual(eth.UnknownProtoPacketsReceived, None)
 
-  def testStatsNonexistentIfname(self):
-    self.assertRaises(TypeError, ethernet.EthernetInterfaceStatsLinux26,
-                      "doesnotexist0", "testdata/ethernet/net_dev")
+  def testInterfaceStatsNonexistent(self):
+    devstat = ethernet.NetdevStatsLinux26("testdata/ethernet/net_dev")
+    self.assertRaises(TypeError, ethernet.EthernetInterfaceStats,
+                      "doesnotexist0", devstat)
 
   def _CheckEthernetInterfaceParameters(self, ifname, upstream, eth, pynet):
     self.assertEqual(eth.Alias, ifname)
