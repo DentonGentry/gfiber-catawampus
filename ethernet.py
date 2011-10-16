@@ -21,8 +21,6 @@ import tr.tr181_v2_2
 
 BASEETHERNET = tr.tr181_v2_2.Device_v2_2.Device.Ethernet
 
-e_states = dict()
-
 class NetdevStatsLinux26(object):
   # Fields in /proc/net/dev
   _RX_BYTES = 0
@@ -87,21 +85,21 @@ class EthernetInterfaceStatsLinux26(BASEETHERNET.Interface.Stats):
 
 
 class EthernetInterfaceLinux26(BASEETHERNET.Interface):
-  def __init__(self, ifname, ifstats=None, pynet=None):
+  def __init__(self, state, ifstats=None, pynet=None):
     BASEETHERNET.Interface.__init__(self)
     if pynet is None:
-      pynet = pynetlinux.ifconfig.Interface(ifname)
+      pynet = pynetlinux.ifconfig.Interface(state.ifname)
     if ifstats is None:
-      ifstats = EthernetInterfaceStatsLinux26(ifname)
-    state = e_states[ifname]
-    self.Alias = ifname
+      ifstats = EthernetInterfaceStatsLinux26(state.ifname)
+    self._ethernet_state = state
+    self.Alias = state.ifname
     self.DuplexMode = "Auto"
     self.Enable = True
     self.LastChange = 0  # TODO(dgentry) figure out date format
     self.LowerLayers = None  # Ethernet.Interface is L1, nothing below it.
     self.MACAddress = pynet.get_mac()
     self.MaxBitRate = -1
-    self.Name = ifname
+    self.Name = state.ifname
     self.Stats = ifstats
     self.Status = self._GetStatus(pynet)
     self.Upstream = state.upstream
@@ -118,40 +116,47 @@ class EthernetInterfaceLinux26(BASEETHERNET.Interface):
 
 
 class EthernetState(object):
-  def __init__(self, ifname, upstream):
+  def __init__(self, ifname, upstream, iftype):
     self.ifname = ifname
     self.upstream = upstream
+    self.iftype = iftype
 
 
 class Ethernet(BASEETHERNET):
   def __init__(self):
     BASEETHERNET.__init__(self)
-    self.InterfaceList = []
-    self.LinkList = []
-    self.VLANTerminationList = []
-
-  def add_interface(self, ifname, upstream, interface):
-    state = EthernetState(ifname, upstream)
-    e_states[ifname] = state
-    self.InterfaceList.append(interface)
+    self.InterfaceList = tr.core.AutoDict(
+        'InterfaceList', iteritems=self.IterInterfaces, getitem=self.GetInterface)
+    self._Interfaces = {}
+    self._NextInterface = 0
+    self.LinkList = {}
+    self.VLANTerminationList = {}
 
   @property
   def InterfaceNumberOfEntries(self):
     return len(self.InterfaceList)
 
-  def add_link(self, link):
-    self.LinkList.append(link)
-
   @property
   def LinkNumberOfEntries(self):
     return len(self.LinkList)
 
-  def add_vlan(self, vlan):
-    self.VLANTerminationList.append(vlan)
-
   @property
   def VLANTerminationNumberOfEntries(self):
     return len(self.VLANTerminationList)
+
+  def AddInterface(self, ifname, upstream, iftype):
+    state = EthernetState(ifname, upstream, iftype)
+    self._Interfaces[self._NextInterface] = state
+    self._NextInterface += 1
+
+  def GetInterface(self, ifnum):
+    state = self._Interfaces[ifnum]
+    return state.iftype(state)
+
+  def IterInterfaces(self):
+    for ifnum in sorted(self._Interfaces.keys()):
+      interface = self.GetInterface(ifnum)
+      yield ifnum, interface
 
 
 def main():
