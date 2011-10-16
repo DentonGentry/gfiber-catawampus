@@ -175,7 +175,7 @@ class MockEthernetInterface(BASEETHERNET.Interface):
     self.MACAddress = "00:11:22:33:44:55"
     self.MaxBitRate = -1
     self.Name = state.ifname
-    self.Stats = ifstats
+    self.Stats = MockIfStats()
     self.Status = "Up"
     self.Upstream = state.upstream
 
