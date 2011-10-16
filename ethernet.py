@@ -89,6 +89,7 @@ class EthernetInterfaceLinux26(BASEETHERNET.Interface):
     BASEETHERNET.Interface.__init__(self)
     if pynet is None:
       pynet = pynetlinux.ifconfig.Interface(state.ifname)
+    self._pynet = pynet
     if ifstats is None:
       ifstats = EthernetInterfaceStatsLinux26(state.ifname)
     self._ethernet_state = state
@@ -97,18 +98,20 @@ class EthernetInterfaceLinux26(BASEETHERNET.Interface):
     self.Enable = True
     self.LastChange = 0  # TODO(dgentry) figure out date format
     self.LowerLayers = None  # Ethernet.Interface is L1, nothing below it.
-    self.MACAddress = pynet.get_mac()
     self.MaxBitRate = -1
     self.Name = state.ifname
     self.Stats = ifstats
-    self.Status = self._GetStatus(pynet)
     self.Upstream = state.upstream
-    pynet = None
 
-  def _GetStatus(self, pynet):
-    if not pynet.is_up():
+  @property
+  def MACAddress(self):
+    return self._pynet.get_mac()
+
+  @property
+  def Status(self):
+    if not self._pynet.is_up():
       return "Down"
-    (speed, duplex, auto, link_up) = pynet.get_link_info()
+    (speed, duplex, auto, link_up) = self._pynet.get_link_info()
     if link_up:
       return "Up"
     else:
