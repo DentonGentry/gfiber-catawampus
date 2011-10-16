@@ -170,7 +170,7 @@ class Exporter(object):
 
     def Exc(name, msg):
       fullname = '.'.join(path + [name])
-      return SchemaError('%s%s %s' % (fullname, name, msg))
+      return SchemaError('%s %s %s' % (fullname, name, msg))
 
     for name in self.export_params:
       self.AssertValidExport(name, path=path)
