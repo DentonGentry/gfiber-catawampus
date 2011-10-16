@@ -192,7 +192,7 @@ class Exporter(object):
       try:
         for (iname, obj) in l.iteritems():  #pylint: disable-msg=W0612
           pass
-      except TypeError:
+      except AttributeError:
         raise Exc(name + 'List', 'is an objlist but failed to iteritems')
       for (iname, obj) in l.iteritems():
         if isinstance(obj, type):
