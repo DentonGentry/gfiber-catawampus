@@ -48,9 +48,11 @@ class TemporaryRoot(tr.core.Exporter):
     tr.core.Exporter.__init__(self)
     self.Foo = 'bar'
     self.Device = device_bruno.DeviceBruno()
+    self.DeviceInfo = device_bruno.DeviceInfoBruno()
     self.TraceRoute = traceroute.TraceRoute(loop)
     self.Export(objects=['Foo',
                          'Device',
+                         'DeviceInfo',
                          'TraceRoute'])
 
 
