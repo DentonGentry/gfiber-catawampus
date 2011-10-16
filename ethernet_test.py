@@ -22,7 +22,7 @@ class EthernetTest(unittest.TestCase):
   """Tests for ethernet.py."""
   def testInterfaceStatsGood(self):
     devstat = ethernet.NetdevStatsLinux26("testdata/ethernet/net_dev")
-    eth = ethernet.EthernetInterfaceStats("foo0", devstat)
+    eth = ethernet.EthernetInterfaceStatsLinux26("foo0", devstat)
     try:
       eth.ValidateExports()
     except SchemaError:
@@ -49,7 +49,7 @@ class EthernetTest(unittest.TestCase):
     # system. Most of the fields are zero, so we exercise the other handling
     # using the foo0 fake data instead.
     devstat = ethernet.NetdevStatsLinux26("testdata/ethernet/net_dev")
-    eth = ethernet.EthernetInterfaceStats("eth0", devstat)
+    eth = ethernet.EthernetInterfaceStatsLinux26("eth0", devstat)
     try:
       eth.ValidateExports()
     except SchemaError:
@@ -73,10 +73,10 @@ class EthernetTest(unittest.TestCase):
 
   def testInterfaceStatsNonexistent(self):
     devstat = ethernet.NetdevStatsLinux26("testdata/ethernet/net_dev")
-    self.assertRaises(TypeError, ethernet.EthernetInterfaceStats,
+    self.assertRaises(TypeError, ethernet.EthernetInterfaceStatsLinux26,
                       "doesnotexist0", devstat)
 
-  def _CheckEthernetInterfaceParameters(self, ifname, upstream, eth, pynet):
+  def _CheckEthernetInterfaceParameters(self, ifname, eth, pynet):
     self.assertEqual(eth.Alias, ifname)
     self.assertEqual(eth.DuplexMode, 'Auto')
     self.assertEqual(eth.Enable, True)
@@ -85,36 +85,35 @@ class EthernetTest(unittest.TestCase):
     self.assertEqual(eth.MACAddress, pynet.v_mac)
     self.assertEqual(eth.MaxBitRate, -1)
     self.assertEqual(eth.Name, ifname)
-    self.assertEqual(eth.Upstream, upstream)
 
   def testInterfaceGood(self):
     ifstats = MockIfStats()
     pynet = MockPynet()
     ifname = "foo0"
-    upstream = True
 
-    eth = ethernet.EthernetInterface(ifname, upstream, ifstats, pynet)
-    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, pynet)
+    ethroot = ethernet.Ethernet()
+    ethroot.add_interface(ifname, False, ethernet.EthernetInterfaceLinux26)
+    eth = ethernet.EthernetInterfaceLinux26(ifname, ifstats, pynet)
+    self._CheckEthernetInterfaceParameters(ifname, eth, pynet)
 
-    upstream = False
-    eth = ethernet.EthernetInterface(ifname, upstream, ifstats, pynet)
-    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, pynet)
+    eth = ethernet.EthernetInterfaceLinux26(ifname, ifstats, pynet)
+    self._CheckEthernetInterfaceParameters(ifname, eth, pynet)
 
     pynet.v_is_up = False
-    eth = ethernet.EthernetInterface(ifname, upstream, ifstats, pynet)
-    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, pynet)
+    eth = ethernet.EthernetInterfaceLinux26(ifname, ifstats, pynet)
+    self._CheckEthernetInterfaceParameters(ifname, eth, pynet)
 
     pynet.v_duplex = False
-    eth = ethernet.EthernetInterface(ifname, upstream, ifstats, pynet)
-    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, pynet)
+    eth = ethernet.EthernetInterfaceLinux26(ifname, ifstats, pynet)
+    self._CheckEthernetInterfaceParameters(ifname, eth, pynet)
 
     pynet.v_auto = False
-    eth = ethernet.EthernetInterface(ifname, upstream, ifstats, pynet)
-    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, pynet)
+    eth = ethernet.EthernetInterfaceLinux26(ifname, ifstats, pynet)
+    self._CheckEthernetInterfaceParameters(ifname, eth, pynet)
 
     pynet.v_link_up = False
-    eth = ethernet.EthernetInterface(ifname, upstream, ifstats, pynet)
-    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, pynet)
+    eth = ethernet.EthernetInterfaceLinux26(ifname, ifstats, pynet)
+    self._CheckEthernetInterfaceParameters(ifname, eth, pynet)
 
     eth.ValidateExports()
 
