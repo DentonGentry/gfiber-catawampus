@@ -35,15 +35,39 @@ class DeviceInfoBruno(device_info.DeviceInfoLinux26):
     device_info.DeviceInfoLinux26.__init__(self, DeviceIdBruno())
 
 
-class DeviceBruno(tr181.Device_v2_2):
+class DeviceBruno(tr181.Device_v2_2.Device):
   """Device implementation for Bruno, Google's set top box platform.
   """
 
   def __init__(self):
-    tr181.Device_v2_2.__init__(self)
-    self.DeviceInfo = DeviceInfoBruno
-    self.SmartCardReaderNumberOfEntries = 0
-    self.UserNumberOfEntries = 0
+    tr181.Device_v2_2.Device.__init__(self)
+    self.ATM = tr.core.TODO()
+    self.Bridging = tr.core.TODO()
+    self.CaptivePortal = tr.core.TODO()
+    self.DHCPv4 = tr.core.TODO()
+    self.DNS = tr.core.TODO()
+    self.DSL = tr.core.TODO()
+    self.GatewayInfo = tr.core.TODO()
+    self.HPNA = tr.core.TODO()
+    self.HomePlug = tr.core.TODO()
+    self.Hosts = tr.core.TODO()
+    self.IEEE8021x = tr.core.TODO()
+    self.IP = tr.core.TODO()
+    self.LANConfigSecurity = tr.core.TODO()
+    self.ManagementServer = tr.core.TODO()
+    self.MoCA = tr.core.TODO()
+    self.NAT = tr.core.TODO()
+    self.PPP = tr.core.TODO()
+    self.PTM = tr.core.TODO()
+    self.QoS = tr.core.TODO()
+    self.Routing = tr.core.TODO()
+    self.Services = tr.core.TODO()
+    self.SmartCardReaders = tr.core.TODO()
+    self.UPA = tr.core.TODO()
+    self.USB = tr.core.TODO()
+    self.Users = tr.core.TODO()
+    self.WiFi = tr.core.TODO()
+    self.InterfaceStackNumberOfEntries = 0
 
     # Bruno has one Ethernet port, Wifi, and MoCA
     self.Ethernet = ethernet.Ethernet()
