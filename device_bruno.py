@@ -71,12 +71,7 @@ class DeviceBruno(tr181.Device_v2_2.Device):
 
     # Bruno has one Ethernet port, Wifi, and MoCA
     self.Ethernet = ethernet.Ethernet()
-    self.Ethernet.add_interface("eth0", False, EthernetInterfaceBrunoEth0)
-
-
-class EthernetInterfaceBrunoEth0(ethernet.EthernetInterfaceLinux26):
-  def __init__(self):
-    return EthernetInterfaceLinux26.__init__(self, "eth0")
+    self.Ethernet.AddInterface("eth0", False, ethernet.EthernetInterfaceLinux26)
 
 
 def main():
