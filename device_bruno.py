@@ -81,6 +81,7 @@ class EthernetInterfaceBrunoEth0(ethernet.EthernetInterfaceLinux26):
 
 def main():
   root = DeviceBruno()
+  tr.core.Dump(root)
 
 if __name__ == '__main__':
   main()
