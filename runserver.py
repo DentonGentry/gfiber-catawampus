@@ -10,6 +10,7 @@
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import sys
+import device_bruno
 import device_info
 import tr.api
 import tr.bup.options
@@ -45,9 +46,11 @@ class TemporaryRoot(tr.core.Exporter):
 
   def __init__(self, loop):
     tr.core.Exporter.__init__(self)
-    self.DeviceInfo = device_info.DeviceInfo()
+    self.Foo = 'bar'
+    self.Device = device_bruno.DeviceBruno()
     self.TraceRoute = traceroute.TraceRoute(loop)
-    self.Export(objects=['DeviceInfo',
+    self.Export(objects=['Foo',
+                         'Device',
                          'TraceRoute'])
 
 

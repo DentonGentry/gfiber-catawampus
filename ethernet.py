@@ -17,9 +17,11 @@ import pynetlinux
 import string
 import subprocess
 import tr.core
-import tr.tr181_v2_2 as tr181
+import tr.tr181_v2_2
 
-BASEETHERNET = tr181.Device_v2_2.Device.Ethernet
+BASEETHERNET = tr.tr181_v2_2.Device_v2_2.Device.Ethernet
+
+e_states = dict()
 
 class NetdevStatsLinux26(object):
   # Fields in /proc/net/dev
@@ -78,19 +80,20 @@ class NetdevStatsLinux26(object):
         return fields[1].split()
 
 
-class EthernetInterfaceStats(BASEETHERNET.Interface.Stats):
+class EthernetInterfaceStatsLinux26(BASEETHERNET.Interface.Stats):
   def __init__(self, ifname, devstat=NetdevStatsLinux26()):
     BASEETHERNET.Interface.Stats.__init__(self)
     devstat.get_stats(ifname, self)
 
 
-class EthernetInterface(BASEETHERNET.Interface):
-  def __init__(self, ifname, upstream, ifstats=None, pynet=None):
+class EthernetInterfaceLinux26(BASEETHERNET.Interface):
+  def __init__(self, ifname, ifstats=None, pynet=None):
     BASEETHERNET.Interface.__init__(self)
     if pynet is None:
-      pynet=pynetlinux.ifconfig.Interface(ifname)
+      pynet = pynetlinux.ifconfig.Interface(ifname)
     if ifstats is None:
       ifstats = EthernetInterfaceStatsLinux26(ifname)
+    state = e_states[ifname]
     self.Alias = ifname
     self.DuplexMode = "Auto"
     self.Enable = True
@@ -101,7 +104,7 @@ class EthernetInterface(BASEETHERNET.Interface):
     self.Name = ifname
     self.Stats = ifstats
     self.Status = self._GetStatus(pynet)
-    self.Upstream = upstream
+    self.Upstream = state.upstream
     pynet = None
 
   def _GetStatus(self, pynet):
@@ -114,11 +117,22 @@ class EthernetInterface(BASEETHERNET.Interface):
       return "Dormant"
 
 
+class EthernetState(object):
+  def __init__(self, ifname, upstream):
+    self.ifname = ifname
+    self.upstream = upstream
+
+
 class Ethernet(BASEETHERNET):
   def __init__(self):
     BASEETHERNET.__init__(self)
+    self.InterfaceList = []
+    self.LinkList = []
+    self.VLANTerminationList = []
 
-  def add_interface(self, interface):
+  def add_interface(self, ifname, upstream, interface):
+    state = EthernetState(ifname, upstream)
+    e_states[ifname] = state
     self.InterfaceList.append(interface)
 
   @property

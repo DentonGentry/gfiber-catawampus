@@ -21,30 +21,38 @@ import tr.tr181_v2_2 as tr181
 BASEDEVICE = tr181.Device_v2_2
 
 
+class DeviceIdDefault(object):
+  def __init__(self):
+    self.Manufacturer = 'Manufacturer'
+    self.ManufacturerOUI = '00:11:22:33:44:55'
+    self.ModelName = 'ModelName'
+    self.Description = 'Description'
+    self.SerialNumber = '00000000'
+    self.HardwareVersion = '0'
+    self.AdditionalHardwareVersion = '0'
+    self.SoftwareVersion = '0'
+    self.AdditionalSoftwareVersion = '0'
+    self.ProductClass = 'ProductClass'
+
 #pylint: disable-msg=W0231
-class DeviceInfo(BASEDEVICE.DeviceInfo):
+class DeviceInfoLinux26(BASEDEVICE.DeviceInfo):
   """Outputs fields to Device.DeviceInfo specific to the Google Uno platform.
 
   This object handles the manufacturer name, OUI, model, serial number,
   hardware and software versions, etc.
   """
 
-  def __init__(self):
+  def __init__(self, device_id=None):
     BASEDEVICE.DeviceInfo.__init__(self)
-    self.Manufacturer = 'Google'
-    self.ManufacturerOUI = '00:1a:11:00:00:00'
-    self.ModelName = 'Uno'
-    self.Description = 'CPE device for Google Fiber network'
-    self.SerialNumber = '00000000'
-    self.HardwareVersion = '0'
-    self.AdditionalHardwareVersion = '0'
-    self.SoftwareVersion = '0'
-    self.AdditionalSoftwareVersion = '0'
+    if device_id:
+      self._device_id = device_id
+    else:
+      self._device_id = DeviceIdDefault()
+
     self.GetUptime = UptimeLinux26().GetUptime
     self.MemoryStatus = MemoryStatusLinux26()
     self.ProcessStatus = ProcessStatusLinux26()
     self.ProvisioningCode = None  # TODO(apenwarr): fill me
-    self.ProductClass = 'Uno'
     self.FirstUseDate = None  # TODO(apenwarr): fill me
     self.NetworkProperties = self.NetworkProperties()
     self.NetworkProperties.MaxTCPWindowSize = 0,   # TODO(apenwarr): fill me
@@ -60,6 +68,46 @@ class DeviceInfo(BASEDEVICE.DeviceInfo):
   @property
   def UpTime(self):
     return self.GetUptime()
+
+  @property
+  def Manufacturer(self):
+    return self._device_id.Manufacturer
+
+  @property
+  def ManufacturerOUI(self):
+    return self._device_id.ManufacturerOUI
+
+  @property
+  def ModelName(self):
+    return self._device_id.ModelName
+
+  @property
+  def Description(self):
+    return self._device_id.Description
+
+  @property
+  def SerialNumber(self):
+    return self._device_id.SerialNumber
+
+  @property
+  def HardwareVersion(self):
+    return self._device_id.HardwareVersion
+
+  @property
+  def AdditionalHardwareVersion(self):
+    return self._device_id.AdditionalHardwareVersion
+
+  @property
+  def SoftwareVersion(self):
+    return self._device_id.SoftwareVersion
+
+  @property
+  def AdditionalSoftwareVersion(self):
+    return self._device_id.AdditionalSoftwareVersion
+
+  @property
+  def ProductClass(self):
+    return self._device_id.ProductClass
 
   @property
   def VendorLogFileNumberOfEntries(self):
@@ -244,7 +292,7 @@ class ProcessStatusLinux26(BASEDEVICE.DeviceInfo.ProcessStatus):
 
 
 def main():
-  dp = DeviceInfo()
+  dp = DeviceInfoLinux26()
   #print tr.core.DumpSchema(dp)
   print tr.core.Dump(dp)
 
