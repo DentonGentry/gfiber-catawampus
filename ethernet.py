@@ -22,6 +22,12 @@ import tr.tr181_v2_2
 BASEETHERNET = tr.tr181_v2_2.Device_v2_2.Device.Ethernet
 
 class NetdevStatsLinux26(object):
+  """Parses /proc/net/dev to populate EthernetInterfaceStats
+
+  Args:
+    proc_net_dev - string path to /proc/net/dev, allowing unit tests
+      to pass in fake data.
+  """
   # Fields in /proc/net/dev
   _RX_BYTES = 0
   _RX_PKTS = 1
@@ -43,6 +49,12 @@ class NetdevStatsLinux26(object):
     self._proc_net_dev = proc_net_dev
 
   def get_stats(self, ifname, ethstat):
+    """Parse fields from a /proc/net/dev line.
+
+    Args:
+      ifname - string name of the interface, like "eth0"
+      ethstat - object to store EthernetInterfaceStat fields.
+    """
     ifstats = self._ReadProcNetDev(ifname, self._proc_net_dev)
     ethstat.BroadcastPacketsReceived = None
     ethstat.BroadcastPacketsSent = None
@@ -70,6 +82,12 @@ class NetdevStatsLinux26(object):
     ethstat.UnknownProtoPacketsReceived = None
 
   def _ReadProcNetDev(self, ifname, proc_net_dev):
+    """Return the /proc/net/dev entry for ifname.
+
+       Args:
+         ifname - string name of the interface, ecx: "eth0"
+         proc_net_dev - string path to /proc/net/dev.
+    """
     f = open(proc_net_dev)
     devices = dict()
     for line in f:
@@ -79,18 +97,30 @@ class NetdevStatsLinux26(object):
 
 
 class EthernetInterfaceStatsLinux26(BASEETHERNET.Interface.Stats):
+  """EthernetInterfaceStats object to fetch data from Linux 2.6 /proc/net/dev
+  """
   def __init__(self, ifname, devstat=NetdevStatsLinux26()):
     BASEETHERNET.Interface.Stats.__init__(self)
     devstat.get_stats(ifname, self)
 
 
 class EthernetInterfaceLinux26(BASEETHERNET.Interface):
+  """Handling for a Linux 2.6-style device like eth0/eth1/etc.
+
+     Constructor arguments:
+       state - an InterfaceState object for this interface, holding
+         configuration state.
+       ifstats - a constructor for an EthernetInterfaceStats object
+       pynet - an object implementing the pynetlinux ifconfig object.
+         This argument allows unit tests to pass in a mock.
+  """
+
   def __init__(self, state, ifstats=None, pynet=None):
     BASEETHERNET.Interface.__init__(self)
-    if pynet is None:
+    if not pynet:
       pynet = pynetlinux.ifconfig.Interface(state.ifname)
     self._pynet = pynet
-    if ifstats is None:
+    if not ifstats:
       ifstats = EthernetInterfaceStatsLinux26(state.ifname)
     self._ethernet_state = state
     self.Alias = state.ifname
@@ -119,6 +149,8 @@ class EthernetInterfaceLinux26(BASEETHERNET.Interface):
 
 
 class EthernetState(object):
+  """Holds configured state for an EthernetInterface.
+  """
   def __init__(self, ifname, upstream, iftype):
     self.ifname = ifname
     self.upstream = upstream
@@ -126,6 +158,8 @@ class EthernetState(object):
 
 
 class Ethernet(BASEETHERNET):
+  """tr-181 Device.Etherent implementation.
+  """
   def __init__(self):
     BASEETHERNET.__init__(self)
     self.InterfaceList = tr.core.AutoDict(
@@ -148,6 +182,8 @@ class Ethernet(BASEETHERNET):
     return len(self.VLANTerminationList)
 
   def AddInterface(self, ifname, upstream, iftype):
+    """Add a physical Ethernet interface. These are typically added during the agent startup.
+    """
     state = EthernetState(ifname, upstream, iftype)
     self._Interfaces[self._NextInterface] = state
     self._NextInterface += 1
