@@ -1,8 +1,11 @@
+"""
+Interfaces for Linux tagged VLAN functionality.
+"""
+
+__author__ = 'dgentry@google.com (Denton Gentry)'
+
 import fcntl
-import os
-import socket
 import struct
-import ctypes
 import ifconfig
 
 """
@@ -52,6 +55,7 @@ struct vlan_ioctl_args {
 };
 """
 
+
 # From linux/sockios.h
 SIOCGIFVLAN = 0x8982
 SIOCSIFVLAN = 0x8983
@@ -69,21 +73,41 @@ GET_VLAN_REALDEV_NAME_CMD = 8
 GET_VLAN_VID_CMD = 9
 
 
-class Vlan(object):
-    ''' Class representing a Linux vlan. '''
+class VlanInterface(ifconfig.Interface):
+    '''Class representing a Linux vlan.'''
 
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, ifname, vid):
+        vlanname = ifname + '.' + str(vid)
+        ifconfig.Interface.__init__(self, vlanname)
 
+    def get_vid(self):
+        '''Return the integer Vlan ID.'''
+        vlanioc = struct.pack('i24s26x', GET_VLAN_VID_CMD, self.name)
+        result = struct.unpack('i24si22x', fcntl.ioctl(ifconfig.sockfd,
+                                                       SIOCGIFVLAN, vlanioc))
+        return int(result[2])
 
     def get_realdev_name(self):
         '''Get the underlying netdev for a VLAN interface.'''
-        vlanioc = struct.pack('i24s24sh', GET_VLAN_REALDEV_NAME_CMD,
-                              self.name, '', 0)
-        result = struct.unpack('i24s24sh',
-                               fcntl.ioctl(ifconfig.sockfd, SIOCGIFVLAN, vlanioc))
+        ioc = struct.pack('i24s26x', GET_VLAN_REALDEV_NAME_CMD, self.name)
+        result = struct.unpack('i24s24s2x', fcntl.ioctl(ifconfig.sockfd,
+                                                        SIOCGIFVLAN, ioc))
         return result[2].rstrip('\0')
 
+    def del_vlan(self):
+        '''Delete the VLAN from this interface. The VlanInterface object
+        will become unuseable after this, the kernel device no longer exists.'''
+        vlanioc = struct.pack('i24s26x', DEL_VLAN_CMD, self.name)
+        result = struct.unpack('i24s24sh', fcntl.ioctl(ifconfig.sockfd,
+                                                       SIOCSIFVLAN, vlanioc))
+
+def add_vlan(ifname, vid):
+    vlanioc = struct.pack('i24si22x', ADD_VLAN_CMD, ifname, vid)
+    try:
+      fcntl.ioctl(ifconfig.sockfd, SIOCSIFVLAN, vlanioc)
+    except IOError:
+      return False
+    return True
 
 def shutdown():
     ''' Shut down the library '''
