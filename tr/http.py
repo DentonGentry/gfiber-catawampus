@@ -9,6 +9,7 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import time
 import random
 import api_soap
 import soap
@@ -31,6 +32,7 @@ def SyncClient(url, postdata):
   else:
     headers = {}
   result = cli.fetch(url, method="POST", headers=headers, body=postdata)
+  print result.body
   return result.body
 
 
@@ -68,8 +70,11 @@ class CPEStateMachine(object):
     self.on_hold = False  # TODO(apenwarr): actually set this somewhere
     self.ioloop = tornado.ioloop.IOLoop.instance()
     self.http = tornado.httpclient.AsyncHTTPClient(io_loop=self.ioloop)
+    self.cookies = None
 
   def Send(self, req):
+    print 'CPE SENT (at %s):' % time.ctime()
+    print str(req)
     self.request_queue.append(str(req))
     self.Run()
 
@@ -92,19 +97,25 @@ class CPEStateMachine(object):
     print 'RUN'
     if self.outstanding is None:
       self.outstanding = self.GetNext()
-      if self.outstanding:
-        headers = { 'Content-Type': 'text/xml; charset="utf-8"',
-                    'SOAPAction': '' }
-      else:
-        headers = {}
-        self.outstanding = ''
-      self.http.fetch(self.acs_url, self.GotResponse, method="POST",
-                      headers=headers, body=self.outstanding)
+    headers = {}
+    if self.cookies:
+      headers['Cookie'] = ";".join(self.cookies)
+    if self.outstanding:
+      headers['Content-Type'] = 'text/xml; charset="utf-8"'
+      headers['SOAPAction'] = ''
+    else:
+      self.outstanding = ''
+    print "CPE POST: %r\n%s" % (str(headers), self.outstanding)
+    self.http.fetch(self.acs_url, self.GotResponse, method="POST",
+                    headers=headers, body=self.outstanding)
 
   def GotResponse(self, response):
     was_outstanding = self.outstanding
     self.outstanding = None
-    print 'CPE RECEIVED:'
+    print 'CPE RECEIVED (at %s):' % time.ctime()
+    cookies = response.headers.get_list("Set-Cookie")
+    if cookies:
+      self.cookies = cookies
     print response.body
     if response.body:
       out = self.cpe_soap.Handle(response.body)
@@ -117,6 +128,10 @@ class CPEStateMachine(object):
       self.Run()
 
   def PingReceived(self):
+    # TODO(apenwarr): make sure we flush cookies at each session start.
+    # For now, PingReceived is the only way we start a session, so here is
+    # okay.
+    self.cookies = None
     self.SendInform('6 CONNECTION REQUEST')
 
 
