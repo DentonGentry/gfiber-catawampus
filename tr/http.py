@@ -129,16 +129,16 @@ def Listen(port, ping_path, acs, acs_url, cpe, cpe_listener):
   if acs:
     acshandler = api_soap.ACS(acs).Handle
     handlers.append(('/acs', Handler, dict(soap_handler=acshandler)))
-    print 'TR-069 ACS at http://localhost:%d/acs' % port
+    print 'TR-069 ACS at http://*:%d/acs' % port
   if cpe and cpe_listener:
     cpehandler = api_soap.CPE(cpe).Handle
     handlers.append(('/cpe', Handler, dict(soap_handler=cpehandler)))
-    print 'TR-069 CPE at http://localhost:%d/cpe' % port
+    print 'TR-069 CPE at http://*:%d/cpe' % port
   cpe_machine = CPEStateMachine(cpe, acs_url)
   if ping_path:
     handlers.append(('/' + ping_path, PingHandler,
                      dict(callback=cpe_machine.PingReceived)))
-    print 'TR-069 callback at http://localhost:%d/%s' % (port, ping_path)
+    print 'TR-069 callback at http://*:%d/%s' % (port, ping_path)
   webapp = tornado.web.Application(handlers)
   webapp.listen(port)
   cpe_machine.SendInform('0 BOOTSTRAP')
