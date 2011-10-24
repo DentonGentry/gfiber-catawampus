@@ -59,10 +59,11 @@ class Handler(tornado.web.RequestHandler):
 
 
 class CPEStateMachine(object):
-  def __init__(self, cpe, acs_url):
+  def __init__(self, cpe, acs_url, ping_path):
     self.cpe = cpe
     self.cpe_soap = api_soap.CPE(self.cpe)
     self.acs_url = acs_url
+    self.ping_path = ping_path
     self.encode = api_soap.Encode()
     self.outstanding = None
     self.response_queue = []
@@ -80,11 +81,20 @@ class CPEStateMachine(object):
 
   def SendInform(self, reason):
     events = [(reason, '')]
+    parameter_list = []
+    if self.ping_path:
+      # TODO(apenwarr): get rid of hardcoded ip:port in the request URL.
+      parameter_list += [
+          ('Device.ManagementServer.ConnectionRequestURL',
+           'http://173.255.119.186:7547/' + self.ping_path),
+          ('Device.DeviceInfo.HardwareVersion', 'G'),
+          ('Device.DeviceInfo.SoftwareVersion', '30.0.16.13.6.18.7'),
+      ]
     req = self.encode.Inform(('manufacturer', 'oui', 'productclass',
                               'serialnumber'),
                              events=events,
                              max_envelopes=1, current_time=None,
-                             retry_count=1, parameter_list=[])
+                             retry_count=1, parameter_list=parameter_list)
     return self.Send(req)
 
   def GetNext(self):
@@ -149,7 +159,7 @@ def Listen(port, ping_path, acs, acs_url, cpe, cpe_listener):
     cpehandler = api_soap.CPE(cpe).Handle
     handlers.append(('/cpe', Handler, dict(soap_handler=cpehandler)))
     print 'TR-069 CPE at http://*:%d/cpe' % port
-  cpe_machine = CPEStateMachine(cpe, acs_url)
+  cpe_machine = CPEStateMachine(cpe, acs_url, ping_path)
   if ping_path:
     handlers.append(('/' + ping_path, PingHandler,
                      dict(callback=cpe_machine.PingReceived)))
