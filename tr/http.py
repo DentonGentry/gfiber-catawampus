@@ -9,14 +9,27 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import collections
 import time
 import random
+import socket
+import urllib
 import api_soap
 import soap
 import tornadi_fix       #pylint: disable-msg=W0611
 import tornado.httpclient
 import tornado.ioloop
 import tornado.web
+
+
+Url = collections.namedtuple('Url', ('method host port path'))
+
+
+def SplitUrl(url):
+    method, rest = urllib.splittype(url)
+    hostport, path = urllib.splithost(rest)
+    host, port = urllib.splitport(hostport)
+    return Url(method, host, int(port or 0), path)
 
 
 # TODO(apenwarr): We should never do http synchronously.
@@ -59,8 +72,9 @@ class Handler(tornado.web.RequestHandler):
 
 
 class CPEStateMachine(object):
-  def __init__(self, cpe, acs_url, ping_path):
+  def __init__(self, cpe, listenport, acs_url, ping_path):
     self.cpe = cpe
+    self.listenport = listenport
     self.cpe_soap = api_soap.CPE(self.cpe)
     self.acs_url = acs_url
     self.ping_path = ping_path
@@ -72,6 +86,7 @@ class CPEStateMachine(object):
     self.ioloop = tornado.ioloop.IOLoop.instance()
     self.http = tornado.httpclient.AsyncHTTPClient(io_loop=self.ioloop)
     self.cookies = None
+    self.my_ip = None
 
   def Send(self, req):
     print 'CPE SENT (at %s):' % time.ctime()
@@ -79,14 +94,36 @@ class CPEStateMachine(object):
     self.request_queue.append(str(req))
     self.Run()
 
+  def _GuessLocalAddr(self):
+    # This function is a bit tricky: we try connecting to the ACS,
+    # non-blocking, so we can find out which local IP the kernel uses when
+    # connecting to that IP.  The local address is returned with
+    # getsockname(). Then we can tell the ACS to use that address for
+    # connecting to us later.  We use a nonblocking socket because we don't
+    # care about actually connecting; we just care what the local kernel does
+    # in its implicit bind() when we *start* connecting.
+    assert self.acs_url
+    url = SplitUrl(self.acs_url)
+    host = url.host
+    port = url.port or 0
+    s = socket.socket()
+    s.setblocking(0)
+    try:
+      s.connect((host, port or 1))  # port doesn't matter, but can't be 0
+    except socket.error, e:
+      pass
+    return s.getsockname()[0]
+
   def SendInform(self, reason):
+    if not self.my_ip:
+      self.my_ip = self._GuessLocalAddr()
     events = [(reason, '')]
     parameter_list = []
     if self.ping_path:
       # TODO(apenwarr): get rid of hardcoded ip:port in the request URL.
       parameter_list += [
           ('Device.ManagementServer.ConnectionRequestURL',
-           'http://173.255.119.186:7547/' + self.ping_path),
+           'http://%s:%d/%s' % (self.my_ip, self.listenport, self.ping_path)),
           ('Device.DeviceInfo.HardwareVersion', 'G'),
           ('Device.DeviceInfo.SoftwareVersion', '30.0.16.13.6.18.7'),
       ]
@@ -137,11 +174,12 @@ class CPEStateMachine(object):
         (self.request_queue and not self.on_hold)):
       self.Run()
 
-  def PingReceived(self):
-    # TODO(apenwarr): make sure we flush cookies at each session start.
-    # For now, PingReceived is the only way we start a session, so here is
-    # okay.
+  def _CleanUpForNewSession(self):
     self.cookies = None
+    self.my_ip = None
+
+  def PingReceived(self):
+    self._CleanUpForNewSession()
     self.SendInform('6 CONNECTION REQUEST')
 
 
@@ -159,7 +197,7 @@ def Listen(port, ping_path, acs, acs_url, cpe, cpe_listener):
     cpehandler = api_soap.CPE(cpe).Handle
     handlers.append(('/cpe', Handler, dict(soap_handler=cpehandler)))
     print 'TR-069 CPE at http://*:%d/cpe' % port
-  cpe_machine = CPEStateMachine(cpe, acs_url, ping_path)
+  cpe_machine = CPEStateMachine(cpe, port, acs_url, ping_path)
   if ping_path:
     handlers.append(('/' + ping_path, PingHandler,
                      dict(callback=cpe_machine.PingReceived)))
