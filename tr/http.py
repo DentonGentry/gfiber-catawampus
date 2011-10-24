@@ -108,7 +108,7 @@ class CPEStateMachine(object):
     print response.body
     if response.body:
       out = self.cpe_soap.Handle(response.body)
-      if out:
+      if out is not None:
         self.Send(out)
         self.Run()
     if (was_outstanding or 
