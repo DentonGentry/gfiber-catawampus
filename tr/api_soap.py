@@ -44,7 +44,7 @@ class Encode(object):
           for name, value in parameter_list:
             with xml.ParameterValueStruct:
               xml.Name(name)
-              xml.Value(value)
+              xml.Value(str(value), xsi__type="xsd:string")
     return xml
 
   def GetParameterNames(self, parameter_path, next_level_only):
@@ -151,7 +151,7 @@ class CPE(SoapHandler):
         for name, value in self.impl.GetParameterValues(names):
           with xml.ParameterValueStruct:
             xml.Name(name)
-            xml.Value(value)
+            xml.Value(str(value), xsi__type="xsd:string")
     return xml
 
   def SetParameterValues(self, xml, req):
