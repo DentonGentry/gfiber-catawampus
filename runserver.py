@@ -10,7 +10,6 @@
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import sys
-import device_bruno
 import device_info
 import tr.api
 import tr.bup.options
@@ -33,6 +32,7 @@ acs-url=     URL of the TR-069 ACS server to connect to
 fake-acs     Run a fake ACS (and auto-set --acs-url to that)
 no-cpe       Don't run a CPE (and thus never connect to ACS)
 cpe-listener Let CPE listen for http requests (not TR-069 compliant)
+bruno        Activate the device_bruno objects.
 """
 
 
@@ -44,16 +44,20 @@ class TemporaryRoot(tr.core.Exporter):
   all the required objects yet.
   """
 
-  def __init__(self, loop):
+  def __init__(self, loop, want_bruno):
     tr.core.Exporter.__init__(self)
     self.Foo = 'bar'
-    self.Device = device_bruno.DeviceBruno()
-    self.DeviceInfo = device_bruno.DeviceInfoBruno()
+    objects = ['DeviceInfo', 'TraceRoute']
+    if want_bruno:
+      import device_bruno
+      self.Device = device_bruno.DeviceBruno()
+      self.DeviceInfo = device_bruno.DeviceInfoBruno()
+      objecs.append('Device')
+    else:
+      self.DeviceInfo = device_info.DeviceInfoLinux26()
     self.TraceRoute = traceroute.TraceRoute(loop)
     self.Export(params=['Foo'],
-                objects=['Device',
-                         'DeviceInfo',
-                         'TraceRoute'])
+                objects=objects)
 
 
 def main():
@@ -62,7 +66,7 @@ def main():
   
   tr.tornado.autoreload.start()
   loop = tr.mainloop.MainLoop()
-  root = TemporaryRoot(loop)
+  root = TemporaryRoot(loop, opt.bruno)
   if opt.rcmd_port:
     loop.ListenInet6(('', opt.rcmd_port),
                      tr.rcommand.MakeRemoteCommandStreamer(root))
