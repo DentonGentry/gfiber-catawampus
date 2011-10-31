@@ -82,17 +82,11 @@ class VlanInterface(ifconfig.Interface):
 
     def get_vid(self):
         '''Return the integer Vlan ID.'''
-        vlanioc = struct.pack('i24s26x', GET_VLAN_VID_CMD, self.name)
-        result = struct.unpack('i24si22x', fcntl.ioctl(ifconfig.sockfd,
-                                                       SIOCGIFVLAN, vlanioc))
-        return int(result[2])
+        return get_vid(self.name)
 
     def get_realdev_name(self):
         '''Get the underlying netdev for a VLAN interface.'''
-        ioc = struct.pack('i24s26x', GET_VLAN_REALDEV_NAME_CMD, self.name)
-        result = struct.unpack('i24s24s2x', fcntl.ioctl(ifconfig.sockfd,
-                                                        SIOCGIFVLAN, ioc))
-        return result[2].rstrip('\0')
+        return get_realdev_name(self.name)
 
     def del_vlan(self):
         '''Delete the VLAN from this interface. The VlanInterface object
@@ -108,6 +102,19 @@ def add_vlan(ifname, vid):
     except IOError:
       return False
     return True
+
+def get_realdev_name(ifname):
+    '''Get the underlying netdev for a VLAN interface.'''
+    ioc = struct.pack('i24s26x', GET_VLAN_REALDEV_NAME_CMD, ifname)
+    result = struct.unpack('i24s24s2x', fcntl.ioctl(ifconfig.sockfd,
+                                                    SIOCGIFVLAN, ioc))
+    return result[2].rstrip('\0')
+
+def get_vid(ifname):
+    vlanioc = struct.pack('i24s26x', GET_VLAN_VID_CMD, ifname)
+    result = struct.unpack('i24si22x', fcntl.ioctl(ifconfig.sockfd,
+                                                   SIOCGIFVLAN, vlanioc))
+    return int(result[2])
 
 def shutdown():
     ''' Shut down the library '''

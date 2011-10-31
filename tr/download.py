@@ -89,7 +89,6 @@ class PersistentObject(object):
     tree = etree.ElementTree(root)
     tree.write(self.filename)
 
-
 class HttpDownload(object):
   def download(self, ioloop, command_key=None, file_type=None, url=None,
                username=None, password=None, file_size=0, target_filename=None,

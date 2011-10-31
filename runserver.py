@@ -10,6 +10,7 @@
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import sys
+import device_bruno
 import device_info
 import tr.api
 import tr.bup.options
