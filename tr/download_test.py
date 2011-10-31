@@ -25,9 +25,7 @@ class PersistentObjectTest(unittest.TestCase):
     shutil.rmtree(self.tmpdir)
 
   def testPersistentObjectAttrs(self):
-    kwargs = { "foo1" : "bar1",
-               "foo2" : "bar2",
-               "foo3" : 3 }
+    kwargs = { "foo1" : "bar1", "foo2" : "bar2", "foo3" : 3 }
     tobj = download.PersistentObject("TestObj", **kwargs)
     self.assertEqual(tobj.foo1, "bar1")
     self.assertEqual(tobj.foo2, "bar2")
@@ -35,15 +33,13 @@ class PersistentObjectTest(unittest.TestCase):
     self.assertEqual(tobj.foo3, "3")
 
   def testStringifyXML(self):
-    kwargs = { "foo1" : "bar1",
-               "foo3" : 3 }
+    kwargs = { "foo1" : "bar1", "foo3" : 3 }
     tobj = download.PersistentObject("TestObj", **kwargs)
     expected = "<TestObj><foo1>bar1</foo1><foo3>3</foo3></TestObj>"
     self.assertEqual(str(tobj), expected)
 
   def testWriteToFile(self):
-    kwargs = { "foo1" : "bar1",
-               "foo3" : 3 }
+    kwargs = { "foo1" : "bar1", "foo3" : 3 }
     tobj = download.PersistentObject("TestObj", **kwargs)
     expected = "<TestObj><foo1>bar1</foo1><foo3>3</foo3></TestObj>"
     with open(tobj.filename) as f:
@@ -58,6 +54,28 @@ class PersistentObjectTest(unittest.TestCase):
       tobj = download.PersistentObject("TestObj", filename=f.name)
     self.assertEqual(tobj.foo, "bar")
     self.assertEqual(tobj.baz, "4")
+
+  def testUpdate(self):
+    kwargs = { "foo1" : "bar1", "foo3" : 3 }
+    tobj = download.PersistentObject("TestObj", **kwargs)
+    expected = "<TestObj><foo1>bar1</foo1><foo3>3</foo3></TestObj>"
+    with open(tobj.filename) as f:
+      actual = f.read()
+    self.assertEqual(actual, expected)
+    kwargs["foo1"] = "bar2"
+    tobj.Update(**kwargs)
+    expected = "<TestObj><foo1>bar2</foo1><foo3>3</foo3></TestObj>"
+    with open(tobj.filename) as f:
+      actual = f.read()
+    self.assertEqual(actual, expected)
+
+  def testUpdateFails(self):
+    kwargs = { "foo1" : "bar1",
+               "foo3" : 3 }
+    tobj = download.PersistentObject("TestObj", **kwargs)
+    download.statedir = "/this_path_should_not_exist_hijhgvWRQ4MVVSDHuheifuh"
+    kwargs["foo1"] = "bar2"
+    self.assertRaises(OSError, tobj.Update, **kwargs)
 
 
 if __name__ == '__main__':

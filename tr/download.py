@@ -28,19 +28,20 @@ class PersistentObject(object):
       filename: name of an XML file on disk, to restore object state from.
         If filename is None then this is a new object, and will create
         a file for itself in statedir.
-      kwargs: Parameters to be passed to self.UpdateState
+      kwargs: Parameters to be passed to self.Update
     """
     self.rootname = rootname
     self._fields = {}
     if filename is not None:
       self._ReadFromFS(filename)
     else:
-      f = tempfile.NamedTemporaryFile(mode="a+", dir=statedir, delete=False)
+      f = tempfile.NamedTemporaryFile(
+          mode="a+", prefix=rootname, dir=statedir, delete=False)
       filename = f.name
       f.close()
     self.filename = filename
     if len(kwargs) > 0:
-      self.UpdateState(**kwargs)
+      self.Update(**kwargs)
 
   def __getattr__(self, name):
     return self._fields[str(name)]
@@ -54,7 +55,7 @@ class PersistentObject(object):
   def __unicode__(self):
     return etree.tostring(self._ToXml())
 
-  def UpdateState(self, **kwargs):
+  def Update(self, **kwargs):
     """Atomically update one or more parameters of the object.
 
     One might reasonably ask why this is an explicit call and not just
@@ -87,7 +88,11 @@ class PersistentObject(object):
   def _WriteToFS(self):
     root = self._ToXml()
     tree = etree.ElementTree(root)
-    tree.write(self.filename)
+    f = tempfile.NamedTemporaryFile(
+        mode="a+", prefix="tmpwrite", dir=statedir, delete=False)
+    tree.write(f)
+    f.close()
+    os.rename(f.name, self.filename)
 
 class HttpDownload(object):
   def download(self, ioloop, command_key=None, file_type=None, url=None,
