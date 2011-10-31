@@ -100,36 +100,43 @@ class PersistentObject(object):
     os.rename(f.name, self.filename)
 
 
-download_rootname = "tr69_dnld"
+# Used as both the XML tag for download objects, and a prefix for filenames.
+dnld_rootname = "tr69_dnld"
 
-def GetDownloadObjects(rootname=download_rootname):
+def GetDownloadObjects(rootname=dnld_rootname):
   globstr = statedir + "/" + rootname + "*"
   dnlds = []
-  print "GetDownloadObjects globstr=" + globstr + " objs=" + str(len(glob.glob(globstr)))
   for f in glob.glob(globstr):
     dnlds.append(PersistentObject(rootname, f))
   return dnlds
 
 
+# Unit tests can override this to pass in a mock AsyncHTTPClient
+dnld_client = tornado.httpclient.AsyncHTTPClient
+
 class HttpDownload(object):
+  # States a download passes through:
+  DELAYING = "DELAYING"
+  DOWNLOADING = "DOWNLOADING"
+  INSTALLING = "INSTALLING"
+  REBOOTING = "REBOOTING"
+  CONCLUDING = "CONCLUDING"
+
   def download(self, ioloop, command_key=None, file_type=None, url=None,
                username=None, password=None, file_size=0, target_filename=None,
                delay_seconds=0):
     self.ioloop = ioloop
-    self.command_key = command_key
-    self.file_type = file_type
-    self.url = url
-    self.username = username
-    self.password = password
-    self.file_size = file_size
-    self.target_filename = target_filename
-    self.download_start_time = None
-    self.download_complete_time = None
-
-    self.tempfile = tempfile.NamedTemporaryFile(delete=False)
-
+    kwargs = {"command_key" : command_key,
+              "file_type" : file_type,
+              "url" : url,
+              "username" : username,
+              "password" : password,
+              "file_size" : file_size,
+              "target_filename" : target_filename,
+              "delay_seconds" : delay_seconds}
+    self.stateobj = PersistentObject(rootname=dnld_rootname, **kwargs)
     # I dislike when APIs require NTP-related bugs in my code.
-    ioloop.add_timeout(time.time() + delay_seconds, self.delay)
+    self.ioloop.add_timeout(time.time() + delay_seconds, self.delay)
 
     # tr-69 DownloadResponse: 1 = Download has not yet been completed
     # and applied
@@ -137,20 +144,22 @@ class HttpDownload(object):
 
   def delay(self):
     req = tornado.httpclient.HTTPRequest(
-        url = self.url,
-        auth_username = self.username,
-        auth_password = self.password,
+        url = self.stateobj["url"],
+        auth_username = self.stateobj["username"],
+        auth_password = self.stateobj["password"],
         request_timeout = 3600.0,
         streaming_callback = self.streaming_callback,
         allow_ipv6 = True)
-    http_client = tornado.httpclient.AsyncHTTPClient()
-    http_client.fetch(req, self.async_callback)
-    self.download_start_time = time.time()
+    self.tempfile = tempfile.NamedTemporaryFile(delete=False)
+    self.http_client = dnld_client()
+    self.http_client.fetch(req, self.async_callback)
+    self.stateobj.Update(download_start_time=time.time())
 
   def streaming_callback(self, data):
     self.tempfile.write(data)
 
   def async_callback(self, response):
+    self.stateobj.Update(download_end_time=time.time())
     self.tempfile.flush()
     self.tempfile.close()
     if response.error:
@@ -163,9 +172,8 @@ class HttpDownload(object):
 
 def main():
   ioloop = tornado.ioloop.IOLoop.instance()
-  dl = HttpDownload(ioloop,
-                    url="http://codingrelic.geekhold.com/",
-                    delay_seconds=0)
+  dl = HttpDownload()
+  dl.download(ioloop, url="http://codingrelic.geekhold.com/", delay_seconds=0)
   ioloop.start()
 
 if __name__ == '__main__':
