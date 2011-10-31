@@ -77,6 +77,24 @@ class PersistentObjectTest(unittest.TestCase):
     kwargs["foo1"] = "bar2"
     self.assertRaises(OSError, tobj.Update, **kwargs)
 
+  def testGetDownloadObjects(self):
+    expected = ["<tr69_dnld><foo>bar1</foo><baz>4</baz></tr69_dnld>",
+                "<tr69_dnld><foo>bar2</foo><baz>5</baz></tr69_dnld>",
+                "<tr69_dnld><foo>bar3</foo><baz>6</baz></tr69_dnld>"]
+    for obj in expected:
+      with tempfile.NamedTemporaryFile(
+          dir=self.tmpdir, prefix="tr69_dnld", delete=False) as f:
+        f.write(obj)
+        f.close()
+    actual = download.GetDownloadObjects()
+    self.assertEqual(len(actual), len(expected))
+    self.assertEqual(actual[0].foo, "bar1")
+    self.assertEqual(actual[0].baz, "4")
+    self.assertEqual(actual[1].foo, "bar2")
+    self.assertEqual(actual[1].baz, "5")
+    self.assertEqual(actual[2].foo, "bar3")
+    self.assertEqual(actual[2].baz, "6")
+
 
 if __name__ == '__main__':
   unittest.main()

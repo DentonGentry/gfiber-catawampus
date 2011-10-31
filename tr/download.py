@@ -5,6 +5,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import glob
 import os
 import tempfile
 import time
@@ -35,8 +36,9 @@ class PersistentObject(object):
     if filename is not None:
       self._ReadFromFS(filename)
     else:
+      prefix = rootname + "_"
       f = tempfile.NamedTemporaryFile(
-          mode="a+", prefix=rootname, dir=statedir, delete=False)
+          mode="a+", prefix=prefix, dir=statedir, delete=False)
       filename = f.name
       f.close()
     self.filename = filename
@@ -47,7 +49,7 @@ class PersistentObject(object):
     return self._fields[str(name)]
 
   def __getitem__(self, name):
-    return self._fields[name]
+    return self._fields[str(name)]
 
   def __str__(self):
     return etree.tostring(self._ToXml())
@@ -74,11 +76,13 @@ class PersistentObject(object):
     self._WriteToFS()
 
   def _ReadFromFS(self, filename):
+    """Read an XML file back to an PersistentState object."""
     root = etree.parse(filename).getroot()
     for field in root:
       self._fields[field.tag] = field.text
 
   def _ToXml(self):
+    """Generate an ElementTree based on the current PersistentObject."""
     root = etree.Element(self.rootname)
     for key in self._fields:
       sub = etree.SubElement(root, key)
@@ -86,6 +90,7 @@ class PersistentObject(object):
     return root
 
   def _WriteToFS(self):
+    """Write PersistentState object out to an XML file."""
     root = self._ToXml()
     tree = etree.ElementTree(root)
     f = tempfile.NamedTemporaryFile(
@@ -93,6 +98,18 @@ class PersistentObject(object):
     tree.write(f)
     f.close()
     os.rename(f.name, self.filename)
+
+
+download_rootname = "tr69_dnld"
+
+def GetDownloadObjects(rootname=download_rootname):
+  globstr = statedir + "/" + rootname + "*"
+  dnlds = []
+  print "GetDownloadObjects globstr=" + globstr + " objs=" + str(len(glob.glob(globstr)))
+  for f in glob.glob(globstr):
+    dnlds.append(PersistentObject(rootname, f))
+  return dnlds
+
 
 class HttpDownload(object):
   def download(self, ioloop, command_key=None, file_type=None, url=None,
