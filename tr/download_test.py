@@ -13,6 +13,8 @@ import download
 import os
 import shutil
 import tempfile
+import time
+import tornado.ioloop
 import unittest
 
 class PersistentObjectTest(unittest.TestCase):
@@ -100,15 +102,27 @@ class PersistentObjectTest(unittest.TestCase):
     self.assertTrue(found[2])
 
 
+mock_http_clients = []
 class MockHttpClient(object):
   def __init__(self):
     self.did_fetch = False
     self.request = None
     self.callback = None
+    mock_http_clients.append(self)
 
   def fetch(self, request, callback):
     self.did_fetch = True
     self.request = request
+    self.callback = callback
+
+
+class MockIoloop(object):
+  def __init__(self):
+    self.time = None
+    self.callback = None
+
+  def add_timeout(self, time, callback):
+    self.time = time
     self.callback = callback
 
 
@@ -117,9 +131,41 @@ class HttpDownloadTest(unittest.TestCase):
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp()
     download.statedir = self.tmpdir
+    download.dnld_client = MockHttpClient
 
   def tearDown(self):
     shutil.rmtree(self.tmpdir)
+
+  def testDelay(self):
+    ioloop = MockIoloop()
+    dl = download.HttpDownload(ioloop)
+    delay = 100
+    dl.download(delay_seconds=delay)
+    self.assertTrue(ioloop.time is not None)
+    delta = ioloop.time - time.time()
+    # It is possible, though unlikely, that NTP adjusts our clock between
+    # the call to dl.download and now. This test could then fail.
+    self.assertTrue(delta <= delay)
+
+  def testFetch(self):
+    ioloop = MockIoloop()
+    dl = download.HttpDownload(ioloop)
+    username = "uname"
+    password = "pword"
+    url = "scheme://host:port/"
+    dl.download(username=username, password=password, url=url)
+    self.assertTrue(ioloop.time is not None)
+    self.assertEqual(len(mock_http_clients), 0)
+
+    # HttpDownload scheduled its callback, call it now.
+    ioloop.callback()
+    self.assertEqual(len(mock_http_clients), 1)
+    ht = mock_http_clients[0]
+    self.assertTrue(ht.did_fetch)
+    self.assertTrue(ht.request is not None)
+    self.assertEqual(ht.request.auth_username, username)
+    self.assertEqual(ht.request.auth_password, password)
+    self.assertEqual(ht.request.url, url)
 
 
 if __name__ == '__main__':

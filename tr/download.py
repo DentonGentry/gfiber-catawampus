@@ -149,10 +149,12 @@ class HttpDownload(object):
   REBOOTING = "REBOOTING"
   CONCLUDING = "CONCLUDING"
 
-  def download(self, ioloop, command_key=None, file_type=None, url=None,
-               username=None, password=None, file_size=0, target_filename=None,
-               delay_seconds=0):
+  def __init__(self, ioloop):
     self.ioloop = ioloop
+
+  def download(self, command_key=None, file_type=None, url=None,
+               username=None, password=None, file_size=0,
+               target_filename=None, delay_seconds=0):
     kwargs = {"command_key" : command_key,
               "file_type" : file_type,
               "url" : url,
