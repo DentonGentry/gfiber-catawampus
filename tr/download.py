@@ -72,21 +72,48 @@ class PersistentObject(object):
       **kwargs: Parameters to be updated.
     """
     for key in kwargs:
-      self._fields[key] = str(kwargs[key])
+      self._fields[key] = kwargs[key]
     self._WriteToFS()
+
+  def Get(self, name):
+    if name in self._fields:
+      return self._fields[name]
+    return None
+
+  def _is_integer(self, data):
+    try:
+      int(data)
+      return True
+    except ValueError:
+      return False
+
+  def _XMLType(self, data):
+    if data is None:
+      return "none"
+    if self._is_integer(data):
+      return "int"
+    return "string"
 
   def _ReadFromFS(self, filename):
     """Read an XML file back to an PersistentState object."""
     root = etree.parse(filename).getroot()
     for field in root:
-      self._fields[field.tag] = field.text
+      fieldtype = field.attrib["type"]
+      if fieldtype == "none":
+        self._fields[field.tag] = None
+      elif fieldtype == "int":
+        self._fields[field.tag] = int(field.text)
+      else:
+        self._fields[field.tag] = str(field.text)
 
   def _ToXml(self):
     """Generate an ElementTree based on the current PersistentObject."""
     root = etree.Element(self.rootname)
     for key in self._fields:
       sub = etree.SubElement(root, key)
-      sub.text = self._fields[key]
+      data = self._fields[key]
+      sub.text = str(data)
+      sub.set("type", self._XMLType(data))
     return root
 
   def _WriteToFS(self):
@@ -111,7 +138,7 @@ def GetDownloadObjects(rootname=dnld_rootname):
   return dnlds
 
 
-# Unit tests can override this to pass in a mock AsyncHTTPClient
+# Unit tests can override these to pass in mocks
 dnld_client = tornado.httpclient.AsyncHTTPClient
 
 class HttpDownload(object):
@@ -144,9 +171,9 @@ class HttpDownload(object):
 
   def delay(self):
     req = tornado.httpclient.HTTPRequest(
-        url = self.stateobj["url"],
-        auth_username = self.stateobj["username"],
-        auth_password = self.stateobj["password"],
+        url = self.stateobj.url,
+        auth_username = self.stateobj.username,
+        auth_password = self.stateobj.password,
         request_timeout = 3600.0,
         streaming_callback = self.streaming_callback,
         allow_ipv6 = True)
