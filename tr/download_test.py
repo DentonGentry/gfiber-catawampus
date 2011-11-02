@@ -155,9 +155,10 @@ class HttpDownloadTest(unittest.TestCase):
     url = "scheme://host:port/"
     dl.download(username=username, password=password, url=url)
     self.assertTrue(ioloop.time is not None)
+    self.assertTrue(ioloop.callback is not None)
     self.assertEqual(len(mock_http_clients), 0)
 
-    # HttpDownload scheduled its callback, call it now.
+    # HttpDownload scheduled its delay_seconds callback, call it now.
     ioloop.callback()
     self.assertEqual(len(mock_http_clients), 1)
     ht = mock_http_clients[0]
