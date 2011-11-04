@@ -19,7 +19,7 @@ import tr.tr181_v2_2 as tr181
 class DeviceIdBruno(object):
   def __init__(self):
     self.Manufacturer = 'Google'
-    self.ManufacturerOUI = '00:1a:11:00:00:00'
+    self.ManufacturerOUI = '001a11'
     self.ModelName = 'Bruno'
     self.Description = 'Set top box for Google Fiber network'
     self.SerialNumber = '00000000'
