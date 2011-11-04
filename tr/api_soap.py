@@ -23,15 +23,15 @@ class Encode(object):
       xml['cwmp:GetRPCMethods'](None)
     return xml
 
-  def Inform(self, device_id, events, max_envelopes,
+  def Inform(self, root, events, max_envelopes,
              current_time, retry_count, parameter_list):
     with self._Envelope() as xml:
       with xml['cwmp:Inform']:
         with xml.DeviceId:
-          xml.Manufacturer(device_id[0])
-          xml.OUI(device_id[1])
-          xml.ProductClass(device_id[2])
-          xml.SerialNumber(device_id[3])
+          xml.Manufacturer(root.DeviceInfo.Manufacturer)
+          xml.OUI(root.DeviceInfo.ManufacturerOUI)
+          xml.ProductClass(root.DeviceInfo.ProductClass)
+          xml.SerialNumber(root.DeviceInfo.SerialNumber)
         with xml.Event:
           for event in events:
             with xml.EventStruct:
@@ -177,15 +177,23 @@ class CPE(SoapHandler):
 
 def main():
   import core
+
+  class FakeDeviceInfo(object):
+    Manufacturer = "manufacturer"
+    ManufacturerOUI = "oui"
+    ProductClass = "productclass"
+    SerialNumber = "serialnumber"
+
   root = core.Exporter()
   root.Export(params=['Test', 'Test2'], lists=['Sub'])
   root.Test = '5'
   root.Test2 = 6
   root.SubList = {}
   root.Sub = core.Exporter
-  
+  root.DeviceInfo = FakeDeviceInfo()
+
   real_acs = api.ACS()
-  real_cpe = api.CPE(real_acs, root)
+  real_cpe = api.CPE(real_acs, root, None)
   cpe = CPE(real_cpe)
   acs = ACS(real_acs)
   encode = Encode()
@@ -197,8 +205,7 @@ def main():
   print cpe.Handle(encode.GetParameterValues(['Test', 'Test2']))
   print cpe.Handle(encode.AddObject('Sub.', 5))
   print cpe.Handle(encode.DeleteObject('Sub.0', 5))
-  print acs.Handle(encode.Inform(('manufacturer', 'oui', 'productclass',
-                                  'serialnumber'), [], 1, None, 1, []))
+  print acs.Handle(encode.Inform(root, [], 1, None, 1, []))
 
 
 if __name__ == '__main__':

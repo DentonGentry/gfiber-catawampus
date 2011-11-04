@@ -27,6 +27,7 @@ runserver.py [options]
 --
 r,rcmd-port= TCP port to listen for rcommands on; 0 to disable [12999]
 u,unix-path= Unix socket to listen on [/tmp/mainloop.sock]
+i,ip=        IP address to report to ACS. (default=finds interface IP address)
 p,port=      TCP port to listen for TR-069 on [7547]
 ping-path=   Force CPE ping listener to this URL path (default=random)
 acs-url=     URL of the TR-069 ACS server to connect to
@@ -53,7 +54,7 @@ class TemporaryRoot(tr.core.Exporter):
       import device_bruno
       self.Device = device_bruno.DeviceBruno()
       self.DeviceInfo = device_bruno.DeviceInfoBruno()
-      objecs.append('Device')
+      objects.append('Device')
     else:
       self.DeviceInfo = device_info.DeviceInfoLinux26()
     self.TraceRoute = traceroute.TraceRoute(loop)
@@ -64,7 +65,7 @@ class TemporaryRoot(tr.core.Exporter):
 def main():
   o = tr.bup.options.Options(optspec)
   (opt, flags, extra) = o.parse(sys.argv[1:])
-  
+
   tr.tornado.autoreload.start()
   loop = tr.mainloop.MainLoop()
   root = TemporaryRoot(loop, opt.bruno)
@@ -74,7 +75,7 @@ def main():
   if opt.unix_path:
     loop.ListenUnix(opt.unix_path,
                     tr.rcommand.MakeRemoteCommandStreamer(root))
- 
+
   if opt.port:
     if not opt.acs_url and not opt.fake_acs and not opt.no_cpe:
       o.fatal('You must give either --acs-url, --fake-acs, or --no-cpe.')
@@ -84,10 +85,10 @@ def main():
       if not opt.acs_url:
         opt.acs_url = 'http://localhost:%d/acs' % opt.port
     if opt.cpe:
-      cpe = tr.api.CPE(acs, root)
+      cpe = tr.api.CPE(acs, root, loop)
       if not opt.cpe_listener:
         print 'CPE API is client mode only.'
-    tr.http.Listen(opt.port, opt.ping_path, acs, opt.acs_url,
+    tr.http.Listen(opt.ip, opt.port, opt.ping_path, acs, opt.acs_url,
                    cpe, cpe and opt.cpe_listener)
 
   loop.Start()

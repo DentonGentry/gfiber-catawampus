@@ -14,8 +14,8 @@ API calls; it's just a python version of the API.
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-
-DEVICE_ID = 'google-test-device-id'
+import tornadi_fix       #pylint: disable-msg=W0611
+import download
 
 
 class TR069Service(object):
@@ -40,7 +40,7 @@ class ACS(TR069Service):
     TR069Service.__init__(self)
     self.cpe = None
 
-  def Inform(self, cpe, device_id, events, max_envelopes,
+  def Inform(self, cpe, root, events, max_envelopes,
              current_time, retry_count, parameter_list):
     """Called when the CPE first connects to the ACS."""
     print 'ACS.Inform'
@@ -79,11 +79,12 @@ class ACS(TR069Service):
 class CPE(TR069Service):
   """Represents a TR-069 CPE (Customer Premises Equipment)."""
 
-  def __init__(self, acs, root):
+  def __init__(self, acs, root, ioloop):
     TR069Service.__init__(self)
     self._last_parameter_key = None
     self.acs = acs
     self.root = root
+    self.ioloop = ioloop
 
   def _SetParameterKey(self, value):
     self._last_parameter_key = value
@@ -167,7 +168,11 @@ class CPE(TR069Service):
                username, password, file_size, target_filename,
                delay_seconds, success_url, failure_url):
     """Initiate a download immediately or after a delay."""
-    raise NotImplementedError()
+    dl = download.HttpDownload(self.ioloop)
+    return dl.download(command_key=command_key, file_type=file_type,
+                       url=url, username=username, password=password,
+                       file_size=file_size, target_filename=target_filename,
+                       delay_seconds=delay_seconds)
 
   def Reboot(self, command_key):
     """Reboot the CPE."""
@@ -217,7 +222,7 @@ class CPE(TR069Service):
     raise NotImplementedError()
 
   def _PingReceived(self):
-    self.acs.Inform(self, DEVICE_ID,
+    self.acs.Inform(self, self.root,
                     events=[('6 CONNECTION REQUEST', '')], max_envelopes=1,
                     current_time=None, retry_count=1,
                     parameter_list=[])

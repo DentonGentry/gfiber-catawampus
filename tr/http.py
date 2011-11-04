@@ -72,7 +72,7 @@ class Handler(tornado.web.RequestHandler):
 
 
 class CPEStateMachine(object):
-  def __init__(self, cpe, listenport, acs_url, ping_path):
+  def __init__(self, ip, cpe, listenport, acs_url, ping_path):
     self.cpe = cpe
     self.listenport = listenport
     self.cpe_soap = api_soap.CPE(self.cpe)
@@ -86,6 +86,7 @@ class CPEStateMachine(object):
     self.ioloop = tornado.ioloop.IOLoop.instance()
     self.http = tornado.httpclient.AsyncHTTPClient(io_loop=self.ioloop)
     self.cookies = None
+    self.my_configured_ip = ip
     self.my_ip = None
 
   def Send(self, req):
@@ -94,10 +95,12 @@ class CPEStateMachine(object):
     self.request_queue.append(str(req))
     self.Run()
 
-  def _GuessLocalAddr(self):
-    # This function is a bit tricky: we try connecting to the ACS,
-    # non-blocking, so we can find out which local IP the kernel uses when
-    # connecting to that IP.  The local address is returned with
+  def _GetLocalAddr(self):
+    if self.my_configured_ip is not None:
+      return self.my_configured_ip
+    # If not configured with an address it gets a bit tricky: we try connecting
+    # to the ACS, non-blocking, so we can find out which local IP the kernel
+    # uses when connecting to that IP.  The local address is returned with
     # getsockname(). Then we can tell the ACS to use that address for
     # connecting to us later.  We use a nonblocking socket because we don't
     # care about actually connecting; we just care what the local kernel does
@@ -116,19 +119,19 @@ class CPEStateMachine(object):
 
   def SendInform(self, reason):
     if not self.my_ip:
-      self.my_ip = self._GuessLocalAddr()
+      self.my_ip = self._GetLocalAddr()
     events = [(reason, '')]
     parameter_list = []
     if self.ping_path:
       # TODO(apenwarr): get rid of hardcoded ip:port in the request URL.
+      di = self.cpe.root.DeviceInfo
       parameter_list += [
           ('Device.ManagementServer.ConnectionRequestURL',
            'http://%s:%d/%s' % (self.my_ip, self.listenport, self.ping_path)),
-          ('Device.DeviceInfo.HardwareVersion', 'G'),
-          ('Device.DeviceInfo.SoftwareVersion', '30.0.16.13.6.18.7'),
+          ('Device.DeviceInfo.HardwareVersion', di.HardwareVersion),
+          ('Device.DeviceInfo.SoftwareVersion', di.SoftwareVersion),
       ]
-    req = self.encode.Inform(('manufacturer', 'oui', 'productclass',
-                              'serialnumber'),
+    req = self.encode.Inform(root=self.cpe.root,
                              events=events,
                              max_envelopes=1, current_time=None,
                              retry_count=1, parameter_list=parameter_list)
@@ -169,8 +172,8 @@ class CPEStateMachine(object):
       if out is not None:
         self.Send(out)
         self.Run()
-    if (was_outstanding or 
-        self.response_queue or 
+    if (was_outstanding or
+        self.response_queue or
         (self.request_queue and not self.on_hold)):
       self.Run()
 
@@ -183,9 +186,9 @@ class CPEStateMachine(object):
     self.SendInform('6 CONNECTION REQUEST')
 
 
-def Listen(port, ping_path, acs, acs_url, cpe, cpe_listener):
+def Listen(ip, port, ping_path, acs, acs_url, cpe, cpe_listener):
   if not ping_path:
-    ping_path = '/ping/%x' % random.getrandbits(128)
+    ping_path = '/ping/%x' % random.getrandbits(120)
   while ping_path.startswith('/'):
     ping_path = ping_path[1:]
   handlers = []
@@ -197,7 +200,7 @@ def Listen(port, ping_path, acs, acs_url, cpe, cpe_listener):
     cpehandler = api_soap.CPE(cpe).Handle
     handlers.append(('/cpe', Handler, dict(soap_handler=cpehandler)))
     print 'TR-069 CPE at http://*:%d/cpe' % port
-  cpe_machine = CPEStateMachine(cpe, port, acs_url, ping_path)
+  cpe_machine = CPEStateMachine(ip, cpe, port, acs_url, ping_path)
   if ping_path:
     handlers.append(('/' + ping_path, PingHandler,
                      dict(callback=cpe_machine.PingReceived)))

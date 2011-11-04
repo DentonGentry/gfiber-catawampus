@@ -35,7 +35,7 @@ class ApiTest(unittest.TestCase):
     root.Test = TestObject()
     root.ValidateExports()
     acs = api.ACS()
-    cpe = api.CPE(acs, root)
+    cpe = api.CPE(acs, root, None)
     print acs.GetRPCMethods()
     print cpe.GetRPCMethods()
     #pylint: disable-msg=W0612
