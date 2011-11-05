@@ -45,7 +45,6 @@ def SyncClient(url, postdata):
   else:
     headers = {}
   result = cli.fetch(url, method="POST", headers=headers, body=postdata)
-  print result.body
   return result.body
 
 
@@ -72,7 +71,7 @@ class Handler(tornado.web.RequestHandler):
 
 
 class CPEStateMachine(object):
-  def __init__(self, ip, cpe, listenport, acs_url, ping_path):
+  def __init__(self, ip, cpe, listenport, acs_url, ping_path, ioloop):
     self.cpe = cpe
     self.listenport = listenport
     self.cpe_soap = api_soap.CPE(self.cpe)
@@ -83,15 +82,13 @@ class CPEStateMachine(object):
     self.response_queue = []
     self.request_queue = []
     self.on_hold = False  # TODO(apenwarr): actually set this somewhere
-    self.ioloop = tornado.ioloop.IOLoop.instance()
+    self.ioloop = ioloop
     self.http = tornado.httpclient.AsyncHTTPClient(io_loop=self.ioloop)
     self.cookies = None
     self.my_configured_ip = ip
     self.my_ip = None
 
   def Send(self, req):
-    print 'CPE SENT (at %s):' % time.ctime()
-    print str(req)
     self.request_queue.append(str(req))
     self.Run()
 
@@ -123,7 +120,6 @@ class CPEStateMachine(object):
     events = [(reason, '')]
     parameter_list = []
     if self.ping_path:
-      # TODO(apenwarr): get rid of hardcoded ip:port in the request URL.
       di = self.cpe.root.DeviceInfo
       parameter_list += [
           ('Device.ManagementServer.ConnectionRequestURL',
@@ -186,7 +182,7 @@ class CPEStateMachine(object):
     self.SendInform('6 CONNECTION REQUEST')
 
 
-def Listen(ip, port, ping_path, acs, acs_url, cpe, cpe_listener):
+def Listen(ip, port, ping_path, acs, acs_url, cpe, cpe_listener, ioloop):
   if not ping_path:
     ping_path = '/ping/%x' % random.getrandbits(120)
   while ping_path.startswith('/'):
@@ -200,7 +196,7 @@ def Listen(ip, port, ping_path, acs, acs_url, cpe, cpe_listener):
     cpehandler = api_soap.CPE(cpe).Handle
     handlers.append(('/cpe', Handler, dict(soap_handler=cpehandler)))
     print 'TR-069 CPE at http://*:%d/cpe' % port
-  cpe_machine = CPEStateMachine(ip, cpe, port, acs_url, ping_path)
+  cpe_machine = CPEStateMachine(ip, cpe, port, acs_url, ping_path, ioloop)
   if ping_path:
     handlers.append(('/' + ping_path, PingHandler,
                      dict(callback=cpe_machine.PingReceived)))
