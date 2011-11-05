@@ -153,6 +153,28 @@ class Exporter(object):
     if lists:
       self.export_object_lists.update(lists)
 
+  def Unexport(self, params=None, objects=None, lists=None):
+    """Remove some parameters, objects, or lists to make them invisible.
+
+    Some parameters are optional. Auto-generated classes will Export()
+    all possible attributes. If an implementation chooses not to support
+    some fields, it must explicitly Unexport them.
+
+    The implementation has to deliberately choose not to implement a
+    parameter, not just overlook it or skip it out of laziness.
+
+    Args:
+      params: a list of parameters to remove
+      objects: a list of sub-objects to remove
+      lists: a list of object-list names (lists containing objects) to remove.
+    """
+    if params:
+      self.export_params.remove(params)
+    if objects:
+      self.export_objects.remove(objects)
+    if lists:
+      self.export_object_lists.remove(lists)
+
   def ValidateExports(self, path=None):
     """Trace through this object's exports to make no attributes are missing.
 
