@@ -86,7 +86,7 @@ class Encode(object):
         xml.ObjectName(str(object_name))
         xml.ParameterKey(str(parameter_key))
     return xml
-  
+
 
 
 class SoapHandler(object):
@@ -171,6 +171,21 @@ class CPE(SoapHandler):
   def DeleteObject(self, xml, req):
     with xml['cwmp:DeleteObjectResponse']:
       code = self.impl.DeleteObject(req.ObjectName, req.ParameterKey)
+      xml.Status(str(int(code)))
+    return xml
+
+  def Download(self, xml, req):
+    with xml['cwmp:DownloadResponse']:
+      code = self.impl.Download(command_key=req.CommandKey,
+                                file_type=req.FileType,
+                                url=req.URL,
+                                username=req.Username,
+                                password=req.Password,
+                                file_size=int(req.FileSize),
+                                target_filename=req.TargetFileName,
+                                delay_seconds=int(req.DelaySeconds),
+                                success_url=req.SuccessURL,
+                                failure_url=req.FailureURL)
       xml.Status(str(int(code)))
     return xml
 
