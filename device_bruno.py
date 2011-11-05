@@ -12,6 +12,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import device_info
 import ethernet
+import management_server
 import tr.core
 import tr.tr181_v2_2 as tr181
 
@@ -54,7 +55,6 @@ class DeviceBruno(tr181.Device_v2_2.Device):
     self.IEEE8021x = tr.core.TODO()
     self.IP = tr.core.TODO()
     self.LANConfigSecurity = tr.core.TODO()
-    self.ManagementServer = tr.core.TODO()
     self.MoCA = tr.core.TODO()
     self.NAT = tr.core.TODO()
     self.PPP = tr.core.TODO()
@@ -72,6 +72,8 @@ class DeviceBruno(tr181.Device_v2_2.Device):
     # Bruno has one Ethernet port, Wifi, and MoCA
     self.Ethernet = ethernet.Ethernet()
     self.Ethernet.AddInterface("eth0", False, ethernet.EthernetInterfaceLinux26)
+
+    self.ManagementServer = management_server.ManagementServer()
 
 
 def main():
