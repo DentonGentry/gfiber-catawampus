@@ -85,6 +85,7 @@ class CPE(TR069Service):
     self.acs = acs
     self.root = root
     self.ioloop = ioloop
+    self.downloads = dict()
 
   def _SetParameterKey(self, value):
     self._last_parameter_key = value
@@ -169,6 +170,7 @@ class CPE(TR069Service):
                delay_seconds, success_url, failure_url):
     """Initiate a download immediately or after a delay."""
     dl = download.HttpDownload(self.ioloop)
+    self.downloads[command_key] = dl
     return dl.download(command_key=command_key, file_type=file_type,
                        url=url, username=username, password=password,
                        file_size=file_size, target_filename=target_filename,
