@@ -19,6 +19,7 @@ import unittest
 
 class PersistentObjectTest(unittest.TestCase):
   """Tests for download.py PersistentObject."""
+
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp()
     download.STATE_DIR = self.tmpdir
@@ -33,22 +34,22 @@ class PersistentObjectTest(unittest.TestCase):
     self.assertEqual(tobj.foo2, "bar2")
     self.assertEqual(tobj.foo3, 3)
 
-  def testStringifyXML(self):
-    kwargs = { "foo1" : "bar1", "foo3" : 3 }
+  def testReversibleEncoding(self):
+    kwargs = dict(foo1="bar1", foo3=3)
     tobj = download.PersistentObject("TestObj", **kwargs)
-    expected = """<TestObj><foo1 type="string">bar1</foo1><foo3 type="int">3</foo3></TestObj>"""
-    self.assertEqual(str(tobj), expected)
+    encoded = tobj._ToJson()
+    decoded = tobj._FromJson(encoded)
+    self.assertEqual(sorted(kwargs.items()), sorted(decoded.items()))
 
   def testWriteToFile(self):
-    kwargs = { "foo1" : "bar1", "foo3" : 3 }
+    kwargs = dict(foo1="bar1", foo3=3)
     tobj = download.PersistentObject("TestObj", **kwargs)
-    expected = """<TestObj><foo1 type="string">bar1</foo1><foo3 type="int">3</foo3></TestObj>"""
-    with open(tobj.filename) as f:
-      actual = f.read()
-    self.assertEqual(actual, expected)
+    encoded = open(tobj.filename).read()
+    decoded = tobj._FromJson(encoded)
+    self.assertEqual(sorted(kwargs.items()), sorted(decoded.items()))
 
   def testReadFromFile(self):
-    contents = """<TestObj><foo type="string">bar</foo><baz type="int">4</baz></TestObj>"""
+    contents = '{"foo": "bar", "baz": 4}'
     with tempfile.NamedTemporaryFile(dir=self.tmpdir, delete=False) as f:
       f.write(contents)
       f.close()
@@ -57,36 +58,30 @@ class PersistentObjectTest(unittest.TestCase):
     self.assertEqual(tobj.baz, 4)
 
   def testUpdate(self):
-    kwargs = { "foo1" : "bar1", "foo3" : 3 }
+    kwargs = dict(foo1="bar1", foo3=3)
     tobj = download.PersistentObject("TestObj", **kwargs)
-    expected = """<TestObj><foo1 type="string">bar1</foo1><foo3 type="int">3</foo3></TestObj>"""
-    with open(tobj.filename) as f:
-      actual = f.read()
-    self.assertEqual(actual, expected)
+    tobj2 = download.PersistentObject("TestObj", filename=tobj.filename)
+    self.assertEqual(list(sorted(tobj.items())), list(sorted(tobj2.items())))
     kwargs["foo1"] = "bar2"
     tobj.Update(**kwargs)
-    expected = """<TestObj><foo1 type="string">bar2</foo1><foo3 type="int">3</foo3></TestObj>"""
-    with open(tobj.filename) as f:
-      actual = f.read()
-    self.assertEqual(actual, expected)
+    tobj3 = download.PersistentObject("TestObj", filename=tobj.filename)
+    self.assertEqual(list(sorted(tobj.items())), list(sorted(tobj3.items())))
 
   def testUpdateFails(self):
-    kwargs = { "foo1" : "bar1",
-               "foo3" : 3 }
+    kwargs = dict(foo1="bar1", foo3=3)
     tobj = download.PersistentObject("TestObj", **kwargs)
     download.STATE_DIR = "/this_path_should_not_exist_hijhgvWRQ4MVVSDHuheifuh"
     kwargs["foo1"] = "bar2"
     self.assertRaises(OSError, tobj.Update, **kwargs)
 
   def testGetDownloadObjects(self):
-    expected = ["""<tr69_dnld><foo type="string">bar1</foo><baz type="int">4</baz></tr69_dnld>""",
-                """<tr69_dnld><foo type="string">bar2</foo><baz type="int">5</baz></tr69_dnld>""",
-                """<tr69_dnld><foo type="string">bar3</foo><baz type="int">6</baz></tr69_dnld>"""]
+    expected = ['{"foo": "bar1", "baz": 4}',
+                '{"foo": "bar2", "baz": 5}',
+                '{"foo": "bar3", "baz": 6}']
     for obj in expected:
       with tempfile.NamedTemporaryFile(
           dir=self.tmpdir, prefix="tr69_dnld", delete=False) as f:
         f.write(obj)
-        f.close()
     actual = download.GetDownloadObjects()
     self.assertEqual(len(actual), len(expected))
     found = [ False, False, False ]

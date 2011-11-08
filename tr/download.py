@@ -6,6 +6,7 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import glob
+import json
 import os
 import tempfile
 import time
@@ -13,7 +14,6 @@ import tornado
 import tornado.httpclient
 import tornado.ioloop
 import tornado.web
-import xml.etree.ElementTree as etree
 
 # Directory where Download states will be written to the filesystem.
 STATE_DIR = "/tmp"
@@ -26,21 +26,21 @@ DOWNLOADER = tornado.httpclient.AsyncHTTPClient
 
 
 class PersistentObject(object):
-  """Object holding simple data fields which can presist itself to XML."""
+  """Object holding simple data fields which can persist itself to json."""
 
   def __init__(self, rootname="object", filename=None, **kwargs):
     """Create either a fresh new object, or restored state from filesystem.
 
     Args:
-      rootname: the tag for the root of the XML file for this object.
-      filename: name of an XML file on disk, to restore object state from.
+      rootname: the tag for the root of the json file for this object.
+      filename: name of an json file on disk, to restore object state from.
         If filename is None then this is a new object, and will create
         a file for itself in STATE_DIR.
       kwargs: Parameters to be passed to self.Update
     """
     self.rootname = rootname
     self._fields = {}
-    if filename is not None:
+    if filename:
       self._ReadFromFS(filename)
     else:
       prefix = rootname + "_"
@@ -49,20 +49,20 @@ class PersistentObject(object):
       filename = f.name
       f.close()
     self.filename = filename
-    if len(kwargs) > 0:
+    if kwargs:
       self.Update(**kwargs)
 
   def __getattr__(self, name):
-    return self._fields[str(name)]
+    return self.__getitem__(name)
 
   def __getitem__(self, name):
     return self._fields[str(name)]
 
   def __str__(self):
-    return etree.tostring(self._ToXml())
+    return self._ToJson()
 
   def __unicode__(self):
-    return etree.tostring(self._ToXml())
+    return self.__str__()
 
   def Update(self, **kwargs):
     """Atomically update one or more parameters of the object.
@@ -78,58 +78,36 @@ class PersistentObject(object):
     Args:
       **kwargs: Parameters to be updated.
     """
-    for key in kwargs:
-      self._fields[key] = kwargs[key]
+    self._fields.update(kwargs)
     self._WriteToFS()
 
   def Get(self, name):
-    if name in self._fields:
-      return self._fields[name]
-    return None
+    return self._fields.get(name, None)
 
-  def _is_integer(self, data):
-    try:
-      int(data)
-      return True
-    except ValueError:
-      return False
+  def values(self):
+    return self._fields.values()
 
-  def _XMLType(self, data):
-    if data is None:
-      return "none"
-    if self._is_integer(data):
-      return "int"
-    return "string"
+  def items(self):
+    return self._fields.items()
+
+  def _ToJson(self):
+    return json.dumps(self._fields, indent=2)
+
+  def _FromJson(self, string):
+    d = json.loads(str(string))
+    assert isinstance(d, dict)
+    return d
 
   def _ReadFromFS(self, filename):
-    """Read an XML file back to an PersistentState object."""
-    root = etree.parse(filename).getroot()
-    for field in root:
-      fieldtype = field.attrib["type"]
-      if fieldtype == "none":
-        self._fields[field.tag] = None
-      elif fieldtype == "int":
-        self._fields[field.tag] = int(field.text)
-      else:
-        self._fields[field.tag] = str(field.text)
-
-  def _ToXml(self):
-    """Generate an ElementTree based on the current PersistentObject."""
-    root = etree.Element(self.rootname)
-    for key in self._fields:
-      sub = etree.SubElement(root, key)
-      data = self._fields[key]
-      sub.text = str(data)
-      sub.set("type", self._XMLType(data))
-    return root
+    """Read a json file back to an PersistentState object."""
+    d = self._FromJson(open(filename).read())
+    self._fields.update(d)
 
   def _WriteToFS(self):
-    """Write PersistentState object out to an XML file."""
-    root = self._ToXml()
-    tree = etree.ElementTree(root)
+    """Write PersistentState object out to an json file."""
     f = tempfile.NamedTemporaryFile(
         mode="a+", prefix="tmpwrite", dir=STATE_DIR, delete=False)
-    tree.write(f)
+    f.write(self._ToJson())
     f.close()
     os.rename(f.name, self.filename)
 
