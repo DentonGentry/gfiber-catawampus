@@ -7,7 +7,9 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import glob
 import json
+import hashlib
 import os
+import random
 import sys
 import tempfile
 import time
@@ -121,6 +123,28 @@ def GetDownloadObjects(rootname=ROOTNAME):
   return dnlds
 
 
+def _uri_path(url):
+  pos = url.find('://')
+  if pos >= 0:
+    url = url[pos+3:]
+  pos = url.find('/')
+  if pos >= 0:
+    url = url[pos:]
+  return url
+
+
+def calc_http_digest(method, uripath, qop, nonce, cnonce, nc,
+                     username, realm, password):
+  def H(s):
+    return hashlib.md5(s).hexdigest()
+  def KD(secret, data):
+    return H(secret + ':' + data)
+  A1 = username + ':' + realm + ':' + password
+  A2 = method + ':' + uripath
+  digest = KD(H(A1), nonce + ':' + nc + ':' + cnonce + ':' + qop + ':' + H(A2))
+  return digest
+
+
 class HttpDownload(object):
   # States a download passes through:
   DELAYING = "DELAYING"
@@ -143,49 +167,112 @@ class HttpDownload(object):
                   file_size=file_size,
                   target_filename=target_filename,
                   delay_seconds=delay_seconds)
+    self.auth_header = None
+    self.tempfile = None
     self.stateobj = PersistentObject(rootname=ROOTNAME, **kwargs)
     # I dislike when APIs require NTP-related bugs in my code.
-    self.ioloop.add_timeout(time.time() + delay_seconds, self.delay)
+    self.ioloop.add_timeout(time.time() + delay_seconds, self.start_download)
 
     # tr-69 DownloadResponse: 1 = Download has not yet been completed
     # and applied
     return 1
 
-  def delay(self):
-    self.tempfile = tempfile.NamedTemporaryFile(delete=False)
-    req = tornado.httpclient.HTTPRequest(
-        url = self.stateobj.url,
-        auth_username = self.stateobj.username,
-        auth_password = self.stateobj.password,
-        request_timeout = 3600.0,
-        streaming_callback = self.tempfile.write,
-        allow_ipv6 = True)
+  def start_download(self):
+    print 'starting (auth_header=%r)' % self.auth_header
+    if not self.tempfile:
+      self.tempfile = tempfile.NamedTemporaryFile(delete=False)
+    kwargs = dict(url=self.stateobj.url,
+                  request_timeout=3600.0,
+                  streaming_callback=self.tempfile.write,
+                  allow_ipv6=True)
+    if self.auth_header:
+      kwargs.update(dict(headers=dict(Authorization=self.auth_header)))
+    elif self.stateobj.username and self.stateobj.password:
+      kwargs.update(dict(auth_username=self.stateobj.username,
+                         auth_password=self.stateobj.password))
+    req = tornado.httpclient.HTTPRequest(**kwargs)
     self.http_client = DOWNLOADER()
     self.http_client.fetch(req, self.async_callback)
     self.stateobj.Update(download_start_time=time.time())
 
+  def calculate_auth_header(self, response):
+    h = response.headers.get('www-authenticate', None)
+    if not h:
+      return
+    authtype, paramstr = h.split(' ', 1)
+    if authtype != 'Digest':
+      return
+
+    params = {}
+    for param in paramstr.split(','):
+      name, value = param.split('=')
+      assert(value.startswith('"') and value.endswith('"'))
+      params[name] = value[1:-1]
+
+    uripath = _uri_path(self.stateobj.url)
+    nc = '00000001'
+    nonce = params['nonce']
+    realm = params['realm']
+    opaque = params.get('opaque', None)
+    cnonce = str(random.getrandbits(32))
+    username = self.stateobj.username
+    password = self.stateobj.password
+    qop = 'auth'
+    returns = dict(uri=uripath,
+                   qop=qop,
+                   nc=nc,
+                   cnonce=cnonce,
+                   nonce=nonce,
+                   username=username,
+                   realm=realm)
+    if opaque:
+      returns['opaque'] = opaque
+    returns['response'] = calc_http_digest(method='GET',
+                                           uripath=uripath,
+                                           qop=qop,
+                                           nonce=nonce,
+                                           cnonce=cnonce,
+                                           nc=nc,
+                                           username=username,
+                                           realm=realm,
+                                           password=password)
+
+    returnlist = [('%s="%s"' % (k,v)) for k,v in returns.items()]
+    return 'Digest %s' % ','.join(returnlist)
+
   def async_callback(self, response):
+    if (response.error and response.error.code == 401 and
+        not self.auth_header and
+        self.stateobj.username and self.stateobj.password):
+      print '401 error'
+      self.auth_header = self.calculate_auth_header(response)
+      if self.auth_header:
+        self.start_download()
+        return
+    
+    if response.error:
+      print "Failed: %r" % response.error
+      print json.dumps(response.headers, indent=2)
+      os.unlink(self.tempfile.name)
+    else:
+      self.done()
+      print("Success: %s" % self.tempfile.name)
+    self.ioloop.stop()
+
+  def done(self):
     self.stateobj.Update(download_end_time=time.time())
     self.tempfile.flush()
     self.tempfile.close()
-    if response.error:
-      print "Failed"
-      os.unlink(self.tempfile.name)
-      self.ioloop.stop()
-    else:
-      print("Success: %s" % self.tempfile.name)
-      self.ioloop.stop()
 
 
 def main():
   ioloop = tornado.ioloop.IOLoop.instance()
   dl = HttpDownload(ioloop)
-  if len(sys.argv) > 1:
-    url = sys.argv[1]
-  else:
-    url = "http://codingrelic.geekhold.com/"
+  url = len(sys.argv) > 1 and sys.argv[1] or "http://codingrelic.geekhold.com/"
+  username = len(sys.argv) > 2 and sys.argv[2]
+  password = len(sys.argv) > 3 and sys.argv[3]
   print 'using URL: %s' % url
-  dl.download(url=url, delay_seconds=0)
+  dl.download(url=url, username=username, password=password, delay_seconds=0)
   ioloop.start()
 
 if __name__ == '__main__':

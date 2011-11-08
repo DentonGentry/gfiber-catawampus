@@ -17,6 +17,7 @@ import time
 import tornado.ioloop
 import unittest
 
+
 class PersistentObjectTest(unittest.TestCase):
   """Tests for download.py PersistentObject."""
 
@@ -130,6 +131,21 @@ class HttpDownloadTest(unittest.TestCase):
 
   def tearDown(self):
     shutil.rmtree(self.tmpdir)
+
+  def testDigest(self):
+    expected = '6629fae49393a05397450978507c4ef1'
+    actual = download.calc_http_digest(
+        'GET',
+        '/dir/index.html',
+        'auth',
+        nonce='dcd98b7102dd2f0e8b11d0f600bfb0c093',
+        cnonce='0a4f113b',
+        nc='00000001',
+        username='Mufasa',
+        password='Circle Of Life',
+        realm='testrealm@host.com')
+    self.assertEqual(expected, actual)
+
 
   def testDelay(self):
     ioloop = MockIoloop()
