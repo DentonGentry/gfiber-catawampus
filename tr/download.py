@@ -16,7 +16,14 @@ import tornado.web
 import xml.etree.ElementTree as etree
 
 # Directory where Download states will be written to the filesystem.
-statedir = "/tmp"
+STATE_DIR = "/tmp"
+
+# Used as both the XML tag for download objects, and a prefix for filenames.
+ROOTNAME = "tr69_dnld"
+
+# Unit tests can override these to pass in mocks
+DOWNLOADER = tornado.httpclient.AsyncHTTPClient
+
 
 class PersistentObject(object):
   """Object holding simple data fields which can presist itself to XML."""
@@ -28,7 +35,7 @@ class PersistentObject(object):
       rootname: the tag for the root of the XML file for this object.
       filename: name of an XML file on disk, to restore object state from.
         If filename is None then this is a new object, and will create
-        a file for itself in statedir.
+        a file for itself in STATE_DIR.
       kwargs: Parameters to be passed to self.Update
     """
     self.rootname = rootname
@@ -38,7 +45,7 @@ class PersistentObject(object):
     else:
       prefix = rootname + "_"
       f = tempfile.NamedTemporaryFile(
-          mode="a+", prefix=prefix, dir=statedir, delete=False)
+          mode="a+", prefix=prefix, dir=STATE_DIR, delete=False)
       filename = f.name
       f.close()
     self.filename = filename
@@ -121,25 +128,19 @@ class PersistentObject(object):
     root = self._ToXml()
     tree = etree.ElementTree(root)
     f = tempfile.NamedTemporaryFile(
-        mode="a+", prefix="tmpwrite", dir=statedir, delete=False)
+        mode="a+", prefix="tmpwrite", dir=STATE_DIR, delete=False)
     tree.write(f)
     f.close()
     os.rename(f.name, self.filename)
 
 
-# Used as both the XML tag for download objects, and a prefix for filenames.
-dnld_rootname = "tr69_dnld"
-
-def GetDownloadObjects(rootname=dnld_rootname):
-  globstr = statedir + "/" + rootname + "*"
+def GetDownloadObjects(rootname=ROOTNAME):
+  globstr = STATE_DIR + "/" + rootname + "*"
   dnlds = []
   for f in glob.glob(globstr):
     dnlds.append(PersistentObject(rootname, f))
   return dnlds
 
-
-# Unit tests can override these to pass in mocks
-dnld_client = tornado.httpclient.AsyncHTTPClient
 
 class HttpDownload(object):
   # States a download passes through:
@@ -163,7 +164,7 @@ class HttpDownload(object):
               "file_size" : file_size,
               "target_filename" : target_filename,
               "delay_seconds" : delay_seconds}
-    self.stateobj = PersistentObject(rootname=dnld_rootname, **kwargs)
+    self.stateobj = PersistentObject(rootname=ROOTNAME, **kwargs)
     # I dislike when APIs require NTP-related bugs in my code.
     self.ioloop.add_timeout(time.time() + delay_seconds, self.delay)
 
@@ -180,7 +181,7 @@ class HttpDownload(object):
         streaming_callback = self.streaming_callback,
         allow_ipv6 = True)
     self.tempfile = tempfile.NamedTemporaryFile(delete=False)
-    self.http_client = dnld_client()
+    self.http_client = DOWNLOADER()
     self.http_client.fetch(req, self.async_callback)
     self.stateobj.Update(download_start_time=time.time())
 
@@ -201,8 +202,8 @@ class HttpDownload(object):
 
 def main():
   ioloop = tornado.ioloop.IOLoop.instance()
-  dl = HttpDownload()
-  dl.download(ioloop, url="http://codingrelic.geekhold.com/", delay_seconds=0)
+  dl = HttpDownload(ioloop)
+  dl.download(url="http://codingrelic.geekhold.com/", delay_seconds=0)
   ioloop.start()
 
 if __name__ == '__main__':

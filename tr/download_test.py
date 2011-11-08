@@ -21,7 +21,7 @@ class PersistentObjectTest(unittest.TestCase):
   """Tests for download.py PersistentObject."""
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp()
-    download.statedir = self.tmpdir
+    download.STATE_DIR = self.tmpdir
 
   def tearDown(self):
     shutil.rmtree(self.tmpdir)
@@ -74,7 +74,7 @@ class PersistentObjectTest(unittest.TestCase):
     kwargs = { "foo1" : "bar1",
                "foo3" : 3 }
     tobj = download.PersistentObject("TestObj", **kwargs)
-    download.statedir = "/this_path_should_not_exist_hijhgvWRQ4MVVSDHuheifuh"
+    download.STATE_DIR = "/this_path_should_not_exist_hijhgvWRQ4MVVSDHuheifuh"
     kwargs["foo1"] = "bar2"
     self.assertRaises(OSError, tobj.Update, **kwargs)
 
@@ -130,8 +130,8 @@ class HttpDownloadTest(unittest.TestCase):
   """tests for download.py HttpDownload."""
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp()
-    download.statedir = self.tmpdir
-    download.dnld_client = MockHttpClient
+    download.STATE_DIR = self.tmpdir
+    download.DOWNLOADER = MockHttpClient
 
   def tearDown(self):
     shutil.rmtree(self.tmpdir)
