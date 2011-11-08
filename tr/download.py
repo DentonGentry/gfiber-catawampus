@@ -8,6 +8,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import glob
 import json
 import os
+import sys
 import tempfile
 import time
 import tornado
@@ -170,6 +171,7 @@ class HttpDownload(object):
     if response.error:
       print "Failed"
       os.unlink(self.tempfile.name)
+      self.ioloop.stop()
     else:
       print("Success: %s" % self.tempfile.name)
       self.ioloop.stop()
@@ -178,7 +180,12 @@ class HttpDownload(object):
 def main():
   ioloop = tornado.ioloop.IOLoop.instance()
   dl = HttpDownload(ioloop)
-  dl.download(url="http://codingrelic.geekhold.com/", delay_seconds=0)
+  if len(sys.argv) > 1:
+    url = sys.argv[1]
+  else:
+    url = "http://codingrelic.geekhold.com/"
+  print 'using URL: %s' % url
+  dl.download(url=url, delay_seconds=0)
   ioloop.start()
 
 if __name__ == '__main__':
