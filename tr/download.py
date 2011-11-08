@@ -13,6 +13,7 @@ import tornado
 import tornado.httpclient
 import tornado.ioloop
 import tornado.web
+import wget
 import xml.etree.ElementTree as etree
 
 # Directory where Download states will be written to the filesystem.
@@ -149,8 +150,8 @@ class HttpDownload(object):
   REBOOTING = "REBOOTING"
   CONCLUDING = "CONCLUDING"
 
-  def __init__(self, ioloop):
-    self.ioloop = ioloop
+  def __init__(self, ioloop=None):
+    self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
 
   def download(self, command_key=None, file_type=None, url=None,
                username=None, password=None, file_size=0,
@@ -166,6 +167,7 @@ class HttpDownload(object):
     self.stateobj = PersistentObject(rootname=dnld_rootname, **kwargs)
     # I dislike when APIs require NTP-related bugs in my code.
     self.ioloop.add_timeout(time.time() + delay_seconds, self.delay)
+    print("Downloading %s, delay %d" % (url, delay_seconds))
 
     # tr-69 DownloadResponse: 1 = Download has not yet been completed
     # and applied
@@ -179,30 +181,35 @@ class HttpDownload(object):
         request_timeout = 3600.0,
         streaming_callback = self.streaming_callback,
         allow_ipv6 = True)
+    print("Fetching %s, user=%s pwd=%s" % (self.stateobj.url, self.stateobj.username, self.stateobj.password))
     self.tempfile = tempfile.NamedTemporaryFile(delete=False)
-    self.http_client = dnld_client()
-    self.http_client.fetch(req, self.async_callback)
+    #self.http_client = dnld_client(io_loop=self.ioloop)
+    #self.http_client.fetch(req, self.async_callback)
+    self.http_client = wget.Wget(self.ioloop)
+    self.http_client.fetch(req, self.async_callback, self.tempfile.name)
     self.stateobj.Update(download_start_time=time.time())
 
   def streaming_callback(self, data):
+    print("Streaming %s" % self.stateobj.url)
     self.tempfile.write(data)
 
   def async_callback(self, response):
+    # TODO(dgentry) api.py:CPE() retains a reference to active download objects.
+    # need to callback somehow to remove the reference.
     self.stateobj.Update(download_end_time=time.time())
     self.tempfile.flush()
     self.tempfile.close()
     if response.error:
-      print "Failed"
+      print "Download Failed"
       os.unlink(self.tempfile.name)
     else:
-      print("Success: %s" % self.tempfile.name)
-      self.ioloop.stop()
+      print("Download Success: %s" % self.tempfile.name)
 
 
 def main():
   ioloop = tornado.ioloop.IOLoop.instance()
-  dl = HttpDownload()
-  dl.download(ioloop, url="http://codingrelic.geekhold.com/", delay_seconds=0)
+  dl = HttpDownload(ioloop)
+  dl.download(url="http://codingrelic.geekhold.com/", delay_seconds=0)
   ioloop.start()
 
 if __name__ == '__main__':
