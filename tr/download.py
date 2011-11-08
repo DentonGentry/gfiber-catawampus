@@ -134,14 +134,14 @@ class HttpDownload(object):
   def download(self, command_key=None, file_type=None, url=None,
                username=None, password=None, file_size=0,
                target_filename=None, delay_seconds=0):
-    kwargs = {"command_key" : command_key,
-              "file_type" : file_type,
-              "url" : url,
-              "username" : username,
-              "password" : password,
-              "file_size" : file_size,
-              "target_filename" : target_filename,
-              "delay_seconds" : delay_seconds}
+    kwargs = dict(command_key=command_key,
+                  file_type=file_type,
+                  url=url,
+                  username=username,
+                  password=password,
+                  file_size=file_size,
+                  target_filename=target_filename,
+                  delay_seconds=delay_seconds)
     self.stateobj = PersistentObject(rootname=ROOTNAME, **kwargs)
     # I dislike when APIs require NTP-related bugs in my code.
     self.ioloop.add_timeout(time.time() + delay_seconds, self.delay)
@@ -151,20 +151,17 @@ class HttpDownload(object):
     return 1
 
   def delay(self):
+    self.tempfile = tempfile.NamedTemporaryFile(delete=False)
     req = tornado.httpclient.HTTPRequest(
         url = self.stateobj.url,
         auth_username = self.stateobj.username,
         auth_password = self.stateobj.password,
         request_timeout = 3600.0,
-        streaming_callback = self.streaming_callback,
+        streaming_callback = self.tempfile.write,
         allow_ipv6 = True)
-    self.tempfile = tempfile.NamedTemporaryFile(delete=False)
     self.http_client = DOWNLOADER()
     self.http_client.fetch(req, self.async_callback)
     self.stateobj.Update(download_start_time=time.time())
-
-  def streaming_callback(self, data):
-    self.tempfile.write(data)
 
   def async_callback(self, response):
     self.stateobj.Update(download_end_time=time.time())
