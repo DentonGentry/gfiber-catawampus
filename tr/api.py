@@ -79,12 +79,11 @@ class ACS(TR069Service):
 class CPE(TR069Service):
   """Represents a TR-069 CPE (Customer Premises Equipment)."""
 
-  def __init__(self, acs, root, ioloop):
+  def __init__(self, acs, root):
     TR069Service.__init__(self)
     self._last_parameter_key = None
     self.acs = acs
     self.root = root
-    self.ioloop = ioloop
     self.downloads = dict()
 
   def _SetParameterKey(self, value):
@@ -169,7 +168,7 @@ class CPE(TR069Service):
                username, password, file_size, target_filename,
                delay_seconds, success_url, failure_url):
     """Initiate a download immediately or after a delay."""
-    dl = download.HttpDownload(self.ioloop)
+    dl = download.HttpDownload()
     self.downloads[command_key] = dl
     return dl.download(command_key=command_key, file_type=file_type,
                        url=url, username=username, password=password,
