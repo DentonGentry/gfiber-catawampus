@@ -22,8 +22,7 @@ lint: all
 		); \
 	done
 
-PREFIX?=/tmp/
-DSTDIR=$(PREFIX)catawampus
+DSTDIR?=/tmp/catawampus/
 INSTALL=install
 
 install:
