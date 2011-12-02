@@ -44,14 +44,17 @@ def SyncClient(url, postdata):
                 'SOAPAction': '' }
   else:
     headers = {}
-  result = cli.fetch(url, method="POST", headers=headers, body=postdata)
+  req = tornado.httpclient.HTTPRequest(url=url, method="POST",
+                                       headers=headers, body=postdata,
+                                       allow_ipv6=True)
+  result = cli.fetch(req)
   return result.body
 
 
 class PingHandler(tornado.web.RequestHandler):
   def initialize(self, callback):
     self.callback = callback
-    
+
   def get(self):
     self.callback()
 
@@ -59,7 +62,7 @@ class PingHandler(tornado.web.RequestHandler):
 class Handler(tornado.web.RequestHandler):
   def initialize(self, soap_handler):
     self.soap_handler = soap_handler
-    
+
   def get(self):
     self.write("This is the cpe/acs handler.  It only takes POST requests.")
 
@@ -78,7 +81,6 @@ class CPEStateMachine(object):
     self.acs_url = acs_url
     self.ping_path = ping_path
     self.encode = api_soap.Encode()
-    self.outstanding = None
     self.response_queue = []
     self.request_queue = []
     self.on_hold = False  # TODO(apenwarr): actually set this somewhere
@@ -141,35 +143,36 @@ class CPEStateMachine(object):
 
   def Run(self):
     print 'RUN'
-    if self.outstanding is None:
-      self.outstanding = self.GetNext()
+    nextmsg = self.GetNext()
     headers = {}
     if self.cookies:
       headers['Cookie'] = ";".join(self.cookies)
-    if self.outstanding:
+    if nextmsg:
       headers['Content-Type'] = 'text/xml; charset="utf-8"'
       headers['SOAPAction'] = ''
     else:
-      self.outstanding = ''
-    print "CPE POST: %r\n%s" % (str(headers), self.outstanding)
-    self.http.fetch(self.acs_url, self.GotResponse, method="POST",
-                    headers=headers, body=self.outstanding)
+      nextmsg = ''
+    print "CPE POST: %r\n%s" % (str(headers), nextmsg)
+    req = tornado.httpclient.HTTPRequest(url=self.acs_url, method="POST",
+                                         headers=headers, body=nextmsg,
+                                         allow_ipv6=True)
+    self.http.fetch(req, self.GotResponse)
 
   def GotResponse(self, response):
-    was_outstanding = self.outstanding
-    self.outstanding = None
     print 'CPE RECEIVED (at %s):' % time.ctime()
-    cookies = response.headers.get_list("Set-Cookie")
-    if cookies:
-      self.cookies = cookies
-    print response.body
-    if response.body:
-      out = self.cpe_soap.Handle(response.body)
-      if out is not None:
-        self.Send(out)
-        self.Run()
-    if (was_outstanding or
-        self.response_queue or
+    if not response.error:
+      cookies = response.headers.get_list("Set-Cookie")
+      if cookies:
+        self.cookies = cookies
+      print response.body
+      if response.body:
+        out = self.cpe_soap.Handle(response.body)
+        if out is not None:
+          self.Send(out)
+          self.Run()
+    else:
+      print('HTTP ERROR Code %d' % response.code)
+    if (self.response_queue or
         (self.request_queue and not self.on_hold)):
       self.Run()
 
