@@ -7,8 +7,8 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 
 import api
+import cwmpdate
 import soap
-
 
 class Encode(object):
   def __init__(self):
@@ -87,6 +87,17 @@ class Encode(object):
         xml.ParameterKey(str(parameter_key))
     return xml
 
+  def TransferComplete(self, command_key, faultcode, faultstring,
+                       starttime=None, endtime=None):
+    with self._Envelope() as xml:
+      with xml['cwmp:TransferComplete']:
+        xml.CommandKey(str(command_key))
+        with xml['FaultStruct']:
+          xml.FaultCode(str(faultcode))
+          xml.FaultString(str(faultstring))
+        xml.StartTime(cwmpdate.cwmpformat(starttime))
+        xml.CompleteTime(cwmpdate.cwmpformat(endtime))
+    return xml
 
 
 class SoapHandler(object):
