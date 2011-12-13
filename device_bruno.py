@@ -13,17 +13,49 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import device_info
 import ethernet
 import management_server
+import subprocess
 import tr.core
+import tr.download
 import tr.tr181_v2_2 as tr181
+
+
+
+HNVRAM = '/bin/hnvram'
+def GetNvramParam(param, default=""):
+  """Return a parameter from NVRAM, like the serial number.
+  Args:
+    param: string name of the parameter to fetch. This must match the
+      predefined names supported by /bin/hnvram
+    default: value to return if the parameter is not present in NVRAM.
+
+  Returns:
+    A string value of the contents.
+  """
+  cmd = [HNVRAM, "-r", param]
+  devnull = open('/dev/null', 'w')
+  hnvram = subprocess.Popen(cmd, stdin=devnull, stderr=devnull,
+                            stdout=subprocess.PIPE)
+  out, err = hnvram.communicate()
+  if hnvram.returncode != 0:
+    # Treat failure to run hnvram same as not having the field populated
+    out = ''
+  outlist = out.strip().split('=')
+
+  # HNVRAM does not distinguish between "value not present" and
+  # "value present, and is empty." Treat empty values as invalid.
+  if len(outlist) > 1 and len(outlist[1].strip()) > 0:
+    return outlist[1].strip()
+  else:
+    return default
 
 
 class DeviceIdBruno(object):
   def __init__(self):
     self.Manufacturer = 'Google'
     self.ManufacturerOUI = '001a11'
-    self.ModelName = 'Bruno'
+    self.ModelName = GetNvramParam("PRODUCT_NAME", default="UnknownModel")
     self.Description = 'Set top box for Google Fiber network'
-    self.SerialNumber = '00000000'
+    self.SerialNumber = GetNvramParam("SERIAL_NO", default="000000000000")
     self.HardwareVersion = '0'
     self.AdditionalHardwareVersion = '0'
     self.SoftwareVersion = '0'
@@ -34,6 +66,25 @@ class DeviceIdBruno(object):
 class DeviceInfoBruno(device_info.DeviceInfoLinux26):
   def __init__(self):
     device_info.DeviceInfoLinux26.__init__(self, DeviceIdBruno())
+
+
+GINSTALL = "/bin/ginstall.py"
+class InstallerBruno(tr.download.Installer):
+  def __init__(self, filename):
+    self.filename = filename
+    self._install_cb = None
+
+  def install(self, callback):
+    self._install_cb = callback
+    cmd = [GINSTALL, "--tar={0}".format(self.filename), "--partiton=primary"]
+    return (0, None)
+
+  def reboot(self):
+    return False
+
+
+def PlatformInit(name):
+  tr.download.INSTALLER = InstallerBruno
 
 
 class DeviceBruno(tr181.Device_v2_2.Device):
