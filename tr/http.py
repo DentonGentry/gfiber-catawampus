@@ -135,6 +135,12 @@ class CPEStateMachine(object):
                              retry_count=1, parameter_list=parameter_list)
     return self.Send(req)
 
+  def SendTransferComplete(self, command_key, faultcode, faultstring,
+                           starttime, endtime):
+    cmpl = self.encode.TransferComplete(command_key, faultcode, faultstring,
+                                        starttime, endtime)
+    return self.Send(cmpl)
+
   def GetNext(self):
     if self.response_queue:
       return self.response_queue.pop(0)

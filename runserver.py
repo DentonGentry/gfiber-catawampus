@@ -54,6 +54,7 @@ class TemporaryRoot(tr.core.Exporter):
       import device_bruno
       self.Device = device_bruno.DeviceBruno()
       self.DeviceInfo = device_bruno.DeviceInfoBruno()
+      device_bruno.PlatformInit('bruno')
       objects.append('Device')
     else:
       self.DeviceInfo = device_info.DeviceInfoLinux26()

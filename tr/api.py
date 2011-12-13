@@ -177,6 +177,7 @@ class CPE(TR069Service):
 
   def Reboot(self, command_key):
     """Reboot the CPE."""
+    raise NotImplementedError()
     self.acs.Inform(command_key)
 
   def GetQueuedTransfers(self):

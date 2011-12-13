@@ -6,13 +6,14 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import glob
-import json
 import hashlib
+import json
 import os
 import random
 import sys
 import tempfile
 import time
+import tornadi_fix
 import tornado
 import tornado.httpclient
 import tornado.ioloop
@@ -24,7 +25,7 @@ STATE_DIR = "/tmp"
 # Used as both the XML tag for download objects, and a prefix for filenames.
 ROOTNAME = "tr69_dnld"
 
-# Unit tests can override these to pass in mocks
+# Unit tests can override this to pass in a mock
 DOWNLOADER = tornado.httpclient.AsyncHTTPClient
 
 
@@ -123,6 +124,27 @@ def GetDownloadObjects(rootname=ROOTNAME):
   return dnlds
 
 
+class Installer(object):
+  """Install a downloaded image and reboot.
+
+  This default implementation returns an error response. Platforms are
+  expected to implement their own Install object, and set
+  tr.download.INSTALLER = their object.
+  """
+  def __init__(self, filename):
+    self.filename = filename
+
+  def install(self, callback):
+    return (9002, 'No installer for this platform.')
+
+  def reboot(self):
+    return False
+
+# Class to be called after image is downloaded. Platform code is expected
+# to put its own installer here, the default returns failed to install.
+INSTALLER = Installer
+
+
 def _uri_path(url):
   pos = url.find('://')
   if pos >= 0:
@@ -196,6 +218,7 @@ class HttpDownload(object):
     self.stateobj.Update(download_start_time=time.time())
 
   def calculate_auth_header(self, response):
+    """HTTP Digest Authentication."""
     h = response.headers.get('www-authenticate', None)
     if not h:
       return
@@ -241,6 +264,7 @@ class HttpDownload(object):
     return 'Digest %s' % ','.join(returnlist)
 
   def async_callback(self, response):
+    """Called for each chunk of data downloaded."""
     if (response.error and response.error.code == 401 and
         not self.auth_header and
         self.stateobj.username and self.stateobj.password):
@@ -262,12 +286,22 @@ class HttpDownload(object):
     self.stateobj.Update(download_end_time=time.time())
     self.tempfile.flush()
     self.tempfile.close()
+    self.install(self.tempfile.name)
+
+  def install(self, filename):
+    installer = INSTALLER(filename)
+    (code, string) = installer.install(None)
+    if code:
+      # TODO(dgentry) send TransferComplete with failure code.
+      pass
+    else:
+      installer.reboot()
 
 
 def main():
   ioloop = tornado.ioloop.IOLoop.instance()
   dl = HttpDownload(ioloop)
-  url = len(sys.argv) > 1 and sys.argv[1] or "http://codingrelic.geekhold.com/"
+  url = len(sys.argv) > 1 and sys.argv[1] or "http://www.google.com/"
   username = len(sys.argv) > 2 and sys.argv[2]
   password = len(sys.argv) > 3 and sys.argv[3]
   print 'using URL: %s' % url
