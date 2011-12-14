@@ -12,10 +12,14 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import device_info
 import ethernet
+import fcntl
 import management_server
+import os
 import subprocess
 import tr.core
 import tr.download
+import tr.tornadi_fix
+import tr.tornado.ioloop
 import tr.tr181_v2_2 as tr181
 
 
@@ -73,14 +77,36 @@ class InstallerBruno(tr.download.Installer):
   def __init__(self, filename):
     self.filename = filename
     self._install_cb = None
+    self._ioloop = tr.tornado.ioloop.IOLoop.instance()
 
   def install(self, callback):
     self._install_cb = callback
-    cmd = [GINSTALL, "--tar={0}".format(self.filename), "--partiton=primary"]
+    cmd = [GINSTALL, "--tar={0}".format(self.filename), "--partiton=secondary"]
+    devnull = open('/dev/null', 'w')
+    try:
+      self._ginstall = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                        stderr=devnull)
+    except OSError:
+      return (9001, "Unable to start installer process")
+    fd = self._ginstall.stdout.fileno()
+    fcntl.fcntl(fd, fcntl.F_SETFL, os.O_NONBLOCK)
+    self._ioloop.add_handler(fd, self.on_stdout, self._ioloop.READ )
     return (0, None)
 
   def reboot(self):
     return False
+
+  def on_stdout(self, fd, events):
+    """Called whenever the ginstall process prints to stdout."""
+    # drain the pipe
+    try:
+      os.read(fd, 4096)
+    except OSError:   # returns EWOULDBLOCK
+      pass
+    if self._ginstall.poll() >= 0:
+      self._ioloop.remove_handler(self._ginstall.stdout.fileno())
+      success = (self._ginstall.returncode == 0)
+      self._install_cb(success)
 
 
 def PlatformInit(name):
