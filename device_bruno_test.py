@@ -42,6 +42,10 @@ class DeviceBrunoTest(unittest.TestCase):
     device_bruno.HNVRAM = "testdata/device_bruno/hnvramFOO_Err"
     self.assertEqual(device_bruno.GetNvramParam("FOO", "default"), 'default')
 
+  def testBadHnvram(self):
+    device_bruno.HNVRAM = "/no_such_binary_at_this_path"
+    self.assertEqual(device_bruno.GetNvramParam("FOO"), '')
+
   def install_callback(self, success):
     self.install_cb_called = True
     self.install_cb_success = success

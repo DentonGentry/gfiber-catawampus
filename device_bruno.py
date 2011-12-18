@@ -37,11 +37,14 @@ def GetNvramParam(param, default=""):
   """
   cmd = [HNVRAM, "-r", param]
   devnull = open('/dev/null', 'w')
-  hnvram = subprocess.Popen(cmd, stdin=devnull, stderr=devnull,
-                            stdout=subprocess.PIPE)
-  out, err = hnvram.communicate()
-  if hnvram.returncode != 0:
-    # Treat failure to run hnvram same as not having the field populated
+  try:
+    hnvram = subprocess.Popen(cmd, stdin=devnull, stderr=devnull,
+                              stdout=subprocess.PIPE)
+    out, err = hnvram.communicate()
+    if hnvram.returncode != 0:
+      # Treat failure to run hnvram same as not having the field populated
+      out = ''
+  except OSError:
     out = ''
   outlist = out.strip().split('=')
 
