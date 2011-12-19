@@ -53,6 +53,10 @@ class CwmpDateTest(unittest.TestCase):
     self.assertEqual("1999-12-31T23:59:58.999999+01:00",
                      cwmpdate.cwmpformat(dt))
 
+  def testTimedelta(self):
+    t = 1234567890.987654
+    self.assertEqual("2009-02-13T23:31:30.987654Z", cwmpdate.cwmpformat(t))
+
 
 if __name__ == '__main__':
   unittest.main()

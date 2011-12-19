@@ -15,11 +15,16 @@ __author__ = 'dgentry@google.com (Denny Gentry)'
 
 import datetime
 
-def cwmpformat(dt):
+def cwmpformat(arg):
   """Print a datetime object with 'Z' for the UTC timezone, as CWMP requires."""
-  if not dt:
+  if not arg:
     return "0001-01-01T00:00:00Z"  # CWMP Unknown Time
-  elif not dt.tzinfo or not dt.tzinfo.utcoffset(dt):
+  elif isinstance(arg, float):
+    dt = datetime.datetime.utcfromtimestamp(arg)
+  else:
+    dt = arg
+
+  if not dt.tzinfo or not dt.tzinfo.utcoffset(dt):
     if dt.microsecond:
       return dt.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     else:
