@@ -18,6 +18,7 @@ import os
 import subprocess
 import tr.core
 import tr.download
+import tr.soap
 import tr.tornadi_fix
 import tr.tornado.ioloop
 import tr.tr181_v2_2 as tr181
@@ -90,7 +91,8 @@ class InstallerBruno(tr.download.Installer):
       self._ginstall = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                         stderr=devnull)
     except OSError:
-      return (9001, "Unable to start installer process")
+      return (tr.soap.CpeFault.INTERNAL_ERROR[0],
+              "Unable to start installer process")
     fd = self._ginstall.stdout.fileno()
     fcntl.fcntl(fd, fcntl.F_SETFL, os.O_NONBLOCK)
     self._ioloop.add_handler(fd, self.on_stdout, self._ioloop.READ )

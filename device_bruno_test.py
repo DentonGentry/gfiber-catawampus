@@ -55,7 +55,7 @@ class DeviceBrunoTest(unittest.TestCase):
     device_bruno.GINSTALL = "/dev/null"
     installer = device_bruno.InstallerBruno("/dev/null")
     (code, errstring) = installer.install(self.install_callback)
-    self.assertEqual(code, 9001)
+    self.assertEqual(code, 9002)
     self.assertTrue(errstring)
     self.assertFalse(self.install_cb_called)
 
