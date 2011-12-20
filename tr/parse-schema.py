@@ -34,7 +34,9 @@ def FixSpec(spec):
 
 
 def NiceSpec(spec):
-  return re.sub(r'^urn:broadband-forum-org:', '', spec)
+  spec = re.sub(r'^urn:broadband-forum-org:', '', spec)
+  spec = re.sub(r'^urn:google-com:', '', spec)
+  return spec
 
 
 def SpecNameForPython(spec):
@@ -380,7 +382,7 @@ def main():
     spec.MakeObjects()
   for specname, spec in sorted(specs.items()):
     pyspec = SpecNameForPython(specname)
-    assert pyspec.startswith('tr')
+    assert pyspec.startswith('tr') or pyspec.startswith('x-')
     outf = open('%s.py' % pyspec, 'w')
     outf.write('#!/usr/bin/python\n'
                '# Copyright 2011 Google Inc. All Rights Reserved.\n'

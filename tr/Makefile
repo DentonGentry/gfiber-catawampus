@@ -2,7 +2,7 @@ default: all
 
 all: stamp.parsed
 
-SCHEMA_IN = $(wildcard schema/tr-*.xml)
+SCHEMA_IN = $(wildcard schema/tr-*.xml) $(wildcard schema/x-*.xml)
 stamp.parsed: parse-schema.py ${SCHEMA_IN}
 	rm -f $@ $@.new tr???_*.py*
 	rm -rf std
