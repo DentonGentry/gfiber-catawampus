@@ -10,6 +10,7 @@ import hashlib
 import json
 import os
 import random
+import soap
 import sys
 import tempfile
 import time
@@ -135,10 +136,8 @@ class Installer(object):
     self.filename = filename
 
   def install(self, callback):
-    return (9002, 'No installer for this platform.')
+    callback(soap.CpeFault.INTERNAL_ERROR[0], 'No installer for this platform.')
 
-  def reboot(self):
-    return False
 
 # Class to be called after image is downloaded. Platform code is expected
 # to put its own installer here, the default returns failed to install.
@@ -180,7 +179,8 @@ class HttpDownload(object):
 
   def download(self, command_key=None, file_type=None, url=None,
                username=None, password=None, file_size=0,
-               target_filename=None, delay_seconds=0):
+               target_filename=None, delay_seconds=0,
+               download_complete_cb=None):
     kwargs = dict(command_key=command_key,
                   file_type=file_type,
                   url=url,
@@ -191,13 +191,16 @@ class HttpDownload(object):
                   delay_seconds=delay_seconds)
     self.auth_header = None
     self.tempfile = None
+    self.download_complete_cb = download_complete_cb
     self.stateobj = PersistentObject(rootname=ROOTNAME, **kwargs)
     # I dislike when APIs require NTP-related bugs in my code.
     self.ioloop.add_timeout(time.time() + delay_seconds, self.start_download)
 
-    # tr-69 DownloadResponse: 1 = Download has not yet been completed
-    # and applied
-    return 1
+    # tr-69 DownloadResponse:
+    # code 1 = Download has not yet been completed and applied
+    # starttime = 0.0, Unknown Time
+    # endtime = 0.0, Unknown Time
+    return (1, 0.0, 0.0)
 
   def start_download(self):
     print 'starting (auth_header=%r)' % self.auth_header
@@ -214,7 +217,7 @@ class HttpDownload(object):
                          auth_password=self.stateobj.password))
     req = tornado.httpclient.HTTPRequest(**kwargs)
     self.http_client = DOWNLOADER(io_loop=self.ioloop)
-    self.http_client.fetch(req, self.async_callback)
+    self.http_client.fetch(req, self.async_fetch_callback)
     self.stateobj.Update(download_start_time=time.time())
 
   def calculate_auth_header(self, response):
@@ -263,7 +266,7 @@ class HttpDownload(object):
     returnlist = [('%s="%s"' % (k,v)) for k,v in returns.items()]
     return 'Digest %s' % ','.join(returnlist)
 
-  def async_callback(self, response):
+  def async_fetch_callback(self, response):
     """Called for each chunk of data downloaded."""
     if (response.error and response.error.code == 401 and
         not self.auth_header and
@@ -283,19 +286,23 @@ class HttpDownload(object):
       print("Success: %s" % self.tempfile.name)
 
   def done(self):
-    self.stateobj.Update(download_end_time=time.time())
+    """Called when download complete."""
     self.tempfile.flush()
     self.tempfile.close()
-    self.install(self.tempfile.name)
+    self._installer = INSTALLER(self.tempfile.name)
+    self._installer.install(self.install_callback)
 
-  def install(self, filename):
-    installer = INSTALLER(filename)
-    (code, string) = installer.install(None)
-    if code:
-      # TODO(dgentry) send TransferComplete with failure code.
-      pass
+  def install_callback(self, faultcode, faultstring):
+    """Passed to the INSTALLER object, to be called when install completes."""
+    # TODO(dgentry) - update stateobj
+    if faultcode == 0:
+      self._installer.reboot()
     else:
-      installer.reboot()
+      self.download_complete_cb(command_key=self.stateobj.command_key,
+                                faultcode=faultcode,
+                                faultstring=faultstring,
+                                starttime=self.stateobj.download_start_time,
+                                endtime=time.time())
 
 
 def main():

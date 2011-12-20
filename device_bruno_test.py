@@ -9,21 +9,26 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import device_bruno
 import os
 import tr.tornadi_fix
 import tr.tornado.ioloop
+import tr.tornado.testing
 import unittest
-import device_bruno
 
-class DeviceBrunoTest(unittest.TestCase):
+class DeviceBrunoTest(tr.tornado.testing.AsyncTestCase):
   """Tests for device_bruno.py."""
 
   def setUp(self):
+    super(DeviceBrunoTest, self).setUp()
     self.old_hnvram = device_bruno.HNVRAM
     self.old_ginstall = device_bruno.GINSTALL
     self.install_cb_called = False
+    self.install_cb_faultcode = None
+    self.install_cb_faultstring = None
 
   def tearDown(self):
+    super(DeviceBrunoTest, self).tearDown()
     device_bruno.HNVRAM = self.old_hnvram
     device_bruno.GINSTALL = self.old_ginstall
 
@@ -46,38 +51,37 @@ class DeviceBrunoTest(unittest.TestCase):
     device_bruno.HNVRAM = "/no_such_binary_at_this_path"
     self.assertEqual(device_bruno.GetNvramParam("FOO"), '')
 
-  def install_callback(self, success):
+  def install_callback(self, faultcode, faultstring):
     self.install_cb_called = True
-    self.install_cb_success = success
-    tr.tornado.ioloop.IOLoop.instance().stop()
+    self.install_cb_faultcode = faultcode
+    self.install_cb_faultstring = faultstring
+    self.stop()
 
   def testBadInstaller(self):
     device_bruno.GINSTALL = "/dev/null"
-    installer = device_bruno.InstallerBruno("/dev/null")
-    (code, errstring) = installer.install(self.install_callback)
-    self.assertEqual(code, 9002)
-    self.assertTrue(errstring)
-    self.assertFalse(self.install_cb_called)
-
-  def testInstallerStdout(self):
-    device_bruno.GINSTALL = "testdata/device_bruno/installer_128k_stdout"
-    installer = device_bruno.InstallerBruno("testdata/device_bruno/imagefile")
-    (code, errstring) = installer.install(self.install_callback)
-    self.assertEqual(code, 0)
-    self.assertFalse(errstring)
-    tr.tornado.ioloop.IOLoop.instance().start()
+    installer = device_bruno.InstallerBruno("/dev/null", io_loop=self.io_loop)
+    installer.install(self.install_callback)
     self.assertTrue(self.install_cb_called)
-    self.assertTrue(self.install_cb_success)
+    self.assertEqual(self.install_cb_faultcode, 9002)
+    self.assertTrue(self.install_cb_faultstring)
+
+  def DISABLEDtestInstallerStdout(self):
+    # Successful install no longer calls the callback, it just reboots
+    device_bruno.GINSTALL = "testdata/device_bruno/installer_128k_stdout"
+    installer = device_bruno.InstallerBruno("testdata/device_bruno/imagefile",
+                                            io_loop=self.io_loop)
+    installer.install(self.install_callback)
+    self.wait()
 
   def testInstallerFailed(self):
     device_bruno.GINSTALL = "testdata/device_bruno/installer_fails"
-    installer = device_bruno.InstallerBruno("testdata/device_bruno/imagefile")
-    (code, errstring) = installer.install(self.install_callback)
-    self.assertEqual(code, 0)
-    self.assertFalse(errstring)
-    tr.tornado.ioloop.IOLoop.instance().start()
+    installer = device_bruno.InstallerBruno("testdata/device_bruno/imagefile",
+                                            io_loop=self.io_loop)
+    installer.install(self.install_callback)
+    self.wait()
     self.assertTrue(self.install_cb_called)
-    self.assertFalse(self.install_cb_success)
+    self.assertEqual(self.install_cb_faultcode, 9002)
+    self.assertTrue(self.install_cb_faultstring)
 
 
 if __name__ == '__main__':

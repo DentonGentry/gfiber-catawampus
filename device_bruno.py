@@ -78,28 +78,29 @@ class DeviceInfoBruno(device_info.DeviceInfoLinux26):
 
 GINSTALL = "/bin/ginstall.py"
 class InstallerBruno(tr.download.Installer):
-  def __init__(self, filename):
+  def __init__(self, filename, io_loop=tr.tornado.ioloop.IOLoop.instance()):
     self.filename = filename
     self._install_cb = None
-    self._ioloop = tr.tornado.ioloop.IOLoop.instance()
+    self._ioloop = io_loop
+
+  def _call_callback(self, faultcode, faultstring):
+    if self._install_cb:
+      self._install_cb(faultcode, faultstring)
 
   def install(self, callback):
     self._install_cb = callback
-    cmd = [GINSTALL, "--tar={0}".format(self.filename), "--partiton=secondary"]
+    cmd = [GINSTALL, "--tar={0}".format(self.filename), "--partition=secondary"]
     devnull = open('/dev/null', 'w')
     try:
       self._ginstall = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                         stderr=devnull)
     except OSError:
-      return (tr.soap.CpeFault.INTERNAL_ERROR[0],
-              "Unable to start installer process")
+      self._call_callback(tr.soap.CpeFault.INTERNAL_ERROR[0],
+                          "Unable to start installer process")
+      return
     fd = self._ginstall.stdout.fileno()
     fcntl.fcntl(fd, fcntl.F_SETFL, os.O_NONBLOCK)
-    self._ioloop.add_handler(fd, self.on_stdout, self._ioloop.READ )
-    return (0, None)
-
-  def reboot(self):
-    return False
+    self._ioloop.add_handler(fd, self.on_stdout, self._ioloop.READ)
 
   def on_stdout(self, fd, events):
     """Called whenever the ginstall process prints to stdout."""
@@ -110,8 +111,12 @@ class InstallerBruno(tr.download.Installer):
       pass
     if self._ginstall.poll() >= 0:
       self._ioloop.remove_handler(self._ginstall.stdout.fileno())
-      success = (self._ginstall.returncode == 0)
-      self._install_cb(success)
+      if self._ginstall.returncode == 0:
+        # TODO(dgentry) REBOOT!
+        pass
+      else:
+        self._call_callback(tr.soap.CpeFault.INTERNAL_ERROR[0],
+                            'Unable to install image.')
 
 
 def PlatformInit(name):

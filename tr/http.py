@@ -196,16 +196,17 @@ def Listen(ip, port, ping_path, acs, acs_url, cpe, cpe_listener):
     ping_path = '/ping/%x' % random.getrandbits(120)
   while ping_path.startswith('/'):
     ping_path = ping_path[1:]
+  cpe_machine = CPEStateMachine(ip, cpe, port, acs_url, ping_path)
+  cpe.DOWNLOAD_COMPLETE_CB = cpe_machine.SendTransferComplete
   handlers = []
   if acs:
     acshandler = api_soap.ACS(acs).Handle
     handlers.append(('/acs', Handler, dict(soap_handler=acshandler)))
     print 'TR-069 ACS at http://*:%d/acs' % port
   if cpe and cpe_listener:
-    cpehandler = api_soap.CPE(cpe).Handle
+    cpehandler = cpe_machine.cpe_soap.Handle
     handlers.append(('/cpe', Handler, dict(soap_handler=cpehandler)))
     print 'TR-069 CPE at http://*:%d/cpe' % port
-  cpe_machine = CPEStateMachine(ip, cpe, port, acs_url, ping_path)
   if ping_path:
     handlers.append(('/' + ping_path, PingHandler,
                      dict(callback=cpe_machine.PingReceived)))

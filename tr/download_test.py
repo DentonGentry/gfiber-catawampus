@@ -100,7 +100,7 @@ class PersistentObjectTest(unittest.TestCase):
 
 mock_http_clients = []
 class MockHttpClient(object):
-  def __init__(self):
+  def __init__(self, io_loop=None):
     self.did_fetch = False
     self.request = None
     self.callback = None
@@ -122,15 +122,49 @@ class MockIoloop(object):
     self.callback = callback
 
 
+class MockTransferComplete(object):
+  def __init__(self):
+    self.transfer_complete_called = False
+    self.command_key = None
+    self.faultcode = None
+    self.faultstring = None
+    self.starttime = None
+    self.endtime = None
+
+  def SendTransferComplete(self, command_key, faultcode, faultstring,
+                           starttime, endtime):
+    self.transfer_complete_called = True
+    self.command_key = command_key
+    self.faultcode = faultcode
+    self.faultstring = faultstring
+    self.starttime = starttime
+    self.endtime = endtime
+
+
+mock_installers = []
+class MockInstaller(object):
+  def __init__(self, filename):
+    self.filename = filename
+    self.did_install = False
+    self.callback = None
+    mock_installers.append(self)
+
+  def install(self, callback):
+    self.did_install = True
+    self.callback = callback
+
+
 class HttpDownloadTest(unittest.TestCase):
   """tests for download.py HttpDownload."""
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp()
     download.STATE_DIR = self.tmpdir
     download.DOWNLOADER = MockHttpClient
+    self.old_installer = download.INSTALLER
 
   def tearDown(self):
     shutil.rmtree(self.tmpdir)
+    download.INSTALLER = self.old_installer
 
   def testDigest(self):
     expected = '6629fae49393a05397450978507c4ef1'
@@ -145,7 +179,6 @@ class HttpDownloadTest(unittest.TestCase):
         password='Circle Of Life',
         realm='testrealm@host.com')
     self.assertEqual(expected, actual)
-
 
   def testDelay(self):
     ioloop = MockIoloop()
@@ -178,6 +211,36 @@ class HttpDownloadTest(unittest.TestCase):
     self.assertEqual(ht.request.auth_username, username)
     self.assertEqual(ht.request.auth_password, password)
     self.assertEqual(ht.request.url, url)
+
+  def testInstallFails(self):
+    download.INSTALLER = MockInstaller
+    ioloop = MockIoloop()
+    cmpl = MockTransferComplete()
+    del mock_installers[:]
+
+    dl = download.HttpDownload(ioloop)
+    dl.download(command_key="TestCommandKey", file_type="TestFileType",
+                url="test://url/",
+                username="TestUsername", password="TestPassword",
+                file_size=100, target_filename="/dev/null",
+                delay_seconds=0,
+                download_complete_cb=cmpl.SendTransferComplete)
+    dl.start_download()
+    dl.done()
+    self.assertEqual(len(mock_installers), 1)
+    inst = mock_installers[0]
+    self.assertTrue(inst.did_install)
+    self.assertTrue(inst.callback)
+
+    # Simulate install error, with callback
+    inst.callback(1000, 'TestError')
+
+    self.assertTrue(cmpl.transfer_complete_called)
+    self.assertEqual(cmpl.command_key, "TestCommandKey")
+    self.assertEqual(cmpl.faultcode, 1000)
+    self.assertEqual(cmpl.faultstring, 'TestError')
+    self.assertNotEqual(cmpl.starttime, 0)
+    self.assertNotEqual(cmpl.endtime, 0)
 
 
 if __name__ == '__main__':

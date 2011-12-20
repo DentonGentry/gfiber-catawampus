@@ -36,6 +36,10 @@ class TR069Service(object):
 class ACS(TR069Service):
   """Represents a TR-069 ACS (Auto Configuration Server)."""
 
+  # Callback when a Download operation completes asynchronously
+  # Parent object is expected to set this.
+  DOWNLOAD_COMPLETE_CB = None
+
   def __init__(self):
     TR069Service.__init__(self)
     self.cpe = None
@@ -173,7 +177,8 @@ class CPE(TR069Service):
     return dl.download(command_key=command_key, file_type=file_type,
                        url=url, username=username, password=password,
                        file_size=file_size, target_filename=target_filename,
-                       delay_seconds=delay_seconds)
+                       delay_seconds=delay_seconds,
+                       download_complete_cb=self.DOWNLOAD_COMPLETE_CB)
 
   def Reboot(self, command_key):
     """Reboot the CPE."""
@@ -222,6 +227,7 @@ class CPE(TR069Service):
   def ChangeDUState(self, operations, command_key):
     """Trigger an install, update, or uninstall operation."""
     raise NotImplementedError()
+
 
   def _PingReceived(self):
     self.acs.Inform(self, self.root,

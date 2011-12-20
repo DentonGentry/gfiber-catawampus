@@ -187,18 +187,25 @@ class CPE(SoapHandler):
 
   def Download(self, xml, req):
     with xml['cwmp:DownloadResponse']:
-      code = self.impl.Download(command_key=req.CommandKey,
-                                file_type=req.FileType,
-                                url=req.URL,
-                                username=req.Username,
-                                password=req.Password,
-                                file_size=int(req.FileSize),
-                                target_filename=req.TargetFileName,
-                                delay_seconds=int(req.DelaySeconds),
-                                success_url=req.SuccessURL,
-                                failure_url=req.FailureURL)
+      (code, starttime, endtime) = self.impl.Download(
+          command_key=req.CommandKey,
+          file_type=req.FileType,
+          url=req.URL,
+          username=req.Username,
+          password=req.Password,
+          file_size=int(req.FileSize),
+          target_filename=req.TargetFileName,
+          delay_seconds=int(req.DelaySeconds),
+          success_url=req.SuccessURL,
+          failure_url=req.FailureURL)
       xml.Status(str(int(code)))
+      xml.StartTime(cwmpdate.cwmpformat(starttime))
+      xml.CompleteTime(cwmpdate.cwmpformat(endtime))
     return xml
+
+  def TransferCompleteResponse(self, xml, req):
+    """Response to a TransferComplete sent by the CPE."""
+    return
 
 
 def main():
