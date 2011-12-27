@@ -135,6 +135,10 @@ class CPEStateMachine(object):
                              retry_count=1, parameter_list=parameter_list)
     return self.Send(req)
 
+  def SendDownloadResponse(self, command_key, starttime, endtime):
+    resp = self.encode.DownloadResponse(command_key, starttime, endtime)
+    return self.Send(resp)
+
   def SendTransferComplete(self, command_key, faultcode, faultstring,
                            starttime, endtime):
     cmpl = self.encode.TransferComplete(command_key, faultcode, faultstring,
@@ -197,7 +201,8 @@ def Listen(ip, port, ping_path, acs, acs_url, cpe, cpe_listener):
   while ping_path.startswith('/'):
     ping_path = ping_path[1:]
   cpe_machine = CPEStateMachine(ip, cpe, port, acs_url, ping_path)
-  cpe.DOWNLOAD_COMPLETE_CB = cpe_machine.SendTransferComplete
+  cpe.SetDownloadCalls(cpe_machine.SendDownloadResponse,
+                       cpe_machine.SendTransferComplete)
   handlers = []
   if acs:
     acshandler = api_soap.ACS(acs).Handle

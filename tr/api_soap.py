@@ -87,6 +87,14 @@ class Encode(object):
         xml.ParameterKey(str(parameter_key))
     return xml
 
+  def DownloadResponse(self, command_key, starttime=None, endtime=None):
+    with self._Envelope() as xml:
+      with xml['cwmp:DownloadResponse']:
+        xml.CommandKey(str(command_key))
+        xml.StartTime(cwmpdate.cwmpformat(starttime))
+        xml.CompleteTime(cwmpdate.cwmpformat(endtime))
+    return xml
+
   def TransferComplete(self, command_key, faultcode, faultstring,
                        starttime=None, endtime=None):
     with self._Envelope() as xml:
@@ -186,26 +194,44 @@ class CPE(SoapHandler):
     return xml
 
   def Download(self, xml, req):
-    with xml['cwmp:DownloadResponse']:
-      (code, starttime, endtime) = self.impl.Download(
-          command_key=req.CommandKey,
-          file_type=req.FileType,
-          url=req.URL,
-          username=req.Username,
-          password=req.Password,
-          file_size=int(req.FileSize),
-          target_filename=req.TargetFileName,
-          delay_seconds=int(req.DelaySeconds),
-          success_url=req.SuccessURL,
-          failure_url=req.FailureURL)
-      xml.Status(str(int(code)))
-      xml.StartTime(cwmpdate.cwmpformat(starttime))
-      xml.CompleteTime(cwmpdate.cwmpformat(endtime))
-    return xml
+    self.impl.Download(command_key=req.CommandKey,
+                       file_type=req.FileType,
+                       url=req.URL,
+                       username=req.Username,
+                       password=req.Password,
+                       file_size=int(req.FileSize),
+                       target_filename=req.TargetFileName,
+                       delay_seconds=int(req.DelaySeconds),
+                       success_url=req.SuccessURL,
+                       failure_url=req.FailureURL)
+    return
 
   def TransferCompleteResponse(self, xml, req):
     """Response to a TransferComplete sent by the CPE."""
+    self.impl.TransferCompleteResponseReceived(req.CommandKey)
     return
+
+  def GetQueuedTransfersResponse(self, xml, req):
+    transfers = self.impl.GetAllQueuedTransfers()
+    with xml['cwmp:GetQueuedTransfersResponse']:
+      for q in transfers:
+        with xml['TransferList']:
+          xml.CommandKey(q.CommandKey)
+          xml.State(q.State)
+    return xml
+
+  def GetAllQueuedTransfersResponse(self, xml, req):
+    transfers = self.impl.GetAllQueuedTransfers()
+    with xml['cwmp:GetAllQueuedTransfersResponse']:
+      for q in transfers:
+        with xml['TransferList']:
+          xml.CommandKey(q.CommandKey)
+          xml.State(q.State)
+          xml.IsDownload(q.IsDownload)
+          xml.FileType(q.FileType)
+          xml.FileSize(str(q.FileSize))
+          xml.TargetFileName(q.TargetFileName)
+    return xml
 
 
 def main():

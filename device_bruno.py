@@ -24,6 +24,9 @@ import tr.tornado.ioloop
 import tr.tr181_v2_2 as tr181
 
 
+# tr-69 error codes
+INTERNAL_ERROR = 9002
+
 
 HNVRAM = '/bin/hnvram'
 def GetNvramParam(param, default=""):
@@ -77,11 +80,12 @@ class DeviceInfoBruno(device_info.DeviceInfoLinux26):
 
 
 GINSTALL = "/bin/ginstall.py"
+REBOOT = "/bin/tr69_reboot"
 class InstallerBruno(tr.download.Installer):
-  def __init__(self, filename, io_loop=tr.tornado.ioloop.IOLoop.instance()):
+  def __init__(self, filename, ioloop=None):
     self.filename = filename
     self._install_cb = None
-    self._ioloop = io_loop
+    self._ioloop = ioloop or tr.tornado.ioloop.IOLoop.instance()
 
   def _call_callback(self, faultcode, faultstring):
     if self._install_cb:
@@ -89,18 +93,21 @@ class InstallerBruno(tr.download.Installer):
 
   def install(self, callback):
     self._install_cb = callback
-    cmd = [GINSTALL, "--tar={0}".format(self.filename), "--partition=secondary"]
+    cmd = [GINSTALL, "--tar={0}".format(self.filename), "--partition=other"]
     devnull = open('/dev/null', 'w')
     try:
       self._ginstall = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                         stderr=devnull)
     except OSError:
-      self._call_callback(tr.soap.CpeFault.INTERNAL_ERROR[0],
-                          "Unable to start installer process")
-      return
+      self._call_callback(INTERNAL_ERROR, "Unable to start installer process")
+      return False
     fd = self._ginstall.stdout.fileno()
     fcntl.fcntl(fd, fcntl.F_SETFL, os.O_NONBLOCK)
     self._ioloop.add_handler(fd, self.on_stdout, self._ioloop.READ)
+
+  def reboot(self):
+    cmd = [REBOOT]
+    subprocess.call(cmd)
 
   def on_stdout(self, fd, events):
     """Called whenever the ginstall process prints to stdout."""
@@ -112,11 +119,9 @@ class InstallerBruno(tr.download.Installer):
     if self._ginstall.poll() >= 0:
       self._ioloop.remove_handler(self._ginstall.stdout.fileno())
       if self._ginstall.returncode == 0:
-        # TODO(dgentry) REBOOT!
-        pass
+        self._call_callback(0, '')
       else:
-        self._call_callback(tr.soap.CpeFault.INTERNAL_ERROR[0],
-                            'Unable to install image.')
+        self._call_callback(INTERNAL_ERROR, 'Unable to install image.')
 
 
 def PlatformInit(name):

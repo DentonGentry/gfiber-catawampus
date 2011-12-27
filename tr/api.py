@@ -36,10 +36,6 @@ class TR069Service(object):
 class ACS(TR069Service):
   """Represents a TR-069 ACS (Auto Configuration Server)."""
 
-  # Callback when a Download operation completes asynchronously
-  # Parent object is expected to set this.
-  DOWNLOAD_COMPLETE_CB = None
-
   def __init__(self):
     TR069Service.__init__(self)
     self.cpe = None
@@ -88,7 +84,11 @@ class CPE(TR069Service):
     self._last_parameter_key = None
     self.acs = acs
     self.root = root
-    self.downloads = dict()
+    self.download_manager = download.DownloadManager()
+
+  def SetDownloadCalls(self, send_download_response, send_transfer_complete):
+    self.download_manager.SEND_DOWNLOAD_RESPONSE = send_download_response
+    self.download_manager.SEND_TRANSFER_COMPLETE = send_transfer_complete
 
   def _SetParameterKey(self, value):
     self._last_parameter_key = value
@@ -172,13 +172,14 @@ class CPE(TR069Service):
                username, password, file_size, target_filename,
                delay_seconds, success_url, failure_url):
     """Initiate a download immediately or after a delay."""
-    dl = download.HttpDownload()
-    self.downloads[command_key] = dl
-    return dl.download(command_key=command_key, file_type=file_type,
-                       url=url, username=username, password=password,
-                       file_size=file_size, target_filename=target_filename,
-                       delay_seconds=delay_seconds,
-                       download_complete_cb=self.DOWNLOAD_COMPLETE_CB)
+    self.download_manager.NewDownload(command_key=command_key,
+                                      file_type=file_type,
+                                      url=url,
+                                      username=username,
+                                      password=password,
+                                      file_size=file_size,
+                                      target_filename=target_filename,
+                                      delay_seconds=delay_seconds)
 
   def Reboot(self, command_key):
     """Reboot the CPE."""
@@ -187,7 +188,7 @@ class CPE(TR069Service):
 
   def GetQueuedTransfers(self):
     """Retrieve a list of queued file transfers (downloads and uploads)."""
-    raise NotImplementedError()
+    return self.download_manager.GetAllQueuedTransfers()
 
   def ScheduleInform(self, delay_seconds, command_key):
     """Request that this CPE call acs.Inform() at some point in the future."""
@@ -212,7 +213,7 @@ class CPE(TR069Service):
 
   def GetAllQueuedTransfers(self):
     """Get a list of all uploads/downloads that are still in the queue."""
-    raise NotImplementedError()
+    return self.download_manager.GetAllQueuedTransfers()
 
   def ScheduleDownload(self, command_key, file_type, url,
                        username, password, file_size, target_filename,
@@ -228,9 +229,11 @@ class CPE(TR069Service):
     """Trigger an install, update, or uninstall operation."""
     raise NotImplementedError()
 
-
   def _PingReceived(self):
     self.acs.Inform(self, self.root,
                     events=[('6 CONNECTION REQUEST', '')], max_envelopes=1,
                     current_time=None, retry_count=1,
                     parameter_list=[])
+
+  def TransferCompleteResponseReceived(self, command_key):
+    self.download_manager.TransferCompleteResponseReceived(command_key)

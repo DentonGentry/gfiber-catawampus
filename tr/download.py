@@ -5,12 +5,14 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import collections
 import glob
 import hashlib
+import http_download
 import json
 import os
+import persistobj
 import random
-import soap
 import sys
 import tempfile
 import time
@@ -19,110 +21,16 @@ import tornado
 import tornado.httpclient
 import tornado.ioloop
 import tornado.web
+import urlparse
 
-# Directory where Download states will be written to the filesystem.
-STATE_DIR = "/tmp"
-
-# Used as both the XML tag for download objects, and a prefix for filenames.
+# Persistent object storage location and filename
+STATEDIR = "/tmp"
 ROOTNAME = "tr69_dnld"
 
-# Unit tests can override this to pass in a mock
-DOWNLOADER = tornado.httpclient.AsyncHTTPClient
-
-
-class PersistentObject(object):
-  """Object holding simple data fields which can persist itself to json."""
-
-  def __init__(self, rootname="object", filename=None, **kwargs):
-    """Create either a fresh new object, or restored state from filesystem.
-
-    Args:
-      rootname: the tag for the root of the json file for this object.
-      filename: name of an json file on disk, to restore object state from.
-        If filename is None then this is a new object, and will create
-        a file for itself in STATE_DIR.
-      kwargs: Parameters to be passed to self.Update
-    """
-    self.rootname = rootname
-    self._fields = {}
-    if filename:
-      self._ReadFromFS(filename)
-    else:
-      prefix = rootname + "_"
-      f = tempfile.NamedTemporaryFile(
-          mode="a+", prefix=prefix, dir=STATE_DIR, delete=False)
-      filename = f.name
-      f.close()
-    self.filename = filename
-    if kwargs:
-      self.Update(**kwargs)
-
-  def __getattr__(self, name):
-    return self.__getitem__(name)
-
-  def __getitem__(self, name):
-    return self._fields[str(name)]
-
-  def __str__(self):
-    return self._ToJson()
-
-  def __unicode__(self):
-    return self.__str__()
-
-  def Update(self, **kwargs):
-    """Atomically update one or more parameters of the object.
-
-    One might reasonably ask why this is an explicit call and not just
-    setting parameters like self.foo="Bar". The motivation is atomicity.
-    We want the state saved to the filesystem to be consistent, and not
-    write out a partially updated object each time a parameter is changed.
-
-    When this call returns, the state has been safely written to the
-    filesystem. Any errors are reported by raising an exception.
-
-    Args:
-      **kwargs: Parameters to be updated.
-    """
-    self._fields.update(kwargs)
-    self._WriteToFS()
-
-  def Get(self, name):
-    return self._fields.get(name, None)
-
-  def values(self):
-    return self._fields.values()
-
-  def items(self):
-    return self._fields.items()
-
-  def _ToJson(self):
-    return json.dumps(self._fields, indent=2)
-
-  def _FromJson(self, string):
-    d = json.loads(str(string))
-    assert isinstance(d, dict)
-    return d
-
-  def _ReadFromFS(self, filename):
-    """Read a json file back to an PersistentState object."""
-    d = self._FromJson(open(filename).read())
-    self._fields.update(d)
-
-  def _WriteToFS(self):
-    """Write PersistentState object out to an json file."""
-    f = tempfile.NamedTemporaryFile(
-        mode="a+", prefix="tmpwrite", dir=STATE_DIR, delete=False)
-    f.write(self._ToJson())
-    f.close()
-    os.rename(f.name, self.filename)
-
-
-def GetDownloadObjects(rootname=ROOTNAME):
-  globstr = STATE_DIR + "/" + rootname + "*"
-  dnlds = []
-  for f in glob.glob(globstr):
-    dnlds.append(PersistentObject(rootname, f))
-  return dnlds
+# tr-69 fault codes
+INTERNAL_ERROR = 9002
+INVALID_ARGUMENTS = 9003
+RESOURCES_EXCEEDED = 9004
 
 
 class Installer(object):
@@ -136,51 +44,318 @@ class Installer(object):
     self.filename = filename
 
   def install(self, callback):
-    callback(soap.CpeFault.INTERNAL_ERROR[0], 'No installer for this platform.')
+    self.callback(INTERNAL_ERROR, 'No installer for this platform.')
 
+  def reboot(self):
+    return False
 
 # Class to be called after image is downloaded. Platform code is expected
 # to put its own installer here, the default returns failed to install.
 INSTALLER = Installer
 
 
-def _uri_path(url):
-  pos = url.find('://')
-  if pos >= 0:
-    url = url[pos+3:]
-  pos = url.find('/')
-  if pos >= 0:
-    url = url[pos:]
-  return url
+class SchemeFaultDownload(object):
+  """A fake Download class used for bad URL schemes.
+
+  If we get a URL schemewe don't implement, like foo://bar/,
+  we need to signal an error back to the ACS. This class responds
+  to any fetch() with an error.
+  """
+  def __init__(self, url, username=None, password=None,
+               download_complete_cb=None, ioloop=None):
+    self.url = url
+    self.download_complete_cb = download_complete_cb
+
+  def fetch(self):
+    o = urlparse.urlparse(url)
+    scheme = o.scheme if o.scheme else '<invalidURL>'
+    self.download_complete_cb(INTERNAL_ERROR,
+                              "Unsupported URL scheme {0}".format(scheme))
 
 
-def calc_http_digest(method, uripath, qop, nonce, cnonce, nc,
-                     username, realm, password):
-  def H(s):
-    return hashlib.md5(s).hexdigest()
-  def KD(secret, data):
-    return H(secret + ':' + data)
-  A1 = username + ':' + realm + ':' + password
-  A2 = method + ':' + uripath
-  digest = KD(H(A1), nonce + ':' + nc + ':' + cnonce + ':' + qop + ':' + H(A2))
-  return digest
+# Unit tests can substitute mock objects here
+DOWNLOAD_CLIENT = {
+  'http' : http_download.HttpDownload,
+  'https' : http_download.HttpDownload
+}
 
 
-class HttpDownload(object):
-  # States a download passes through:
-  DELAYING = "DELAYING"
+# State machine description. Generate a diagram using Graphviz:
+# ./download.py
+graphviz = r"""
+digraph DLstates {
+  node [shape=box]
+
+  START [label="START"]
+  WAITING [label="WAITING\nstart timer"]
+  DOWNLOADING [label="DOWNLOADING\nstart download"]
+  INSTALLING [label="INSTALLING\nstart install"]
+  REBOOTING [label="REBOOTING\ninitiate reboot"]
+  EXITING [label="EXITING\nsend TransferComplete"]
+  DONE [label="DONE\ncleanup, not a\nreal state"]
+
+  START -> WAITING
+  START -> EXITING [label="invalid\ndownload"]
+  WAITING -> DOWNLOADING [label="timer\nexpired"]
+  DOWNLOADING -> INSTALLING [label="download\ncomplete"]
+  DOWNLOADING -> EXITING [label="download\nfailed"]
+  INSTALLING -> REBOOTING [label="install\ncomplete"]
+  INSTALLING -> EXITING [label="install\nfailed"]
+  REBOOTING -> EXITING [label="rebooted,\ncorrect image"]
+  REBOOTING -> EXITING [label="rebooted,\nincorrect image"]
+  EXITING -> DONE [label="receive\nTransferCompleteResponse"]
+}
+"""
+
+class Download(object):
+  """A state machine to handle a single tr-69 Download RPC."""
+
+  # States in the state machine. See docs/download.dot for details
+  START = "START"
+  WAITING = "WAITING"
   DOWNLOADING = "DOWNLOADING"
   INSTALLING = "INSTALLING"
   REBOOTING = "REBOOTING"
-  CONCLUDING = "CONCLUDING"
+  EXITING = "EXITING"
 
-  def __init__(self, ioloop=None):
+  # State machine events
+  EV_START = 1
+  EV_TIMER = 2
+  EV_DOWNLOAD_COMPLETE = 3
+  EV_INSTALL_COMPLETE = 4
+  EV_REBOOT_COMPLETE = 5
+  EV_TCRESPONSE = 6
+  EV_IMMED_COMPLETE = 7
+
+  def __init__(self, stateobj, transfer_complete_cb, ioloop=None):
+    """Download object.
+
+    Args:
+      stateobj - a PersistentObject to store state across reboots.
+        This class requires that command_key and url attributes be present.
+      transfer_complete_cb - function to send a TransferComplete message.
+      ioloop - Tornado ioloop. Unit tests can pass in a mock.
+    """
+    self.stateobj = self._restore_dlstate(stateobj)
+    self.transfer_complete_cb = transfer_complete_cb
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
+    self.downloaded_file = None
+    # the delay_seconds started when we received the RPC, even if we have
+    # downloaded other files and rebooted since then.
+    if not hasattr(self.stateobj, 'wait_start_time'):
+      self.stateobj.Update(wait_start_time=time.time())
 
-  def download(self, command_key=None, file_type=None, url=None,
-               username=None, password=None, file_size=0,
-               target_filename=None, delay_seconds=0,
-               download_complete_cb=None):
+  def _restore_dlstate(self, stateobj):
+    """Re-enter the state machine at a sane state.
+
+    This state machine is supposed to download a file, install that file,
+    reboot, and send a completion. To do this it stores its state to
+    the filesystem so it can read it back in after a reboot.
+
+    If we reboot unexpectedly, like a power failure, we may have to backtrack.
+    For example if we had downloaded the file to /tmp and then powered off,
+    we lose the file and have to download it again.
+
+    The state machine can only resume into the START and REBOOTING states.
+    """
+    if not hasattr(stateobj, 'dlstate'):
+      stateobj.Update(dlstate=self.START)
+    dlstate = stateobj.dlstate
+    if dlstate != self.START and dlstate != self.REBOOTING:
+      stateobj.Update(dlstate=self.START)
+    return stateobj
+
+  def _schedule_timer(self):
+    delay_seconds = getattr(self.stateobj, 'delay_seconds', 0)
+    wait_start_time = self.stateobj.wait_start_time
+
+    # sanity check. If wait_start_time is in the future, ignore it.
+    now = time.time()
+    if wait_start_time > now:
+      wait_start_time = now
+
+    # I dislike when APIs require NTP-related bugs in my code.
+    self.ioloop.add_timeout(wait_start_time + delay_seconds,
+                            self.timer_callback)
+
+  def _new_download_object(self, stateobj):
+    url = getattr(stateobj, 'url', '')
+    username = getattr(stateobj, 'username', None)
+    password = getattr(stateobj, 'password', None)
+    o = urlparse.urlparse(url)
+    client = DOWNLOAD_CLIENT.get(o.scheme, SchemeFaultDownload)
+    return client(url=url, username=username, password=password,
+                  download_complete_cb=self.download_complete_callback)
+
+  def _send_transfer_complete(self, faultcode, faultstring, start=0.0, end=0.0):
+    self.transfer_complete_cb(command_key=self.stateobj.command_key,
+                              faultcode=faultcode,
+                              faultstring=faultstring,
+                              starttime=start, endtime=end)
+
+  def state_machine(self, event, faultcode=0, faultstring=''):
+    dlstate = self.stateobj.dlstate
+    if dlstate == self.START:
+      if event == self.EV_START or event == self.EV_REBOOT_COMPLETE:
+        self.stateobj.Update(dlstate=self.WAITING)
+        self._schedule_timer()
+      elif event == self.EV_IMMED_COMPLETE:
+        self.stateobj.Update(dlstate=self.EXITING)
+        self._send_transfer_complete(faultcode, faultstring)
+
+    elif dlstate == self.WAITING:
+      if event == self.EV_TIMER:
+        self.download = self._new_download_object(self.stateobj)
+        self.stateobj.Update(dlstate=self.DOWNLOADING,
+                             download_start_time=time.time())
+        self.download.fetch()
+
+    elif dlstate == self.DOWNLOADING:
+      if event == self.EV_DOWNLOAD_COMPLETE:
+        self.download = None  # no longer needed
+        if faultcode == 0:
+          self.installer = INSTALLER(self.downloaded_file)
+          self.stateobj.Update(dlstate=self.INSTALLING)
+          self.installer.install(self.installer_callback)
+        else:
+          self.stateobj.Update(dlstate=self.EXITING)
+          self._send_transfer_complete(faultcode, faultstring)
+
+    elif dlstate == self.INSTALLING:
+      if event == self.EV_INSTALL_COMPLETE:
+        try:
+          os.unlink(self.downloaded_file)
+        except OSError:
+          pass  # harmless, as we're about to reboot anyway.
+        if faultcode == 0:
+          self.stateobj.Update(dlstate=self.REBOOTING)
+          self.installer.reboot()
+        else:
+          self.stateobj.Update(dlstate=self.EXITING)
+          self._send_transfer_complete(faultcode, faultstring)
+
+    elif dlstate == self.REBOOTING:
+      if event == self.EV_REBOOT_COMPLETE:
+        # TODO(dgentry) check version, whether image was actually installed
+        end = time.time()
+        self.stateobj.Update(dlstate=self.EXITING, download_complete_time=end)
+        if faultcode == 0:
+          start = getattr(self.stateobj, 'download_start_time', 0.0)
+          self._send_transfer_complete(faultcode=0, faultstring='',
+                                       start=start, end=end)
+        else:
+          self._send_transfer_complete(faultcode, faultstring)
+
+    elif dlstate == self.EXITING:
+      if event == self.EV_TCRESPONSE:
+        self.stateobj.Delete()
+        return True
+
+  def do_start(self):
+    return self.state_machine(self.EV_START)
+
+  def do_immediate_complete(self, faultcode, faultstring):
+    return self.state_machine(self.EV_IMMED_COMPLETE, faultcode, faultstring)
+
+  def timer_callback(self):
+    """Called by timer code when timeout expires."""
+    return self.state_machine(self.EV_TIMER)
+
+  def download_complete_callback(self, faultcode, faultstring, filename):
+    self.downloaded_file = filename
+    return self.state_machine(self.EV_DOWNLOAD_COMPLETE, faultcode, faultstring)
+
+  def installer_callback(self, faultcode, faultstring):
+    return self.state_machine(self.EV_INSTALL_COMPLETE, faultcode, faultstring)
+
+  def reboot_callback(self, faultcode, faultstring):
+    return self.state_machine(self.EV_REBOOT_COMPLETE, faultcode, faultstring)
+
+  def transfer_complete_response(self):
+    return self.state_machine(self.EV_TCRESPONSE, 0, None)
+
+  def get_queue_state(self):
+    """Data needed for GetQueuedTransfers/GetAllQueuedTransfers RPC."""
+    q = collections.namedtuple('queued_transfer_struct',
+        ('CommandKey State IsDownload FileType FileSize TargetFileName'))
+    q.CommandKey = self.stateobj.command_key
+
+    dlstate = self.stateobj.dlstate
+    if dlstate == self.START or dlstate == self.WAITING:
+      qstate = 1  # Not yet started
+    elif dlstate == self.EXITING:
+      qstate = 3  # Completed, finishing cleanup
+    else:
+      qstate = 2  # In progress
+    q.State = qstate
+
+    q.IsDownload = True
+    q.FileType = getattr(self.stateobj, 'file_type', None)
+    q.FileSize = getattr(self.stateobj, 'file_size', 0)
+    q.TargetFileName = getattr(self.stateobj, 'target_filename', '')
+    return q
+
+
+class DownloadManager(object):
+  """Manage Download requests from the ACS.
+
+  Each RPC gets a Download object, which runs a state machine to track
+  the progress of the operation. The DownloadManager allocates, manages
+  and deletes the active Download objects.
+
+  SPEC: http://www.broadband-forum.org/technical/download/TR-069_Amendment-3.pdf
+  """
+
+  # Maximum simultaneous downloads. tr-69 requires minimum of 3.
+  MAXDOWNLOADS = 3
+
+  # Object to track an individual Download RPC. Unit tests can override this.
+  DOWNLOADOBJ = Download
+
+  # Functions to send RPCs, to be filled in by parent object.
+  SEND_DOWNLOAD_RESPONSE = None
+  SEND_TRANSFER_COMPLETE = None
+
+  def __init__(self):
+    self._downloads = dict()
+
+  def NewDownload(self, command_key=None, file_type=None, url=None,
+                  username=None, password=None, file_size=0,
+                  target_filename=None, delay_seconds=0):
+    """Initiate a new download, handling a tr-69 Download RPC.
+
+    Args:
+      command_key, file_type, url, username, password, file_size,
+      target_filename, delay_seconds - as defined in tr-69 Amendment 3
+      (page 82 of $SPEC)
+
+    Returns:
+    (status, starttime, endtime) where
+    status: numeric response code for the DownloadResponse.Status
+    starttime: a float number of seconds, for the DownloadResponse.StartTime
+    endtime: a float number of seconds, for the DownloadResponse.CompleteTime
+    """
+    # TODO(dgentry) check free space?
+
+    faultcode = 0
+
+    if command_key in self._downloads:
+      # The ACS sends the same Download RPC several times. It likely has
+      # some state that a CPE needs to be updated, and sends a Download
+      # in response to every action we take.
+      # Acknowledge it, but download only once and send one TransferComplete.
+      self.SEND_DOWNLOAD_RESPONSE(1, 0.0, 0.0)
+      return
+
+    if len(self._downloads) >= self.MAXDOWNLOADS:
+      faultcode = RESOURCES_EXCEEDED
+      faultstring = "Max downloads ({0}) reached.".format(self.MAXDOWNLOADS)
+
+    o = urlparse.urlparse(url)
+    if o.scheme not in DOWNLOAD_CLIENT:
+      faultcode = INVALID_ARGUMENTS
+      faultstring = "Unsupported URL scheme {0}".format(o.scheme)
+
     kwargs = dict(command_key=command_key,
                   file_type=file_type,
                   url=url,
@@ -189,131 +364,49 @@ class HttpDownload(object):
                   file_size=file_size,
                   target_filename=target_filename,
                   delay_seconds=delay_seconds)
-    self.auth_header = None
-    self.tempfile = None
-    self.download_complete_cb = download_complete_cb
-    self.stateobj = PersistentObject(rootname=ROOTNAME, **kwargs)
-    # I dislike when APIs require NTP-related bugs in my code.
-    self.ioloop.add_timeout(time.time() + delay_seconds, self.start_download)
+    pobj = persistobj.PersistentObject(dir=STATEDIR, rootname=ROOTNAME,
+                                       filename=None, **kwargs)
+    dl = self.DOWNLOADOBJ(stateobj=pobj,
+                          transfer_complete_cb=self.SEND_TRANSFER_COMPLETE)
+    self._downloads[command_key] = dl
 
-    # tr-69 DownloadResponse:
-    # code 1 = Download has not yet been completed and applied
-    # starttime = 0.0, Unknown Time
-    # endtime = 0.0, Unknown Time
-    return (1, 0.0, 0.0)
+    # status=1 == send TransferComplete later, $SPEC pg 85
+    self.SEND_DOWNLOAD_RESPONSE(1, 0.0, 0.0)
 
-  def start_download(self):
-    print 'starting (auth_header=%r)' % self.auth_header
-    if not self.tempfile:
-      self.tempfile = tempfile.NamedTemporaryFile(delete=False)
-    kwargs = dict(url=self.stateobj.url,
-                  request_timeout=3600.0,
-                  streaming_callback=self.tempfile.write,
-                  allow_ipv6=True)
-    if self.auth_header:
-      kwargs.update(dict(headers=dict(Authorization=self.auth_header)))
-    elif self.stateobj.username and self.stateobj.password:
-      kwargs.update(dict(auth_username=self.stateobj.username,
-                         auth_password=self.stateobj.password))
-    req = tornado.httpclient.HTTPRequest(**kwargs)
-    self.http_client = DOWNLOADER(io_loop=self.ioloop)
-    self.http_client.fetch(req, self.async_fetch_callback)
-    self.stateobj.Update(download_start_time=time.time())
-
-  def calculate_auth_header(self, response):
-    """HTTP Digest Authentication."""
-    h = response.headers.get('www-authenticate', None)
-    if not h:
-      return
-    authtype, paramstr = h.split(' ', 1)
-    if authtype != 'Digest':
-      return
-
-    params = {}
-    for param in paramstr.split(','):
-      name, value = param.split('=')
-      assert(value.startswith('"') and value.endswith('"'))
-      params[name] = value[1:-1]
-
-    uripath = _uri_path(self.stateobj.url)
-    nc = '00000001'
-    nonce = params['nonce']
-    realm = params['realm']
-    opaque = params.get('opaque', None)
-    cnonce = str(random.getrandbits(32))
-    username = self.stateobj.username
-    password = self.stateobj.password
-    qop = 'auth'
-    returns = dict(uri=uripath,
-                   qop=qop,
-                   nc=nc,
-                   cnonce=cnonce,
-                   nonce=nonce,
-                   username=username,
-                   realm=realm)
-    if opaque:
-      returns['opaque'] = opaque
-    returns['response'] = calc_http_digest(method='GET',
-                                           uripath=uripath,
-                                           qop=qop,
-                                           nonce=nonce,
-                                           cnonce=cnonce,
-                                           nc=nc,
-                                           username=username,
-                                           realm=realm,
-                                           password=password)
-
-    returnlist = [('%s="%s"' % (k,v)) for k,v in returns.items()]
-    return 'Digest %s' % ','.join(returnlist)
-
-  def async_fetch_callback(self, response):
-    """Called for each chunk of data downloaded."""
-    if (response.error and response.error.code == 401 and
-        not self.auth_header and
-        self.stateobj.username and self.stateobj.password):
-      print '401 error, attempting Digest auth'
-      self.auth_header = self.calculate_auth_header(response)
-      if self.auth_header:
-        self.start_download()
-        return
-
-    if response.error:
-      print "Failed: %r" % response.error
-      print json.dumps(response.headers, indent=2)
-      os.unlink(self.tempfile.name)
-    else:
-      self.done()
-      print("Success: %s" % self.tempfile.name)
-
-  def done(self):
-    """Called when download complete."""
-    self.tempfile.flush()
-    self.tempfile.close()
-    self._installer = INSTALLER(self.tempfile.name)
-    self._installer.install(self.install_callback)
-
-  def install_callback(self, faultcode, faultstring):
-    """Passed to the INSTALLER object, to be called when install completes."""
-    # TODO(dgentry) - update stateobj
     if faultcode == 0:
-      self._installer.reboot()
+      dl.do_start()
     else:
-      self.download_complete_cb(command_key=self.stateobj.command_key,
-                                faultcode=faultcode,
-                                faultstring=faultstring,
-                                starttime=self.stateobj.download_start_time,
-                                endtime=time.time())
+      dl.do_immediate_complete(faultcode, faultstring)
+
+  def RestoreDownloads(self):
+    pobjs = persistobj.GetPersistentObjects(dir=STATEDIR, rootname=ROOTNAME)
+    for pobj in pobjs:
+      # Can't even signal a fault via TransferComplete without cmdkey
+      if hasattr(pobj, "command_key"):
+        dl = self.DOWNLOADOBJ(stateobj=pobj,
+                              transfer_complete_cb=self.SEND_TRANSFER_COMPLETE)
+        self._downloads[pobj.command_key] = dl
+        dl.reboot_callback(0, None)
+
+  def TransferCompleteResponseReceived(self, command_key):
+    if command_key in self._downloads:
+      dl = self._downloads[command_key]
+      if dl.transfer_complete_response():
+        del self._downloads[command_key]
+
+  def GetAllQueuedTransfers(self):
+    transfers = list()
+    for dl in self._downloads.values():
+      transfers.append(dl.get_queue_state())
+    return transfers
 
 
 def main():
-  ioloop = tornado.ioloop.IOLoop.instance()
-  dl = HttpDownload(ioloop)
-  url = len(sys.argv) > 1 and sys.argv[1] or "http://www.google.com/"
-  username = len(sys.argv) > 2 and sys.argv[2]
-  password = len(sys.argv) > 3 and sys.argv[3]
-  print 'using URL: %s' % url
-  dl.download(url=url, username=username, password=password, delay_seconds=0)
-  ioloop.start()
+  # Generate diagram for Download state machine
+  import subprocess
+  cmd = ["dot", "-Tpdf", "-odownloadStateMachine.pdf"]
+  p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+  print p.communicate(input=graphviz)[0]
 
 if __name__ == '__main__':
   main()
