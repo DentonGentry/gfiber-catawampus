@@ -89,9 +89,14 @@ class InstallerBruno(tr.download.Installer):
 
   def _call_callback(self, faultcode, faultstring):
     if self._install_cb:
-      self._install_cb(faultcode, faultstring)
+      self._install_cb(faultcode, faultstring, must_reboot=True)
 
-  def install(self, callback):
+  def install(self, file_type, target_filename, callback):
+    type = file_type.split()
+    if len(type) > 0 and type[0] != '1':
+      self._call_callback(INTERNAL_ERROR,
+                          "Unsupported file_type {0}".format(type[0]))
+      return False
     self._install_cb = callback
     cmd = [GINSTALL, "--tar={0}".format(self.filename), "--partition=other"]
     devnull = open('/dev/null', 'w')

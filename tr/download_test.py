@@ -66,12 +66,17 @@ class MockInstaller(object):
     self.filename = filename
     self.did_install = False
     self.did_reboot = False
+    self.file_type = None
+    self.targe_filename = None
     self.install_callback = None
     mock_installers.append(self)
 
-  def install(self, callback):
+  def install(self, file_type, target_filename, callback):
     self.did_install = True
+    self.file_type = file_type
+    self.target_filename = target_filename
     self.install_callback = callback
+    return True
 
   def reboot(self):
     self.did_reboot = True
@@ -169,12 +174,14 @@ class DownloadTest(unittest.TestCase):
     self.assertEqual(len(mock_installers), 1)
     inst = mock_installers[0]
     self.assertTrue(inst.did_install)
+    self.assertEqual(inst.file_type, kwargs['file_type'])
+    self.assertEqual(inst.target_filename, kwargs['target_filename'])
     self.assertEqual(inst.filename, dlfile)
     self.assertFalse(inst.did_reboot)
     self.assertEqual(self.QCheckBoring(dl, kwargs), 2)  # 2: In process
 
     # Step 4: Reboot
-    inst.install_callback(0, '')
+    inst.install_callback(0, '', must_reboot=True)
     self.assertTrue(inst.did_reboot)
     self.assertEqual(self.QCheckBoring(dl, kwargs), 2)  # 2: In process
 
@@ -286,13 +293,56 @@ class DownloadTest(unittest.TestCase):
     self.assertFalse(inst.did_reboot)
 
     # Step 4: Install Failed
-    inst.install_callback(101, 'TestInstallError')
+    inst.install_callback(101, 'TestInstallError', must_reboot=False)
     self.assertTrue(cmpl.transfer_complete_called)
     self.assertEqual(cmpl.command_key, kwargs['command_key'])
     self.assertEqual(cmpl.faultcode, 101)
     self.assertEqual(cmpl.faultstring, 'TestInstallError')
     self.assertEqual(cmpl.starttime, 0.0)
     self.assertEqual(cmpl.endtime, 0.0)
+
+  def testInstallNoReboot(self):
+    ioloop = MockIoloop()
+    cmpl = MockTransferComplete()
+    time.time = self.mockTime
+
+    kwargs = dict(command_key="testCommandKey",
+                  url="http://example.com/foo",
+                  delay_seconds=1)
+    stateobj = persistobj.PersistentObject(dir=self.tmpdir, rootname="testObj",
+                                           filename=None, **kwargs)
+
+    dl = download.Download(stateobj=stateobj,
+                           transfer_complete_cb=cmpl.SendTransferComplete,
+                           ioloop=ioloop)
+
+    # Step 1: Wait delay_seconds
+    dl.do_start()
+    self.assertEqual(ioloop.time, self.mockTime() + kwargs['delay_seconds'])
+
+    # Step 2: HTTP Download
+    dl.timer_callback()
+    self.assertEqual(len(mock_http_downloads), 1)
+    http = mock_http_downloads[0]
+    self.assertEqual(http.url, kwargs['url'])
+
+    # Step 3: Install
+    dlfile = '/path/to/downloaded/file'
+    http.download_complete_cb(0, '', dlfile)
+    self.assertEqual(len(mock_installers), 1)
+    inst = mock_installers[0]
+    self.assertTrue(inst.did_install)
+    self.assertEqual(inst.filename, dlfile)
+    self.assertFalse(inst.did_reboot)
+
+    # Step 4: Install Succeeded, no reboot
+    inst.install_callback(0, '', must_reboot=False)
+    self.assertTrue(cmpl.transfer_complete_called)
+    self.assertEqual(cmpl.command_key, kwargs['command_key'])
+    self.assertEqual(cmpl.faultcode, 0)
+    self.assertEqual(cmpl.faultstring, '')
+    self.assertEqual(cmpl.starttime, self.mockTime())
+    self.assertEqual(cmpl.endtime, self.mockTime())
 
 
 class MockDownloadResponse(object):

@@ -43,8 +43,10 @@ class Installer(object):
   def __init__(self, filename):
     self.filename = filename
 
-  def install(self, callback):
-    self.callback(INTERNAL_ERROR, 'No installer for this platform.')
+  def install(self, file_type, target_filename, callback):
+    self.callback(faultcode=INTERNAL_ERROR,
+                  faultstring='No installer for this platform.',
+                  must_reboot=False)
 
   def reboot(self):
     return False
@@ -101,6 +103,7 @@ digraph DLstates {
   DOWNLOADING -> EXITING [label="download\nfailed"]
   INSTALLING -> REBOOTING [label="install\ncomplete"]
   INSTALLING -> EXITING [label="install\nfailed"]
+  INSTALLING -> EXITING [label="must_reboot=False"]
   REBOOTING -> EXITING [label="rebooted,\ncorrect image"]
   REBOOTING -> EXITING [label="rebooted,\nincorrect image"]
   EXITING -> DONE [label="receive\nTransferCompleteResponse"]
@@ -193,7 +196,15 @@ class Download(object):
                               faultstring=faultstring,
                               starttime=start, endtime=end)
 
-  def state_machine(self, event, faultcode=0, faultstring=''):
+  def _remove_file(self, filename):
+    try:
+      os.unlink(filename)
+    except OSError:
+      return False
+    return True
+
+  def state_machine(self, event, faultcode=0, faultstring='',
+                    downloaded_file=None, must_reboot=False):
     dlstate = self.stateobj.dlstate
     if dlstate == self.START:
       if event == self.EV_START or event == self.EV_REBOOT_COMPLETE:
@@ -214,22 +225,31 @@ class Download(object):
       if event == self.EV_DOWNLOAD_COMPLETE:
         self.download = None  # no longer needed
         if faultcode == 0:
-          self.installer = INSTALLER(self.downloaded_file)
+          self.installer = INSTALLER(downloaded_file)
           self.stateobj.Update(dlstate=self.INSTALLING)
-          self.installer.install(self.installer_callback)
+          file_type = getattr(self.stateobj, 'file_type', None)
+          target_filename = getattr(self.stateobj, 'target_filename', None)
+          self.installer.install(file_type=file_type,
+                                 target_filename=target_filename,
+                                 callback=self.installer_callback)
         else:
           self.stateobj.Update(dlstate=self.EXITING)
           self._send_transfer_complete(faultcode, faultstring)
 
     elif dlstate == self.INSTALLING:
       if event == self.EV_INSTALL_COMPLETE:
-        try:
-          os.unlink(self.downloaded_file)
-        except OSError:
-          pass  # harmless, as we're about to reboot anyway.
+        self._remove_file(self.downloaded_file)
         if faultcode == 0:
-          self.stateobj.Update(dlstate=self.REBOOTING)
-          self.installer.reboot()
+          if must_reboot:
+            self.stateobj.Update(dlstate=self.REBOOTING)
+            self.installer.reboot()
+          else:
+            end = time.time()
+            self.stateobj.Update(dlstate=self.EXITING,
+                                 download_complete_time=end)
+            start = getattr(self.stateobj, 'download_start_time', 0.0)
+            self._send_transfer_complete(faultcode=0, faultstring='',
+                                         start=start, end=end)
         else:
           self.stateobj.Update(dlstate=self.EXITING)
           self._send_transfer_complete(faultcode, faultstring)
@@ -263,10 +283,12 @@ class Download(object):
 
   def download_complete_callback(self, faultcode, faultstring, filename):
     self.downloaded_file = filename
-    return self.state_machine(self.EV_DOWNLOAD_COMPLETE, faultcode, faultstring)
+    return self.state_machine(self.EV_DOWNLOAD_COMPLETE, faultcode, faultstring,
+                              downloaded_file=filename)
 
-  def installer_callback(self, faultcode, faultstring):
-    return self.state_machine(self.EV_INSTALL_COMPLETE, faultcode, faultstring)
+  def installer_callback(self, faultcode, faultstring, must_reboot):
+    return self.state_machine(self.EV_INSTALL_COMPLETE, faultcode, faultstring,
+                              must_reboot=must_reboot)
 
   def reboot_callback(self, faultcode, faultstring):
     return self.state_machine(self.EV_REBOOT_COMPLETE, faultcode, faultstring)

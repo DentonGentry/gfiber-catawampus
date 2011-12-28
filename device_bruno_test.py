@@ -51,33 +51,43 @@ class DeviceBrunoTest(tr.tornado.testing.AsyncTestCase):
     device_bruno.HNVRAM = "/no_such_binary_at_this_path"
     self.assertEqual(device_bruno.GetNvramParam("FOO"), '')
 
-  def install_callback(self, faultcode, faultstring):
+  def install_callback(self, faultcode, faultstring, must_reboot):
     self.install_cb_called = True
     self.install_cb_faultcode = faultcode
     self.install_cb_faultstring = faultstring
+    self.install_cb_must_reboot = must_reboot
     self.stop()
 
   def testBadInstaller(self):
     device_bruno.GINSTALL = "/dev/null"
-    installer = device_bruno.InstallerBruno("/dev/null", io_loop=self.io_loop)
-    installer.install(self.install_callback)
+    installer = device_bruno.InstallerBruno("/dev/null", ioloop=self.io_loop)
+    installer.install(file_type='1 Firmware Upgrade Image',
+                      target_filename='',
+                      callback=self.install_callback)
     self.assertTrue(self.install_cb_called)
     self.assertEqual(self.install_cb_faultcode, 9002)
     self.assertTrue(self.install_cb_faultstring)
 
-  def DISABLEDtestInstallerStdout(self):
-    # Successful install no longer calls the callback, it just reboots
+  def testInstallerStdout(self):
     device_bruno.GINSTALL = "testdata/device_bruno/installer_128k_stdout"
     installer = device_bruno.InstallerBruno("testdata/device_bruno/imagefile",
-                                            io_loop=self.io_loop)
-    installer.install(self.install_callback)
+                                            ioloop=self.io_loop)
+    installer.install(file_type='1 Firmware Upgrade Image',
+                      target_filename='',
+                      callback=self.install_callback)
     self.wait()
+    self.assertTrue(self.install_cb_called)
+    self.assertEqual(self.install_cb_faultcode, 0)
+    self.assertFalse(self.install_cb_faultstring)
+    self.assertTrue(self.install_cb_must_reboot)
 
   def testInstallerFailed(self):
     device_bruno.GINSTALL = "testdata/device_bruno/installer_fails"
     installer = device_bruno.InstallerBruno("testdata/device_bruno/imagefile",
-                                            io_loop=self.io_loop)
-    installer.install(self.install_callback)
+                                            ioloop=self.io_loop)
+    installer.install(file_type='1 Firmware Upgrade Image',
+                      target_filename='',
+                      callback=self.install_callback)
     self.wait()
     self.assertTrue(self.install_cb_called)
     self.assertEqual(self.install_cb_faultcode, 9002)
