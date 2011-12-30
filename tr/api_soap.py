@@ -194,11 +194,13 @@ class CPE(SoapHandler):
     return xml
 
   def Download(self, xml, req):
+    username = getattr(req, 'Username', None)
+    password = getattr(req, 'Password', None)
     self.impl.Download(command_key=req.CommandKey,
                        file_type=req.FileType,
                        url=req.URL,
-                       username=req.Username,
-                       password=req.Password,
+                       username=username,
+                       password=password,
                        file_size=int(req.FileSize),
                        target_filename=req.TargetFileName,
                        delay_seconds=int(req.DelaySeconds),

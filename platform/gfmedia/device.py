@@ -60,7 +60,7 @@ def GetNvramParam(param, default=""):
     return default
 
 
-class DeviceIdBruno(object):
+class DeviceIdGFMedia(object):
   def __init__(self):
     self.Manufacturer = 'Google'
     self.ManufacturerOUI = '001a11'
@@ -74,14 +74,14 @@ class DeviceIdBruno(object):
     self.ProductClass = 'STB'
 
 
-class DeviceInfoBruno(device_info.DeviceInfoLinux26):
+class DeviceInfoGFMedia(device_info.DeviceInfoLinux26):
   def __init__(self):
-    device_info.DeviceInfoLinux26.__init__(self, DeviceIdBruno())
+    device_info.DeviceInfoLinux26.__init__(self, DeviceIdGFMedia())
 
 
 GINSTALL = "/bin/ginstall.py"
 REBOOT = "/bin/tr69_reboot"
-class InstallerBruno(tr.download.Installer):
+class InstallerGFMedia(tr.download.Installer):
   def __init__(self, filename, ioloop=None):
     self.filename = filename
     self._install_cb = None
@@ -129,13 +129,8 @@ class InstallerBruno(tr.download.Installer):
         self._call_callback(INTERNAL_ERROR, 'Unable to install image.')
 
 
-def PlatformInit(name):
-  tr.download.INSTALLER = InstallerBruno
-
-
-class DeviceBruno(tr181.Device_v2_2.Device):
-  """Device implementation for Bruno, Google's set top box platform.
-  """
+class DeviceGFMedia(tr181.Device_v2_2.Device):
+  """Device implementation for Google Fiber media platforms."""
 
   def __init__(self):
     tr181.Device_v2_2.Device.__init__(self)
@@ -166,15 +161,27 @@ class DeviceBruno(tr181.Device_v2_2.Device):
     self.WiFi = tr.core.TODO()
     self.InterfaceStackNumberOfEntries = 0
 
-    # Bruno has one Ethernet port, Wifi, and MoCA
+    # One Ethernet port, Wifi, and MoCA
     self.Ethernet = ethernet.Ethernet()
     self.Ethernet.AddInterface("eth0", False, ethernet.EthernetInterfaceLinux26)
 
     self.ManagementServer = management_server.ManagementServer()
 
 
+def PlatformInit(name, device_model_root):
+  tr.download.INSTALLER = InstallerGFMedia
+  tr.download.SetStateDir("/config/tr69_dnld/")
+  params = []
+  objects = []
+  device_model_root.Device = DeviceGFMedia()
+  objects.append('Device')
+  device_model_root.DeviceInfo = DeviceInfoGFMedia()
+  objects.append('DeviceInfo')
+  return (params, objects)
+
+
 def main():
-  root = DeviceBruno()
+  root = DeviceGFMedia()
   tr.core.Dump(root)
 
 if __name__ == '__main__':

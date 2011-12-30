@@ -28,10 +28,15 @@ INSTALL=install
 install:
 	$(INSTALL) -d $(DSTDIR) $(DSTDIR)/tr  $(DSTDIR)/tr/vendor \
 		$(DSTDIR)/tr/vendor/bup/lib/bup $(DSTDIR)/tr/vendor/pynetlinux \
-		$(DSTDIR)/tr/vendor/tornado $(DSTDIR)/tr/vendor/tornado/tornado
+		$(DSTDIR)/tr/vendor/tornado $(DSTDIR)/tr/vendor/tornado/tornado \
+		$(DSTDIR)/platform $(DSTDIR)/platform/gfmedia \
+		$(DSTDIR)/platform/fakecpe
 	$(INSTALL) -D -m 0644 *.py $(DSTDIR)
 	ln -s tr/vendor/pynetlinux $(DSTDIR)/pynetlinux
 	$(INSTALL) -D -m 0644 tr/*.py $(DSTDIR)/tr
+	$(INSTALL) -D -m 0644 platform/*.py $(DSTDIR)/platform
+	$(INSTALL) -D -m 0644 platform/gfmedia/*.py $(DSTDIR)/platform/gfmedia
+	$(INSTALL) -D -m 0644 platform/fakecpe/*.py $(DSTDIR)/platform/fakecpe
 	ln -s vendor/bup/lib/bup $(DSTDIR)/tr/bup
 	ln -s vendor/tornado/tornado $(DSTDIR)/tr/tornado
 	$(INSTALL) -D -m 0644 tr/vendor/README.third_party $(DSTDIR)/tr/vendor

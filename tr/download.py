@@ -6,6 +6,7 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import collections
+import errno
 import glob
 import hashlib
 import http_download
@@ -31,6 +32,18 @@ ROOTNAME = "tr69_dnld"
 INTERNAL_ERROR = 9002
 INVALID_ARGUMENTS = 9003
 RESOURCES_EXCEEDED = 9004
+
+
+def SetStateDir(dir):
+  global STATEDIR
+  try:
+    os.makedirs(dir, 0755)
+  except OSError, e:
+    if e.errno == errno.EEXIST:
+      pass
+    else:
+      raise
+  STATEDIR = dir
 
 
 class Installer(object):
@@ -357,6 +370,10 @@ class DownloadManager(object):
     starttime: a float number of seconds, for the DownloadResponse.StartTime
     endtime: a float number of seconds, for the DownloadResponse.CompleteTime
     """
+
+    # status=1 == send TransferComplete later, $SPEC pg 85
+    self.SEND_DOWNLOAD_RESPONSE(1, 0.0, 0.0)
+
     # TODO(dgentry) check free space?
 
     faultcode = 0
@@ -366,7 +383,6 @@ class DownloadManager(object):
       # some state that a CPE needs to be updated, and sends a Download
       # in response to every action we take.
       # Acknowledge it, but download only once and send one TransferComplete.
-      self.SEND_DOWNLOAD_RESPONSE(1, 0.0, 0.0)
       return
 
     if len(self._downloads) >= self.MAXDOWNLOADS:
@@ -391,9 +407,6 @@ class DownloadManager(object):
     dl = self.DOWNLOADOBJ(stateobj=pobj,
                           transfer_complete_cb=self.SEND_TRANSFER_COMPLETE)
     self._downloads[command_key] = dl
-
-    # status=1 == send TransferComplete later, $SPEC pg 85
-    self.SEND_DOWNLOAD_RESPONSE(1, 0.0, 0.0)
 
     if faultcode == 0:
       dl.do_start()

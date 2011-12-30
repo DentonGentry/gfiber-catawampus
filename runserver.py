@@ -10,8 +10,6 @@
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import sys
-import device_bruno
-import device_info
 import tr.api
 import tr.bup.options
 import tr.core
@@ -34,33 +32,28 @@ acs-url=     URL of the TR-069 ACS server to connect to
 fake-acs     Run a fake ACS (and auto-set --acs-url to that)
 no-cpe       Don't run a CPE (and thus never connect to ACS)
 cpe-listener Let CPE listen for http requests (not TR-069 compliant)
-bruno        Activate the device_bruno objects.
+platform=    Activate the platform-specific device tree
 """
 
 
-class TemporaryRoot(tr.core.Exporter):
-  """A fake class that doesn't represent any real device model at all.
+class DeviceModelRoot(tr.core.Exporter):
+  """A class to hold the device models."""
 
-  Eventually, we'll replace this with one derived from a real toplevel model
-  in one of the TR docs.  We can't do that yet because we haven't implemented
-  all the required objects yet.
-  """
-
-  def __init__(self, loop, want_bruno):
+  def __init__(self, loop, platform):
     tr.core.Exporter.__init__(self)
-    self.Foo = 'bar'
-    objects = ['DeviceInfo', 'TraceRoute']
-    if want_bruno:
-      import device_bruno
-      self.Device = device_bruno.DeviceBruno()
-      self.DeviceInfo = device_bruno.DeviceInfoBruno()
-      device_bruno.PlatformInit('bruno')
-      objects.append('Device')
+    if platform == "gfmedia":
+      import platform.gfmedia.device as device
+      (params, objects) = device.PlatformInit(name='gfmedia',
+                                              device_model_root=self)
     else:
-      self.DeviceInfo = device_info.DeviceInfoLinux26()
+      import platform.fakecpe.device as device
+      (params, objects) = device.PlatformInit(name='fakecpe',
+                                              device_model_root=self)
+    self.Foo = 'bar'
+    params.append('Foo')
     self.TraceRoute = traceroute.TraceRoute(loop)
-    self.Export(params=['Foo'],
-                objects=objects)
+    objects.append('TraceRoute')
+    self.Export(params=params, objects=objects)
 
 
 def main():
@@ -69,7 +62,7 @@ def main():
 
   tr.tornado.autoreload.start()
   loop = tr.mainloop.MainLoop()
-  root = TemporaryRoot(loop, opt.bruno)
+  root = DeviceModelRoot(loop, opt.platform)
   if opt.rcmd_port:
     loop.ListenInet6(('', opt.rcmd_port),
                      tr.rcommand.MakeRemoteCommandStreamer(root))

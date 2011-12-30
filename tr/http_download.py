@@ -138,16 +138,16 @@ class HttpDownload(object):
     self.tempfile.close()
 
     if response.error:
-      print "Failed: %r" % response.error
+      print("Download failed: {0!r}".format(response.error))
       print json.dumps(response.headers, indent=2)
       os.unlink(self.tempfile.name)
       self.download_complete_cb(
           DOWNLOAD_FAILED,
-          "Download failed {0}".format(response.error.code),
+          "Download failed {0!s}".format(response.error.code),
           None)
     else:
       self.download_complete_cb(0, '', self.tempfile.name)
-      print("Success: %s" % self.tempfile.name)
+      print("Download success: {0}".format(self.tempfile.name))
 
 
 def main():
