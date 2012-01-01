@@ -44,7 +44,9 @@ def SpecNameForPython(spec):
 
 
 def ObjNameForPython(name):
-  return re.sub(r':(\d+)\.(\d+)', r'_v\1_\2', name)
+  name = re.sub(r':(\d+)\.(\d+)', r'_v\1_\2', name)
+  name = name.replace('-', '_')  # X_EXAMPLE-COM_foo vendor data models
+  return name
 
 
 def Indented(prefix, s):
