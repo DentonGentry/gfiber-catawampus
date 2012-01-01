@@ -79,15 +79,13 @@ class ACS(TR069Service):
 class CPE(TR069Service):
   """Represents a TR-069 CPE (Customer Premises Equipment)."""
 
-  def __init__(self, acs, root):
+  def __init__(self, root):
     TR069Service.__init__(self)
     self._last_parameter_key = None
-    self.acs = acs
     self.root = root
     self.download_manager = download.DownloadManager()
 
-  def SetDownloadCalls(self, send_download_response, send_transfer_complete):
-    self.download_manager.SEND_DOWNLOAD_RESPONSE = send_download_response
+  def SetDownloadCalls(self, send_transfer_complete):
     self.download_manager.SEND_TRANSFER_COMPLETE = send_transfer_complete
 
   def _SetParameterKey(self, value):
@@ -172,26 +170,26 @@ class CPE(TR069Service):
                username, password, file_size, target_filename,
                delay_seconds, success_url, failure_url):
     """Initiate a download immediately or after a delay."""
-    self.download_manager.NewDownload(command_key=command_key,
-                                      file_type=file_type,
-                                      url=url,
-                                      username=username,
-                                      password=password,
-                                      file_size=file_size,
-                                      target_filename=target_filename,
-                                      delay_seconds=delay_seconds)
+    return self.download_manager.NewDownload(
+        command_key=command_key,
+        file_type=file_type,
+        url=url,
+        username=username,
+        password=password,
+        file_size=file_size,
+        target_filename=target_filename,
+        delay_seconds=delay_seconds)
 
   def Reboot(self, command_key):
     """Reboot the CPE."""
     raise NotImplementedError()
-    self.acs.Inform(command_key)
 
   def GetQueuedTransfers(self):
     """Retrieve a list of queued file transfers (downloads and uploads)."""
     return self.download_manager.GetAllQueuedTransfers()
 
   def ScheduleInform(self, delay_seconds, command_key):
-    """Request that this CPE call acs.Inform() at some point in the future."""
+    """Request that this CPE call Inform() at some point in the future."""
     raise NotImplementedError()
 
   def SetVouchers(self, voucher_list):
@@ -223,17 +221,11 @@ class CPE(TR069Service):
 
   def CancelTransfer(self, command_key):
     """Cancel a scheduled file transfer."""
-    raise NotImplementedError()
+    return self.download_manager.CancelTransfer(command_key)
 
   def ChangeDUState(self, operations, command_key):
     """Trigger an install, update, or uninstall operation."""
     raise NotImplementedError()
 
-  def _PingReceived(self):
-    self.acs.Inform(self, self.root,
-                    events=[('6 CONNECTION REQUEST', '')], max_envelopes=1,
-                    current_time=None, retry_count=1,
-                    parameter_list=[])
-
-  def TransferCompleteResponseReceived(self, command_key):
-    self.download_manager.TransferCompleteResponseReceived(command_key)
+  def TransferCompleteResponseReceived(self):
+    return self.download_manager.TransferCompleteResponseReceived()

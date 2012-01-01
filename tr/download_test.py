@@ -14,6 +14,7 @@ import download
 import os
 import shutil
 import persistobj
+import soap
 import tempfile
 import time
 import tornado.ioloop
@@ -85,15 +86,17 @@ class MockInstaller(object):
 class MockTransferComplete(object):
   def __init__(self):
     self.transfer_complete_called = False
+    self.dl = None
     self.command_key = None
     self.faultcode = None
     self.faultstring = None
     self.starttime = None
     self.endtime = None
 
-  def SendTransferComplete(self, command_key, faultcode, faultstring,
+  def SendTransferComplete(self, dl, command_key, faultcode, faultstring,
                            starttime, endtime):
     self.transfer_complete_called = True
+    self.dl = dl
     self.command_key = command_key
     self.faultcode = faultcode
     self.faultstring = faultstring
@@ -196,32 +199,8 @@ class DownloadTest(unittest.TestCase):
     self.assertEqual(self.QCheckBoring(dl, kwargs), 3)  # 3: Cleaning up
 
     # Step 6: Wait for Transfer Complete Response
-    self.assertTrue(dl.transfer_complete_response())
+    self.assertFalse(dl.cleanup())
     self.assertEqual(self.QCheckBoring(dl, kwargs), 3)  # 3: Cleaning up
-
-  def testImmediateComplete(self):
-    ioloop = MockIoloop()
-    cmpl = MockTransferComplete()
-    time.time = self.mockTime
-
-    kwargs = dict(command_key="testCommandKey",
-                  url="http://example.com/foo",
-                  delay_seconds=1)
-    stateobj = persistobj.PersistentObject(dir=self.tmpdir, rootname="testObj",
-                                           filename=None, **kwargs)
-
-    dl = download.Download(stateobj=stateobj,
-                           transfer_complete_cb=cmpl.SendTransferComplete,
-                           ioloop=ioloop)
-
-    # Step 1: Send TransferComplete
-    dl.do_immediate_complete(418, 'TestImmediateComplete')
-    self.assertTrue(cmpl.transfer_complete_called)
-    self.assertEqual(cmpl.command_key, kwargs['command_key'])
-    self.assertEqual(cmpl.faultcode, 418)
-    self.assertEqual(cmpl.faultstring, 'TestImmediateComplete')
-    self.assertEqual(cmpl.starttime, 0.0)
-    self.assertEqual(cmpl.endtime, 0.0)
 
   def testDownloadFailed(self):
     ioloop = MockIoloop()
@@ -344,22 +323,38 @@ class DownloadTest(unittest.TestCase):
     self.assertEqual(cmpl.starttime, self.mockTime())
     self.assertEqual(cmpl.endtime, self.mockTime())
 
+  def testCancelRefused(self):
+    ioloop = MockIoloop()
+    cmpl = MockTransferComplete()
 
-class MockDownloadResponse(object):
-  def __init__(self):
-    self.reset()
+    kwargs = dict(command_key="testCommandKey",
+                  url="http://example.com/foo")
+    stateobj = persistobj.PersistentObject(dir=self.tmpdir, rootname="testObj",
+                                           filename=None, **kwargs)
+    dl = download.Download(stateobj=stateobj,
+                           transfer_complete_cb=cmpl.SendTransferComplete,
+                           ioloop=ioloop)
+    dl.do_start()  # Step 1: Wait delay_seconds
+    dl.timer_callback()  # Step 2: HTTP Download
+    dl.download_complete_callback(0, None, None)  # Step 3: Install
+    self.assertTrue(dl.cleanup())
+    dl.installer_callback(0, None, must_reboot=True)  # Step 4: Reboot
+    self.assertTrue(dl.cleanup())
+    dl.reboot_callback(0, '')  # Step 5: Rebooted
+    self.assertFalse(dl.cleanup())
 
-  def reset(self):
-    self.status = None
-    self.start = None
-    self.end = None
-    self.send_response_called = False
+  def testCommandKey(self):
+    kwargs = dict(command_key="testCommandKey")
+    stateobj = persistobj.PersistentObject(dir=self.tmpdir, rootname="testObj",
+                                           filename=None, **kwargs)
+    dl = download.Download(stateobj=stateobj, transfer_complete_cb=None)
+    self.assertEqual(dl.CommandKey(), kwargs['command_key'])
 
-  def SendDownloadResponse(self, status, start, end):
-    self.status = status
-    self.start = start
-    self.end = end
-    self.send_response_called = True
+    kwargs = dict()
+    stateobj = persistobj.PersistentObject(dir=self.tmpdir, rootname="testObj",
+                                           filename=None, **kwargs)
+    dl = download.Download(stateobj=stateobj, transfer_complete_cb=None)
+    self.assertEqual(dl.CommandKey(), None)
 
 
 mock_downloads = []
@@ -405,15 +400,13 @@ class DownloadManagerTest(unittest.TestCase):
 
   def allocTestDM(self):
     dm = download.DownloadManager()
-    resp = MockDownloadResponse()
     cmpl = MockTransferComplete()
-    dm.SEND_DOWNLOAD_RESPONSE = resp.SendDownloadResponse
     dm.SEND_TRANSFER_COMPLETE = cmpl.SendTransferComplete
     dm.DOWNLOADOBJ = MockDownloadObj
-    return (dm, resp, cmpl)
+    return (dm, cmpl)
 
   def testSimpleDownload(self):
-    (dm, resp, cmpl) = self.allocTestDM()
+    (dm, cmpl) = self.allocTestDM()
     args = {"command_key": "TestCommandKey",
             "file_type": "TestFileType",
             "url": "http://example.com/",
@@ -422,11 +415,10 @@ class DownloadManagerTest(unittest.TestCase):
             "file_size": 99,
             "target_filename": "TestFilename",
             "delay_seconds": 30}
-    dm.NewDownload(**args)
-    self.assertTrue(resp.send_response_called)
-    self.assertEqual(resp.status, 1)
-    self.assertEqual(resp.start, 0.0)
-    self.assertEqual(resp.end, 0.0)
+    (code, (start, end)) = dm.NewDownload(**args)
+    self.assertEqual(code, 1)
+    self.assertEqual(start, 0.0)
+    self.assertEqual(end, 0.0)
     self.assertEqual(len(mock_downloads), 1)
     dl = mock_downloads[0]
     self.assertEqual(dl.stateobj.command_key, args["command_key"])
@@ -438,60 +430,35 @@ class DownloadManagerTest(unittest.TestCase):
     self.assertEqual(dl.stateobj.target_filename, args["target_filename"])
     self.assertEqual(dl.stateobj.delay_seconds, args["delay_seconds"])
 
-  def testDuplicate(self):
-    (dm, resp, cmpl) = self.allocTestDM()
-    args = {"command_key": "TestCommandKey", "url": "http://example.com/"}
-    dm.NewDownload(**args)
-    self.assertTrue(resp.send_response_called)
-    self.assertEqual(resp.status, 1)
-    self.assertEqual(resp.start, 0.0)
-    self.assertEqual(resp.end, 0.0)
-    self.assertEqual(len(mock_downloads), 1)
-
-    resp.reset()
-    dm.NewDownload(**args)
-    self.assertTrue(resp.send_response_called)
-    self.assertEqual(resp.status, 1)
-    self.assertEqual(resp.start, 0.0)
-    self.assertEqual(resp.end, 0.0)
-    # No new download created for the duplicate
-    self.assertEqual(len(mock_downloads), 1)
-
   def testMaxDownloads(self):
-    (dm, resp, cmpl) = self.allocTestDM()
-    maxdl = download.DownloadManager.MAXDOWNLOADS + 1
+    (dm, cmpl) = self.allocTestDM()
+    maxdl = download.DownloadManager.MAXDOWNLOADS
     for i in range(maxdl):
       args = {"command_key": "TestCommandKey" + str(i),
               "url": "http://example.com/"}
-      resp.reset()
-      dm.NewDownload(**args)
-      self.assertTrue(resp.send_response_called)
-      self.assertEqual(resp.status, 1)
-      self.assertEqual(resp.start, 0.0)
-      self.assertEqual(resp.end, 0.0)
+      (code, (start, end)) = dm.NewDownload(**args)
+      self.assertEqual(code, 1)
+      self.assertEqual(start, 0.0)
+      self.assertEqual(end, 0.0)
     self.assertEqual(len(mock_downloads), maxdl)
-    dl = mock_downloads[maxdl-1]
-    self.assertTrue(dl.immediate_complete_called)
-    self.assertEqual(dl.faultcode, 9004)
-    self.assertTrue(dl.faultstring)
+    (code, ((faultcode, faulttype), faultstring)) = dm.NewDownload(**args)
+    self.assertTrue(code < 0)
+    self.assertEqual(faultcode, 9004)
+    self.assertEqual(faulttype, soap.FaultType.SERVER)
+    self.assertTrue(faultstring)
 
   def testBadUrlScheme(self):
-    (dm, resp, cmpl) = self.allocTestDM()
+    (dm, cmpl) = self.allocTestDM()
     args = {"command_key": "TestCommandKey",
             "url": "invalid://bad.url/"}
-    dm.NewDownload(**args)
-    self.assertTrue(resp.send_response_called)
-    self.assertEqual(resp.status, 1)
-    self.assertEqual(resp.start, 0.0)
-    self.assertEqual(resp.end, 0.0)
-    self.assertEqual(len(mock_downloads), 1)
-    dl = mock_downloads[0]
-    self.assertTrue(dl.immediate_complete_called)
-    self.assertEqual(dl.faultcode, 9003)
-    self.assertTrue(dl.faultstring)
+    (code, ((faultcode, faulttype), faultstring)) = dm.NewDownload(**args)
+    self.assertTrue(code < 0)
+    self.assertEqual(faultcode, 9013)
+    self.assertEqual(faulttype, soap.FaultType.SERVER)
+    self.assertTrue(faultstring)
 
   def testRestoreMultiple(self):
-    (dm, resp, cmpl) = self.allocTestDM()
+    (dm, cmpl) = self.allocTestDM()
     numdl = 4
     for i in range(numdl):
       args = {"command_key": "TestCommandKey" + str(i),
@@ -514,7 +481,7 @@ class DownloadManagerTest(unittest.TestCase):
       self.assertTrue(dl.reboot_callback_called)
 
   def testGetAllQueuedTransfers(self):
-    (dm, resp, cmpl) = self.allocTestDM()
+    (dm, cmpl) = self.allocTestDM()
     numdl = 2
     for i in range(numdl):
       args = {"command_key": "TestCommandKey" + str(i),

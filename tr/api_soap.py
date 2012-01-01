@@ -87,14 +87,6 @@ class Encode(object):
         xml.ParameterKey(str(parameter_key))
     return xml
 
-  def DownloadResponse(self, command_key, starttime=None, endtime=None):
-    with self._Envelope() as xml:
-      with xml['cwmp:DownloadResponse']:
-        xml.CommandKey(str(command_key))
-        xml.StartTime(cwmpdate.cwmpformat(starttime))
-        xml.CompleteTime(cwmpdate.cwmpformat(endtime))
-    return xml
-
   def TransferComplete(self, command_key, faultcode, faultstring,
                        starttime=None, endtime=None):
     with self._Envelope() as xml:
@@ -196,43 +188,61 @@ class CPE(SoapHandler):
   def Download(self, xml, req):
     username = getattr(req, 'Username', None)
     password = getattr(req, 'Password', None)
-    self.impl.Download(command_key=req.CommandKey,
-                       file_type=req.FileType,
-                       url=req.URL,
-                       username=username,
-                       password=password,
-                       file_size=int(req.FileSize),
-                       target_filename=req.TargetFileName,
-                       delay_seconds=int(req.DelaySeconds),
-                       success_url=req.SuccessURL,
-                       failure_url=req.FailureURL)
-    return
+    (code, args) = self.impl.Download(command_key=req.CommandKey,
+                                      file_type=req.FileType,
+                                      url=req.URL,
+                                      username=username,
+                                      password=password,
+                                      file_size=int(req.FileSize),
+                                      target_filename=req.TargetFileName,
+                                      delay_seconds=int(req.DelaySeconds),
+                                      success_url=req.SuccessURL,
+                                      failure_url=req.FailureURL)
+    if code >= 0:
+      (starttime, endtime) = args
+      with xml['cwmp:DownloadResponse']:
+        xml.Status(str(code))
+        xml.StartTime(cwmpdate.cwmpformat(starttime))
+        xml.CompleteTime(cwmpdate.cwmpformat(endtime))
+      return xml
+    else:
+      (cpefault, faultstring) = args
+      return soap.SimpleFault(xml, cpefault, faultstring)
 
   def TransferCompleteResponse(self, xml, req):
     """Response to a TransferComplete sent by the CPE."""
-    self.impl.TransferCompleteResponseReceived(req.CommandKey)
+    self.impl.TransferCompleteResponseReceived()
     return
 
-  def GetQueuedTransfersResponse(self, xml, req):
+  def GetQueuedTransfers(self, xml, req):
     transfers = self.impl.GetAllQueuedTransfers()
     with xml['cwmp:GetQueuedTransfersResponse']:
       for q in transfers:
         with xml['TransferList']:
           xml.CommandKey(q.CommandKey)
-          xml.State(q.State)
+          xml.State(str(q.State))
     return xml
 
-  def GetAllQueuedTransfersResponse(self, xml, req):
+  def GetAllQueuedTransfers(self, xml, req):
     transfers = self.impl.GetAllQueuedTransfers()
     with xml['cwmp:GetAllQueuedTransfersResponse']:
       for q in transfers:
         with xml['TransferList']:
           xml.CommandKey(q.CommandKey)
-          xml.State(q.State)
-          xml.IsDownload(q.IsDownload)
-          xml.FileType(q.FileType)
+          xml.State(str(q.State))
+          xml.IsDownload(str(q.IsDownload))
+          xml.FileType(str(q.FileType))
           xml.FileSize(str(q.FileSize))
-          xml.TargetFileName(q.TargetFileName)
+          xml.TargetFileName(str(q.TargetFileName))
+    return xml
+
+  def CancelTransfer(self, xml, req):
+    (code, args) = self.impl.CancelTransfer(req.CommandKey)
+    if code != 0:
+      (cpefault, faultstring) = args
+      return soap.SimpleFault(xml, cpefault, faultstring)
+    else:
+      xml['cwmp:CancelTransferResponse'](None)
     return xml
 
 

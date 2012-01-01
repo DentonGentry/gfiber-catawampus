@@ -14,19 +14,6 @@ import datetime
 import unittest
 
 
-expectedDownloadResponse = """<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <soap:Header>
-  </soap:Header>
-  <soap:Body>
-    <cwmp:DownloadResponse>
-      <CommandKey>cmdkey</CommandKey>
-      <StartTime>2011-12-05T12:01:02Z</StartTime>
-      <CompleteTime>2011-12-05T12:01:03Z</CompleteTime>
-    </cwmp:DownloadResponse>
-  </soap:Body>
-</soap:Envelope>"""
-
 expectedTransferComplete = """<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <soap:Header>
@@ -47,13 +34,6 @@ expectedTransferComplete = """<?xml version="1.0" encoding="utf-8"?>
 
 class RpcMessageTest(unittest.TestCase):
   """Tests for formatting of XML objects."""
-
-  def testDownloadResponse(self):
-    encode = api_soap.Encode()
-    start = datetime.datetime(2011, 12, 5, 12, 01, 02);
-    end = datetime.datetime(2011, 12, 5, 12, 01, 03);
-    xml = str(encode.DownloadResponse("cmdkey", start, end))
-    self.assertEqual(xml, expectedDownloadResponse)
 
   def testTransferComplete(self):
     encode = api_soap.Encode()

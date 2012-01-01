@@ -14,6 +14,7 @@ import json
 import os
 import persistobj
 import random
+import soap
 import sys
 import tempfile
 import time
@@ -30,8 +31,6 @@ ROOTNAME = "tr69_dnld"
 
 # tr-69 fault codes
 INTERNAL_ERROR = 9002
-INVALID_ARGUMENTS = 9003
-RESOURCES_EXCEEDED = 9004
 
 
 def SetStateDir(dir):
@@ -69,25 +68,6 @@ class Installer(object):
 INSTALLER = Installer
 
 
-class SchemeFaultDownload(object):
-  """A fake Download class used for bad URL schemes.
-
-  If we get a URL schemewe don't implement, like foo://bar/,
-  we need to signal an error back to the ACS. This class responds
-  to any fetch() with an error.
-  """
-  def __init__(self, url, username=None, password=None,
-               download_complete_cb=None, ioloop=None):
-    self.url = url
-    self.download_complete_cb = download_complete_cb
-
-  def fetch(self):
-    o = urlparse.urlparse(url)
-    scheme = o.scheme if o.scheme else '<invalidURL>'
-    self.download_complete_cb(INTERNAL_ERROR,
-                              "Unsupported URL scheme {0}".format(scheme))
-
-
 # Unit tests can substitute mock objects here
 DOWNLOAD_CLIENT = {
   'http' : http_download.HttpDownload,
@@ -110,7 +90,6 @@ digraph DLstates {
   DONE [label="DONE\ncleanup, not a\nreal state"]
 
   START -> WAITING
-  START -> EXITING [label="invalid\ndownload"]
   WAITING -> DOWNLOADING [label="timer\nexpired"]
   DOWNLOADING -> INSTALLING [label="download\ncomplete"]
   DOWNLOADING -> EXITING [label="download\nfailed"]
@@ -141,7 +120,6 @@ class Download(object):
   EV_INSTALL_COMPLETE = 4
   EV_REBOOT_COMPLETE = 5
   EV_TCRESPONSE = 6
-  EV_IMMED_COMPLETE = 7
 
   def __init__(self, stateobj, transfer_complete_cb, ioloop=None):
     """Download object.
@@ -155,11 +133,16 @@ class Download(object):
     self.stateobj = self._restore_dlstate(stateobj)
     self.transfer_complete_cb = transfer_complete_cb
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
+    self.download = None
     self.downloaded_file = None
+    self.wait_handle = None
     # the delay_seconds started when we received the RPC, even if we have
     # downloaded other files and rebooted since then.
     if not hasattr(self.stateobj, 'wait_start_time'):
       self.stateobj.Update(wait_start_time=time.time())
+
+  def CommandKey(self):
+    return getattr(self.stateobj, 'command_key', None)
 
   def _restore_dlstate(self, stateobj):
     """Re-enter the state machine at a sane state.
@@ -191,20 +174,21 @@ class Download(object):
       wait_start_time = now
 
     # I dislike when APIs require NTP-related bugs in my code.
-    self.ioloop.add_timeout(wait_start_time + delay_seconds,
-                            self.timer_callback)
+    self.wait_handle = self.ioloop.add_timeout(wait_start_time + delay_seconds,
+                                               self.timer_callback)
 
   def _new_download_object(self, stateobj):
     url = getattr(stateobj, 'url', '')
     username = getattr(stateobj, 'username', None)
     password = getattr(stateobj, 'password', None)
     o = urlparse.urlparse(url)
-    client = DOWNLOAD_CLIENT.get(o.scheme, SchemeFaultDownload)
+    client = DOWNLOAD_CLIENT[o.scheme]
     return client(url=url, username=username, password=password,
                   download_complete_cb=self.download_complete_callback)
 
   def _send_transfer_complete(self, faultcode, faultstring, start=0.0, end=0.0):
-    self.transfer_complete_cb(command_key=self.stateobj.command_key,
+    self.transfer_complete_cb(dl=self,
+                              command_key=self.stateobj.command_key,
                               faultcode=faultcode,
                               faultstring=faultstring,
                               starttime=start, endtime=end)
@@ -223,9 +207,6 @@ class Download(object):
       if event == self.EV_START or event == self.EV_REBOOT_COMPLETE:
         self.stateobj.Update(dlstate=self.WAITING)
         self._schedule_timer()
-      elif event == self.EV_IMMED_COMPLETE:
-        self.stateobj.Update(dlstate=self.EXITING)
-        self._send_transfer_complete(faultcode, faultstring)
 
     elif dlstate == self.WAITING:
       if event == self.EV_TIMER:
@@ -233,6 +214,7 @@ class Download(object):
         self.stateobj.Update(dlstate=self.DOWNLOADING,
                              download_start_time=time.time())
         self.download.fetch()
+        # TODO(dgentry) : need a timeout, in case download never finishes.
 
     elif dlstate == self.DOWNLOADING:
       if event == self.EV_DOWNLOAD_COMPLETE:
@@ -251,7 +233,8 @@ class Download(object):
 
     elif dlstate == self.INSTALLING:
       if event == self.EV_INSTALL_COMPLETE:
-        self._remove_file(self.downloaded_file)
+        if self.downloaded_file:
+          self._remove_file(self.downloaded_file)
         if faultcode == 0:
           if must_reboot:
             self.stateobj.Update(dlstate=self.REBOOTING)
@@ -280,15 +263,10 @@ class Download(object):
           self._send_transfer_complete(faultcode, faultstring)
 
     elif dlstate == self.EXITING:
-      if event == self.EV_TCRESPONSE:
-        self.stateobj.Delete()
-        return True
+      pass
 
   def do_start(self):
     return self.state_machine(self.EV_START)
-
-  def do_immediate_complete(self, faultcode, faultstring):
-    return self.state_machine(self.EV_IMMED_COMPLETE, faultcode, faultstring)
 
   def timer_callback(self):
     """Called by timer code when timeout expires."""
@@ -306,8 +284,25 @@ class Download(object):
   def reboot_callback(self, faultcode, faultstring):
     return self.state_machine(self.EV_REBOOT_COMPLETE, faultcode, faultstring)
 
-  def transfer_complete_response(self):
-    return self.state_machine(self.EV_TCRESPONSE, 0, None)
+  def cleanup(self):
+    """Attempt to stop all activity and clean up resources.
+
+    Returns:
+      False - successfully stopped and cleaned up
+      string - the reason download cannot be safely cancelled right now.
+    """
+    dlstate = self.stateobj.dlstate
+    if dlstate == self.INSTALLING:
+      return 'Download is currently installing to flash'
+    if dlstate == self.REBOOTING:
+      return 'Download has been installed, awaiting reboot'
+    if self.wait_handle:
+      self.ioloop.remove_timeout(self.wait_handle)
+      self.wait_handle = None
+    if self.download:
+      self.download.close()
+      self.download = None
+    self.stateobj.Delete()
 
   def get_queue_state(self):
     """Data needed for GetQueuedTransfers/GetAllQueuedTransfers RPC."""
@@ -348,11 +343,11 @@ class DownloadManager(object):
   DOWNLOADOBJ = Download
 
   # Functions to send RPCs, to be filled in by parent object.
-  SEND_DOWNLOAD_RESPONSE = None
   SEND_TRANSFER_COMPLETE = None
 
   def __init__(self):
-    self._downloads = dict()
+    self._downloads = list()
+    self._pending_complete = list()
 
   def NewDownload(self, command_key=None, file_type=None, url=None,
                   username=None, password=None, file_size=0,
@@ -365,34 +360,24 @@ class DownloadManager(object):
       (page 82 of $SPEC)
 
     Returns:
-    (status, starttime, endtime) where
-    status: numeric response code for the DownloadResponse.Status
-    starttime: a float number of seconds, for the DownloadResponse.StartTime
-    endtime: a float number of seconds, for the DownloadResponse.CompleteTime
+      (code, (args)) where:
+      code = 0 or 1 means send DownloadResponse.
+        args will be (starttime, endtime), two floating point numbers in
+        seconds for the StartTime and CompleteTime of the DownloadResponse.
+      code < 0 means send SoapFault.
+        args will be ((FaultCode, FaultType), FaultString)
     """
-
-    # status=1 == send TransferComplete later, $SPEC pg 85
-    self.SEND_DOWNLOAD_RESPONSE(1, 0.0, 0.0)
 
     # TODO(dgentry) check free space?
 
-    faultcode = 0
-
-    if command_key in self._downloads:
-      # The ACS sends the same Download RPC several times. It likely has
-      # some state that a CPE needs to be updated, and sends a Download
-      # in response to every action we take.
-      # Acknowledge it, but download only once and send one TransferComplete.
-      return
-
     if len(self._downloads) >= self.MAXDOWNLOADS:
-      faultcode = RESOURCES_EXCEEDED
       faultstring = "Max downloads ({0}) reached.".format(self.MAXDOWNLOADS)
+      return (-1, (soap.CpeFault.RESOURCES_EXCEEDED, faultstring))
 
     o = urlparse.urlparse(url)
     if o.scheme not in DOWNLOAD_CLIENT:
-      faultcode = INVALID_ARGUMENTS
       faultstring = "Unsupported URL scheme {0}".format(o.scheme)
+      return (-1, (soap.CpeFault.FILE_TRANSFER_PROTOCOL, faultstring))
 
     kwargs = dict(command_key=command_key,
                   file_type=file_type,
@@ -405,35 +390,66 @@ class DownloadManager(object):
     pobj = persistobj.PersistentObject(dir=STATEDIR, rootname=ROOTNAME,
                                        filename=None, **kwargs)
     dl = self.DOWNLOADOBJ(stateobj=pobj,
-                          transfer_complete_cb=self.SEND_TRANSFER_COMPLETE)
-    self._downloads[command_key] = dl
+                          transfer_complete_cb=self.TransferCompleteCallback)
+    self._downloads.append(dl)
+    dl.do_start()
 
-    if faultcode == 0:
-      dl.do_start()
-    else:
-      dl.do_immediate_complete(faultcode, faultstring)
+    # status=1 == send TransferComplete later, $SPEC pg 85
+    return (1, (0.0, 0.0))
+
+  def TransferCompleteCallback(self, dl, command_key, faultcode, faultstring, start, end):
+    self._downloads.remove(dl)
+    self._pending_complete.append(dl)
+    self.SEND_TRANSFER_COMPLETE(command_key, faultcode, faultstring, start, end)
 
   def RestoreDownloads(self):
     pobjs = persistobj.GetPersistentObjects(dir=STATEDIR, rootname=ROOTNAME)
     for pobj in pobjs:
-      # Can't even signal a fault via TransferComplete without cmdkey
-      if hasattr(pobj, "command_key"):
-        dl = self.DOWNLOADOBJ(stateobj=pobj,
-                              transfer_complete_cb=self.SEND_TRANSFER_COMPLETE)
-        self._downloads[pobj.command_key] = dl
-        dl.reboot_callback(0, None)
+      if not hasattr(pobj, 'command_key'):
+        # TODO(Log error)
+        continue
+      dl = self.DOWNLOADOBJ(stateobj=pobj,
+                            transfer_complete_cb=self.TransferCompleteCallback)
+      self._downloads.append(dl)
+      dl.reboot_callback(0, None)
 
-  def TransferCompleteResponseReceived(self, command_key):
-    if command_key in self._downloads:
-      dl = self._downloads[command_key]
-      if dl.transfer_complete_response():
-        del self._downloads[command_key]
+  def TransferCompleteResponseReceived(self):
+    dl = self._pending_complete.pop()
+    dl.cleanup()
 
   def GetAllQueuedTransfers(self):
     transfers = list()
-    for dl in self._downloads.values():
+    for dl in self._downloads:
+      transfers.append(dl.get_queue_state())
+    for dl in self._pending_complete:
       transfers.append(dl.get_queue_state())
     return transfers
+
+  def CancelTransfer(self, command_key):
+    """Cancel an in-progress transfer.
+
+    Args:
+      command_key - the command_key to cancel. There can be multiple transfers
+        with the same command_key. $SPEC says to attempt to cancel all of them,
+        return failure if any cannot be cancelled.
+
+    Returns: (code, arg) where:
+      code = 0 means success, non-zero means failure
+      if failed, arg = ((faultcode, faulttype), faultstring) for a soap:Fault message.
+    """
+    rc = (0, )
+    for dl in self._downloads:
+      if dl.CommandKey() == command_key:
+        faultstring = dl.cleanup()
+        if faultstring:
+          rc = (-1, (soap.CpeFault.DOWNLOAD_CANCEL_NOTPERMITTED, faultstring))
+        else:
+          self._downloads.remove(dl)
+    for dl in self._pending_complete:
+      if dl.CommandKey() == command_key:
+        rc = (-1, (soap.CpeFault.DOWNLOAD_CANCEL_NOTPERMITTED,
+                   "Download has been installed, awaiting TransferCompleteResponse"))
+    return rc
 
 
 def main():

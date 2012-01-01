@@ -76,9 +76,10 @@ class HttpDownloadTest(unittest.TestCase):
         realm='testrealm@host.com')
     self.assertEqual(expected, actual)
 
-  def downloadCallback(self, faultcode, faultstring):
+  def downloadCallback(self, faultcode, faultstring, filename):
     self.dl_cb_faultcode = faultcode
     self.dl_cb_faultstring = faultstring
+    self.dl_cb_filename = filename
 
   def testFetch(self):
     ioloop = MockIoloop()
@@ -101,6 +102,7 @@ class HttpDownloadTest(unittest.TestCase):
     ht.callback(resp)
     self.assertEqual(self.dl_cb_faultcode, 9010)  # DOWNLOAD_FAILED
     self.assertTrue(self.dl_cb_faultstring)
+    self.assertFalse(self.dl_cb_filename)
 
 
 if __name__ == '__main__':

@@ -85,7 +85,9 @@ class CPEStateMachine(object):
     self.request_queue = []
     self.on_hold = False  # TODO(apenwarr): actually set this somewhere
     self.ioloop = tornado.ioloop.IOLoop.instance()
-    self.http = tornado.httpclient.AsyncHTTPClient(io_loop=self.ioloop)
+    # CWMP requires serialized request/response. Have to set max_clients=1
+    self.http = tornado.httpclient.AsyncHTTPClient(max_clients=1,
+                                                   io_loop=self.ioloop)
     self.cookies = None
     self.my_configured_ip = ip
     self.my_ip = None
@@ -134,10 +136,6 @@ class CPEStateMachine(object):
                              max_envelopes=1, current_time=None,
                              retry_count=1, parameter_list=parameter_list)
     return self.Send(req)
-
-  def SendDownloadResponse(self, command_key, starttime, endtime):
-    resp = self.encode.DownloadResponse(command_key, starttime, endtime)
-    return self.Send(resp)
 
   def SendTransferComplete(self, command_key, faultcode, faultstring,
                            starttime, endtime):
@@ -201,8 +199,7 @@ def Listen(ip, port, ping_path, acs, acs_url, cpe, cpe_listener):
   while ping_path.startswith('/'):
     ping_path = ping_path[1:]
   cpe_machine = CPEStateMachine(ip, cpe, port, acs_url, ping_path)
-  cpe.SetDownloadCalls(cpe_machine.SendDownloadResponse,
-                       cpe_machine.SendTransferComplete)
+  cpe.SetDownloadCalls(cpe_machine.SendTransferComplete)
   handlers = []
   if acs:
     acshandler = api_soap.ACS(acs).Handle
@@ -218,7 +215,7 @@ def Listen(ip, port, ping_path, acs, acs_url, cpe, cpe_listener):
     print 'TR-069 callback at http://*:%d/%s' % (port, ping_path)
   webapp = tornado.web.Application(handlers)
   webapp.listen(port)
-  cpe_machine.SendInform('0 BOOTSTRAP')
+  return cpe_machine
 
 
 def main():

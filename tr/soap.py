@@ -37,6 +37,8 @@ class CpeFault(object):
   DOWNLOAD_INCOMPLETE = 9017, FaultType.SERVER
   DOWNLOAD_CORRUPTED = 9018, FaultType.SERVER
   DOWNLOAD_AUTH = 9019, FaultType.SERVER
+  DOWNLOAD_TIMEOUT = 9020, FaultType.CLIENT
+  DOWNLOAD_CANCEL_NOTPERMITTED = 9021, FaultType.CLIENT
   # codes 9800-9899: vendor-defined faults
 
 
@@ -98,7 +100,7 @@ def Fault(xml, fault, faultstring):
   fault_code, fault_type = fault
   with xml['soap:Fault']:
     xml.faultcode(fault_type)
-    xml.faultstring('CWMP Fault')
+    xml.faultstring('CWMP fault')
     with xml.detail:
       with xml['cwmp:Fault']:
         xml.FaultCode(str(fault_code))
@@ -121,6 +123,11 @@ def SetParameterValuesFault(xml, faults):
         xml.FaultCode(str(int(code[0])))
         xml.FaultString(string)
   return xml
+
+
+def SimpleFault(xml, cpefault, faultstring):
+  with Fault(xml, cpefault, faultstring) as xml:
+    return xml
 
 
 def _StripNamespace(tagname):
@@ -201,6 +208,8 @@ def main():
   print repr(parsed)
   print parsed.Body
   print parsed.Body.Fault.detail.Fault[2:4]
+  with Envelope(12, None) as xml:
+    print SimpleFault(xml, CpeFault.DOWNLOAD_CORRUPTED, 'bad mojo')
 
 
 if __name__ == '__main__':
