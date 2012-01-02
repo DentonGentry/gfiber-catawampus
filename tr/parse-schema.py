@@ -6,6 +6,7 @@
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import re
+import string
 import sys
 import xml.etree.ElementTree
 
@@ -36,11 +37,15 @@ def FixSpec(spec):
 def NiceSpec(spec):
   spec = re.sub(r'^urn:broadband-forum-org:', '', spec)
   spec = re.sub(r'^urn:google-com:', '', spec)
+  spec = re.sub(r'^urn:catawampus-org:', '', spec)
   return spec
 
 
 def SpecNameForPython(spec):
-  return re.sub(r'tr-(\d+)-(\d+)-(\d+)', r'tr\1_v\2_\3', NiceSpec(spec))
+  spec = NiceSpec(spec)
+  spec = re.sub(r'tr-(\d+)-(\d+)-(\d+)', r'tr\1_v\2_\3', spec)
+  spec = spec.translate(string.maketrans('-', '_'))
+  return spec
 
 
 def ObjNameForPython(name):
@@ -384,7 +389,7 @@ def main():
     spec.MakeObjects()
   for specname, spec in sorted(specs.items()):
     pyspec = SpecNameForPython(specname)
-    assert pyspec.startswith('tr') or pyspec.startswith('x-')
+    assert pyspec.startswith('tr') or pyspec.startswith('x_')
     outf = open('%s.py' % pyspec, 'w')
     outf.write('#!/usr/bin/python\n'
                '# Copyright 2011 Google Inc. All Rights Reserved.\n'
