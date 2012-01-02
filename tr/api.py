@@ -135,8 +135,13 @@ class CPE(TR069Service):
       A list of (name, value) tuples.
     """
     result = []
-    for i in parameter_names:
-      result.append((i, self._GetParameterValue(i)))
+    for param in parameter_names:
+      if param.endswith('.'):
+        paramlist = self.root.ListExports(param[:-1], True)
+        for p in paramlist:
+          parameter_names.append(param + p)
+      else:
+        result.append((param, self._GetParameterValue(param)))
     return result
 
   def GetParameterNames(self, parameter_path, next_level_only):
