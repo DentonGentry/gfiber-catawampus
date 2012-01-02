@@ -40,7 +40,9 @@ class Encode(object):
         xml.MaxEnvelopes(str(max_envelopes))
         xml.CurrentTime(current_time)
         xml.RetryCount(str(retry_count))
-        with xml.ParameterList:
+        soaptype = "cwmp:ParameterValueStruct[{0}]".format(len(parameter_list))
+        parameter_list_attrs = { 'soap-enc:arrayType': soaptype }
+        with xml.ParameterList(**parameter_list_attrs):
           for name, value in parameter_list:
             with xml.ParameterValueStruct:
               xml.Name(name)
@@ -65,7 +67,9 @@ class Encode(object):
   def SetParameterValues(self, parameter_list, parameter_key):
     with self._Envelope() as xml:
       with xml['cwmp:SetParameterValues']:
-        with xml.ParameterList:
+        soaptype = "cwmp:ParameterValueStruct[{0}]".format(len(parameter_list))
+        parameter_list_attrs = { 'soap-enc:arrayType': soaptype }
+        with xml.ParameterList(**parameter_list_attrs):
           for name, value in parameter_list:
             with xml.ParameterValueStruct:
               xml.Name(str(name))
@@ -157,9 +161,12 @@ class CPE(SoapHandler):
 
   def GetParameterValues(self, xml, req):
     with xml['cwmp:GetParameterValuesResponse']:
-      with xml.ParameterList:
-        names = [str(i) for i in req.ParameterNames]
-        for name, value in self.impl.GetParameterValues(names):
+      names = [str(i) for i in req.ParameterNames]
+      values = self.impl.GetParameterValues(names)
+      soaptype = "cwmp:ParameterValueStruct[{0}]".format(len(values))
+      parameter_list_attrs = { 'soap-enc:arrayType': soaptype }
+      with xml.ParameterList(**parameter_list_attrs):
+        for name, value in values:
           with xml.ParameterValueStruct:
             xml.Name(name)
             xml.Value(str(value), xsi__type="xsd:string")
