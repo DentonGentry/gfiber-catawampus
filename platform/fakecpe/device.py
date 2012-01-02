@@ -80,6 +80,7 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
     self.DHCPv4 = tr.core.TODO()
     self.DNS = tr.core.TODO()
     self.DSL = tr.core.TODO()
+    self.Ethernet = tr.core.TODO()
     self.GatewayInfo = tr.core.TODO()
     self.HPNA = tr.core.TODO()
     self.HomePlug = tr.core.TODO()
@@ -100,6 +101,7 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
     self.Users = tr.core.TODO()
     self.WiFi = tr.core.TODO()
     self.InterfaceStackNumberOfEntries = 0
+    self.InterfaceStackList = {}
 
     self.ManagementServer = management_server.ManagementServer()
 

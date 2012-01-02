@@ -40,6 +40,7 @@ class ManagementServer(BASEMGMT):
     self.ConnectionRequestUsername = ''
     self.DefaultActiveNotificationThrottle = False
     self.EnableCWMP = True
+    self.ManageableDeviceList = {}
     self.ParameterKey = ''
     self.Password = ''
     self.PeriodicInformEnable = False
