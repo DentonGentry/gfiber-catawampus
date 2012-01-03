@@ -96,6 +96,14 @@ class DeviceGFMediaTest(tr.tornado.testing.AsyncTestCase):
     self.assertEqual(self.install_cb_faultcode, 9002)
     self.assertTrue(self.install_cb_faultstring)
 
+  def testGetOneLine(self):
+    line = device.GetOneLine('testdata/device/oneline', 'default')
+    self.assertEqual(line, 'one')
+    line = device.GetOneLine('testdata/device/onelineempty', 'default')
+    self.assertEqual(line, '')
+    line = device.GetOneLine('/nonexistant', 'default')
+    self.assertEqual(line, 'default')
+
 
 if __name__ == '__main__':
   unittest.main()

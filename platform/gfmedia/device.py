@@ -60,6 +60,17 @@ def GetNvramParam(param, default=""):
     return default
 
 
+def GetOneLine(filename, default):
+  try:
+    f = open(filename, 'r')
+    return f.readline().strip()
+  except:
+    return default
+
+
+VERSIONFILE = '/etc/version'
+REPOMANIFEST = '/etc/repo-buildroot-manifest'
+
 class DeviceIdGFMedia(object):
   def __init__(self):
     self.Manufacturer = 'Google'
@@ -69,8 +80,8 @@ class DeviceIdGFMedia(object):
     self.SerialNumber = GetNvramParam("SERIAL_NO", default="000000000000")
     self.HardwareVersion = '0'
     self.AdditionalHardwareVersion = '0'
-    self.SoftwareVersion = '0'
-    self.AdditionalSoftwareVersion = '0'
+    self.SoftwareVersion = GetOneLine(VERSIONFILE, '0.0.0')
+    self.AdditionalSoftwareVersion = GetOneLine(REPOMANIFEST, '')
     self.ProductClass = 'STB'
 
 
