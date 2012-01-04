@@ -7,8 +7,10 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 
 import api
+import cwmpbool
 import cwmpdate
 import soap
+import time
 
 class Encode(object):
   def __init__(self):
@@ -23,8 +25,8 @@ class Encode(object):
       xml['cwmp:GetRPCMethods'](None)
     return xml
 
-  def Inform(self, root, events, max_envelopes,
-             current_time, retry_count, parameter_list):
+  def Inform(self, root, events=[], max_envelopes=1,
+             current_time=time.time(), retry_count=0, parameter_list=[]):
     with self._Envelope() as xml:
       with xml['cwmp:Inform']:
         with xml.DeviceId:
@@ -32,13 +34,15 @@ class Encode(object):
           xml.OUI(root.DeviceInfo.ManufacturerOUI)
           xml.ProductClass(root.DeviceInfo.ProductClass)
           xml.SerialNumber(root.DeviceInfo.SerialNumber)
-        with xml.Event:
+        soaptype = "EventStruct[{0}]".format(len(events))
+        event_attrs = { 'soap-enc:arrayType': soaptype }
+        with xml.Event(**event_attrs):
           for event in events:
             with xml.EventStruct:
               xml.EventCode(str(event[0]))
               xml.CommandKey(str(event[1]))
         xml.MaxEnvelopes(str(max_envelopes))
-        xml.CurrentTime(current_time)
+        xml.CurrentTime(cwmpdate.cwmpformat(current_time))
         xml.RetryCount(str(retry_count))
         soaptype = "cwmp:ParameterValueStruct[{0}]".format(len(parameter_list))
         parameter_list_attrs = { 'soap-enc:arrayType': soaptype }
@@ -150,13 +154,16 @@ class CPE(SoapHandler):
     return
 
   def GetParameterNames(self, xml, req):
+    names = list(self.impl.GetParameterNames(str(req.ParameterPath),
+                                             cwmpbool.parse(req.NextLevel)))
     with xml['cwmp:GetParameterNamesResponse']:
-      names = self.impl.GetParameterNames(str(req.ParameterPath),
-                                          int(req.NextLevel))
-      for name in names:
-        with xml['ParameterInfoStruct']:
-          xml.Name(name)
-          xml.Writable('1')  # TODO(apenwarr): detect true writability here
+      soaptype = "ParameterInfoStruct[{0}]".format(len(names))
+      parameter_list_attrs = { 'soap-enc:arrayType': soaptype }
+      with xml.ParameterList(**parameter_list_attrs):
+        for name in names:
+          with xml['ParameterInfoStruct']:
+            xml.Name(name)
+            xml.Writable('1')  # TODO(apenwarr): detect true writability here
     return xml
 
   def GetParameterValues(self, xml, req):

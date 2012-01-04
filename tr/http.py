@@ -137,7 +137,7 @@ class CPEStateMachine(object):
       ]
     req = self.encode.Inform(root=self.cpe.root,
                              events=events,
-                             max_envelopes=1, current_time=None,
+                             max_envelopes=1,
                              retry_count=1, parameter_list=parameter_list)
     return self.Send(req)
 
