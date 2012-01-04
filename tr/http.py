@@ -22,6 +22,9 @@ import tornado.ioloop
 import tornado.web
 
 
+# SPEC3 = TR-069_Amendment-3.pdf
+# http://www.broadband-forum.org/technical/download/TR-069_Amendment-3.pdf
+
 Url = collections.namedtuple('Url', ('method host port path'))
 
 
@@ -32,23 +35,23 @@ def SplitUrl(url):
     return Url(method, host, int(port or 0), path)
 
 
-# TODO(apenwarr): We should never do http synchronously.
-# ...because it'll freeze our app while it runs.  But this is easier than
-# doing async callbacks for now.
-def SyncClient(url, postdata):
-  """HTTP POST the given postdata to the given url, returning the result."""
-  cli = tornado.httpclient.HTTPClient()
-  postdata = str(postdata)
-  if postdata:
-    headers = { 'Content-Type': 'text/xml; charset="utf-8"',
-                'SOAPAction': '' }
-  else:
-    headers = {}
-  req = tornado.httpclient.HTTPRequest(url=url, method="POST",
-                                       headers=headers, body=postdata,
-                                       allow_ipv6=True)
-  result = cli.fetch(req)
-  return result.body
+class CwmpSession(object):
+  def __init__(self, io_loop=None):
+    self.http = tornado.httpclient.AsyncHTTPClient(
+        max_simultaneous_connections=1,
+        io_loop=io_loop or tornado.ioloop.IOLoop.instance())
+    self.cookies = None
+    self.my_ip = None
+    self.no_more_requests = False
+    self.acs_empty = False
+    self.on_hold = False
+
+  def __del__(self):
+    self.close()
+
+  def close(self):
+    #self.http.close()
+    self.http = None
 
 
 class PingHandler(tornado.web.RequestHandler):
@@ -81,19 +84,19 @@ class CPEStateMachine(object):
     self.acs_url = acs_url
     self.ping_path = ping_path
     self.encode = api_soap.Encode()
+    self.outstanding = None
     self.response_queue = []
     self.request_queue = []
-    self.on_hold = False  # TODO(apenwarr): actually set this somewhere
     self.ioloop = tornado.ioloop.IOLoop.instance()
-    # CWMP requires serialized request/response. Have to set max_clients=1
-    self.http = tornado.httpclient.AsyncHTTPClient(max_clients=1,
-                                                   io_loop=self.ioloop)
-    self.cookies = None
+    self.session = None
     self.my_configured_ip = ip
-    self.my_ip = None
 
   def Send(self, req):
     self.request_queue.append(str(req))
+    self.Run()
+
+  def SendResponse(self, req):
+    self.response_queue.append(str(req))
     self.Run()
 
   def _GetLocalAddr(self):
@@ -119,15 +122,16 @@ class CPEStateMachine(object):
     return s.getsockname()[0]
 
   def SendInform(self, reason):
-    if not self.my_ip:
-      self.my_ip = self._GetLocalAddr()
+    if not self.session.my_ip:
+      self.session.my_ip = self._GetLocalAddr()
     events = [(reason, '')]
     parameter_list = []
     if self.ping_path:
       di = self.cpe.root.DeviceInfo
       parameter_list += [
           ('Device.ManagementServer.ConnectionRequestURL',
-           'http://%s:%d/%s' % (self.my_ip, self.listenport, self.ping_path)),
+           'http://%s:%d/%s' % (self.session.my_ip, self.listenport,
+                                self.ping_path)),
           ('Device.DeviceInfo.HardwareVersion', di.HardwareVersion),
           ('Device.DeviceInfo.SoftwareVersion', di.SoftwareVersion),
       ]
@@ -146,51 +150,77 @@ class CPEStateMachine(object):
   def GetNext(self):
     if self.response_queue:
       return self.response_queue.pop(0)
-    elif self.request_queue and not self.on_hold:
+    elif self.request_queue and not self.session.on_hold and not self.session.no_more_requests:
       return self.request_queue.pop(0)
 
   def Run(self):
     print 'RUN'
-    nextmsg = self.GetNext()
+    if not self.session:
+      return
+    if self.session.no_more_requests and self.session.acs_empty:
+      print('Idle CWMP session, terminating.')
+      self.outstanding = None
+      self.session.close()
+      self.session = None
+      return
+    if self.outstanding is None:
+      self.outstanding = self.GetNext()
+    else:
+      # already an outstanding request
+      return
     headers = {}
-    if self.cookies:
-      headers['Cookie'] = ";".join(self.cookies)
-    if nextmsg:
+    if self.session.cookies:
+      headers['Cookie'] = ";".join(self.session.cookies)
+    if self.outstanding:
       headers['Content-Type'] = 'text/xml; charset="utf-8"'
       headers['SOAPAction'] = ''
     else:
-      nextmsg = ''
-    print "CPE POST: %r\n%s" % (str(headers), nextmsg)
+      self.outstanding = ''
+      self.session.no_more_requests = True  # $SPEC3 3.7.1.3
+    print "CPE POST: %r\n%s" % (str(headers), self.outstanding)
     req = tornado.httpclient.HTTPRequest(url=self.acs_url, method="POST",
-                                         headers=headers, body=nextmsg,
-                                         allow_ipv6=True)
-    self.http.fetch(req, self.GotResponse)
+                                         headers=headers, body=self.outstanding,
+                                         follow_redirects=True,
+                                         max_redirects=5,  # $SPEC3 3.4.2
+                                         request_timeout=30.0,
+                                         use_gzip=True, allow_ipv6=True)
+    self.session.http.fetch(req, self.GotResponse)
 
   def GotResponse(self, response):
+    was_outstanding = self.outstanding
+    self.outstanding = None
     print 'CPE RECEIVED (at %s):' % time.ctime()
+    if not self.session:
+      print 'Session terminated, ignoring ACS message.'
+      return
     if not response.error:
       cookies = response.headers.get_list("Set-Cookie")
       if cookies:
-        self.cookies = cookies
+        self.session.cookies = cookies
       print response.body
       if response.body:
         out = self.cpe_soap.Handle(response.body)
         if out is not None:
-          self.Send(out)
-          self.Run()
+          self.SendResponse(out)
+      else:
+        self.session.acs_empty = True
     else:
       print('HTTP ERROR Code %d' % response.code)
-    if (self.response_queue or
-        (self.request_queue and not self.on_hold)):
+      self.session.close()
+      self.session = None
+    if (was_outstanding or
+        self.response_queue or
+        (self.request_queue and not self.session.on_hold)):
       self.Run()
 
-  def _CleanUpForNewSession(self):
-    self.cookies = None
-    self.my_ip = None
-
   def PingReceived(self):
-    self._CleanUpForNewSession()
-    self.SendInform('6 CONNECTION REQUEST')
+    if not self.session:
+      self.session = CwmpSession(self.ioloop)
+      self.SendInform('6 CONNECTION REQUEST')
+
+  def Bootstrap(self):
+    self.session = CwmpSession(self.ioloop)
+    self.SendInform('0 BOOTSTRAP')
 
 
 def Listen(ip, port, ping_path, acs, acs_url, cpe, cpe_listener):

@@ -60,6 +60,7 @@ def main():
   o = tr.bup.options.Options(optspec)
   (opt, flags, extra) = o.parse(sys.argv[1:])
 
+  #tr.tornado.httpclient.AsyncHTTPClient.configure("tr.tornado.curl_httpclient.CurlAsyncHTTPClient")
   tr.tornado.autoreload.start()
   loop = tr.mainloop.MainLoop()
   root = DeviceModelRoot(loop, opt.platform)
@@ -84,7 +85,7 @@ def main():
         print 'CPE API is client mode only.'
     cpe_machine = tr.http.Listen(opt.ip, opt.port, opt.ping_path, acs,
                                  opt.acs_url, cpe, cpe and opt.cpe_listener)
-    cpe_machine.SendInform('0 BOOTSTRAP')
+    cpe_machine.Bootstrap()
 
   loop.Start()
 
