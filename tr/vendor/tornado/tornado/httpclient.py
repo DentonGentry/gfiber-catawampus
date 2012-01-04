@@ -116,8 +116,8 @@ class AsyncHTTPClient(object):
         else:
             if cls is AsyncHTTPClient:
                 if cls._impl_class is None:
-                    from tornado.simple_httpclient import SimpleAsyncHTTPClient
-                    AsyncHTTPClient._impl_class = SimpleAsyncHTTPClient
+                    from tornado.curl_httpclient import CurlAsyncHTTPClient
+                    AsyncHTTPClient._impl_class = CurlAsyncHTTPClient
                 impl = cls._impl_class
             else:
                 impl = cls
