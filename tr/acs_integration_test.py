@@ -272,8 +272,9 @@ class TransferRpcTest(unittest.TestCase):
     dm.cancel_return = (-1, ((9021, 'FaultType'), 'Refused'))
     responseXml = cpe.cpe_soap.Handle(soapxml)
 
-    # We don't do a string compare of the XML output, that is too fragile as a test.
-    # We parse the XML and look for expected values. Nonetheless here is what should result:
+    # We don't do a string compare of the XML output, that is too fragile
+    # as a test. We parse the XML and look for expected values. Nonetheless
+    # here is what should result:
     expected = r"""<?xml version="1.0" encoding="utf-8"?>
       <soap:Envelope xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
         <soap:Header>
@@ -303,6 +304,77 @@ class TransferRpcTest(unittest.TestCase):
     self.assertEqual(detail.find('FaultCode').text, "9021")
     self.assertEqual(detail.find('FaultString').text, "Refused")
 
+
+class GetParamsRpcTest(unittest.TestCase):
+  """Test cases for RPCs relating to Parameters."""
+  def getCpe(self):
+    root = TestDeviceModelRoot()
+    cpe = api.CPE(root)
+    cpe_machine = http.Listen(ip=None, port=0,
+                              ping_path="/ping/acs_integration_test",
+                              acs=None, acs_url="none://none/",
+                              cpe=cpe, cpe_listener=False)
+    return cpe_machine
+
+  def testGetParamValue(self):
+    cpe = self.getCpe()
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterValues><ParameterNames soapenc:arrayType="{urn:dslforum-org:cwmp-1-2}string[1]"><ns3:string xmlns="urn:dslforum-org:cwmp-1-2" xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" xmlns:ns3="urn:dslforum-org:cwmp-1-2">Foo</ns3:string></ParameterNames></cwmp:GetParameterValues></soapenv:Body></soapenv:Envelope>"""
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+
+    # We don't do a string compare of the XML output, that is too fragile
+    # as a test. We parse the XML and look for expected values. Nonetheless
+    # here is what should result:
+    expected = r"""<?xml version="1.0" encoding="utf-8"?>
+      <soap:Envelope xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+        <soap:Header>
+          <cwmp:ID soap:mustUnderstand="1">TestCwmpId</cwmp:ID>
+        </soap:Header>
+        <soap:Body>
+          <cwmp:GetParameterValuesResponse>
+            <ParameterList soap-enc:arrayType="cwmp:ParameterValueStruct[1]">
+              <ParameterValueStruct>
+                <Name>Foo</Name>
+                <Value xsi:type="xsd:string">bar</Value>
+              </ParameterValueStruct>
+            </ParameterList>
+          </cwmp:GetParameterValuesResponse>
+        </soap:Body>
+      </soap:Envelope>"""
+
+    root = ET.fromstring(str(responseXml))
+    name = root.find(SOAPNS + 'Body/' + CWMPNS + 'GetParameterValuesResponse/ParameterList/ParameterValueStruct/Name')
+    self.assertTrue(name is not None)
+    self.assertEqual(name.text, 'Foo')
+
+  def testGetParamName(self):
+    cpe = self.getCpe()
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterNames><ParameterPath/><NextLevel>true</NextLevel></cwmp:GetParameterNames></soapenv:Body></soapenv:Envelope>"""
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+
+    # We don't do a string compare of the XML output, that is too fragile
+    # as a test. We parse the XML and look for expected values. Nonetheless
+    # here is what should result:
+    expected = r"""<?xml version="1.0" encoding="utf-8"?>
+      <soap:Envelope xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+        <soap:Header>
+          <cwmp:ID soap:mustUnderstand="1">TestCwmpId</cwmp:ID>
+        </soap:Header>
+        <soap:Body>
+          <cwmp:GetParameterNamesResponse>
+            <ParameterList soap-enc:arrayType="ParameterInfoStruct[1]">
+              <ParameterInfoStruct>
+                <Name>Foo</Name>
+                <Writable>1</Writable>
+              </ParameterInfoStruct>
+            </ParameterList>
+          </cwmp:GetParameterNamesResponse>
+        </soap:Body>
+      </soap:Envelope>"""
+
+    root = ET.fromstring(str(responseXml))
+    name = root.find(SOAPNS + 'Body/' + CWMPNS + 'GetParameterNamesResponse/ParameterList/ParameterInfoStruct/Name')
+    self.assertTrue(name is not None)
+    self.assertEqual(name.text, 'Foo')
 
 if __name__ == '__main__':
   unittest.main()
