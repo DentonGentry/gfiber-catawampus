@@ -11,7 +11,7 @@ they contain a tzinfo specifying UTC offset=0. Most Python programmers
 create datetime objects with no tzinfo, so we add one.
 """
 
-__author__ = 'dgentry@google.com (Denny Gentry)'
+__author__ = 'dgentry@google.com (Denton Gentry)'
 
 import datetime
 

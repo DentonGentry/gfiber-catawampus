@@ -10,7 +10,7 @@ equivalently represent the logical value true. Similarly, the values
 represent the logical value false.
 """
 
-__author__ = 'dgentry@google.com (Denny Gentry)'
+__author__ = 'dgentry@google.com (Denton Gentry)'
 
 def format(arg):
   """Print a CWMP boolean object."""
