@@ -45,20 +45,25 @@ class CwmpSession(object):
     self.no_more_requests = False
     self.acs_empty = False
     self.on_hold = False
+    self.ping_received = False
 
   def __del__(self):
     self.close()
 
   def close(self):
     self.http = None
+    return self.ping_received
 
 
 class PingHandler(tornado.web.RequestHandler):
+  # TODO $SPEC3 3.2.2 "The CPE MUST use HTTP digest authentication"
+  # TODO $SPEC3 3.2.2 "The CPE SHOULD restrict the number of Connection Requests it
+  #   accepts during a given period of time..."
   def initialize(self, callback):
     self.callback = callback
 
   def get(self):
-    self.callback()
+    self.set_status(self.callback())
 
 
 class Handler(tornado.web.RequestHandler):
@@ -185,9 +190,12 @@ class CPEStateMachine(object):
     if self.session.no_more_requests and self.session.acs_empty:
       print('Idle CWMP session, terminating.')
       self.outstanding = None
-      self.session.close()
+      if self.session.close():
+        # Ping received during session, start another
+        self.ioloop.add_callback(self._NewPingSession)
       self.session = None
       return
+
     if self.outstanding is None:
       self.outstanding = self.GetNext()
     else:
@@ -231,17 +239,27 @@ class CPEStateMachine(object):
         self.session.acs_empty = True
     else:
       print('HTTP ERROR Code %d' % response.code)
-      self.session.close()
+      if self.session.close():
+        # Ping received during session, start another
+        self.ioloop.add_callback(self._NewPingSession)
       self.session = None
     if (was_outstanding or
         self.response_queue or
         (self.request_queue and not self.session.on_hold)):
       self.Run()
 
-  def PingReceived(self):
+  def _NewPingSession(self):
     if not self.session:
       self.session = CwmpSession(self.ioloop)
       self.SendInform('6 CONNECTION REQUEST')
+    else:
+      # $SPEC3 3.2.2 initiate at most one new session after this one closes.
+      self.session.ping_received = True
+
+  def PingReceived(self):
+    # $SPEC3 3.2.2: CPE MUST respond immediately, before initiating session.
+    self.ioloop.add_callback(self._NewPingSession)
+    return 204  # No Content
 
   def Bootstrap(self):
     self.session = CwmpSession(self.ioloop)
