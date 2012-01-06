@@ -5,12 +5,12 @@
 # TR-069 has mandatory attribute names that don't comply with policy
 #pylint: disable-msg=C6409
 
-"""Implementation of x-catawampus object.
-
+"""Implementation of the x-catawampus-org vendor data model.
 """
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import json
 import sys
 import tr.core
 import tr.x_catawampus_1_0
@@ -24,13 +24,24 @@ class CatawampusDm(BASEDM):
 
   def __init__(self):
     BASEDM.__init__(self)
-    self.RuntimeEnvInfo = "Boo!"
+
+  @property
+  def RuntimeEnvInfo(self):
+    python = dict()
+    python["exec_prefix"] = sys.exec_prefix
+    python["executable"] = sys.executable
+    python["path"] = str(sys.path)
+    python["platform"] = sys.platform
+    python["prefix"] = sys.prefix
+    python["version"] = sys.version
+
+    env = dict()
+    env["python"] = python
+
+    return json.dumps(env)
 
 
-def main():
+if __name__ == '__main__':
   sys.path.append("../")
   cm = CatawampusDm()
   print tr.core.Dump(cm)
-
-if __name__ == '__main__':
-  main()
