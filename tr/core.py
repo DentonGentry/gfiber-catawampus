@@ -15,6 +15,8 @@ Exporter yourself.
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 
+import string
+
 class NotAddableError(KeyError):
   """Raised when AddObject is not allowed on an object list."""
   pass
@@ -239,11 +241,13 @@ class Exporter(object):
       fullname = '.'.join(path + [ename])
       raise SchemaError('%s is exported but does not exist' % fullname)
 
+  DASH_TO_UNDERSCORE = string.maketrans('-', '_')
   def _GetExportName(self, parent, name):
     if name in parent.export_object_lists:
       return name + 'List'
     else:
-      return name
+      # Vendor models contain a dash in the domain name.
+      return name.translate(self.DASH_TO_UNDERSCORE)
 
   def _GetExport(self, parent, name):
     if hasattr(parent, '_GetExport'):
