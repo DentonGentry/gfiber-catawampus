@@ -154,7 +154,10 @@ class CPE(SoapHandler):
     return
 
   def GetParameterNames(self, xml, req):
-    names = list(self.impl.GetParameterNames(str(req.ParameterPath),
+    path = str(req.ParameterPath)
+    if path.endswith('.'):
+      path = path[:-1]
+    names = list(self.impl.GetParameterNames(path,
                                              cwmpbool.parse(req.NextLevel)))
     with xml['cwmp:GetParameterNamesResponse']:
       soaptype = "ParameterInfoStruct[{0}]".format(len(names))
