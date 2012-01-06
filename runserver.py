@@ -10,6 +10,7 @@
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import sys
+import tempfile
 import tr.api
 import tr.bup.options
 import tr.core
@@ -23,16 +24,17 @@ import traceroute
 optspec = """
 runserver.py [options]
 --
-r,rcmd-port= TCP port to listen for rcommands on; 0 to disable [12999]
-u,unix-path= Unix socket to listen on [/tmp/mainloop.sock]
-i,ip=        IP address to report to ACS. (default=finds interface IP address)
-p,port=      TCP port to listen for TR-069 on [7547]
-ping-path=   Force CPE ping listener to this URL path (default=random)
-acs-url=     URL of the TR-069 ACS server to connect to
-fake-acs     Run a fake ACS (and auto-set --acs-url to that)
-no-cpe       Don't run a CPE (and thus never connect to ACS)
-cpe-listener Let CPE listen for http requests (not TR-069 compliant)
-platform=    Activate the platform-specific device tree
+r,rcmd-port=  TCP port to listen for rcommands on; 0 to disable [12999]
+u,unix-path=  Unix socket to listen on [/tmp/mainloop.sock]
+i,ip=         IP address to report to ACS. (default=finds interface IP address)
+p,port=       TCP port to listen for TR-069 on [7547]
+ping-path=    Force CPE ping listener to this URL path (default=random)
+acs-url=      URL of the TR-069 ACS server to connect to (deprecated)
+acs-url-file= Filename where ACS URL should be read from
+fake-acs      Run a fake ACS (and auto-set --acs-url to that)
+no-cpe        Don't run a CPE (and thus never connect to ACS)
+cpe-listener  Let CPE listen for http requests (not TR-069 compliant)
+platform=     Activate the platform-specific device tree
 """
 
 
@@ -49,12 +51,16 @@ class DeviceModelRoot(tr.core.Exporter):
       import platform.fakecpe.device as device
       (params, objects) = device.PlatformInit(name='fakecpe',
                                               device_model_root=self)
-    self.Foo = 'bar'
-    params.append('Foo')
     self.TraceRoute = traceroute.TraceRoute(loop)
     objects.append('TraceRoute')
     self.Export(params=params, objects=objects)
 
+
+def _WriteAcsFile(acs_url):
+  acsfile = tempfile.NamedTemporaryFile(prefix='acsurl', delete=False)
+  acsfile.write(acs_url)
+  acsfile.close()
+  return acsfile.name
 
 def main():
   o = tr.bup.options.Options(optspec)
@@ -72,8 +78,9 @@ def main():
                     tr.rcommand.MakeRemoteCommandStreamer(root))
 
   if opt.port:
-    if not opt.acs_url and not opt.fake_acs and not opt.no_cpe:
-      o.fatal('You must give either --acs-url, --fake-acs, or --no-cpe.')
+    acs_url_present = opt.acs_url or opt.acs_url_file
+    if not acs_url_present and not opt.fake_acs and not opt.no_cpe:
+      o.fatal('You must give either --acs-url-file, --fake-acs, or --no-cpe.')
     acs = cpe = None
     if opt.fake_acs:
       acs = tr.api.ACS()
@@ -83,8 +90,15 @@ def main():
       cpe = tr.api.CPE(root)
       if not opt.cpe_listener:
         print 'CPE API is client mode only.'
+    if opt.acs_url_file:
+      acs_url_file = opt.acs_url_file
+    elif opt.acs_url:
+      acs_url_file = _WriteAcsFile(opt.acs_url)
+    else:
+      acs_url_file = _WriteAcsFile('')
+
     cpe_machine = tr.http.Listen(opt.ip, opt.port, opt.ping_path, acs,
-                                 opt.acs_url, cpe, cpe and opt.cpe_listener)
+                                 acs_url_file, cpe, cpe and opt.cpe_listener)
     cpe_machine.Bootstrap()
 
   loop.Start()

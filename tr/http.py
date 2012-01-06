@@ -50,7 +50,6 @@ class CwmpSession(object):
     self.close()
 
   def close(self):
-    #self.http.close()
     self.http = None
 
 
@@ -77,11 +76,21 @@ class Handler(tornado.web.RequestHandler):
 
 
 class CPEStateMachine(object):
-  def __init__(self, ip, cpe, listenport, acs_url, ping_path):
+  """A tr-69 Customer Premises Equipment implementation.
+
+  Args:
+    ip: local ip address to bind to. If None, figure out address to use automatically.
+    cpe: the api_soap.cpe object for this device
+    listenport: the port number to listen on for ACS ping requests.
+    acs_url_file: A file which will contain the ACS URL. This file can
+      change during operation, and must be periodically re-read.
+    ping_path: URL path for the ACS Ping function
+  """
+  def __init__(self, ip, cpe, listenport, acs_url_file, ping_path):
     self.cpe = cpe
     self.listenport = listenport
     self.cpe_soap = api_soap.CPE(self.cpe)
-    self.acs_url = acs_url
+    self.acs_url_file = acs_url_file
     self.ping_path = ping_path
     self.encode = api_soap.Encode()
     self.outstanding = None
@@ -99,9 +108,22 @@ class CPEStateMachine(object):
     self.response_queue.append(str(req))
     self.Run()
 
+  def _GetAcsUrl(self):
+    try:
+      f = open(self.acs_url_file, "r")
+      line = f.readline().strip()
+      f.close()
+    except IOError:
+      line = ''
+    return line
+
   def _GetLocalAddr(self):
     if self.my_configured_ip is not None:
       return self.my_configured_ip
+    acs_url = self._GetAcsUrl()
+    if not acs_url:
+      return 0
+
     # If not configured with an address it gets a bit tricky: we try connecting
     # to the ACS, non-blocking, so we can find out which local IP the kernel
     # uses when connecting to that IP.  The local address is returned with
@@ -109,8 +131,7 @@ class CPEStateMachine(object):
     # connecting to us later.  We use a nonblocking socket because we don't
     # care about actually connecting; we just care what the local kernel does
     # in its implicit bind() when we *start* connecting.
-    assert self.acs_url
-    url = SplitUrl(self.acs_url)
+    url = SplitUrl(acs_url)
     host = url.host
     port = url.port or 0
     s = socket.socket()
@@ -157,6 +178,10 @@ class CPEStateMachine(object):
     print 'RUN'
     if not self.session:
       return
+    acs_url = self._GetAcsUrl()
+    if not acs_url:
+      print('No ACS URL populated yet, returning.')
+      return
     if self.session.no_more_requests and self.session.acs_empty:
       print('Idle CWMP session, terminating.')
       self.outstanding = None
@@ -178,7 +203,7 @@ class CPEStateMachine(object):
       self.outstanding = ''
       self.session.no_more_requests = True  # $SPEC3 3.7.1.3
     print "CPE POST: %r\n%s" % (str(headers), self.outstanding)
-    req = tornado.httpclient.HTTPRequest(url=self.acs_url, method="POST",
+    req = tornado.httpclient.HTTPRequest(url=acs_url, method="POST",
                                          headers=headers, body=self.outstanding,
                                          follow_redirects=True,
                                          max_redirects=5,  # $SPEC3 3.4.2
@@ -223,12 +248,12 @@ class CPEStateMachine(object):
     self.SendInform('0 BOOTSTRAP')
 
 
-def Listen(ip, port, ping_path, acs, acs_url, cpe, cpe_listener):
+def Listen(ip, port, ping_path, acs, acs_url_file, cpe, cpe_listener):
   if not ping_path:
     ping_path = '/ping/%x' % random.getrandbits(120)
   while ping_path.startswith('/'):
     ping_path = ping_path[1:]
-  cpe_machine = CPEStateMachine(ip, cpe, port, acs_url, ping_path)
+  cpe_machine = CPEStateMachine(ip, cpe, port, acs_url_file, ping_path)
   cpe.SetDownloadCalls(cpe_machine.SendTransferComplete)
   handlers = []
   if acs:
