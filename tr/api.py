@@ -14,8 +14,8 @@ API calls; it's just a python version of the API.
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import tornadi_fix       #pylint: disable-msg=W0611
 import download
+import tornadi_fix       #pylint: disable-msg=W0611
 
 
 class TR069Service(object):
@@ -171,9 +171,9 @@ class CPE(TR069Service):
     self._SetParameterKey(parameter_key)
     return 0  # successfully deleted
 
-  def Download(self, command_key, file_type, url,
-               username, password, file_size, target_filename,
-               delay_seconds, success_url, failure_url):
+  def Download(self, command_key, file_type, url, username, password,
+               file_size, target_filename, delay_seconds,
+               success_url, failure_url):  #pylint: disable-msg=W0613
     """Initiate a download immediately or after a delay."""
     return self.download_manager.NewDownload(
         command_key=command_key,
