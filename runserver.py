@@ -9,6 +9,7 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import dm.catawampus
 import sys
 import tempfile
 import tr.api
@@ -53,6 +54,8 @@ class DeviceModelRoot(tr.core.Exporter):
                                               device_model_root=self)
     self.TraceRoute = traceroute.TraceRoute(loop)
     objects.append('TraceRoute')
+    self.X_CATAWAMPUS_ORG_CATAWAMPUS = dm.catawampus.CatawampusDm()
+    objects.append('X_CATAWAMPUS-ORG_CATAWAMPUS')
     self.Export(params=params, objects=objects)
 
 

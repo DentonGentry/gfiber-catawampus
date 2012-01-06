@@ -1,5 +1,5 @@
 *.stamp
 *.pyc
 tr???_*.py*
-x-*.py*
+x_*.py*
 stamp.*
