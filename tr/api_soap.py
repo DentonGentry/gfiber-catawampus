@@ -30,10 +30,11 @@ class Encode(object):
     with self._Envelope() as xml:
       with xml['cwmp:Inform']:
         with xml.DeviceId:
-          xml.Manufacturer(root.DeviceInfo.Manufacturer)
-          xml.OUI(root.DeviceInfo.ManufacturerOUI)
-          xml.ProductClass(root.DeviceInfo.ProductClass)
-          xml.SerialNumber(root.DeviceInfo.SerialNumber)
+          di = root.GetExport('DeviceInfo')
+          xml.Manufacturer(di.Manufacturer)
+          xml.OUI(di.ManufacturerOUI)
+          xml.ProductClass(di.ProductClass)
+          xml.SerialNumber(di.SerialNumber)
         soaptype = "EventStruct[{0}]".format(len(events))
         event_attrs = { 'soap-enc:arrayType': soaptype }
         with xml.Event(**event_attrs):

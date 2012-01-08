@@ -57,6 +57,7 @@ class CwmpSession(object):
 
 class PingHandler(tornado.web.RequestHandler):
   # TODO $SPEC3 3.2.2 "The CPE MUST use HTTP digest authentication"
+  #   see https://github.com/bkjones/curtain for Tornado digest auth mixin
   # TODO $SPEC3 3.2.2 "The CPE SHOULD restrict the number of Connection Requests it
   #   accepts during a given period of time..."
   def initialize(self, callback):
@@ -153,7 +154,7 @@ class CPEStateMachine(object):
     events = [(reason, '')]
     parameter_list = []
     if self.ping_path:
-      di = self.cpe.root.DeviceInfo
+      di = self.cpe.root.GetExport('DeviceInfo')
       parameter_list += [
           ('Device.ManagementServer.ConnectionRequestURL',
            'http://%s:%d/%s' % (self.session.my_ip, self.listenport,
