@@ -34,6 +34,7 @@ install:
 	$(INSTALL) -D -m 0644 *.py $(DSTDIR)
 	ln -s tr/vendor/pynetlinux $(DSTDIR)/pynetlinux
 	$(INSTALL) -D -m 0644 tr/*.py $(DSTDIR)/tr
+	$(INSTALL) -D -m 0644 dm/*.py $(DSTDIR)/dm
 	$(INSTALL) -D -m 0644 platform/*.py $(DSTDIR)/platform
 	$(INSTALL) -D -m 0644 platform/gfmedia/*.py $(DSTDIR)/platform/gfmedia
 	$(INSTALL) -D -m 0644 platform/fakecpe/*.py $(DSTDIR)/platform/fakecpe
