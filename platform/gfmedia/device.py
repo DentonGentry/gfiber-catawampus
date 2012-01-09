@@ -13,7 +13,6 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import device_info
 import ethernet
 import fcntl
-import management_server
 import os
 import subprocess
 import tr.core
@@ -170,10 +169,10 @@ class DeviceGFMedia(tr181.Device_v2_2.Device):
     self.Unexport(objects='USB')
     self.Unexport(objects='Users')
 
+    self.DeviceInfo = DeviceInfoGFMedia()
+    self.ManagementServer = tr.core.TODO()  # higher level code splices this in
     self.Ethernet = tr.core.TODO()
     self.InterfaceStackNumberOfEntries = 0
-
-    self.ManagementServer = management_server.ManagementServer()
 
 
 def PlatformInit(name, device_model_root):
@@ -183,8 +182,6 @@ def PlatformInit(name, device_model_root):
   objects = []
   device_model_root.Device = DeviceGFMedia()
   objects.append('Device')
-  device_model_root.DeviceInfo = DeviceInfoGFMedia()
-  objects.append('DeviceInfo')
   return (params, objects)
 
 

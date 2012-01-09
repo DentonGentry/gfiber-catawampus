@@ -30,7 +30,7 @@ class Encode(object):
     with self._Envelope() as xml:
       with xml['cwmp:Inform']:
         with xml.DeviceId:
-          di = root.GetExport('DeviceInfo')
+          di = root.GetExport('Device.DeviceInfo')
           xml.Manufacturer(di.Manufacturer)
           xml.OUI(di.ManufacturerOUI)
           xml.ProductClass(di.ProductClass)

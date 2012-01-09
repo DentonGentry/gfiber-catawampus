@@ -91,6 +91,9 @@ class CPE(TR069Service):
   def _SetParameterKey(self, value):
     self._last_parameter_key = value
 
+  def GetParameterKey(self):
+    return self._last_parameter_key
+
   def _SplitParameterName(self, name):
     """Split a name like Top.Object.1.Name into (Top.Object.1, Name)."""
     result = name.rsplit('.', 1)

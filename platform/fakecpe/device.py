@@ -10,7 +10,6 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import device_info
-import management_server
 import os
 import random
 import tr.core
@@ -100,10 +99,12 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
     self.Unexport(objects="USB")
     self.Unexport(objects="Users")
     self.Unexport(objects="WiFi")
+
+    self.DeviceInfo = DeviceInfoFakeCPE()
+    self.ManagementServer = tr.core.TODO()  # Higher layer code splices this in
+
     self.InterfaceStackNumberOfEntries = 0
     self.InterfaceStackList = {}
-
-    self.ManagementServer = management_server.ManagementServer()
 
 
 def PlatformInit(name, device_model_root):
@@ -113,8 +114,6 @@ def PlatformInit(name, device_model_root):
   objects = list()
   device_model_root.Device = DeviceFakeCPE()
   objects.append('Device')
-  device_model_root.DeviceInfo = DeviceInfoFakeCPE()
-  objects.append('DeviceInfo')
   return (params, objects)
 
 

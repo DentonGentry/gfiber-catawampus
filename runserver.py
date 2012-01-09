@@ -10,6 +10,9 @@
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import dm.catawampus
+import dm.management_server
+import imp
+import os.path
 import sys
 import tempfile
 import tr.api
@@ -44,19 +47,33 @@ class DeviceModelRoot(tr.core.Exporter):
 
   def __init__(self, loop, platform):
     tr.core.Exporter.__init__(self)
-    if platform == "gfmedia":
-      import platform.gfmedia.device as device
-      (params, objects) = device.PlatformInit(name='gfmedia',
+    if platform:
+      path = os.path.join('platform', platform, 'device.py')
+      device = imp.load_source('device', path)
+      (params, objects) = device.PlatformInit(name=platform,
                                               device_model_root=self)
     else:
-      import platform.fakecpe.device as device
-      (params, objects) = device.PlatformInit(name='fakecpe',
-                                              device_model_root=self)
+      (params, objects) = (list(), list())
     self.TraceRoute = traceroute.TraceRoute(loop)
     objects.append('TraceRoute')
     self.X_CATAWAMPUS_ORG_CATAWAMPUS = dm.catawampus.CatawampusDm()
     objects.append('X_CATAWAMPUS-ORG_CATAWAMPUS')
     self.Export(params=params, objects=objects)
+
+  def add_management_server(self, mgmt):
+    # tr-181 Device.ManagementServer
+    try:
+      ms181 = self.GetExport('Device')
+      ms181.ManagementServer = dm.management_server.ManagementServer181(mgmt)
+    except AttributeError:
+      pass  # no tr-181 for this platform
+
+    # tr-98 InternetGatewayDevice.ManagementServer
+    try:
+      ms98 = self.GetExport('InternetGatewayDevice')
+      ms98.ManagementServer = dm.management_server.ManagementServer98(mgmt)
+    except AttributeError:
+      pass  # no tr-98 for this platform
 
 
 def _WriteAcsFile(acs_url):
@@ -102,6 +119,7 @@ def main():
 
     cpe_machine = tr.http.Listen(opt.ip, opt.port, opt.ping_path, acs,
                                  acs_url_file, cpe, cpe and opt.cpe_listener)
+    root.add_management_server(cpe_machine.GetManagementServer())
     cpe_machine.Bootstrap()
 
   loop.Start()

@@ -25,14 +25,57 @@ import tornado.web
 # SPEC3 = TR-069_Amendment-3.pdf
 # http://www.broadband-forum.org/technical/download/TR-069_Amendment-3.pdf
 
-Url = collections.namedtuple('Url', ('method host port path'))
-
-
 def SplitUrl(url):
-    method, rest = urllib.splittype(url)
-    hostport, path = urllib.splithost(rest)
-    host, port = urllib.splitport(hostport)
-    return Url(method, host, int(port or 0), path)
+  Url = collections.namedtuple('Url', ('method host port path'))
+  method, rest = urllib.splittype(url)
+  hostport, path = urllib.splithost(rest)
+  host, port = urllib.splitport(hostport)
+  return Url(method, host, int(port or 0), path)
+
+class CpeManagementServer(object):
+  """Inner class implementing tr-98 & 181 ManagementServer."""
+  def __init__(self, acs_url_file, port, ping_path, get_parameter_key):
+    self.acs_url_file = acs_url_file
+    self.port = port
+    self.ping_path = ping_path
+    self.get_parameter_key = get_parameter_key
+    self.my_ip = None
+    self.CWMPRetryIntervalMultiplier = 1
+    self.CWMPRetryMinimumWaitInterval = 1000
+    self.ConnectionRequestPassword = '{0}'.format(hex(random.getrandbits(60)))
+    self.ConnectionRequestUsername = '{0}'.format(hex(random.getrandbits(60)))
+    self.DefaultActiveNotificationThrottle = 0
+    self.EnableCWMP = True
+    self.Password = ''
+    self.PeriodicInformEnable = False
+    self.PeriodicInformInterval = 0
+    self.PeriodicInformTime = 0
+    self.Username = ''
+
+  @property
+  def URL(self):
+    try:
+      f = open(self.acs_url_file, "r")
+      line = f.readline().strip()
+      f.close()
+    except IOError:
+      line = ''
+    return line
+
+  @property
+  def ConnectionRequestURL(self):
+    if self.my_ip and self.port and self.ping_path:
+      path = self.ping_path if self.ping_path[0] != '/' else self.ping_path[1:]
+      return 'http://{0}:{1!s}/{2}'.format(self.my_ip, self.port, path)
+    else:
+      return ''
+
+  @property
+  def ParameterKey(self):
+    if self.get_parameter_key is not None:
+      return self.get_parameter_key()
+    else:
+      return ''
 
 
 class CwmpSession(object):
@@ -94,10 +137,7 @@ class CPEStateMachine(object):
   """
   def __init__(self, ip, cpe, listenport, acs_url_file, ping_path):
     self.cpe = cpe
-    self.listenport = listenport
     self.cpe_soap = api_soap.CPE(self.cpe)
-    self.acs_url_file = acs_url_file
-    self.ping_path = ping_path
     self.encode = api_soap.Encode()
     self.outstanding = None
     self.response_queue = []
@@ -105,6 +145,13 @@ class CPEStateMachine(object):
     self.ioloop = tornado.ioloop.IOLoop.instance()
     self.session = None
     self.my_configured_ip = ip
+    self.management_server = CpeManagementServer(
+        acs_url_file=acs_url_file, port=listenport, ping_path=ping_path,
+        get_parameter_key=cpe.GetParameterKey)
+
+  def GetManagementServer(self):
+    """Return the ManagementServer implementation for tr-98/181."""
+    return self.management_server
 
   def Send(self, req):
     self.request_queue.append(str(req))
@@ -114,19 +161,10 @@ class CPEStateMachine(object):
     self.response_queue.append(str(req))
     self.Run()
 
-  def _GetAcsUrl(self):
-    try:
-      f = open(self.acs_url_file, "r")
-      line = f.readline().strip()
-      f.close()
-    except IOError:
-      line = ''
-    return line
-
   def _GetLocalAddr(self):
     if self.my_configured_ip is not None:
       return self.my_configured_ip
-    acs_url = self._GetAcsUrl()
+    acs_url = self.management_server.URL
     if not acs_url:
       return 0
 
@@ -150,18 +188,19 @@ class CPEStateMachine(object):
 
   def SendInform(self, reason):
     if not self.session.my_ip:
-      self.session.my_ip = self._GetLocalAddr()
+      my_ip = self._GetLocalAddr()
+      self.session.my_ip = my_ip
+      self.management_server.my_ip = my_ip
     events = [(reason, '')]
     parameter_list = []
-    if self.ping_path:
-      di = self.cpe.root.GetExport('DeviceInfo')
-      parameter_list += [
-          ('Device.ManagementServer.ConnectionRequestURL',
-           'http://%s:%d/%s' % (self.session.my_ip, self.listenport,
-                                self.ping_path)),
-          ('Device.DeviceInfo.HardwareVersion', di.HardwareVersion),
-          ('Device.DeviceInfo.SoftwareVersion', di.SoftwareVersion),
-      ]
+    # TODO(dgentry) interrogate root to look for Device or InternetGatewayDevice
+    di = self.cpe.root.GetExport('Device.DeviceInfo')
+    parameter_list += [
+        ('Device.ManagementServer.ConnectionRequestURL',
+         self.management_server.ConnectionRequestURL),
+        ('Device.DeviceInfo.HardwareVersion', di.HardwareVersion),
+        ('Device.DeviceInfo.SoftwareVersion', di.SoftwareVersion),
+    ]
     req = self.encode.Inform(root=self.cpe.root,
                              events=events,
                              max_envelopes=1,
@@ -184,7 +223,7 @@ class CPEStateMachine(object):
     print 'RUN'
     if not self.session:
       return
-    acs_url = self._GetAcsUrl()
+    acs_url = self.management_server.URL
     if not acs_url:
       print('No ACS URL populated yet, returning.')
       return
