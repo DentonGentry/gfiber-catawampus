@@ -30,7 +30,7 @@ install:
 		$(DSTDIR)/tr/vendor/bup/lib/bup $(DSTDIR)/tr/vendor/pynetlinux \
 		$(DSTDIR)/tr/vendor/tornado $(DSTDIR)/tr/vendor/tornado/tornado \
 		$(DSTDIR)/platform $(DSTDIR)/platform/gfmedia \
-		$(DSTDIR)/platform/fakecpe
+		$(DSTDIR)/platform/fakecpe $(DSTDIR)/dm
 	$(INSTALL) -D -m 0644 *.py $(DSTDIR)
 	ln -s tr/vendor/pynetlinux $(DSTDIR)/pynetlinux
 	$(INSTALL) -D -m 0644 tr/*.py $(DSTDIR)/tr
