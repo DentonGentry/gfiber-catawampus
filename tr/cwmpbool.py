@@ -20,5 +20,14 @@ def parse(arg):
   lower = arg.lower()
   if lower == "false" or lower == "0":
     return False
-  else:
+  elif lower == "true" or lower == "1":
     return True
+  else:
+    raise ValueError('Invalid CWMP boolean')
+
+def valid(arg):
+  try:
+    parse(arg)
+  except:
+    return False
+  return True
