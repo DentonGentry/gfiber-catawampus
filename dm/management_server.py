@@ -21,6 +21,13 @@ BASEMGMT181 = tr.tr181_v2_2.Device_v2_2.Device.ManagementServer
 BASEMGMT98 = tr.tr098_v1_2.InternetGatewayDevice_v1_3.InternetGatewayDevice.ManagementServer
 
 class ManagementServer181(BASEMGMT181):
+  MGMTATTRS = frozenset([
+      'CWMPRetryIntervalMultiplier', 'CWMPRetryMinimumWaitInterval',
+      'ConnectionRequestPassword', 'ConnectionRequestURL',
+      'ConnectionRequestUsername', 'DefaultActiveNotificationThrottle',
+      'EnableCWMP', 'ParameterKey', 'Password', 'PeriodicInformEnable',
+      'PeriodicInformInterval', 'PeriodicInformTime', 'URL', 'Username'])
+
   def __init__(self, mgmt):
     """Proxy object for tr-181 ManagementServer support.
 
@@ -44,26 +51,38 @@ class ManagementServer181(BASEMGMT181):
     self.Unexport('UDPConnectionRequestAddress')
     self.Unexport('NATDetected')
 
-    self._MgmtAttrs = frozenset([
-        'CWMPRetryIntervalMultiplier', 'CWMPRetryMinimumWaitInterval',
-        'ConnectionRequestPassword', 'ConnectionRequestURL',
-        'ConnectionRequestUsername', 'DefaultActiveNotificationThrottle',
-        'EnableCWMP', 'ParameterKey', 'Password', 'PeriodicInformEnable',
-        'PeriodicInformInterval', 'PeriodicInformTime', 'URL', 'Username'])
-
     self.ManageableDeviceList = {}
     self.ManageableDeviceNumberOfEntries = 0
     self.STUNEnable = False
     self.UpgradesManaged = True
 
   def __getattr__(self, name):
-    if name in self._MgmtAttrs:
+    if name in self.MGMTATTRS:
       return getattr(self.mgmt, name)
     else:
       raise AttributeError
 
+  def __setattr__(self, name, value):
+    if name in self.MGMTATTRS:
+      return setattr(self.mgmt, name, value)
+    else:
+      return BASEMGMT181.__setattr__(self, name, value)
+
+  def __delattr__(self, name):
+    if name in self.MGMTATTRS:
+      return delattr(self.mgmt, name)
+    else:
+      return BASEMGMT181.__delattr__(self, name)
+
 
 class ManagementServer98(BASEMGMT98):
+  MGMTATTRS = frozenset([
+      'CWMPRetryIntervalMultiplier', 'CWMPRetryMinimumWaitInterval',
+      'ConnectionRequestPassword', 'ConnectionRequestURL',
+      'ConnectionRequestUsername', 'DefaultActiveNotificationThrottle',
+      'EnableCWMP', 'ParameterKey', 'Password', 'PeriodicInformEnable',
+      'PeriodicInformInterval', 'PeriodicInformTime', 'URL', 'Username'])
+
   def __init__(self, mgmt):
     """Proxy object for tr-98 ManagementServer support.
 
@@ -79,20 +98,25 @@ class ManagementServer98(BASEMGMT98):
     self.Unexport('DownloadProgressURL')
     self.Unexport('KickURL')
 
-    self._MgmtAttrs = frozenset([
-        'CWMPRetryIntervalMultiplier', 'CWMPRetryMinimumWaitInterval',
-        'ConnectionRequestPassword', 'ConnectionRequestURL',
-        'ConnectionRequestUsername', 'DefaultActiveNotificationThrottle',
-        'EnableCWMP', 'ParameterKey', 'Password', 'PeriodicInformEnable',
-        'PeriodicInformInterval', 'PeriodicInformTime', 'URL', 'Username'])
-
     self.UpgradesManaged = True
 
   def __getattr__(self, name):
-    if name in self._MgmtAttrs:
+    if name in self.MGMTATTRS:
       return getattr(self.mgmt, name)
     else:
       raise AttributeError
+
+  def __setattr__(self, name, value):
+    if name in self.MGMTATTRS:
+      return setattr(self.mgmt, name, value)
+    else:
+      return BASEMGMT98.__setattr__(self, name, value)
+
+  def __delattr__(self, name):
+    if name in self.MGMTATTRS:
+      return delattr(self.mgmt, name)
+    else:
+      return BASEMGMT98.__delattr__(self, name)
 
 
 def main():

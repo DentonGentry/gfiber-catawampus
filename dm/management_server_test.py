@@ -32,19 +32,47 @@ class MockCpeManagementServer(object):
 
 class ManagementServerTest(unittest.TestCase):
   """Tests for management_server.py."""
-  def testMgmt181(self):
+  def testGetMgmt181(self):
     mgmt = MockCpeManagementServer()
     mgmt181 = management_server.ManagementServer181(mgmt)
     self.assertEqual(mgmt181.ParameterKey, mgmt.ParameterKey)
     self.assertEqual(mgmt181.EnableCWMP, mgmt.EnableCWMP)
     self.assertTrue(mgmt181.UpgradesManaged)
 
-  def testMgmt98(self):
+  def testGetMgmt98(self):
     mgmt = MockCpeManagementServer()
     mgmt98 = management_server.ManagementServer98(mgmt)
     self.assertEqual(mgmt98.ParameterKey, mgmt.ParameterKey)
     self.assertEqual(mgmt98.EnableCWMP, mgmt.EnableCWMP)
     self.assertTrue(mgmt98.UpgradesManaged)
+
+  def testSetMgmt181(self):
+    mgmt = MockCpeManagementServer()
+    mgmt181 = management_server.ManagementServer181(mgmt)
+    self.assertEqual(mgmt.CWMPRetryIntervalMultiplier, 1)
+    mgmt181.CWMPRetryIntervalMultiplier = 2
+    self.assertEqual(mgmt.CWMPRetryIntervalMultiplier, 2)
+    self.assertEqual(mgmt181.CWMPRetryIntervalMultiplier, 2)
+
+  def testSetMgmt98(self):
+    mgmt = MockCpeManagementServer()
+    mgmt98 = management_server.ManagementServer98(mgmt)
+    self.assertEqual(mgmt.CWMPRetryIntervalMultiplier, 1)
+    mgmt98.CWMPRetryIntervalMultiplier = 2
+    self.assertEqual(mgmt.CWMPRetryIntervalMultiplier, 2)
+    self.assertEqual(mgmt98.CWMPRetryIntervalMultiplier, 2)
+
+  def testDelMgmt181(self):
+    mgmt = MockCpeManagementServer()
+    mgmt181 = management_server.ManagementServer181(mgmt)
+    delattr(mgmt181, 'CWMPRetryIntervalMultiplier')
+    self.assertFalse(hasattr(mgmt, 'CWMPRetryIntervalMultiplier'))
+
+  def testDelMgmt98(self):
+    mgmt = MockCpeManagementServer()
+    mgmt98 = management_server.ManagementServer98(mgmt)
+    delattr(mgmt98, 'CWMPRetryIntervalMultiplier')
+    self.assertFalse(hasattr(mgmt, 'CWMPRetryIntervalMultiplier'))
 
 
 if __name__ == '__main__':
