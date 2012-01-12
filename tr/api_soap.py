@@ -43,7 +43,7 @@ class Encode(object):
               xml.EventCode(str(event[0]))
               xml.CommandKey(str(event[1]))
         xml.MaxEnvelopes(str(max_envelopes))
-        xml.CurrentTime(cwmpdate.cwmpformat(current_time))
+        xml.CurrentTime(cwmpdate.format(current_time))
         xml.RetryCount(str(retry_count))
         soaptype = "cwmp:ParameterValueStruct[{0}]".format(len(parameter_list))
         parameter_list_attrs = { 'soap-enc:arrayType': soaptype }
@@ -104,8 +104,8 @@ class Encode(object):
         with xml['FaultStruct']:
           xml.FaultCode(str(faultcode))
           xml.FaultString(str(faultstring))
-        xml.StartTime(cwmpdate.cwmpformat(starttime))
-        xml.CompleteTime(cwmpdate.cwmpformat(endtime))
+        xml.StartTime(cwmpdate.format(starttime))
+        xml.CompleteTime(cwmpdate.format(endtime))
     return xml
 
 
@@ -221,8 +221,8 @@ class CPE(SoapHandler):
       (starttime, endtime) = args
       with xml['cwmp:DownloadResponse']:
         xml.Status(str(code))
-        xml.StartTime(cwmpdate.cwmpformat(starttime))
-        xml.CompleteTime(cwmpdate.cwmpformat(endtime))
+        xml.StartTime(cwmpdate.format(starttime))
+        xml.CompleteTime(cwmpdate.format(endtime))
       return xml
     else:
       (cpefault, faultstring) = args
