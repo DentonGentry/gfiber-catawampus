@@ -10,6 +10,9 @@
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import collections
+import cpe_management_server
+import cwmpbool
+import cwmpdate
 import cwmp_session
 import time
 import random
@@ -33,57 +36,12 @@ def SplitUrl(url):
   host, port = urllib.splitport(hostport)
   return Url(method, host, int(port or 0), path)
 
-class CpeManagementServer(object):
-  """Inner class implementing tr-98 & 181 ManagementServer."""
-  def __init__(self, acs_url_file, port, ping_path, get_parameter_key):
-    self.acs_url_file = acs_url_file
-    self.port = port
-    self.ping_path = ping_path
-    self.get_parameter_key = get_parameter_key
-    self.my_ip = None
-    self.CWMPRetryIntervalMultiplier = 1
-    self.CWMPRetryMinimumWaitInterval = 1000
-    self.ConnectionRequestPassword = '{0}'.format(hex(random.getrandbits(60)))
-    self.ConnectionRequestUsername = '{0}'.format(hex(random.getrandbits(60)))
-    self.DefaultActiveNotificationThrottle = 0
-    self.EnableCWMP = True
-    self.Password = ''
-    self.PeriodicInformEnable = False
-    self.PeriodicInformInterval = 0
-    self.PeriodicInformTime = 0
-    self.Username = ''
-
-  @property
-  def URL(self):
-    try:
-      f = open(self.acs_url_file, "r")
-      line = f.readline().strip()
-      f.close()
-    except IOError:
-      line = ''
-    return line
-
-  @property
-  def ConnectionRequestURL(self):
-    if self.my_ip and self.port and self.ping_path:
-      path = self.ping_path if self.ping_path[0] != '/' else self.ping_path[1:]
-      return 'http://{0}:{1!s}/{2}'.format(self.my_ip, self.port, path)
-    else:
-      return ''
-
-  @property
-  def ParameterKey(self):
-    if self.get_parameter_key is not None:
-      return self.get_parameter_key()
-    else:
-      return ''
-
 
 class PingHandler(tornado.web.RequestHandler):
   # TODO $SPEC3 3.2.2 "The CPE MUST use HTTP digest authentication"
   #   see https://github.com/bkjones/curtain for Tornado digest auth mixin
-  # TODO $SPEC3 3.2.2 "The CPE SHOULD restrict the number of Connection Requests it
-  #   accepts during a given period of time..."
+  # TODO $SPEC3 3.2.2 "The CPE SHOULD restrict the number of Connection
+  #   Requests it accepts during a given period of time..."
   def initialize(self, callback):
     self.callback = callback
 
@@ -116,7 +74,7 @@ class CPEStateMachine(object):
       change during operation, and must be periodically re-read.
     ping_path: URL path for the ACS Ping function
   """
-  def __init__(self, ip, cpe, listenport, acs_url_file, ping_path):
+  def __init__(self, ip, cpe, listenport, acs_url_file, ping_path, ioloop=None):
     self.cpe = cpe
     self.cpe_soap = api_soap.CPE(self.cpe)
     self.encode = api_soap.Encode()
@@ -125,16 +83,17 @@ class CPEStateMachine(object):
     self.request_queue = []
     self.event_queue = []
     self.inform = None
-    self.ioloop = tornado.ioloop.IOLoop.instance()
+    self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self.session = None
     self.my_configured_ip = ip
-    self.management_server = CpeManagementServer(
+    self.cpe_management_server = cpe_management_server.CpeManagementServer(
         acs_url_file=acs_url_file, port=listenport, ping_path=ping_path,
-        get_parameter_key=cpe.GetParameterKey)
+        get_parameter_key=cpe.GetParameterKey, start_session=self.StartSession,
+        ioloop=self.ioloop)
 
   def GetManagementServer(self):
     """Return the ManagementServer implementation for tr-98/181."""
-    return self.management_server
+    return self.cpe_management_server
 
   def Send(self, req):
     self.request_queue.append(str(req))
@@ -147,7 +106,7 @@ class CPEStateMachine(object):
   def _GetLocalAddr(self):
     if self.my_configured_ip is not None:
       return self.my_configured_ip
-    acs_url = self.management_server.URL
+    acs_url = self.cpe_management_server.URL
     if not acs_url:
       return 0
 
@@ -173,7 +132,7 @@ class CPEStateMachine(object):
     if not self.session.my_ip:
       my_ip = self._GetLocalAddr()
       self.session.my_ip = my_ip
-      self.management_server.my_ip = my_ip
+      self.cpe_management_server.my_ip = my_ip
     events = [(reason, '')]
     for ev in self.event_queue:
       events.append(ev)
@@ -182,7 +141,7 @@ class CPEStateMachine(object):
     di = self.cpe.root.GetExport('Device.DeviceInfo')
     parameter_list += [
         ('Device.ManagementServer.ConnectionRequestURL',
-         self.management_server.ConnectionRequestURL),
+         self.cpe_management_server.ConnectionRequestURL),
         ('Device.DeviceInfo.HardwareVersion', di.HardwareVersion),
         ('Device.DeviceInfo.SoftwareVersion', di.SoftwareVersion),
     ]
@@ -286,18 +245,26 @@ class CPEStateMachine(object):
 
   def _NewTransferCompleteSession(self):
     if not self.session:
-      self.session = cwmp_session.CwmpSession(self.management_server.URL,
+      self.session = cwmp_session.CwmpSession(self.cpe_management_server.URL,
                                               self.ioloop)
       self.SendInform('7 TRANSFER COMPLETE')
 
   def _NewPingSession(self):
     if not self.session:
-      self.session = cwmp_session.CwmpSession(self.management_server.URL,
+      self.session = cwmp_session.CwmpSession(self.cpe_management_server.URL,
                                               self.ioloop)
       self.SendInform('6 CONNECTION REQUEST')
     else:
       # $SPEC3 3.2.2 initiate at most one new session after this one closes.
       self.session.ping_received = True
+
+  def StartSession(self, event_code, event_queue=None):
+    if not self.session:
+      if event_queue:
+        self.event_queue.extend(event_queue)
+      self.session = cwmp_session.CwmpSession(self.cpe_management_server.URL,
+                                              self.ioloop)
+      self.SendInform(event_code)
 
   def PingReceived(self):
     # $SPEC3 3.2.2: CPE MUST respond immediately, before initiating session.
@@ -319,7 +286,7 @@ class CPEStateMachine(object):
         self.event_queue.remove(ev)
 
   def Startup(self):
-    self.session = cwmp_session.CwmpSession(self.management_server.URL,
+    self.session = cwmp_session.CwmpSession(self.cpe_management_server.URL,
                                             self.ioloop)
     # TODO(dgentry) Check whether we have a config, send '1 BOOT' instead
     self.cpe.Startup()
