@@ -49,9 +49,9 @@ def calc_http_digest(method, uripath, qop, nonce, cnonce, nc,
 class HttpDownload(object):
   def __init__(self, url, username=None, password=None,
                download_complete_cb=None, ioloop=None):
-    self.url = url
-    self.username = username
-    self.password = password
+    self.url = str(url)
+    self.username = str(username)
+    self.password = str(password)
     self.download_complete_cb = download_complete_cb
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
 
@@ -68,7 +68,8 @@ class HttpDownload(object):
     kwargs = dict(url=self.url,
                   request_timeout=3600.0,
                   streaming_callback=self.tempfile.write,
-                  allow_ipv6=True)
+                  use_gzip=True, allow_ipv6=True,
+                  user_agent="catawampus-tr69")
     if self.auth_header:
       kwargs.update(dict(headers=dict(Authorization=self.auth_header)))
     elif self.username and self.password:
