@@ -14,7 +14,7 @@ import time
 
 class Encode(object):
   def __init__(self):
-    self.request_id = None
+    self.request_id = 'catawampus.{0!r}'.format(time.time())
     self.hold_requests = None
 
   def _Envelope(self):
@@ -125,7 +125,7 @@ class SoapHandler(object):
     if result is not None:
       return xml
     else:
-      return ''
+      return None
 
   def GetRPCMethods(self, xml, req):
     with xml['cwmp:GetRPCMethodsResponse']:
@@ -152,7 +152,8 @@ class CPE(SoapHandler):
     SoapHandler.__init__(self, impl=cpe)
 
   def InformResponse(self, xml, req):
-    return
+    self.impl.InformResponseReceived()
+    return None
 
   def GetParameterNames(self, xml, req):
     path = str(req.ParameterPath)
@@ -230,7 +231,7 @@ class CPE(SoapHandler):
   def TransferCompleteResponse(self, xml, req):
     """Response to a TransferComplete sent by the CPE."""
     self.impl.TransferCompleteResponseReceived()
-    return
+    return None
 
   def GetQueuedTransfers(self, xml, req):
     transfers = self.impl.GetAllQueuedTransfers()

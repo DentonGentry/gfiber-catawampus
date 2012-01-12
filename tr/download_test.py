@@ -94,7 +94,7 @@ class MockTransferComplete(object):
     self.endtime = None
 
   def SendTransferComplete(self, dl, command_key, faultcode, faultstring,
-                           starttime, endtime):
+                           starttime, endtime, event_code):
     self.transfer_complete_called = True
     self.dl = dl
     self.command_key = command_key
@@ -102,6 +102,7 @@ class MockTransferComplete(object):
     self.faultstring = faultstring
     self.starttime = starttime
     self.endtime = endtime
+    self.event_code = event_code
 
 
 class DownloadTest(unittest.TestCase):
@@ -196,6 +197,7 @@ class DownloadTest(unittest.TestCase):
     self.assertEqual(cmpl.faultstring, '')
     self.assertEqual(cmpl.starttime, self.mockTime())
     self.assertEqual(cmpl.endtime, self.mockTime())
+    self.assertEqual(cmpl.event_code, 'M Download')
     self.assertEqual(self.QCheckBoring(dl, kwargs), 3)  # 3: Cleaning up
 
     # Step 6: Wait for Transfer Complete Response
@@ -236,6 +238,7 @@ class DownloadTest(unittest.TestCase):
     self.assertEqual(cmpl.faultstring, 'TestDownloadError')
     self.assertEqual(cmpl.starttime, 0.0)
     self.assertEqual(cmpl.endtime, 0.0)
+    self.assertEqual(cmpl.event_code, 'M Download')
 
   def testInstallFailed(self):
     ioloop = MockIoloop()
@@ -279,6 +282,7 @@ class DownloadTest(unittest.TestCase):
     self.assertEqual(cmpl.faultstring, 'TestInstallError')
     self.assertEqual(cmpl.starttime, 0.0)
     self.assertEqual(cmpl.endtime, 0.0)
+    self.assertEqual(cmpl.event_code, 'M Download')
 
   def testInstallNoReboot(self):
     ioloop = MockIoloop()
@@ -322,6 +326,7 @@ class DownloadTest(unittest.TestCase):
     self.assertEqual(cmpl.faultstring, '')
     self.assertEqual(cmpl.starttime, self.mockTime())
     self.assertEqual(cmpl.endtime, self.mockTime())
+    self.assertEqual(cmpl.event_code, 'M Download')
 
   def testCancelRefused(self):
     ioloop = MockIoloop()

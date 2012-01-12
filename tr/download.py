@@ -160,7 +160,9 @@ class Download(object):
     if not hasattr(stateobj, 'dlstate'):
       stateobj.Update(dlstate=self.START)
     dlstate = stateobj.dlstate
-    if dlstate != self.START and dlstate != self.REBOOTING:
+    if dlstate == self.REBOOTING or dlstate == self.EXITING:
+      stateobj.Update(dlstate=self.REBOOTING)
+    else:
       stateobj.Update(dlstate=self.START)
     return stateobj
 
@@ -187,11 +189,13 @@ class Download(object):
                   download_complete_cb=self.download_complete_callback)
 
   def _send_transfer_complete(self, faultcode, faultstring, start=0.0, end=0.0):
+    event_code = getattr(self.stateobj, 'event_code', 'M Download')
     self.transfer_complete_cb(dl=self,
                               command_key=self.stateobj.command_key,
                               faultcode=faultcode,
                               faultstring=faultstring,
-                              starttime=start, endtime=end)
+                              starttime=start, endtime=end,
+                              event_code=event_code)
 
   def _remove_file(self, filename):
     try:
@@ -386,7 +390,8 @@ class DownloadManager(object):
                   password=password,
                   file_size=file_size,
                   target_filename=target_filename,
-                  delay_seconds=delay_seconds)
+                  delay_seconds=delay_seconds,
+                  event_code = 'M Download')
     pobj = persistobj.PersistentObject(dir=STATEDIR, rootname=ROOTNAME,
                                        filename=None, **kwargs)
     dl = self.DOWNLOADOBJ(stateobj=pobj,
@@ -397,10 +402,12 @@ class DownloadManager(object):
     # status=1 == send TransferComplete later, $SPEC pg 85
     return (1, (0.0, 0.0))
 
-  def TransferCompleteCallback(self, dl, command_key, faultcode, faultstring, start, end):
+  def TransferCompleteCallback(self, dl, command_key, faultcode, faultstring,
+                               starttime, endtime, event_code):
     self._downloads.remove(dl)
     self._pending_complete.append(dl)
-    self.SEND_TRANSFER_COMPLETE(command_key, faultcode, faultstring, start, end)
+    self.SEND_TRANSFER_COMPLETE(command_key, faultcode, faultstring,
+                                starttime, endtime, event_code)
 
   def RestoreDownloads(self):
     pobjs = persistobj.GetPersistentObjects(dir=STATEDIR, rootname=ROOTNAME)
@@ -435,7 +442,8 @@ class DownloadManager(object):
 
     Returns: (code, arg) where:
       code = 0 means success, non-zero means failure
-      if failed, arg = ((faultcode, faulttype), faultstring) for a soap:Fault message.
+      if failed, arg = ((faultcode, faulttype), faultstring) for a
+        soap:Fault message.
     """
     rc = (0, )
     for dl in self._downloads:
@@ -448,7 +456,7 @@ class DownloadManager(object):
     for dl in self._pending_complete:
       if dl.CommandKey() == command_key:
         rc = (-1, (soap.CpeFault.DOWNLOAD_CANCEL_NOTPERMITTED,
-                   "Download has been installed, awaiting TransferCompleteResponse"))
+                   "Installed, awaiting TransferCompleteResponse"))
     return rc
 
 

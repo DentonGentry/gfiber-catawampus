@@ -10,6 +10,7 @@
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import collections
+import cwmp_session
 import time
 import random
 import socket
@@ -78,26 +79,6 @@ class CpeManagementServer(object):
       return ''
 
 
-class CwmpSession(object):
-  def __init__(self, io_loop=None):
-    self.http = tornado.httpclient.AsyncHTTPClient(
-        max_simultaneous_connections=1,
-        io_loop=io_loop or tornado.ioloop.IOLoop.instance())
-    self.cookies = None
-    self.my_ip = None
-    self.no_more_requests = False
-    self.acs_empty = False
-    self.on_hold = False
-    self.ping_received = False
-
-  def __del__(self):
-    self.close()
-
-  def close(self):
-    self.http = None
-    return self.ping_received
-
-
 class PingHandler(tornado.web.RequestHandler):
   # TODO $SPEC3 3.2.2 "The CPE MUST use HTTP digest authentication"
   #   see https://github.com/bkjones/curtain for Tornado digest auth mixin
@@ -128,7 +109,7 @@ class CPEStateMachine(object):
   """A tr-69 Customer Premises Equipment implementation.
 
   Args:
-    ip: local ip address to bind to. If None, figure out address to use automatically.
+    ip: local ip address to bind to. If None, find address automatically.
     cpe: the api_soap.cpe object for this device
     listenport: the port number to listen on for ACS ping requests.
     acs_url_file: A file which will contain the ACS URL. This file can
@@ -142,6 +123,8 @@ class CPEStateMachine(object):
     self.outstanding = None
     self.response_queue = []
     self.request_queue = []
+    self.event_queue = []
+    self.inform = None
     self.ioloop = tornado.ioloop.IOLoop.instance()
     self.session = None
     self.my_configured_ip = ip
@@ -192,6 +175,8 @@ class CPEStateMachine(object):
       self.session.my_ip = my_ip
       self.management_server.my_ip = my_ip
     events = [(reason, '')]
+    for ev in self.event_queue:
+      events.append(ev)
     parameter_list = []
     # TODO(dgentry) interrogate root to look for Device or InternetGatewayDevice
     di = self.cpe.root.GetExport('Device.DeviceInfo')
@@ -201,33 +186,43 @@ class CPEStateMachine(object):
         ('Device.DeviceInfo.HardwareVersion', di.HardwareVersion),
         ('Device.DeviceInfo.SoftwareVersion', di.SoftwareVersion),
     ]
-    req = self.encode.Inform(root=self.cpe.root,
-                             events=events,
-                             max_envelopes=1,
+    req = self.encode.Inform(root=self.cpe.root, events=events, max_envelopes=1,
                              retry_count=1, parameter_list=parameter_list)
-    return self.Send(req)
+    self.inform = str(req)
+    self.Run()
 
   def SendTransferComplete(self, command_key, faultcode, faultstring,
-                           starttime, endtime):
+                           starttime, endtime, event_code):
+    self.event_queue.append((event_code, command_key))
     cmpl = self.encode.TransferComplete(command_key, faultcode, faultstring,
                                         starttime, endtime)
-    return self.Send(cmpl)
+    self.Send(cmpl)
 
   def GetNext(self):
-    if self.response_queue:
+    if not self.session:
+      return None
+    if self.session.inform_required():
+      if self.inform:
+        self.session.state_update(sent_inform=True)
+        inform = self.inform
+        self.inform = None
+        return inform
+    if self.response_queue and self.session.response_allowed():
       return self.response_queue.pop(0)
-    elif self.request_queue and not self.session.on_hold and not self.session.no_more_requests:
+    if self.request_queue and self.session.request_allowed():
       return self.request_queue.pop(0)
+    return ''
 
   def Run(self):
     print 'RUN'
     if not self.session:
+      print('No ACS session, returning.')
       return
-    acs_url = self.management_server.URL
+    acs_url = self.session.acs_url
     if not acs_url:
       print('No ACS URL populated yet, returning.')
       return
-    if self.session.no_more_requests and self.session.acs_empty:
+    if self.session.should_close():
       print('Idle CWMP session, terminating.')
       self.outstanding = None
       if self.session.close():
@@ -236,11 +231,15 @@ class CPEStateMachine(object):
       self.session = None
       return
 
-    if self.outstanding is None:
-      self.outstanding = self.GetNext()
-    else:
+    if self.outstanding is not None:
       # already an outstanding request
       return
+    if self.outstanding is None:
+      self.outstanding = self.GetNext()
+    if self.outstanding is None:
+      # We're not allowed to send anything yet, session not fully open.
+      return
+
     headers = {}
     if self.session.cookies:
       headers['Cookie'] = ";".join(self.session.cookies)
@@ -248,19 +247,18 @@ class CPEStateMachine(object):
       headers['Content-Type'] = 'text/xml; charset="utf-8"'
       headers['SOAPAction'] = ''
     else:
-      self.outstanding = ''
-      self.session.no_more_requests = True  # $SPEC3 3.7.1.3
-    print "CPE POST: %r\n%s" % (str(headers), self.outstanding)
-    req = tornado.httpclient.HTTPRequest(url=acs_url, method="POST",
-                                         headers=headers, body=self.outstanding,
-                                         follow_redirects=True,
-                                         max_redirects=5,  # $SPEC3 3.4.2
-                                         request_timeout=30.0,
-                                         use_gzip=True, allow_ipv6=True)
+      # Empty message
+      self.session.state_update(cpe_to_acs_empty=True)
+    print("CPE POST (at {0!s}):\n{1!s}\n{2!s}".format(
+        time.ctime(), headers, self.outstanding))
+    req = tornado.httpclient.HTTPRequest(
+        url=acs_url, method="POST", headers=headers,
+        body=self.outstanding, follow_redirects=True, max_redirects=5,
+        request_timeout=30.0, use_gzip=True, allow_ipv6=True,
+        user_agent="catawampus-tr69")
     self.session.http.fetch(req, self.GotResponse)
 
   def GotResponse(self, response):
-    was_outstanding = self.outstanding
     self.outstanding = None
     print 'CPE RECEIVED (at %s):' % time.ctime()
     if not self.session:
@@ -276,21 +274,26 @@ class CPEStateMachine(object):
         if out is not None:
           self.SendResponse(out)
       else:
-        self.session.acs_empty = True
+        self.session.state_update(acs_to_cpe_empty=True)
     else:
       print('HTTP ERROR Code %d' % response.code)
       if self.session.close():
         # Ping received during session, start another
         self.ioloop.add_callback(self._NewPingSession)
       self.session = None
-    if (was_outstanding or
-        self.response_queue or
-        (self.request_queue and not self.session.on_hold)):
-      self.Run()
+    self.Run()
+    return 200
+
+  def _NewTransferCompleteSession(self):
+    if not self.session:
+      self.session = cwmp_session.CwmpSession(self.management_server.URL,
+                                              self.ioloop)
+      self.SendInform('7 TRANSFER COMPLETE')
 
   def _NewPingSession(self):
     if not self.session:
-      self.session = CwmpSession(self.ioloop)
+      self.session = cwmp_session.CwmpSession(self.management_server.URL,
+                                              self.ioloop)
       self.SendInform('6 CONNECTION REQUEST')
     else:
       # $SPEC3 3.2.2 initiate at most one new session after this one closes.
@@ -301,8 +304,25 @@ class CPEStateMachine(object):
     self.ioloop.add_callback(self._NewPingSession)
     return 204  # No Content
 
-  def Bootstrap(self):
-    self.session = CwmpSession(self.ioloop)
+  def TransferCompleteReceived(self):
+    for ev in self.event_queue:
+      xfer_reasons = frozenset(['m download', 'm scheduledownload', 'm upload'])
+      (reason, command_key) = ev
+      if reason.lower() in xfer_reasons:
+        self.event_queue.remove(ev)
+
+  def InformResponseReceived(self):
+    for ev in self.event_queue:
+      inform_reasons = frozenset(['m reboot', 'm scheduleinform'])
+      (reason, command_key) = ev
+      if reason.lower() in inform_reasons:
+        self.event_queue.remove(ev)
+
+  def Startup(self):
+    self.session = cwmp_session.CwmpSession(self.management_server.URL,
+                                            self.ioloop)
+    # TODO(dgentry) Check whether we have a config, send '1 BOOT' instead
+    self.cpe.Startup()
     self.SendInform('0 BOOTSTRAP')
 
 
@@ -312,7 +332,9 @@ def Listen(ip, port, ping_path, acs, acs_url_file, cpe, cpe_listener):
   while ping_path.startswith('/'):
     ping_path = ping_path[1:]
   cpe_machine = CPEStateMachine(ip, cpe, port, acs_url_file, ping_path)
-  cpe.SetDownloadCalls(cpe_machine.SendTransferComplete)
+  cpe.SetCallbacks(cpe_machine.SendTransferComplete,
+                   cpe_machine.TransferCompleteReceived,
+                   cpe_machine.InformResponseReceived)
   handlers = []
   if acs:
     acshandler = api_soap.ACS(acs).Handle

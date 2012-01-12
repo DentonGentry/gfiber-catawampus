@@ -84,9 +84,19 @@ class CPE(TR069Service):
     self._last_parameter_key = None
     self.root = root
     self.download_manager = download.DownloadManager()
+    self.transfer_complete_received_cb = None
+    self.inform_response_received_cb = None
 
-  def SetDownloadCalls(self, send_transfer_complete):
+  def SetCallbacks(self, send_transfer_complete,
+                   transfer_complete_received,
+                   inform_response_received):
     self.download_manager.SEND_TRANSFER_COMPLETE = send_transfer_complete
+    self.transfer_complete_received_cb = transfer_complete_received
+    self.inform_response_received_cb = inform_response_received
+
+  def Startup(self):
+    """Handle any initialization after reboot."""
+    self.download_manager.RestoreDownloads()
 
   def _SetParameterKey(self, value):
     self._last_parameter_key = value
@@ -236,4 +246,10 @@ class CPE(TR069Service):
     raise NotImplementedError()
 
   def TransferCompleteResponseReceived(self):
+    if self.transfer_complete_received_cb:
+      self.transfer_complete_received_cb()
     return self.download_manager.TransferCompleteResponseReceived()
+
+  def InformResponseReceived(self):
+    if self.inform_response_received_cb:
+      self.inform_response_received_cb()

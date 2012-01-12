@@ -120,7 +120,7 @@ def main():
     cpe_machine = tr.http.Listen(opt.ip, opt.port, opt.ping_path, acs,
                                  acs_url_file, cpe, cpe and opt.cpe_listener)
     root.add_management_server(cpe_machine.GetManagementServer())
-    cpe_machine.Bootstrap()
+    cpe_machine.Startup()
 
   loop.Start()
 
