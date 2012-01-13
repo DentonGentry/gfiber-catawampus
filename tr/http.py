@@ -83,6 +83,7 @@ class CPEStateMachine(object):
     self.event_queue = []
     self.inform = None
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
+    self.retry_count = 0  # for Inform.RetryCount
     self.session = None
     self.my_configured_ip = ip
     self.cpe_management_server = cpe_management_server.CpeManagementServer(
@@ -144,8 +145,9 @@ class CPEStateMachine(object):
         ('Device.DeviceInfo.HardwareVersion', di.HardwareVersion),
         ('Device.DeviceInfo.SoftwareVersion', di.SoftwareVersion),
     ]
-    req = self.encode.Inform(root=self.cpe.root, events=events, max_envelopes=1,
-                             retry_count=1, parameter_list=parameter_list)
+    req = self.encode.Inform(root=self.cpe.root, events=events,
+                             retry_count=self.retry_count,
+                             parameter_list=parameter_list)
     self.inform = str(req)
     self.Run()
 
@@ -187,6 +189,7 @@ class CPEStateMachine(object):
         # Ping received during session, start another
         self.ioloop.add_callback(self._NewPingSession)
       self.session = None
+      self.retry_count = 0  # Successful close
       return
 
     if self.outstanding is not None:
@@ -239,6 +242,7 @@ class CPEStateMachine(object):
         # Ping received during session, start another
         self.ioloop.add_callback(self._NewPingSession)
       self.session = None
+      self.retry_count += 1
     self.Run()
     return 200
 
