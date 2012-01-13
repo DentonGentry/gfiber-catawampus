@@ -9,6 +9,8 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import sys
+sys.path.append("vendor/tornado")
 import cpe_management_server as ms
 import cwmpdate
 import datetime

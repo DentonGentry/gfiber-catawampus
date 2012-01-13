@@ -10,16 +10,14 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import device_info
-import ethernet
+import dm.device_info
 import fcntl
 import os
 import subprocess
+import tornado.ioloop
 import tr.core
 import tr.download
 import tr.soap
-import tr.tornadi_fix
-import tr.tornado.ioloop
 import tr.tr181_v2_2 as tr181
 
 
@@ -84,7 +82,7 @@ class DeviceIdGFMedia(object):
     self.ProductClass = 'STB'
 
 
-class DeviceInfoGFMedia(device_info.DeviceInfoLinux26):
+class DeviceInfoGFMedia(dm.device_info.DeviceInfoLinux26):
   def __init__(self):
     device_info.DeviceInfoLinux26.__init__(self, DeviceIdGFMedia())
 
@@ -95,7 +93,7 @@ class InstallerGFMedia(tr.download.Installer):
   def __init__(self, filename, ioloop=None):
     self.filename = filename
     self._install_cb = None
-    self._ioloop = ioloop or tr.tornado.ioloop.IOLoop.instance()
+    self._ioloop = ioloop or tornado.ioloop.IOLoop.instance()
 
   def _call_callback(self, faultcode, faultstring):
     if self._install_cb:

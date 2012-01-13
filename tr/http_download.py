@@ -10,7 +10,6 @@ import json
 import os
 import random
 import tempfile
-import tornadi_fix
 import tornado
 import tornado.httpclient
 import tornado.ioloop

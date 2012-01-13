@@ -9,6 +9,10 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import sys
+sys.path.append("../")
+sys.path.append("../tr/vendor/")
+
 import os
 import unittest
 import ethernet

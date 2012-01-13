@@ -18,7 +18,6 @@ import soap
 import sys
 import tempfile
 import time
-import tornadi_fix
 import tornado
 import tornado.httpclient
 import tornado.ioloop

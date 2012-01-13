@@ -9,6 +9,8 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import sys
+sys.path.append("vendor/tornado")
 import http
 import unittest
 

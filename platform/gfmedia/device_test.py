@@ -10,16 +10,16 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import sys
-sys.path.append("../..")
+sys.path.append("../../tr/vendor/tornado")
+sys.path.append("../../")
 
 import device
 import os
-import tr.tornadi_fix
-import tr.tornado.ioloop
-import tr.tornado.testing
+import tornado.ioloop
+import tornado.testing
 import unittest
 
-class DeviceGFMediaTest(tr.tornado.testing.AsyncTestCase):
+class DeviceGFMediaTest(tornado.testing.AsyncTestCase):
   """Tests for device.py."""
 
   def setUp(self):

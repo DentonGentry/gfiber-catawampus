@@ -9,6 +9,9 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import sys
+sys.path.append("vendor/tornado")
+
 import cwmp_session
 import unittest
 

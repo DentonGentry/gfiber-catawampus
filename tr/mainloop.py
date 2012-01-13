@@ -15,7 +15,6 @@ import errno
 import os
 import socket
 import time
-import tornadi_fix       #pylint: disable-msg=W0611
 import tornado.ioloop
 import tornado.iostream  #pylint: disable-msg=W0404
 

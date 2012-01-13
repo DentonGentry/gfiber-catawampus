@@ -9,6 +9,9 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import sys
+sys.path.append("vendor/tornado")
+
 import api
 import collections
 import core
@@ -87,7 +90,7 @@ class TransferRpcTest(unittest.TestCase):
     cpe.download_manager = MockDownloadManager()
     cpe_machine = http.Listen(ip=None, port=0,
                               ping_path="/ping/acs_integration_test",
-                              acs=None, acs_url="none://none/",
+                              acs=None, acs_url_file="/dev/null",
                               cpe=cpe, cpe_listener=False)
     return cpe_machine
 
@@ -312,7 +315,7 @@ class GetParamsRpcTest(unittest.TestCase):
     cpe = api.CPE(root)
     cpe_machine = http.Listen(ip=None, port=0,
                               ping_path="/ping/acs_integration_test",
-                              acs=None, acs_url="none://none/",
+                              acs=None, acs_url_file="/dev/null",
                               cpe=cpe, cpe_listener=False)
     return cpe_machine
 

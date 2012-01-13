@@ -9,19 +9,24 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import sys
+sys.path.append("tr/vendor/tornado")
+sys.path.append("tr/vendor/bup/lib")
+sys.path.append("tr/vendor")
+
+import bup.options
 import dm.catawampus
 import dm.management_server
 import imp
 import os.path
-import sys
 import tempfile
+import tornado.autoreload
+import tornado.httpclient
 import tr.api
-import tr.bup.options
 import tr.core
 import tr.http
 import tr.mainloop
 import tr.rcommand
-import tr.tornado.autoreload
 import traceroute
 
 
@@ -83,11 +88,12 @@ def _WriteAcsFile(acs_url):
   return acsfile.name
 
 def main():
-  o = tr.bup.options.Options(optspec)
+  o = bup.options.Options(optspec)
   (opt, flags, extra) = o.parse(sys.argv[1:])
 
-  #tr.tornado.httpclient.AsyncHTTPClient.configure("tr.tornado.curl_httpclient.CurlAsyncHTTPClient")
-  tr.tornado.autoreload.start()
+  tornado.httpclient.AsyncHTTPClient.configure(
+      "tornado.curl_httpclient.CurlAsyncHTTPClient")
+  tornado.autoreload.start()
   loop = tr.mainloop.MainLoop()
   root = DeviceModelRoot(loop, opt.platform)
   if opt.rcmd_port:

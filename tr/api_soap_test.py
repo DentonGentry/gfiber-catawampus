@@ -9,9 +9,13 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import sys
+sys.path.append("vendor/tornado")
+
 import api_soap
 import datetime
 import unittest
+import xml.etree.ElementTree as ET
 
 
 expectedTransferComplete = """<?xml version="1.0" encoding="utf-8"?>
@@ -32,6 +36,9 @@ expectedTransferComplete = """<?xml version="1.0" encoding="utf-8"?>
 </soap:Envelope>"""
 
 
+SOAPNS = "{http://schemas.xmlsoap.org/soap/envelope/}"
+CWMPNS = "{urn:dslforum-org:cwmp-1-2}"
+
 class RpcMessageTest(unittest.TestCase):
   """Tests for formatting of XML objects."""
 
@@ -40,7 +47,15 @@ class RpcMessageTest(unittest.TestCase):
     start = datetime.datetime(2011, 12, 5, 12, 01, 02);
     end = datetime.datetime(2011, 12, 5, 12, 01, 03);
     xml = str(encode.TransferComplete("cmdkey", 123, "faultstring", start, end))
-    self.assertEqual(xml, expectedTransferComplete)
+
+    root = ET.fromstring(str(xml))
+    xfer = root.find(SOAPNS + 'Body/' + CWMPNS + 'TransferComplete')
+    self.assertTrue(xfer)
+    self.assertEqual(xfer.find('CommandKey').text, "cmdkey")
+    self.assertEqual(xfer.find('FaultStruct/FaultCode').text, "123")
+    self.assertEqual(xfer.find('FaultStruct/FaultString').text, "faultstring")
+    self.assertTrue(xfer.find('StartTime').text)
+    self.assertTrue(xfer.find('CompleteTime').text)
 
 
 if __name__ == '__main__':

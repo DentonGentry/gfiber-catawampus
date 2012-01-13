@@ -20,7 +20,6 @@ import socket
 import urllib
 import api_soap
 import soap
-import tornadi_fix       #pylint: disable-msg=W0611
 import tornado.httpclient
 import tornado.ioloop
 import tornado.web

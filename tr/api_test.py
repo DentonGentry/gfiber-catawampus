@@ -8,9 +8,11 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import unittest
+import sys
+sys.path.append("vendor/tornado")
 import api
 import core
+import unittest
 
 
 class Word(core.Exporter):

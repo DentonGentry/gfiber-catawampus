@@ -15,7 +15,6 @@ API calls; it's just a python version of the API.
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import download
-import tornadi_fix       #pylint: disable-msg=W0611
 
 
 class TR069Service(object):
