@@ -41,7 +41,10 @@ class Encode(object):
           for event in events:
             with xml.EventStruct:
               xml.EventCode(str(event[0]))
-              xml.CommandKey(str(event[1]))
+              if event[1] is not None:
+                xml.CommandKey(str(event[1]))
+              else:
+                xml.CommandKey(None)
         xml.MaxEnvelopes(str(max_envelopes))
         xml.CurrentTime(cwmpdate.format(current_time))
         xml.RetryCount(str(retry_count))

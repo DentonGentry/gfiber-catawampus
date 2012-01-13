@@ -133,7 +133,7 @@ class CPEStateMachine(object):
       my_ip = self._GetLocalAddr()
       self.session.my_ip = my_ip
       self.cpe_management_server.my_ip = my_ip
-    events = [(reason, '')]
+    events = [(reason, None)]
     for ev in self.event_queue:
       events.append(ev)
     parameter_list = []
