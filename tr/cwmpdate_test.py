@@ -64,10 +64,10 @@ class CwmpDateTest(unittest.TestCase):
     self.assertEqual(timestamp, 1326356403.0)
 
   def testValid(self):
-    self.assertTrue("2009-02-13T23:31:30.987654Z")
-    self.assertTrue("2009-02-13T23:31:30Z")
-    #self.assertFalse("2009-02-13T23:31:30")
-    #self.assertFalse("booga")
+    self.assertTrue(cwmpdate.valid("2009-02-13T23:31:30.987654Z"))
+    self.assertTrue(cwmpdate.valid("2009-02-13T23:31:30Z"))
+    self.assertFalse(cwmpdate.valid("2009-02-13T23:31:30"))
+    self.assertFalse(cwmpdate.valid("booga"))
 
 
 if __name__ == '__main__':
