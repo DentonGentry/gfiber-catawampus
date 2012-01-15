@@ -33,6 +33,8 @@ digraph DLstates {
 }
 """
 
+HTTPCLIENT = tornado.httpclient.AsyncHTTPClient
+
 class CwmpSession(object):
   INIT = "INIT"
   ACTIVE = "ACTIVE"
@@ -40,10 +42,9 @@ class CwmpSession(object):
   NOMORE = "NOMORE"
   DONE = "DONE"
 
-  def __init__(self, acs_url, io_loop=None):
-    self.http = tornado.httpclient.AsyncHTTPClient(
-        max_simultaneous_connections=1,
-        io_loop=io_loop or tornado.ioloop.IOLoop.instance())
+  def __init__(self, acs_url, ioloop=None):
+    self.http = HTTPCLIENT(max_simultaneous_connections=1,
+                           io_loop=ioloop or tornado.ioloop.IOLoop.instance())
     self.acs_url = acs_url
     self.cookies = None
     self.my_ip = None

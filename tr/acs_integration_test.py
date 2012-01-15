@@ -129,10 +129,23 @@ class TransferRpcTest(unittest.TestCase):
     self.assertEqual(dm.newdl_file_size, 123456)
     self.assertEqual(dm.newdl_target_filename, "TargetFileName")
     self.assertEqual(dm.newdl_delay_seconds, 321)
+    root = ET.fromstring(str(responseXml))
+    dlresp = root.find(SOAPNS + 'Body/' + CWMPNS + 'DownloadResponse')
+    self.assertFalse(dlresp)
+    fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
+    self.assertTrue(fault)
+    self.assertEqual(fault.find('faultcode').text, "FaultType")
+    self.assertEqual(fault.find('faultstring').text, "CWMP fault")
+    detail = fault.find('detail/' + CWMPNS + 'Fault')
+    self.assertTrue(detail)
+    self.assertEqual(detail.find('FaultCode').text, "9000")
+    self.assertEqual(detail.find('FaultString').text, "FaultString")
 
-    # We don't do a string compare of the XML output, that is too fragile as a test.
-    # We parse the XML and look for expected values. Nonetheless here is what should result:
-    expected_response = r"""<?xml version="1.0" encoding="utf-8"?>
+    # We don't do a string compare of the XML output, that is too fragile
+    # as a test. We parse the XML and look for expected values. Nonetheless
+    # here is roughly what responseXml should look like, if you need to debug
+    # this test case:
+    expected = r"""<?xml version="1.0" encoding="utf-8"?>
       <soap:Envelope xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
         <soap:Header>
           <cwmp:ID soap:mustUnderstand="1">TestCwmpId</cwmp:ID>
@@ -151,17 +164,6 @@ class TransferRpcTest(unittest.TestCase):
         </soap:Body>
       </soap:Envelope>"""
 
-    root = ET.fromstring(str(responseXml))
-    dlresp = root.find(SOAPNS + 'Body/' + CWMPNS + 'DownloadResponse')
-    self.assertFalse(dlresp)
-    fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
-    self.assertTrue(fault)
-    self.assertEqual(fault.find('faultcode').text, "FaultType")
-    self.assertEqual(fault.find('faultstring').text, "CWMP fault")
-    detail = fault.find('detail/' + CWMPNS + 'Fault')
-    self.assertTrue(detail)
-    self.assertEqual(detail.find('FaultCode').text, "9000")
-    self.assertEqual(detail.find('FaultString').text, "FaultString")
 
   def testGetAllQueuedTransfers(self):
     cpe = self.getCpe()
@@ -170,9 +172,23 @@ class TransferRpcTest(unittest.TestCase):
     dm.AddQueuedTransfer()
     dm.AddQueuedTransfer()
     responseXml = cpe.cpe_soap.Handle(soapxml)
+    self.assertFalse(dm.new_download_called)
+    root = ET.fromstring(str(responseXml))
+    transfers = root.findall(SOAPNS + 'Body/' + CWMPNS +
+                             'GetAllQueuedTransfersResponse/TransferList')
+    self.assertEqual(len(transfers), 2)
+    for i, t in enumerate(transfers):
+      self.assertEqual(t.find('CommandKey').text, 'CommandKey' + str(i+1))
+      self.assertEqual(t.find('State').text, '2')
+      self.assertEqual(t.find('IsDownload').text, 'True')
+      self.assertEqual(t.find('FileType').text, 'FileType')
+      self.assertEqual(t.find('FileSize').text, '123')
+      self.assertEqual(t.find('TargetFileName').text, 'TargetFileName')
 
-    # We don't do a string compare of the XML output, that is too fragile as a test.
-    # We parse the XML and look for expected values. Nonetheless here is what should result:
+    # We don't do a string compare of the XML output, that is too fragile
+    # as a test. We parse the XML and look for expected values. Nonetheless
+    # here is roughly what responseXml should look like, if you need to debug
+    # this test case:
     expected = r"""<soap:Envelope xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
       <soap:Header>
         <cwmp:ID soap:mustUnderstand="1">TestCwmpId</cwmp:ID>
@@ -199,17 +215,6 @@ class TransferRpcTest(unittest.TestCase):
       </soap:Body>
     </soap:Envelope>"""
 
-    self.assertFalse(dm.new_download_called)
-    root = ET.fromstring(str(responseXml))
-    transfers = root.findall(SOAPNS + 'Body/' + CWMPNS + 'GetAllQueuedTransfersResponse/TransferList')
-    self.assertEqual(len(transfers), 2)
-    for i, t in enumerate(transfers):
-      self.assertEqual(t.find('CommandKey').text, 'CommandKey' + str(i+1))
-      self.assertEqual(t.find('State').text, '2')
-      self.assertEqual(t.find('IsDownload').text, 'True')
-      self.assertEqual(t.find('FileType').text, 'FileType')
-      self.assertEqual(t.find('FileSize').text, '123')
-      self.assertEqual(t.find('TargetFileName').text, 'TargetFileName')
 
   def testGetQueuedTransfers(self):
     cpe = self.getCpe()
@@ -219,8 +224,18 @@ class TransferRpcTest(unittest.TestCase):
     dm.AddQueuedTransfer()
     responseXml = cpe.cpe_soap.Handle(soapxml)
 
-    # We don't do a string compare of the XML output, that is too fragile as a test.
-    # We parse the XML and look for expected values. Nonetheless here is what should result:
+    self.assertFalse(dm.new_download_called)
+    root = ET.fromstring(str(responseXml))
+    transfers = root.findall(SOAPNS + 'Body/' + CWMPNS + 'GetQueuedTransfersResponse/TransferList')
+    self.assertEqual(len(transfers), 2)
+    for i, t in enumerate(transfers):
+      self.assertEqual(t.find('CommandKey').text, 'CommandKey' + str(i+1))
+      self.assertEqual(t.find('State').text, '2')
+
+    # We don't do a string compare of the XML output, that is too fragile
+    # as a test. We parse the XML and look for expected values. Nonetheless
+    # here is roughly what responseXml should look like, if you need to debug
+    # this test case:
     expected = r"""<soap:Envelope xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
       <soap:Header>
         <cwmp:ID soap:mustUnderstand="1">TestCwmpId</cwmp:ID>
@@ -239,22 +254,18 @@ class TransferRpcTest(unittest.TestCase):
       </soap:Body>
     </soap:Envelope>"""
 
-    self.assertFalse(dm.new_download_called)
-    root = ET.fromstring(str(responseXml))
-    transfers = root.findall(SOAPNS + 'Body/' + CWMPNS + 'GetQueuedTransfersResponse/TransferList')
-    self.assertEqual(len(transfers), 2)
-    for i, t in enumerate(transfers):
-      self.assertEqual(t.find('CommandKey').text, 'CommandKey' + str(i+1))
-      self.assertEqual(t.find('State').text, '2')
-
   def testCancelTransfer(self):
     cpe = self.getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:CancelTransfer><CommandKey>CommandKey</CommandKey></cwmp:CancelTransfer></soapenv:Body></soapenv:Envelope>"""
     dm = cpe.cpe.download_manager
     responseXml = cpe.cpe_soap.Handle(soapxml)
+    root = ET.fromstring(str(responseXml))
+    self.assertTrue(root.findall(SOAPNS + 'Body/' + CWMPNS + 'CancelTransferResponse'))
 
-    # We don't do a string compare of the XML output, that is too fragile as a test.
-    # We parse the XML and look for expected values. Nonetheless here is what should result:
+    # We don't do a string compare of the XML output, that is too fragile
+    # as a test. We parse the XML and look for expected values. Nonetheless
+    # here is roughly what responseXml should look like, if you need to debug
+    # this test case:
     expected = r"""<?xml version="1.0" encoding="utf-8"?>
       <soap:Envelope xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
         <soap:Header>
@@ -265,8 +276,6 @@ class TransferRpcTest(unittest.TestCase):
         </soap:Body>
       </soap:Envelope>"""
 
-    root = ET.fromstring(str(responseXml))
-    self.assertTrue(root.findall(SOAPNS + 'Body/' + CWMPNS + 'CancelTransferResponse'))
 
   def testCancelTransferRefused(self):
     cpe = self.getCpe()
@@ -275,9 +284,20 @@ class TransferRpcTest(unittest.TestCase):
     dm.cancel_return = (-1, ((9021, 'FaultType'), 'Refused'))
     responseXml = cpe.cpe_soap.Handle(soapxml)
 
+    root = ET.fromstring(str(responseXml))
+    fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
+    self.assertTrue(fault)
+    self.assertEqual(fault.find('faultcode').text, "FaultType")
+    self.assertEqual(fault.find('faultstring').text, "CWMP fault")
+    detail = fault.find('detail/' + CWMPNS + 'Fault')
+    self.assertTrue(detail)
+    self.assertEqual(detail.find('FaultCode').text, "9021")
+    self.assertEqual(detail.find('FaultString').text, "Refused")
+
     # We don't do a string compare of the XML output, that is too fragile
     # as a test. We parse the XML and look for expected values. Nonetheless
-    # here is what should result:
+    # here is roughly what responseXml should look like, if you need to debug
+    # this test case:
     expected = r"""<?xml version="1.0" encoding="utf-8"?>
       <soap:Envelope xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
         <soap:Header>
@@ -297,16 +317,6 @@ class TransferRpcTest(unittest.TestCase):
         </soap:Body>
       </soap:Envelope>"""
 
-    root = ET.fromstring(str(responseXml))
-    fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
-    self.assertTrue(fault)
-    self.assertEqual(fault.find('faultcode').text, "FaultType")
-    self.assertEqual(fault.find('faultstring').text, "CWMP fault")
-    detail = fault.find('detail/' + CWMPNS + 'Fault')
-    self.assertTrue(detail)
-    self.assertEqual(detail.find('FaultCode').text, "9021")
-    self.assertEqual(detail.find('FaultString').text, "Refused")
-
 
 class GetParamsRpcTest(unittest.TestCase):
   """Test cases for RPCs relating to Parameters."""
@@ -324,9 +334,15 @@ class GetParamsRpcTest(unittest.TestCase):
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterValues><ParameterNames soapenc:arrayType="{urn:dslforum-org:cwmp-1-2}string[1]"><ns3:string xmlns="urn:dslforum-org:cwmp-1-2" xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" xmlns:ns3="urn:dslforum-org:cwmp-1-2">Foo</ns3:string></ParameterNames></cwmp:GetParameterValues></soapenv:Body></soapenv:Envelope>"""
     responseXml = cpe.cpe_soap.Handle(soapxml)
 
+    root = ET.fromstring(str(responseXml))
+    name = root.find(SOAPNS + 'Body/' + CWMPNS + 'GetParameterValuesResponse/ParameterList/ParameterValueStruct/Name')
+    self.assertTrue(name is not None)
+    self.assertEqual(name.text, 'Foo')
+
     # We don't do a string compare of the XML output, that is too fragile
     # as a test. We parse the XML and look for expected values. Nonetheless
-    # here is what should result:
+    # here is roughly what responseXml should look like, if you need to debug
+    # this test case:
     expected = r"""<?xml version="1.0" encoding="utf-8"?>
       <soap:Envelope xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
         <soap:Header>
@@ -344,19 +360,20 @@ class GetParamsRpcTest(unittest.TestCase):
         </soap:Body>
       </soap:Envelope>"""
 
-    root = ET.fromstring(str(responseXml))
-    name = root.find(SOAPNS + 'Body/' + CWMPNS + 'GetParameterValuesResponse/ParameterList/ParameterValueStruct/Name')
-    self.assertTrue(name is not None)
-    self.assertEqual(name.text, 'Foo')
-
   def testGetParamName(self):
     cpe = self.getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterNames><ParameterPath/><NextLevel>true</NextLevel></cwmp:GetParameterNames></soapenv:Body></soapenv:Envelope>"""
     responseXml = cpe.cpe_soap.Handle(soapxml)
 
+    root = ET.fromstring(str(responseXml))
+    name = root.find(SOAPNS + 'Body/' + CWMPNS + 'GetParameterNamesResponse/ParameterList/ParameterInfoStruct/Name')
+    self.assertTrue(name is not None)
+    self.assertEqual(name.text, 'Foo')
+
     # We don't do a string compare of the XML output, that is too fragile
     # as a test. We parse the XML and look for expected values. Nonetheless
-    # here is what should result:
+    # here is roughly what responseXml should look like, if you need to debug
+    # this test case:
     expected = r"""<?xml version="1.0" encoding="utf-8"?>
       <soap:Envelope xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
         <soap:Header>
@@ -374,10 +391,6 @@ class GetParamsRpcTest(unittest.TestCase):
         </soap:Body>
       </soap:Envelope>"""
 
-    root = ET.fromstring(str(responseXml))
-    name = root.find(SOAPNS + 'Body/' + CWMPNS + 'GetParameterNamesResponse/ParameterList/ParameterInfoStruct/Name')
-    self.assertTrue(name is not None)
-    self.assertEqual(name.text, 'Foo')
 
 if __name__ == '__main__':
   unittest.main()

@@ -84,7 +84,7 @@ class DeviceIdGFMedia(object):
 
 class DeviceInfoGFMedia(dm.device_info.DeviceInfoLinux26):
   def __init__(self):
-    device_info.DeviceInfoLinux26.__init__(self, DeviceIdGFMedia())
+    dm.device_info.DeviceInfoLinux26.__init__(self, DeviceIdGFMedia())
 
 
 GINSTALL = "/bin/ginstall.py"

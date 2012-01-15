@@ -137,14 +137,27 @@ class CPEStateMachine(object):
     for ev in self.event_queue:
       events.append(ev)
     parameter_list = []
-    # TODO(dgentry) interrogate root to look for Device or InternetGatewayDevice
-    di = self.cpe.root.GetExport('Device.DeviceInfo')
-    parameter_list += [
-        ('Device.ManagementServer.ConnectionRequestURL',
-         self.cpe_management_server.ConnectionRequestURL),
-        ('Device.DeviceInfo.HardwareVersion', di.HardwareVersion),
-        ('Device.DeviceInfo.SoftwareVersion', di.SoftwareVersion),
-    ]
+    try:
+      di = self.cpe.root.GetExport('Device.DeviceInfo')
+      parameter_list += [
+          ('Device.ManagementServer.ConnectionRequestURL',
+           self.cpe_management_server.ConnectionRequestURL),
+          ('Device.DeviceInfo.HardwareVersion', di.HardwareVersion),
+          ('Device.DeviceInfo.SoftwareVersion', di.SoftwareVersion),
+      ]
+    except AttributeError:
+      try:
+        di = self.cpe.root.GetExport('InternetGatewayDevice.DeviceInfo')
+        parameter_list += [
+            ('InternetGatewayDevice.ManagementServer.ConnectionRequestURL',
+             self.cpe_management_server.ConnectionRequestURL),
+            ('InternetGatewayDevice.DeviceInfo.HardwareVersion',
+             di.HardwareVersion),
+            ('InternetGatewayDevice.DeviceInfo.SoftwareVersion',
+             di.SoftwareVersion),
+        ]
+      except AttributeError:
+        pass
     req = self.encode.Inform(root=self.cpe.root, events=events,
                              retry_count=self.retry_count,
                              parameter_list=parameter_list)

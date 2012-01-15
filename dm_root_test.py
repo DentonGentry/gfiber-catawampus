@@ -5,12 +5,14 @@
 # unittest requires method names starting in 'test'
 #pylint: disable-msg=C6409
 
-"""Unit tests for runserver.py"""
+"""Unit tests for dm_root.py"""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import sys
+sys.path.append("tr/vendor/tornado")
+import dm_root
 import os
-import runserver
 import tr.tr181_v2_2
 import tr.tr098_v1_2
 import unittest
@@ -34,9 +36,8 @@ class MockManagement(object):
 
 
 class DeviceModelRootTest(unittest.TestCase):
-  """Tests for runserver.py:DeviceModelRoot"""
   def testAddManagementServer(self):
-    root = runserver.DeviceModelRoot(loop=None, platform=None)
+    root = dm_root.DeviceModelRoot(loop=None, platform=None)
     mgmt = MockManagement()
     root.add_management_server(mgmt)  # should do nothing.
 
