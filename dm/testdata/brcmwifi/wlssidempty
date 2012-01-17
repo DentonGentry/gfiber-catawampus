@@ -1,0 +1,4 @@
+#!/bin/sh
+
+echo "Current SSID: \"\""
+exit 0
