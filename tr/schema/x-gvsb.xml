@@ -13,10 +13,10 @@
              spec="urn:google-com:x-gvsb-1-0">
   <model name="X_GOOGLE-COM_GVSB:1.0" isService="true">
     <parameter name="GvsbServer" access="readWrite">
-      <description>DNS name of GVSB server.</description>
+      <description>URL of the GVSB server.</description>
       <syntax>
         <string>
-          <size maxLength="255"/>
+          <size maxLength="2000"/>
         </string>
       </syntax>
     </parameter>
