@@ -12,6 +12,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import dm.device_info
 import fcntl
+import platform.gfmedia.gvsb
 import os
 import subprocess
 import tornado.ioloop
@@ -168,6 +169,7 @@ class DeviceGFMedia(tr181.Device_v2_2.Device):
     self.Unexport(objects='Users')
 
     self.DeviceInfo = DeviceInfoGFMedia()
+    self.X_GOOGLE_COM_GVSB = platform.gfmedia.gvsb.Gvsb()
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
     self.Ethernet = tr.core.TODO()
     self.InterfaceStackNumberOfEntries = 0
@@ -180,6 +182,7 @@ def PlatformInit(name, device_model_root):
   objects = []
   device_model_root.Device = DeviceGFMedia()
   objects.append('Device')
+  objects.append('X_GOOGLE-COM_GVSB')
   return (params, objects)
 
 
