@@ -20,31 +20,54 @@ WL_EXE = "/usr/bin/wl"
 class BrcmWifiWlanConfiguration(BASEWIFI):
   def __init__(self):
     BASEWIFI.__init__(self)
+    self.APWMMParameterList = {}
+    self.AssociatedDeviceList = {}
+    self.AuthenticationServiceMode = tr.core.TODO()
+    self.AutoRateFallBackEnabled = tr.core.TODO()
     self.AutoChannelEnable = tr.core.TODO()
     self.BasicAuthenticationMode = tr.core.TODO()
+    self.BasicDataTransmitRates = tr.core.TODO()
     self.BasicEncryptionModes = tr.core.TODO()
+    self.BeaconAdvertisementEnabled = tr.core.TODO()
     self.BeaconType = tr.core.TODO()
+    self.ChannelsInUse = tr.core.TODO()
     self.DeviceOperationMode = tr.core.TODO()
+    self.DistanceFromRoot = tr.core.TODO()
+    self.Enable = tr.core.TODO()
     self.IEEE11iAuthenticationMode = tr.core.TODO()
     self.IEEE11iEncryptionModes = tr.core.TODO()
+    self.InsecureOOBAccessEnabled = True
+    self.KeyPassphrase = tr.core.TODO()
+    self.LocationDescription = ""
+    self.MACAddressControlEnabled = tr.core.TODO()
+    self.MaxBitRate = tr.core.TODO()
     self.Name = tr.core.TODO()
+    self.OperationalDataTransmitRates = tr.core.TODO()
+    self.PeerBSSID = tr.core.TODO()
+    self.PreSharedKeyList = {}
+    self.PossibleDataTransmitRates = tr.core.TODO()
+    self.RadioEnabled = tr.core.TODO()
+    self.RegulatoryDomain = tr.core.TODO()
     self.SSIDAdvertisementEnabled = tr.core.TODO()
-    self.Standard = tr.core.TODO()
+    self.STAWMMParameterList = {}
+    self.Standard = 'n'
+    self.Stats = tr.core.TODO()
+    self.Status = tr.core.TODO()
     self.TotalAssociations = 0
+    self.TotalIntegrityFailures = tr.core.TODO()
+    self.TotalPSKFailures = tr.core.TODO()
     self.TransmitPower = tr.core.TODO()
     self.TransmitPowerSupported = tr.core.TODO()
-    self.UAPSDEnable = tr.core.TODO()
-    self.UAPSDSupported = tr.core.TODO()
-    self.WMMEnable = tr.core.TODO()
-    self.WMMSupported = tr.core.TODO()
+    self.Unexport("UAPSDEnable")
+    self.UAPSDSupported = False
+    self.Unexport("WMMEnable")
+    self.WMMSupported = False
+    self.WEPEncryptionLevel = tr.core.TODO()
+    self.WEPKeyList = {}
+    self.WEPKeyIndex = tr.core.TODO()
     self.WPAAuthenticationMode = tr.core.TODO()
     self.WPAEncryptionModes = tr.core.TODO()
-    #objects=['Stats',
-    #         'WPS'],
-    #lists=['APWMMParameter',
-    #       'AssociatedDevice',
-    #       'PreSharedKey',
-    #       'STAWMMParameter'])
+    self.WPS = tr.core.TODO()
 
   # TODO(dgentry) need a @sessioncache decorator
   def _GetWlCounters(self):
@@ -109,13 +132,16 @@ class BrcmWifiWlanConfiguration(BASEWIFI):
     return ''.join(output)
 
   @property  # TODO(dgentry) need @sessioncache decorator
-  def Channels(self):
+  def PossibleChannels(self):
     wl = subprocess.Popen([WL_EXE, "channels"], stdout=subprocess.PIPE)
     out, err = wl.communicate(None)
-    channels = [int(x) for x in out.split()]
-    return self._OutputContiguousRanges(channels)
+    if out:
+      channels = [int(x) for x in out.split()]
+      return self._OutputContiguousRanges(channels)
+    else:
+      return ""
 
-  @property
+  @property  # TODO(dgentry) need @sessioncache decorator
   def SSID(self):
     wl = subprocess.Popen([WL_EXE, "ssid"], stdout=subprocess.PIPE)
     out, err = wl.communicate(None)
@@ -125,6 +151,17 @@ class BrcmWifiWlanConfiguration(BASEWIFI):
       if ssid is not None:
         return ssid.group(1)
     return ""
+
+  @property  # TODO(dgentry) need @sessioncache decorator
+  def BSSID(self):
+    wl = subprocess.Popen([WL_EXE, "bssid"], stdout=subprocess.PIPE)
+    out, err = wl.communicate(None)
+    bssid_re = re.compile('((?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})')
+    for line in out.splitlines():
+      bssid = bssid_re.match(line)
+      if bssid is not None:
+        return bssid.group(1)
+    return "00:00:00:00:00:00"
 
   @property
   def TotalBytesReceived(self):
@@ -145,9 +182,6 @@ class BrcmWifiWlanConfiguration(BASEWIFI):
   def TotalPacketsSent(self):
     counters = self._GetWlCounters()
     return int(counters.get('txframe', 0))
-
-
-
 
 
 def main():

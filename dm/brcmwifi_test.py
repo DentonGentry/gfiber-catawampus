@@ -26,6 +26,11 @@ class BrcmWifiTest(unittest.TestCase):
   def tearDown(self):
     brcmwifi.WL_EXE = self.old_WL_EXE
 
+  def testValidateExports(self):
+    bw = brcmwifi.BrcmWifiWlanConfiguration()
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlempty"
+    bw.ValidateExports()
+
   def testCounters(self):
     brcmwifi.WL_EXE = "testdata/brcmwifi/wlcounters"
     bw = brcmwifi.BrcmWifiWlanConfiguration()
@@ -47,10 +52,11 @@ class BrcmWifiTest(unittest.TestCase):
     self.assertEqual(bw._OutputContiguousRanges([1,2,3,5,7,8,9]), "1-3,5,7-9")
     self.assertEqual(bw._OutputContiguousRanges([1,3,5,7,9]), "1,3,5,7,9")
 
-  def testChannels(self):
+  def testPossibleChannels(self):
     brcmwifi.WL_EXE = "testdata/brcmwifi/wlchannels"
     bw = brcmwifi.BrcmWifiWlanConfiguration()
-    self.assertEqual(bw.Channels, "1-11,36,40,44,48,52,56,60,64,100,104,108,112,116,120,124,128,132,136,140,149,153,157,161,165")
+    self.assertEqual(bw.PossibleChannels,
+                     "1-11,36,40,44,48,52,56,60,64,100,104,108,112,116,120,124,128,132,136,140,149,153,157,161,165")
 
   def testSSID(self):
     brcmwifi.WL_EXE = "testdata/brcmwifi/wlssid"
@@ -58,6 +64,13 @@ class BrcmWifiTest(unittest.TestCase):
     self.assertEqual(bw.SSID, 'MySSID')
     brcmwifi.WL_EXE = "testdata/brcmwifi/wlssidempty"
     self.assertEqual(bw.SSID, '')
+
+  def testBSSID(self):
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlbssid"
+    bw = brcmwifi.BrcmWifiWlanConfiguration()
+    self.assertEqual(bw.BSSID, '01:23:45:67:89:ab')
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlempty"
+    self.assertEqual(bw.BSSID, '00:00:00:00:00:00')
 
 
 if __name__ == '__main__':
