@@ -5,6 +5,9 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import sys
+sys.path.append("vendor/tornado")
+
 import hashlib
 import json
 import os
