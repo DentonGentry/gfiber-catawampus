@@ -18,6 +18,7 @@ import tr.tr181_v2_2
 
 
 BASE_TRACEROUTE = tr.tr181_v2_2.Device_v2_2.Device.IP.Diagnostics.TraceRoute
+MIN_PACKET_SIZE = 52  # from MacOS; Linux can apparently go smaller?
 
 
 class State(object):
@@ -111,12 +112,19 @@ class TraceRoute(BASE_TRACEROUTE):
     print 'traceroute starting.'
     if not self.Host:
       raise Exception('TraceRoute.Host is not set')
-    self.subproc = subprocess.Popen(['traceroute',
-                                     '-m', '%d' % int(self.MaxHopCount),
-                                     '-q', '%d' % int(self.NumberOfTries),
-                                     '-w', '%.2f' % (int(self.Timeout)/1000.0),
-                                     self.Host,
-                                     '%d' % int(self.DataBlockSize)],
+    if ':' in self.Host:
+      # IPv6
+      argv_base = ['traceroute6', '-l']
+    else:
+      # assume IPv4
+      argv_base = ['traceroute']
+    argv = argv_base + ['-m', '%d' % int(self.MaxHopCount),
+                        '-q', '%d' % int(self.NumberOfTries),
+                        '-w', '%d' % (int(self.Timeout)/1000.0),
+                        self.Host,
+                        '%d' % max(MIN_PACKET_SIZE, int(self.DataBlockSize))]
+    print '  %r' % argv
+    self.subproc = subprocess.Popen(argv,
                                     stdout=subprocess.PIPE)
     self.loop.ioloop.add_handler(self.subproc.stdout.fileno(),
                                  self._GotData,
