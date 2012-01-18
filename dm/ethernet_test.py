@@ -27,10 +27,7 @@ class EthernetTest(unittest.TestCase):
   def testInterfaceStatsGood(self):
     devstat = ethernet.NetdevStatsLinux26("testdata/ethernet/net_dev")
     eth = ethernet.EthernetInterfaceStatsLinux26("foo0", devstat)
-    try:
-      eth.ValidateExports()
-    except SchemaError:
-      self.AssertTrue(False)
+    eth.ValidateExports()
 
     self.assertEqual(eth.BroadcastPacketsReceived, None)
     self.assertEqual(eth.BroadcastPacketsSent, None)
@@ -54,10 +51,7 @@ class EthernetTest(unittest.TestCase):
     # using the foo0 fake data instead.
     devstat = ethernet.NetdevStatsLinux26("testdata/ethernet/net_dev")
     eth = ethernet.EthernetInterfaceStatsLinux26("eth0", devstat)
-    try:
-      eth.ValidateExports()
-    except SchemaError:
-      self.AssertTrue(False)
+    eth.ValidateExports()
 
     self.assertEqual(eth.BroadcastPacketsReceived, None)
     self.assertEqual(eth.BroadcastPacketsSent, None)
