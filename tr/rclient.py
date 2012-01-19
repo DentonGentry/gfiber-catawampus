@@ -194,7 +194,8 @@ def main():
 
     readline.set_completer_delims(' \t\n\r/')
     readline.set_completer(client.ReadlineCompleter)
-    readline.parse_and_bind('tab: complete')
+    readline.parse_and_bind('bind ^I rl_complete')  # MacOS
+    readline.parse_and_bind('tab: complete')        # other
 
     while True:
       print
