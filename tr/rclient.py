@@ -8,12 +8,14 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import sys
+sys.path.append('vendor/tornado')
+sys.path.append('vendor/bup/lib')
 
 import os.path
 import re
 import readline
 import socket
-import sys
 import traceback
 import bup.shquote
 import mainloop
