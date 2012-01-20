@@ -16,9 +16,17 @@ import readline
 import socket
 import sys
 import traceback
+import bup.options
 import bup.shquote
 import mainloop
 import quotedblock
+
+
+optspec = """
+rclient.py [options]
+--
+u,unix-path=  Unix socket to listen on [/tmp/mainloop.sock]
+"""
 
 
 HISTORY_FILE = os.path.expanduser('~/.rclient_history')
@@ -67,8 +75,9 @@ def _SlashesToDots(s):
 class Client(object):
   """Manage the client-side state of an rcommand connection."""
 
-  def __init__(self, loop):
+  def __init__(self, loop, sockname):
     self.loop = loop
+    self.sockname = sockname
     self.stream = None
     self.result = None
     self._last_res = None
@@ -80,7 +89,7 @@ class Client(object):
   def _StartConnect(self):
     self.stream = None
     try:
-      self.loop.ConnectUnix('/tmp/mainloop.sock',
+      self.loop.ConnectUnix(self.sockname,
                             HandleFatal(self.OnConnect))
     except socket.error, e:
       raise Fatal(str(e))
@@ -183,12 +192,15 @@ class Client(object):
 
 
 def main():
+  o = bup.options.Options(optspec)
+  (opt, flags, extra) = o.parse(sys.argv[1:])
+
   if os.path.exists(HISTORY_FILE):
     readline.read_history_file(HISTORY_FILE)
   client = None
   try:  #pylint: disable-msg=C6405
     loop = mainloop.MainLoop()
-    client = Client(loop)
+    client = Client(loop, opt.unix_path)
     loop.Start()
 
     readline.set_completer_delims(' \t\n\r/')
