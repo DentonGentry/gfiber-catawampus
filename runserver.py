@@ -42,7 +42,8 @@ acs-url-file= Filename where ACS URL should be read from
 fake-acs      Run a fake ACS (and auto-set --acs-url to that)
 no-cpe        Don't run a CPE (and thus never connect to ACS)
 cpe-listener  Let CPE listen for http requests (not TR-069 compliant)
-platform=     Activate the platform-specific device tree
+platform=     Activate the platform-specific device tree (see platform/ dir)
+close-stdio   Close stdout after listeners are running; exit when stdin closes
 """
 
 
@@ -51,6 +52,12 @@ def _WriteAcsFile(acs_url):
   acsfile.write(acs_url)
   acsfile.close()
   return acsfile.name
+
+
+def _GotData(loop, fd, flags):
+  if not os.read(fd, 1024):
+    loop.ioloop.stop()
+
 
 def main():
   o = bup.options.Options(optspec)
@@ -93,6 +100,14 @@ def main():
                                    acs_url_file, cpe, opt.cpe_listener)
       root.add_management_server(cpe_machine.GetManagementServer())
       cpe_machine.Startup()
+
+    if opt.close_stdio:
+      nullf = open('/dev/null', 'w+')
+      os.dup2(nullf.fileno(), 1)
+      nullf.close()
+      loop.ioloop.add_handler(sys.stdin.fileno(),
+                              lambda *args: _GotData(loop, *args),
+                              loop.ioloop.READ)
 
   loop.Start()
 

@@ -14,6 +14,7 @@ import os.path
 import re
 import readline
 import socket
+import sys
 import traceback
 import bup.shquote
 import mainloop
@@ -223,6 +224,8 @@ def main():
   except Fatal, e:
     sys.stderr.write('%s\n' % e)
     sys.exit(1)
+  except EOFError:
+    pass
   finally:
     readline.write_history_file(HISTORY_FILE)
     if client:
