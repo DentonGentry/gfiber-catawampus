@@ -9,8 +9,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import sys
-sys.path.append("../../")
+import fix_path
 
 import gvsb
 import tempfile

@@ -9,6 +9,8 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import fix_path
+
 import dm.device_info
 import os
 import random

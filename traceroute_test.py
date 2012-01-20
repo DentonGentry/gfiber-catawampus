@@ -9,8 +9,8 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import sys
-sys.path.append("tr/vendor/tornado")
+import tr.fix_path
+
 import unittest
 import tr.mainloop
 import traceroute

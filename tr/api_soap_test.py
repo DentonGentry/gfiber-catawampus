@@ -9,9 +9,9 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import sys
-sys.path.append("vendor/tornado")
+import fix_path
 
+import sys
 import api_soap
 import datetime
 import unittest

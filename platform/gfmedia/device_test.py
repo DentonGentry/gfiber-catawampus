@@ -9,10 +9,9 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import sys
-sys.path.append("../../tr/vendor/tornado")
-sys.path.append("../../")
+import fix_path
 
+import sys
 import device
 import os
 import tornado.ioloop

@@ -9,14 +9,28 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import tr.fix_path
+
 import dm.catawampus
 import dm.management_server
 import imp
 import os.path
+import sys
 import traceroute
 import tr.core
+import platform
 
-PLATFORMDIR = "platform"
+
+def _RecursiveImport(name):
+  split = name.split('.')
+  last = split.pop()
+  if split:
+    path = _RecursiveImport('.'.join(split)).__path__
+  else:
+    path = sys.path
+  file, path, description = imp.find_module(last, path)
+  return imp.load_module(name, file, path, description)
+
 
 class DeviceModelRoot(tr.core.Exporter):
   """A class to hold the device models."""
@@ -24,8 +38,7 @@ class DeviceModelRoot(tr.core.Exporter):
   def __init__(self, loop, platform):
     tr.core.Exporter.__init__(self)
     if platform:
-      path = os.path.join(PLATFORMDIR, platform, 'device.py')
-      device = imp.load_source('device', path)
+      device = _RecursiveImport('platform.%s.device' % platform)
       (params, objects) = device.PlatformInit(name=platform,
                                               device_model_root=self)
     else:

@@ -5,11 +5,14 @@ all: tr/all
 test: all tr/test *_test.py
 	set -e; \
 	for d in $(filter %_test.py,$^); do \
+		echo; \
+		echo "Testing $$d"; \
 		python $$d; \
 	done
 
 clean: tr/clean
 	rm -f *~ .*~ *.pyc
+	find . -name '*.pyc' -o -name '*~' | xargs rm -f
 
 lint: all
 	set -e; \

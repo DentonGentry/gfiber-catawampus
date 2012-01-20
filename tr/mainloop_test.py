@@ -5,8 +5,8 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import fix_path
 import sys
-sys.path.append("vendor/tornado")
 import unittest
 import weakref
 import mainloop

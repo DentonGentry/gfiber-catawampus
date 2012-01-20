@@ -26,5 +26,5 @@ test: all stamp.validated $(wildcard *_test.py)
 	done
 
 clean:
-	rm -f *~ .*~ *.pyc *.stamp tr???_*.py* stamp.*
+	rm -f *~ .*~ *.pyc *.stamp tr???_*.py* x_*.py* stamp.*
 	rm -rf std
