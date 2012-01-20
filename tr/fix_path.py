@@ -10,9 +10,9 @@ import os.path
 import sys
 
 mydir = os.path.dirname(__file__)
-sys.path += [
+sys.path = [
     os.path.join(mydir, 'vendor/tornado'),
     os.path.join(mydir, 'vendor/bup/lib'),
     os.path.join(mydir, 'vendor'),
     os.path.join(mydir, '..'),
-]
+] + sys.path
