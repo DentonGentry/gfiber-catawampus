@@ -10,6 +10,7 @@ test: all tr/test *_test.py
 
 clean: tr/clean
 	rm -f *~ .*~ *.pyc
+	find . -name '*.pyc' -o -name '*~' | xargs rm -f
 
 lint: all
 	set -e; \
