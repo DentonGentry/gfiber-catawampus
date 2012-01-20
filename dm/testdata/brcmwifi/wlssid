@@ -1,4 +1,6 @@
 #!/bin/sh
 
-echo "Current SSID: \"MySSID\""
+if [ x"$1" = "xssid" ] ; then
+  echo "Current SSID: \"MySSID\""
+fi
 exit 0
