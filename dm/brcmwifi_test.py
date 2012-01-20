@@ -44,6 +44,21 @@ class BrcmWifiTest(unittest.TestCase):
     bw = brcmwifi.BrcmWifiWlanConfiguration()
     self.assertEqual(bw.Channel, 1)
 
+  def testValidateChannel(self):
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlchannel"
+    bw = brcmwifi.BrcmWifiWlanConfiguration()
+    self.assertTrue(bw.ValidateChannel(1))
+    self.assertTrue(bw.ValidateChannel(11))
+    self.assertTrue(bw.ValidateChannel(13))
+    self.assertTrue(bw.ValidateChannel(36))
+    self.assertTrue(bw.ValidateChannel(140))
+    self.assertTrue(bw.ValidateChannel(149))
+    self.assertTrue(bw.ValidateChannel(165))
+    self.assertFalse(bw.ValidateChannel(166))
+    self.assertFalse(bw.ValidateChannel(14))
+    self.assertFalse(bw.ValidateChannel(0))
+    self.assertFalse(bw.ValidateChannel(20))
+
   def testOutputContiguousRanges(self):
     bw = brcmwifi.BrcmWifiWlanConfiguration()
     self.assertEqual(bw._OutputContiguousRanges([1,2,3,4,5]), "1-5")
@@ -65,6 +80,23 @@ class BrcmWifiTest(unittest.TestCase):
     brcmwifi.WL_EXE = "testdata/brcmwifi/wlssidempty"
     self.assertEqual(bw.SSID, '')
 
+  def testValidateSSID(self):
+    bw = brcmwifi.BrcmWifiWlanConfiguration()
+    self.assertTrue(bw.ValidateSSID(r'myssid'))
+    self.assertFalse(bw.ValidateSSID(r'myssid?'))
+    self.assertFalse(bw.ValidateSSID(r'myssid"'))
+    self.assertFalse(bw.ValidateSSID(r'myssid$'))
+    self.assertFalse(bw.ValidateSSID(r'myssi\d'))
+    self.assertFalse(bw.ValidateSSID(r'myssid['))
+    self.assertFalse(bw.ValidateSSID(r'myssid]'))
+    self.assertFalse(bw.ValidateSSID(r'myssid+'))
+    self.assertFalse(bw.ValidateSSID(r'!myssid'))
+    self.assertFalse(bw.ValidateSSID(r'#myssid'))
+    self.assertFalse(bw.ValidateSSID(r';myssid'))
+    self.assertTrue(bw.ValidateSSID(r'myssid!'))
+    self.assertTrue(bw.ValidateSSID(r'myssid#'))
+    self.assertTrue(bw.ValidateSSID(r'myssid;'))
+
   def testBSSID(self):
     brcmwifi.WL_EXE = "testdata/brcmwifi/wlbssid"
     bw = brcmwifi.BrcmWifiWlanConfiguration()
@@ -72,6 +104,28 @@ class BrcmWifiTest(unittest.TestCase):
     brcmwifi.WL_EXE = "testdata/brcmwifi/wlempty"
     self.assertEqual(bw.BSSID, '00:00:00:00:00:00')
 
+  def testValidateBSSID(self):
+    bw = brcmwifi.BrcmWifiWlanConfiguration()
+    self.assertTrue(bw.ValidateBSSID("01:23:45:67:89:ab"))
+    self.assertFalse(bw.ValidateBSSID("This is not a BSSID."))
+    self.assertFalse(bw.ValidateBSSID("00:00:00:00:00:00"))
+    self.assertFalse(bw.ValidateBSSID("ff:ff:ff:ff:ff:ff"))
+
+  def testRegulatoryDomain(self):
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlcountry.us"
+    bw = brcmwifi.BrcmWifiWlanConfiguration()
+    self.assertEqual(bw.RegulatoryDomain, "US")
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlcountry.jp"
+    self.assertEqual(bw.RegulatoryDomain, "JP")
+
+  def testValidateRegulatoryDomain(self):
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlcountrylist"
+    bw = brcmwifi.BrcmWifiWlanConfiguration()
+    self.assertTrue(bw.ValidateRegulatoryDomain("US"))
+    self.assertTrue(bw.ValidateRegulatoryDomain("JP"))
+    self.assertTrue(bw.ValidateRegulatoryDomain("SA"))
+    self.assertFalse(bw.ValidateRegulatoryDomain("ZZ"))
+    self.assertFalse(bw.ValidateRegulatoryDomain(""))
 
 if __name__ == '__main__':
   unittest.main()

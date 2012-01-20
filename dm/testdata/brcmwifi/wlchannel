@@ -1,8 +1,10 @@
 #!/bin/sh
 
-echo "# wl channel"
-echo "No scan in progress."
-echo "current mac channel     1"
-echo "target channel  2"
+if [ x"$1" = "xchannel" ] ; then
+  echo "# wl channel"
+  echo "No scan in progress."
+  echo "current mac channel     1"
+  echo "target channel  2"
+fi
 
 exit 0

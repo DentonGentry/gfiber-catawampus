@@ -47,7 +47,6 @@ class BrcmWifiWlanConfiguration(BASEWIFI):
     self.PreSharedKeyList = {}
     self.PossibleDataTransmitRates = tr.core.TODO()
     self.RadioEnabled = tr.core.TODO()
-    self.RegulatoryDomain = tr.core.TODO()
     self.SSIDAdvertisementEnabled = tr.core.TODO()
     self.STAWMMParameterList = {}
     self.Standard = 'n'
@@ -97,17 +96,6 @@ class BrcmWifiWlanConfiguration(BASEWIFI):
         sdict[p3.group(1).lower()] = "0"
     return sdict
 
-  @property  # TODO(dgentry) need @sessioncache decorator
-  def Channel(self):
-    wl = subprocess.Popen([WL_EXE, "channel"], stdout=subprocess.PIPE)
-    out, err = wl.communicate(None)
-    chan_re = re.compile("current mac channel(?:\s+)(\d+)")
-    for line in out.splitlines():
-      mr = chan_re.match(line)
-      if mr is not None:
-        return int(mr.group(1))
-    return 0
-
   def _OutputContiguousRanges(self, seq):
     """Given an integer sequence, return contiguous ranges.
 
@@ -131,8 +119,39 @@ class BrcmWifiWlanConfiguration(BASEWIFI):
       output.append(str(prev))
     return ''.join(output)
 
-  @property  # TODO(dgentry) need @sessioncache decorator
-  def PossibleChannels(self):
+
+  # TODO(dgentry) need @sessioncache decorator
+  def GetChannel(self):
+    wl = subprocess.Popen([WL_EXE, "channel"], stdout=subprocess.PIPE)
+    out, err = wl.communicate(None)
+    chan_re = re.compile("current mac channel(?:\s+)(\d+)")
+    for line in out.splitlines():
+      mr = chan_re.match(line)
+      if mr is not None:
+        return int(mr.group(1))
+    return 0
+
+  def SetChannel(self,value):
+    iv = int(value)
+    # TODO(DGentry) implement
+
+  def ValidateChannel(self, value):
+    try:
+      iv = int(value)
+    except:
+      return False
+    if iv in range(1, 14):
+      return True  # 2.4 GHz. US only allows 1-11, Japan allows 1-13.
+    if iv in range(36, 144, 4):
+      return True  # 5 GHz lower bands
+    if iv in range(149, 169, 4):
+      return True  # 5 GHz upper bands
+    return False
+
+  Channel = property(GetChannel, SetChannel, None, 'WLANConfiguration.Channel')
+
+  # TODO(dgentry) need @sessioncache decorator
+  def GetPossibleChannels(self):
     wl = subprocess.Popen([WL_EXE, "channels"], stdout=subprocess.PIPE)
     out, err = wl.communicate(None)
     if out:
@@ -140,9 +159,11 @@ class BrcmWifiWlanConfiguration(BASEWIFI):
       return self._OutputContiguousRanges(channels)
     else:
       return ""
+  PossibleChannels = property(GetPossibleChannels, None, None,
+                              'WLANConfiguration.PossibleChannels')
 
-  @property  # TODO(dgentry) need @sessioncache decorator
-  def SSID(self):
+  # TODO(dgentry) need @sessioncache decorator
+  def GetSSID(self):
     wl = subprocess.Popen([WL_EXE, "ssid"], stdout=subprocess.PIPE)
     out, err = wl.communicate(None)
     ssid_re = re.compile('Current SSID: "(.*)"')
@@ -152,8 +173,23 @@ class BrcmWifiWlanConfiguration(BASEWIFI):
         return ssid.group(1)
     return ""
 
-  @property  # TODO(dgentry) need @sessioncache decorator
-  def BSSID(self):
+  def SetSSID(self, value):
+    pass
+
+  def ValidateSSID(self, value):
+    invalid = set(['?', '"', '$', '\\', '[', ']', '+'])
+    for i in invalid:
+      if i in value:
+        return False
+    if value[0] == '!' or value[0] == '#' or value[0] == ';':
+      return False
+    return True
+
+  SSID = property(GetSSID, SetSSID, None, 'WLANConfiguration.SSID')
+
+
+  # TODO(dgentry) need @sessioncache decorator
+  def GetBSSID(self):
     wl = subprocess.Popen([WL_EXE, "bssid"], stdout=subprocess.PIPE)
     out, err = wl.communicate(None)
     bssid_re = re.compile('((?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})')
@@ -163,25 +199,71 @@ class BrcmWifiWlanConfiguration(BASEWIFI):
         return bssid.group(1)
     return "00:00:00:00:00:00"
 
-  @property
-  def TotalBytesReceived(self):
+  def SetBSSID(self, value):
+    pass
+
+  def ValidateBSSID(self, value):
+    lower = value.lower()
+    if lower == "00:00:00:00:00:00" or lower == "ff:ff:ff:ff:ff:ff":
+      return False
+    bssid_re = re.compile('((?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})')
+    if bssid_re.search(value) is None:
+      return False
+    return True
+
+  BSSID = property(GetBSSID, SetBSSID, None, 'WLANConfiguration.BSSID')
+
+
+  # TODO(dgentry) need @sessioncache decorator
+  def GetRegulatoryDomain(self):
+    wl = subprocess.Popen([WL_EXE, "country"], stdout=subprocess.PIPE)
+    out, err = wl.communicate(None)
+    fields = out.split()
+    if (len(fields) > 0):
+      return fields[0]
+    else:
+      return ""
+
+  def SetRegulatoryDomain(self,value):
+    pass
+
+  def ValidateRegulatoryDomain(self, value):
+    wl = subprocess.Popen([WL_EXE, "country", "list"], stdout=subprocess.PIPE)
+    out, err = wl.communicate(None)
+    countries = set()
+    for line in out.splitlines():
+      fields = line.split(" ")
+      if len(fields) > 0 and len(fields[0]) == 2:
+        countries.add(fields[0])
+    return True if value in countries else False
+
+  RegulatoryDomain = property(GetRegulatoryDomain, SetRegulatoryDomain, None,
+                              'WLANConfiguration.RegulatoryDomain')
+
+
+  def GetTotalBytesReceived(self):
     counters = self._GetWlCounters()
     return int(counters.get('rxbyte', 0))
+  TotalBytesReceived = property(GetTotalBytesReceived, None, None,
+                                'WLANConfiguration.TotalBytesReceived')
 
-  @property
-  def TotalBytesSent(self):
+  def GetTotalBytesSent(self):
     counters = self._GetWlCounters()
     return int(counters.get('txbyte', 0))
+  TotalBytesSent = property(GetTotalBytesSent, None, None,
+                            'WLANConfiguration.TotalBytesSent')
 
-  @property
-  def TotalPacketsReceived(self):
+  def GetTotalPacketsReceived(self):
     counters = self._GetWlCounters()
     return int(counters.get('rxframe', 0))
+  TotalPacketsReceived = property(GetTotalPacketsReceived, None, None,
+                                  'WLANConfiguration.TotalPacketsReceived')
 
-  @property
-  def TotalPacketsSent(self):
+  def GetTotalPacketsSent(self):
     counters = self._GetWlCounters()
     return int(counters.get('txframe', 0))
+  TotalPacketsSent = property(GetTotalPacketsSent, None, None,
+                              'WLANConfiguration.TotalPacketsSent')
 
 
 def main():
