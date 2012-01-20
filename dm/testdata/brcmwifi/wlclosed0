@@ -1,0 +1,6 @@
+#!/bin/sh
+
+if [ x"$1" = "xclosed" ] ; then
+  echo "0"
+fi
+exit 0

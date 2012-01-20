@@ -39,6 +39,15 @@ class BrcmWifiTest(unittest.TestCase):
     self.assertEqual(counters['d11_txfrmsnt'], '0')
     self.assertEqual(counters['txfunfl'], ['59', '60', '61', '62', '63', '64'])
 
+  def testStatus(self):
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlbssup"
+    bw = brcmwifi.BrcmWifiWlanConfiguration()
+    self.assertEqual(bw.Status, "Up")
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlbssdown"
+    self.assertEqual(bw.Status, "Disabled")
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlbsserr"
+    self.assertEqual(bw.Status, "Error")
+
   def testChannel(self):
     brcmwifi.WL_EXE = "testdata/brcmwifi/wlchannel"
     bw = brcmwifi.BrcmWifiWlanConfiguration()
@@ -126,6 +135,58 @@ class BrcmWifiTest(unittest.TestCase):
     self.assertTrue(bw.ValidateRegulatoryDomain("SA"))
     self.assertFalse(bw.ValidateRegulatoryDomain("ZZ"))
     self.assertFalse(bw.ValidateRegulatoryDomain(""))
+
+  def testBasicRateSet(self):
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlrateset"
+    bw = brcmwifi.BrcmWifiWlanConfiguration()
+    self.assertEqual(bw.BasicDataTransmitRates, "1,2,5.5,11")
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlrateset2"
+    self.assertEqual(bw.BasicDataTransmitRates, "1,2,5.5,11,16.445")
+
+  def testOperationalRateSet(self):
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlrateset"
+    bw = brcmwifi.BrcmWifiWlanConfiguration()
+    self.assertEqual(bw.OperationalDataTransmitRates,
+                     "1,2,5.5,6,9,11,12,18,24,36,48,54")
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlrateset2"
+    self.assertEqual(bw.OperationalDataTransmitRates, "1,2,5.5,7.5,11,16.445")
+
+  def testTransmitPower(self):
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlpwrpercent"
+    bw = brcmwifi.BrcmWifiWlanConfiguration()
+    self.assertEqual(bw.TransmitPower, "25")
+
+  def testTransmitPowerSupported(self):
+    bw = brcmwifi.BrcmWifiWlanConfiguration()
+    self.assertEqual(bw.TransmitPowerSupported, "1-100")
+
+  def testAutoRateFallBackEnabled(self):
+    bw = brcmwifi.BrcmWifiWlanConfiguration()
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlinterference0"
+    self.assertFalse(bw.AutoRateFallBackEnabled)
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlinterference1"
+    self.assertFalse(bw.AutoRateFallBackEnabled)
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlinterference2"
+    self.assertFalse(bw.AutoRateFallBackEnabled)
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlinterference3"
+    self.assertTrue(bw.AutoRateFallBackEnabled)
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlinterference4"
+    self.assertTrue(bw.AutoRateFallBackEnabled)
+
+  def testSSIDAdvertisementEnabled(self):
+    bw = brcmwifi.BrcmWifiWlanConfiguration()
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlclosed0"
+    self.assertTrue(bw.SSIDAdvertisementEnabled)
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlclosed1"
+    self.assertFalse(bw.SSIDAdvertisementEnabled)
+
+  def testRadioEnabled(self):
+    bw = brcmwifi.BrcmWifiWlanConfiguration()
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlradiooff"
+    self.assertFalse(bw.RadioEnabled)
+    brcmwifi.WL_EXE = "testdata/brcmwifi/wlradioon"
+    self.assertTrue(bw.RadioEnabled)
+
 
 if __name__ == '__main__':
   unittest.main()

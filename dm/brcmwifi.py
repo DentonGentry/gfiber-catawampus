@@ -20,53 +20,56 @@ WL_EXE = "/usr/bin/wl"
 class BrcmWifiWlanConfiguration(BASEWIFI):
   def __init__(self):
     BASEWIFI.__init__(self)
-    self.APWMMParameterList = {}
     self.AssociatedDeviceList = {}
     self.AuthenticationServiceMode = tr.core.TODO()
-    self.AutoRateFallBackEnabled = tr.core.TODO()
     self.AutoChannelEnable = tr.core.TODO()
     self.BasicAuthenticationMode = tr.core.TODO()
-    self.BasicDataTransmitRates = tr.core.TODO()
     self.BasicEncryptionModes = tr.core.TODO()
     self.BeaconAdvertisementEnabled = tr.core.TODO()
     self.BeaconType = tr.core.TODO()
     self.ChannelsInUse = tr.core.TODO()
-    self.DeviceOperationMode = tr.core.TODO()
-    self.DistanceFromRoot = tr.core.TODO()
     self.Enable = tr.core.TODO()
     self.IEEE11iAuthenticationMode = tr.core.TODO()
     self.IEEE11iEncryptionModes = tr.core.TODO()
     self.InsecureOOBAccessEnabled = True
     self.KeyPassphrase = tr.core.TODO()
     self.LocationDescription = ""
-    self.MACAddressControlEnabled = tr.core.TODO()
     self.MaxBitRate = tr.core.TODO()
     self.Name = tr.core.TODO()
-    self.OperationalDataTransmitRates = tr.core.TODO()
-    self.PeerBSSID = tr.core.TODO()
     self.PreSharedKeyList = {}
     self.PossibleDataTransmitRates = tr.core.TODO()
-    self.RadioEnabled = tr.core.TODO()
-    self.SSIDAdvertisementEnabled = tr.core.TODO()
-    self.STAWMMParameterList = {}
     self.Standard = 'n'
     self.Stats = tr.core.TODO()
-    self.Status = tr.core.TODO()
     self.TotalAssociations = 0
     self.TotalIntegrityFailures = tr.core.TODO()
     self.TotalPSKFailures = tr.core.TODO()
-    self.TransmitPower = tr.core.TODO()
-    self.TransmitPowerSupported = tr.core.TODO()
-    self.Unexport("UAPSDEnable")
-    self.UAPSDSupported = False
-    self.Unexport("WMMEnable")
-    self.WMMSupported = False
     self.WEPEncryptionLevel = tr.core.TODO()
     self.WEPKeyList = {}
     self.WEPKeyIndex = tr.core.TODO()
     self.WPAAuthenticationMode = tr.core.TODO()
     self.WPAEncryptionModes = tr.core.TODO()
-    self.WPS = tr.core.TODO()
+
+    # MAC Access controls, currently unimplemented but could be supported.
+    self.Unexport("MACAddressControlEnabled")
+
+    # Wifi Protected Setup, currently unimplemented and not recommended,
+    # but could be supported if really desired.
+    self.Unexport(objects='WPS')
+
+    # Wifi MultiMedia, currently unimplemented but could be supported.
+    # "wl wme_*" commands
+    self.Unexport(lists='APWMMParameter')
+    self.Unexport(lists="STAWMMParameter")
+    self.Unexport("UAPSDEnable")
+    self.UAPSDSupported = False
+    self.Unexport("WMMEnable")
+    self.WMMSupported = False
+
+    # WDS, currently unimplemented but could be supported at some point.
+    self.DeviceOperationMode = 'InfrastructureAccessPoint'
+    self.Unexport("PeerBSSID")
+    self.Unexport("DistanceFromRoot")
+
 
   # TODO(dgentry) need a @sessioncache decorator
   def _GetWlCounters(self):
@@ -119,6 +122,19 @@ class BrcmWifiWlanConfiguration(BASEWIFI):
       output.append(str(prev))
     return ''.join(output)
 
+  def GetStatus(self):
+    wl = subprocess.Popen([WL_EXE, "bss"], stdout=subprocess.PIPE)
+    out, err = wl.communicate(None)
+    lower = out.strip().lower()
+    if lower == 'up':
+      return 'Up'
+    elif lower == 'down':
+      return 'Disabled'
+    else:
+      return 'Error'
+
+  Status = property(GetStatus, None, None, 'WLANConfiguration.Status')
+
 
   # TODO(dgentry) need @sessioncache decorator
   def GetChannel(self):
@@ -141,7 +157,7 @@ class BrcmWifiWlanConfiguration(BASEWIFI):
     except:
       return False
     if iv in range(1, 14):
-      return True  # 2.4 GHz. US only allows 1-11, Japan allows 1-13.
+      return True  # 2.4 GHz. US allows 1-11, Japan allows 1-13.
     if iv in range(36, 144, 4):
       return True  # 5 GHz lower bands
     if iv in range(149, 169, 4):
@@ -149,6 +165,7 @@ class BrcmWifiWlanConfiguration(BASEWIFI):
     return False
 
   Channel = property(GetChannel, SetChannel, None, 'WLANConfiguration.Channel')
+
 
   # TODO(dgentry) need @sessioncache decorator
   def GetPossibleChannels(self):
@@ -159,8 +176,10 @@ class BrcmWifiWlanConfiguration(BASEWIFI):
       return self._OutputContiguousRanges(channels)
     else:
       return ""
+
   PossibleChannels = property(GetPossibleChannels, None, None,
                               'WLANConfiguration.PossibleChannels')
+
 
   # TODO(dgentry) need @sessioncache decorator
   def GetSSID(self):
@@ -239,6 +258,113 @@ class BrcmWifiWlanConfiguration(BASEWIFI):
 
   RegulatoryDomain = property(GetRegulatoryDomain, SetRegulatoryDomain, None,
                               'WLANConfiguration.RegulatoryDomain')
+
+
+  def GetBasicDataTransmitRates(self):
+    wl = subprocess.Popen([WL_EXE, "rateset"], stdout=subprocess.PIPE)
+    out, err = wl.communicate(None)
+    basic_re = re.compile("([0123456789]+(?:\.[0123456789]+)?)\(b\)")
+    return ",".join(basic_re.findall(out))
+
+  def SetBasicDataTransmitRates(self, value):
+    # TODO(dgentry) implement
+    pass
+
+  BasicDataTransmitRates = property(GetBasicDataTransmitRates, None, None,
+                                    'WLANConfiguration.BasicDataTransmitRates')
+
+
+  def GetOperationalDataTransmitRates(self):
+    wl = subprocess.Popen([WL_EXE, "rateset"], stdout=subprocess.PIPE)
+    out, err = wl.communicate(None)
+    oper_re = re.compile("([0123456789]+(?:\.[0123456789]+)?)")
+    if out:
+      line1 = out.splitlines()[0]
+    else:
+      line1 = ""
+    return ",".join(oper_re.findall(line1))
+
+  def SetOperationalDataTransmitRates(self):
+    # TODO(dgentry) implement
+    pass
+
+  OperationalDataTransmitRates = property(
+      GetOperationalDataTransmitRates, None, None,
+      'WLANConfiguration.OperationalDataTransmitRates')
+
+
+  def GetTransmitPower(self):
+    wl = subprocess.Popen([WL_EXE, "pwr_percent"], stdout=subprocess.PIPE)
+    out, err = wl.communicate(None)
+    return out.strip()
+
+  def SetTransmitPower(self):
+    # TODO(dgentry) implement
+    pass
+
+  TransmitPower = property(GetTransmitPower, None, None,
+                           'WLANConfiguration.TransmitPower')
+
+
+  def GetTransmitPowerSupported(self):
+    # tr-98 describes this as a comma separated list, limited to string(64)
+    # clearly it is expected to be a small number of discrete steps.
+    # This chipset appears to have no such restriction. Hope a range is ok.
+    return "1-100"
+
+  TransmitPowerSupported = property(GetTransmitPowerSupported, None, None,
+                                    'WLANConfiguration.TransmitPowerSupported')
+
+
+  def GetAutoRateFallBackEnabled(self):
+    wl = subprocess.Popen([WL_EXE, "interference"], stdout=subprocess.PIPE)
+    out, err = wl.communicate(None)
+    mode_re = re.compile("\(mode (\d)\)")
+    result = mode_re.search(out)
+    mode = -1
+    if result is not None:
+      mode = int(result.group(1))
+    return True if mode == 3 or mode == 4 else False
+
+  def SetAutoRateFallBackEnabled(self):
+    # TODO(dgentry) implement
+    pass
+
+  AutoRateFallBackEnabled = property(
+      GetAutoRateFallBackEnabled, None, None,
+      'WLANConfiguration.AutoRateFallBackEnabled')
+
+
+  def GetSSIDAdvertisementEnabled(self):
+    wl = subprocess.Popen([WL_EXE, "closed"], stdout=subprocess.PIPE)
+    out, err = wl.communicate(None)
+    return True if out.strip() == "0" else False
+
+  def SetSSIDAdvertisementEnabled(self):
+    # TODO(dgentry) implement
+    pass
+
+  SSIDAdvertisementEnabled = property(
+      GetSSIDAdvertisementEnabled, None, None,
+      'WLANConfiguration.SSIDAdvertisementEnabled')
+
+
+  def GetRadioEnabled(self):
+    wl = subprocess.Popen([WL_EXE, "radio"], stdout=subprocess.PIPE)
+    out, err = wl.communicate(None)
+    # This may look backwards, but I assure you it is correct. If the
+    # radio is off, "wl radio" returns 0x0001.
+    try:
+      return False if int(out.strip(), 0) == 1 else True
+    except ValueError:
+      return False
+
+  def SetRadioEnabled(self):
+    # TODO(dgentry) implement
+    pass
+
+  RadioEnabled = property(GetRadioEnabled, None, None,
+                          'WLANConfiguration.RadioEnabled')
 
 
   def GetTotalBytesReceived(self):
