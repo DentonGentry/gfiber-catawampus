@@ -9,8 +9,9 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import fix_path
+
 import sys
-sys.path.append("../")
 import device_info
 import os
 import unittest

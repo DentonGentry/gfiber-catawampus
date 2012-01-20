@@ -9,6 +9,8 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import tr.fix_path
+
 import os
 import re
 import subprocess

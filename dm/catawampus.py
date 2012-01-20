@@ -10,6 +10,8 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import fix_path
+
 import json
 import sys
 import tr.core

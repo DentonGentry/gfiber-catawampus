@@ -9,10 +9,7 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import sys
-sys.path.append("tr/vendor/tornado")
-sys.path.append("tr/vendor/bup/lib")
-sys.path.append("tr/vendor")
+import tr.fix_path
 
 import bup.options
 import dm.catawampus
@@ -20,6 +17,7 @@ import dm.management_server
 import dm_root
 import imp
 import os.path
+import sys
 import tempfile
 import tornado.autoreload
 import tornado.httpclient

@@ -9,6 +9,8 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import tr.fix_path
+
 import dm.catawampus
 import dm.management_server
 import imp

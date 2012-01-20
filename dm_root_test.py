@@ -9,8 +9,9 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import tr.fix_path
+
 import sys
-sys.path.append("tr/vendor/tornado")
 import dm_root
 import os
 import tr.tr181_v2_2
