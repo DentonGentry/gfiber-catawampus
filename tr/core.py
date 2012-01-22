@@ -227,7 +227,7 @@ class Exporter(object):
         except AttributeError:
           raise Exc(name, 'is %r, must implement core.Exporter'
                     % type(obj))
-        obj.ValidateExports()
+        obj.ValidateExports(path + [name])
 
   def AssertValidExport(self, name, path=None):
     if (name not in self.export_params and
