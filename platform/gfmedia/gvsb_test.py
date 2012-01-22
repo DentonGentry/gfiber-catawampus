@@ -18,6 +18,10 @@ import unittest
 class GvsbTest(unittest.TestCase):
   """Tests for gvsb.py."""
 
+  def testValidateExports(self):
+    gv = gvsb.Gvsb()
+    gv.ValidateExports()
+
   def testGvsbServer(self):
     temp = tempfile.NamedTemporaryFile()
     gv = gvsb.Gvsb()

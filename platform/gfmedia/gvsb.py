@@ -17,6 +17,7 @@ class Gvsb(tr.x_gvsb_1_0.X_GOOGLE_COM_GVSB_v1_0):
   GVSBCHANNELFILE = "/tmp/gvsbchannel"
 
   def __init__(self):
+    tr.x_gvsb_1_0.X_GOOGLE_COM_GVSB_v1_0.__init__(self)
     self._gvsbserver = None
     self._gvsb_channel_lineup = None
     self._written_gvsbserver = None
