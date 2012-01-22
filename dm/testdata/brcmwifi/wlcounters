@@ -39,3 +39,5 @@ if [ x"$1" = "xcounters" ] ; then
   echo "pktengrxducast 132 pktengrxdmcast 133"
   echo "txmpdu_sgi 134 rxmpdu_sgi 135 txmpdu_stbc 136 rxmpdu_stbc 137"
 fi
+
+exit 0
