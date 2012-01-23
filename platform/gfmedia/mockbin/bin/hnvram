@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if [ x"$1" = "x-r" ] && [ x"$2" = "xSERIAL_NUMBER" ] ; then
+  echo "000000001"
+fi
+
+if [ x"$1" = "x-r" ] && [ x"$2" = "xPRODUCT_NAME" ] ; then
+  echo "FakeGFMedia"
+fi
+
+exit 0
