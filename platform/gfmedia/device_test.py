@@ -11,9 +11,12 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import fix_path
 
+import dm_root
 import sys
 import device
 import os
+import shutil
+import tempfile
 import tornado.ioloop
 import tornado.testing
 import unittest
@@ -23,35 +26,56 @@ class DeviceGFMediaTest(tornado.testing.AsyncTestCase):
 
   def setUp(self):
     super(DeviceGFMediaTest, self).setUp()
-    self.old_hnvram = device.HNVRAM
-    self.old_ginstall = device.GINSTALL
+    self.old_CONFIGDIR = device.CONFIGDIR
+    self.old_GINSTALL = device.GINSTALL
+    self.old_HNVRAM = device.HNVRAM
+    self.old_REBOOT = device.REBOOT
+    self.old_REPOMANIFEST = device.REPOMANIFEST
+    self.old_VERSIONFILE = device.VERSIONFILE
     self.install_cb_called = False
     self.install_cb_faultcode = None
     self.install_cb_faultstring = None
 
   def tearDown(self):
     super(DeviceGFMediaTest, self).tearDown()
-    device.HNVRAM = self.old_hnvram
-    device.GINSTALL = self.old_ginstall
+    device.CONFIGDIR = self.old_CONFIGDIR
+    device.GINSTALL = self.old_GINSTALL
+    device.HNVRAM = self.old_HNVRAM
+    device.REBOOT = self.old_REBOOT
+    device.REPOMANIFEST = self.old_REPOMANIFEST
+    device.VERSIONFILE = self.old_VERSIONFILE
 
   def testGetSerialNumber(self):
-    device.HNVRAM = "testdata/device/hnvramFOO"
-    self.assertEqual(device.GetNvramParam("FOO"), "123456789")
-    device.HNVRAM = "testdata/device/hnvramFOO_Empty"
-    # We deliberately check against an emtpy string, not assertFalse().
-    # Returning None is not acceptable, we want a string.
-    self.assertEqual(device.GetNvramParam("FOO"), '')
-    device.HNVRAM = "testdata/device/hnvramFOO_Err"
-    self.assertEqual(device.GetNvramParam("FOO"), '')
+    did = device.DeviceIdGFMedia()
+    device.HNVRAM = "testdata/device/hnvramSN"
+    self.assertEqual(did.SerialNumber, "123456789")
 
     device.HNVRAM = "testdata/device/hnvramFOO_Empty"
-    self.assertEqual(device.GetNvramParam("FOO", "default"), 'default')
-    device.HNVRAM = "testdata/device/hnvramFOO_Err"
-    self.assertEqual(device.GetNvramParam("FOO", "default"), 'default')
+    self.assertEqual(did.SerialNumber, "000000000000")
+
+    device.HNVRAM = "testdata/device/hnvramSN_Err"
+    self.assertEqual(did.SerialNumber, "000000000000")
 
   def testBadHnvram(self):
+    did = device.DeviceIdGFMedia()
     device.HNVRAM = "/no_such_binary_at_this_path"
-    self.assertEqual(device.GetNvramParam("FOO"), '')
+    self.assertEqual(did.SerialNumber, "000000000000")
+
+  def testModelName(self):
+    did = device.DeviceIdGFMedia()
+    device.HNVRAM = "testdata/device/hnvramPN"
+    self.assertEqual(did.ModelName, "ModelName")
+
+  def testSoftwareVersion(self):
+    did = device.DeviceIdGFMedia()
+    device.VERSIONFILE = "testdata/device/version"
+    self.assertEqual(did.SoftwareVersion, "1.2.3")
+
+  def testAdditionalSoftwareVersion(self):
+    did = device.DeviceIdGFMedia()
+    device.REPOMANIFEST = "testdata/device/repomanifest"
+    self.assertEqual(did.AdditionalSoftwareVersion,
+                     "platform 1111111111111111111111111111111111111111")
 
   def install_callback(self, faultcode, faultstring, must_reboot):
     self.install_cb_called = True
@@ -94,14 +118,6 @@ class DeviceGFMediaTest(tornado.testing.AsyncTestCase):
     self.assertTrue(self.install_cb_called)
     self.assertEqual(self.install_cb_faultcode, 9002)
     self.assertTrue(self.install_cb_faultstring)
-
-  def testGetOneLine(self):
-    line = device.GetOneLine('testdata/device/oneline', 'default')
-    self.assertEqual(line, 'one')
-    line = device.GetOneLine('testdata/device/onelineempty', 'default')
-    self.assertEqual(line, '')
-    line = device.GetOneLine('/nonexistant', 'default')
-    self.assertEqual(line, 'default')
 
 
 if __name__ == '__main__':

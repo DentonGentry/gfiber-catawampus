@@ -13,43 +13,95 @@ by http://www.broadband-forum.org/cwmp/tr-181-2-2-0.html
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import abc
 import glob
 import os
 import tr.core
-import tr.tr181_v2_2 as tr181
+import tr.tr098_v1_2
+import tr.tr181_v2_2
 
-BASEDEVICE = tr181.Device_v2_2
+BASE181DEVICE = tr.tr181_v2_2.Device_v2_2
+
+# Unit tests can override these with fake data
+PROC_MEMINFO = "/proc/meminfo"
+PROC_NET_DEV = "/proc/net/dev"
+PROC_UPTIME = "/proc/uptime"
+SLASH_PROC = "/proc"
+
+class DeviceIdMeta(object):
+  """Class to provide platform-specific fields for DeviceInfo.
+
+  Each platform is expected to subclass DeviceIdMeta and supply concrete
+  implementations of all methods. We use a Python Abstract Base Class
+  to protect against future versions. If we add fields to this class,
+  any existing platform implementations will be prompted to add implementations
+  (because they will fail to startup when their DeviceId fails to
+  instantiate."""
+  __metaclass__ = abc.ABCMeta
+
+  @abc.abstractproperty
+  def Manufacturer(self):
+    return None
+
+  @abc.abstractproperty
+  def ManufacturerOUI(self):
+    return None
+
+  @abc.abstractproperty
+  def ModelName(self):
+    return None
+
+  @abc.abstractproperty
+  def Description(self):
+    return None
+
+  @abc.abstractproperty
+  def SerialNumber(self):
+    return None
+
+  @abc.abstractproperty
+  def HardwareVersion(self):
+    return None
+
+  @abc.abstractproperty
+  def AdditionalHardwareVersion(self):
+    return None
+
+  @abc.abstractproperty
+  def SoftwareVersion(self):
+    return None
+
+  @abc.abstractproperty
+  def AdditionalSoftwareVersion(self):
+    return None
+
+  @abc.abstractproperty
+  def ProductClass(self):
+    return None
+
+  @abc.abstractproperty
+  def ModemFirmwareVersion(self):
+    return None
 
 
-class DeviceIdDefault(object):
-  def __init__(self):
-    self.Manufacturer = 'Manufacturer'
-    self.ManufacturerOUI = '00:11:22:33:44:55'
-    self.ModelName = 'ModelName'
-    self.Description = 'Description'
-    self.SerialNumber = '00000000'
-    self.HardwareVersion = '0'
-    self.AdditionalHardwareVersion = '0'
-    self.SoftwareVersion = '0'
-    self.AdditionalSoftwareVersion = '0'
-    self.ProductClass = 'ProductClass'
+def _GetUptime():
+  """Return a string of the number of integer seconds since boot."""
+  try:
+    uptime = float(open(PROC_UPTIME).read().split()[0])
+  except IOError:
+    # TODO(dgentry) - LOG the exception, but return zeros by default
+    uptime = 0.0
+  return str(int(uptime))
+
 
 #pylint: disable-msg=W0231
-class DeviceInfoLinux26(BASEDEVICE.DeviceInfo):
-  """Outputs fields to Device.DeviceInfo specific to the Google Uno platform.
+class DeviceInfo181Linux26(BASE181DEVICE.DeviceInfo):
+  """Implements tr-181 DeviceInfo for Linux 2.6 and similar systems."""
 
-  This object handles the manufacturer name, OUI, model, serial number,
-  hardware and software versions, etc.
-  """
-
-  def __init__(self, device_id=None):
-    BASEDEVICE.DeviceInfo.__init__(self)
-    if device_id:
-      self._device_id = device_id
-    else:
-      self._device_id = DeviceIdDefault()
-
-    self.GetUptime = UptimeLinux26().GetUptime
+  def __init__(self, device_id):
+    BASE181DEVICE.DeviceInfo.__init__(self)
+    assert isinstance(device_id, DeviceIdMeta)
+    self._device_id = device_id
     self.MemoryStatus = MemoryStatusLinux26()
     self.ProcessStatus = ProcessStatusLinux26()
     self.ProvisioningCode = None  # TODO(apenwarr): fill me
@@ -65,49 +117,16 @@ class DeviceInfoLinux26(BASEDEVICE.DeviceInfo):
     self.SupportedDataModelList = {}
     self.ProcessorList = {}
 
+  def __getattr__(self, name):
+    """Allows passthrough of parameters to the platform-supplied device_id."""
+    if hasattr(self._device_id, name):
+      return getattr(self._device_id, name)
+    else:
+      raise AttributeError
+
   @property
   def UpTime(self):
-    return self.GetUptime()
-
-  @property
-  def Manufacturer(self):
-    return self._device_id.Manufacturer
-
-  @property
-  def ManufacturerOUI(self):
-    return self._device_id.ManufacturerOUI
-
-  @property
-  def ModelName(self):
-    return self._device_id.ModelName
-
-  @property
-  def Description(self):
-    return self._device_id.Description
-
-  @property
-  def SerialNumber(self):
-    return self._device_id.SerialNumber
-
-  @property
-  def HardwareVersion(self):
-    return self._device_id.HardwareVersion
-
-  @property
-  def AdditionalHardwareVersion(self):
-    return self._device_id.AdditionalHardwareVersion
-
-  @property
-  def SoftwareVersion(self):
-    return self._device_id.SoftwareVersion
-
-  @property
-  def AdditionalSoftwareVersion(self):
-    return self._device_id.AdditionalSoftwareVersion
-
-  @property
-  def ProductClass(self):
-    return self._device_id.ProductClass
+    return _GetUptime()
 
   @property
   def VendorLogFileNumberOfEntries(self):
@@ -126,41 +145,15 @@ class DeviceInfoLinux26(BASEDEVICE.DeviceInfo):
     return len(self.SupportedDataModelList)
 
 
-class UptimeLinux26(object):
-  """Abstraction to get uptime in seconds from the underlying platform.
-
-  Reads /proc/uptime to get a floating point number of seconds since boot.
-  Returns this as a string of the integer number of seconds, which is what
-  TR-181 needs.
-
-  Tests can set proc_uptime to a file with fake data, instead of /proc/uptime.
-  """
-
-  def __init__(self, proc_uptime='/proc/uptime'):
-    self._proc_uptime = proc_uptime
-
-  def GetUptime(self):
-    """Returns a string of the number of seconds since the system booted."""
-    try:
-      uptime = float(open(self._proc_uptime).read().split()[0])
-    except IOError:
-      # TODO(dgentry) - LOG the exception, but return zeros by default
-      uptime = 0.0
-    return str(int(uptime))
-
-
-class MemoryStatusLinux26(BASEDEVICE.DeviceInfo.MemoryStatus):
+class MemoryStatusLinux26(BASE181DEVICE.DeviceInfo.MemoryStatus):
   """Abstraction to get memory information from the underlying platform.
 
-  Reads proc/meminfo to find TotalMem and FreeMem.
-
-  Tests can set proc_meminfo to a file with fake data instead of /proc/meminfo
+  Reads /proc/meminfo to find TotalMem and FreeMem.
   """
 
-  def __init__(self, proc_meminfo='/proc/meminfo'):
-    BASEDEVICE.DeviceInfo.MemoryStatus.__init__(self)
-    self._proc_meminfo = proc_meminfo
-    (self._totalmem, self._freemem) = self._GetMemInfo(proc_meminfo)
+  def __init__(self):
+    BASE181DEVICE.DeviceInfo.MemoryStatus.__init__(self)
+    (self._totalmem, self._freemem) = self._GetMemInfo()
 
   @property
   def Total(self):
@@ -170,11 +163,8 @@ class MemoryStatusLinux26(BASEDEVICE.DeviceInfo.MemoryStatus):
   def Free(self):
     return self._freemem
 
-  def _GetMemInfo(self, proc_meminfo):
+  def _GetMemInfo(self):
     """Fetch TotalMem and FreeMem from the underlying platform.
-
-    Args:
-      proc_meminfo - path to /proc/meminfo (tests can override with fake data)
 
     Returns:
       a list of two integers, (totalmem, freemem)
@@ -182,7 +172,7 @@ class MemoryStatusLinux26(BASEDEVICE.DeviceInfo.MemoryStatus):
     totalmem = 0
     freemem = 0
     try:
-      pfile = open(proc_meminfo)
+      pfile = open(PROC_MEMINFO)
       for line in pfile:
         fields = line.split()
         name = fields[0]
@@ -197,12 +187,10 @@ class MemoryStatusLinux26(BASEDEVICE.DeviceInfo.MemoryStatus):
     return (totalmem, freemem)
 
 
-class ProcessStatusLinux26(BASEDEVICE.DeviceInfo.ProcessStatus):
+class ProcessStatusLinux26(BASE181DEVICE.DeviceInfo.ProcessStatus):
   """Get information about running processes on Linux 2.6.
 
   Reads /proc/<pid> to get information about processes.
-
-  Tests can set slash_proc to a directory structure with fake data.
   """
   # Field ordering in /proc/<pid>/stat
   _PID = 0
@@ -213,11 +201,10 @@ class ProcessStatusLinux26(BASEDEVICE.DeviceInfo.ProcessStatus):
   _PRIO = 17
   _RSS = 23
 
-  def __init__(self, slash_proc='/proc'):
-    BASEDEVICE.DeviceInfo.ProcessStatus.__init__(self)
+  def __init__(self):
+    BASE181DEVICE.DeviceInfo.ProcessStatus.__init__(self)
     tick = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
     self._msec_per_jiffy = 1000 / tick
-    self._slash_proc = slash_proc
     self.ProcessList = tr.core.AutoDict('ProcessList',
                                         iteritems=self.IterProcesses,
                                         getitem=self.GetProcess)
@@ -250,7 +237,7 @@ class ProcessStatusLinux26(BASEDEVICE.DeviceInfo.ProcessStatus):
     return command[1:-1]
 
   def _ProcFileName(self, pid):
-    return '%s/%s/stat' % (self._slash_proc, pid)
+    return '%s/%s/stat' % (SLASH_PROC, pid)
 
   @property
   def CPUUsage(self):
@@ -291,8 +278,32 @@ class ProcessStatusLinux26(BASEDEVICE.DeviceInfo.ProcessStatus):
       yield pid, proc
 
 
+class DeviceInfo98Linux26(tr.tr098_v1_2.InternetGatewayDevice_v1_4.InternetGatewayDevice.DeviceInfo):
+  def __init__(self, device_id):
+    tr.tr098_v1_2.InternetGatewayDevice_v1_4.InternetGatewayDevice.DeviceInfo.__init__(self)
+    assert isinstance(device_id, DeviceIdMeta)
+    self._device_id = device_id
+    self.Unexport(params="DeviceLog")
+    self.Unexport(params="EnabledOptions")
+    self.Unexport(params="FirstUseDate")
+    self.Unexport(params="ProvisioningCode")
+    self.Unexport(params="SpecVersion")
+    self.Unexport(lists="VendorConfigFile")
+    self.VendorConfigFileNumberOfEntries = 0
+
+  @property
+  def UpTime(self):
+    return _GetUptime()
+
+  def __getattr__(self, name):
+    if hasattr(self._device_id, name):
+      return getattr(self._device_id, name)
+    else:
+      raise AttributeError
+
+
 def main():
-  dp = DeviceInfoLinux26()
+  dp = DeviceInfo181Linux26()
   #print tr.core.DumpSchema(dp)
   print tr.core.Dump(dp)
 

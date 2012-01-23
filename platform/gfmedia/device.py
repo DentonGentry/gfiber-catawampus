@@ -12,87 +12,116 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import fix_path
 
+import dm.brcmwifi
 import dm.device_info
 import fcntl
-import platform.gfmedia.gvsb
+import gvsb
 import os
 import subprocess
 import tornado.ioloop
 import tr.core
 import tr.download
 import tr.soap
+import tr.tr098_v1_2 as tr98
 import tr.tr181_v2_2 as tr181
 
 
 # tr-69 error codes
 INTERNAL_ERROR = 9002
 
-
-HNVRAM = '/bin/hnvram'
-def GetNvramParam(param, default=""):
-  """Return a parameter from NVRAM, like the serial number.
-  Args:
-    param: string name of the parameter to fetch. This must match the
-      predefined names supported by /bin/hnvram
-    default: value to return if the parameter is not present in NVRAM.
-
-  Returns:
-    A string value of the contents.
-  """
-  cmd = [HNVRAM, "-r", param]
-  devnull = open('/dev/null', 'w')
-  try:
-    hnvram = subprocess.Popen(cmd, stdin=devnull, stderr=devnull,
-                              stdout=subprocess.PIPE)
-    out, err = hnvram.communicate()
-    if hnvram.returncode != 0:
-      # Treat failure to run hnvram same as not having the field populated
-      out = ''
-  except OSError:
-    out = ''
-  outlist = out.strip().split('=')
-
-  # HNVRAM does not distinguish between "value not present" and
-  # "value present, and is empty." Treat empty values as invalid.
-  if len(outlist) > 1 and len(outlist[1].strip()) > 0:
-    return outlist[1].strip()
-  else:
-    return default
-
-
-def GetOneLine(filename, default):
-  try:
-    f = open(filename, 'r')
-    return f.readline().strip()
-  except:
-    return default
-
-
-VERSIONFILE = '/etc/version'
-REPOMANIFEST = '/etc/repo-buildroot-manifest'
-
-class DeviceIdGFMedia(object):
-  def __init__(self):
-    self.Manufacturer = 'Google'
-    self.ManufacturerOUI = '001a11'
-    self.ModelName = GetNvramParam("PRODUCT_NAME", default="UnknownModel")
-    self.Description = 'Set top box for Google Fiber network'
-    self.SerialNumber = GetNvramParam("SERIAL_NO", default="000000000000")
-    self.HardwareVersion = '0'
-    self.AdditionalHardwareVersion = '0'
-    self.SoftwareVersion = GetOneLine(VERSIONFILE, '0.0.0')
-    self.AdditionalSoftwareVersion = GetOneLine(REPOMANIFEST, '')
-    self.ProductClass = 'STB'
-
-
-class DeviceInfoGFMedia(dm.device_info.DeviceInfoLinux26):
-  def __init__(self):
-    dm.device_info.DeviceInfoLinux26.__init__(self, DeviceIdGFMedia())
-
-
+# Unit tests can override these with fake data
+CONFIGDIR = "/config"
 GINSTALL = "/bin/ginstall.py"
+HNVRAM = '/bin/hnvram'
 REBOOT = "/bin/tr69_reboot"
+REPOMANIFEST = '/etc/repo-buildroot-manifest'
+VERSIONFILE = '/etc/version'
+
+class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
+  def _GetOneLine(self, filename, default):
+    try:
+      f = open(filename, 'r')
+      return f.readline().strip()
+    except:
+      return default
+
+  def _GetNvramParam(self, param, default=""):
+    """Return a parameter from NVRAM, like the serial number.
+    Args:
+      param: string name of the parameter to fetch. This must match the
+        predefined names supported by /bin/hnvram
+      default: value to return if the parameter is not present in NVRAM.
+
+    Returns:
+      A string value of the contents.
+    """
+    cmd = [HNVRAM, "-r", param]
+    devnull = open('/dev/null', 'w')
+    try:
+      hnvram = subprocess.Popen(cmd, stdin=devnull, stderr=devnull,
+                                stdout=subprocess.PIPE)
+      out, err = hnvram.communicate()
+      if hnvram.returncode != 0:
+        # Treat failure to run hnvram same as not having the field populated
+        out = ''
+    except OSError:
+      out = ''
+    outlist = out.strip().split('=')
+
+    # HNVRAM does not distinguish between "value not present" and
+    # "value present, and is empty." Treat empty values as invalid.
+    if len(outlist) > 1 and len(outlist[1].strip()) > 0:
+      return outlist[1].strip()
+    else:
+      return default
+
+  @property
+  def Manufacturer(self):
+    return 'Google'
+
+  @property
+  def ManufacturerOUI(self):
+    return '001a11'
+
+  @property
+  def ModelName(self):
+    return self._GetNvramParam("PRODUCT_NAME", default="UnknownModel")
+
+  @property
+  def Description(self):
+    return 'Set top box for Google Fiber network'
+
+  @property
+  def SerialNumber(self):
+    return self._GetNvramParam("SERIAL_NO", default="000000000000")
+
+  @property
+  def HardwareVersion(self):
+    return '0'  # TODO
+
+  @property
+  def AdditionalHardwareVersion(self):
+    return '0'  # TODO
+
+  @property
+  def SoftwareVersion(self):
+    return self._GetOneLine(VERSIONFILE, '0.0.0')
+
+  @property
+  def AdditionalSoftwareVersion(self):
+    return self._GetOneLine(REPOMANIFEST, '')
+
+  @property
+  def ProductClass(self):
+    return 'STB'
+
+  @property
+  def ModemFirmwareVersion(self):
+    return '0'
+
+
 class InstallerGFMedia(tr.download.Installer):
+  """Installer class used by tr/download.py"""
   def __init__(self, filename, ioloop=None):
     self.filename = filename
     self._install_cb = None
@@ -141,9 +170,9 @@ class InstallerGFMedia(tr.download.Installer):
 
 
 class DeviceGFMedia(tr181.Device_v2_2.Device):
-  """Device implementation for Google Fiber media platforms."""
+  """tr-181 Device implementation for Google Fiber media platforms."""
 
-  def __init__(self):
+  def __init__(self, device_id):
     tr181.Device_v2_2.Device.__init__(self)
     self.Unexport(objects='ATM')
     self.Unexport(objects='Bridging')
@@ -169,27 +198,86 @@ class DeviceGFMedia(tr181.Device_v2_2.Device):
     self.Unexport(objects='UPA')
     self.Unexport(objects='USB')
     self.Unexport(objects='Users')
+    self.Unexport(objects='WiFi')
 
-    self.DeviceInfo = DeviceInfoGFMedia()
-    self.X_GOOGLE_COM_GVSB = platform.gfmedia.gvsb.Gvsb()
+    self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
     self.Ethernet = tr.core.TODO()
+    self.InterfaceStackList = {}
     self.InterfaceStackNumberOfEntries = 0
+
+
+tr98BASEIGD = tr98.InternetGatewayDevice_v1_4.InternetGatewayDevice
+
+class LANDeviceGFMedia(tr98BASEIGD.LANDevice):
+  """tr-98 InternetGatewayDevice for Google Fiber media platforms."""
+  def __init__(self):
+    tr98BASEIGD.LANDevice.__init__(self)
+    self.Unexport(objects="Hosts")
+    self.Unexport(lists="LANEthernetInterfaceConfig")
+    self.Unexport(objects="LANHostConfigManagement")
+    self.Unexport(lists="LANUSBInterfaceConfig")
+    self.LANEthernetInterfaceNumberOfEntries = 0
+    self.LANUSBInterfaceNumberOfEntries = 0
+    wifi = dm.brcmwifi.BrcmWifiWlanConfiguration("eth2")
+    self.WLANConfigurationList = {"0" : wifi}
+
+  @property
+  def LANWLANConfigurationNumberOfEntries(self):
+    return len(self.WLANConfigurationList)
+
+
+class InternetGatewayDeviceGFMedia(tr98BASEIGD):
+  def __init__(self, device_id):
+    tr98BASEIGD.__init__(self)
+    self.Unexport(objects="CaptivePortal")
+    self.Unexport(objects="DeviceConfig")
+    self.Unexport(params="DeviceSummary")
+    self.Unexport(objects="DownloadDiagnostics")
+    self.Unexport(objects="IPPingDiagnostics")
+    self.Unexport(objects="LANConfigSecurity")
+    self.LANDeviceList = {"0" : LANDeviceGFMedia() }
+    self.Unexport(objects="LANInterfaces")
+    self.Unexport(objects="Layer2Bridging")
+    self.Unexport(objects="Layer3Forwarding")
+    self.ManagementServer = tr.core.TODO()  # higher level code splices this in
+    self.Unexport(objects="QueueManagement")
+    self.Unexport(objects="Services")
+    self.Unexport(objects="Time")
+    self.Unexport(objects="TraceRouteDiagnostics")
+    self.Unexport(objects="UploadDiagnostics")
+    self.Unexport(objects="UserInterface")
+    self.Unexport(lists="WANDevice")
+
+    self.DeviceInfo = dm.device_info.DeviceInfo98Linux26(device_id)
+
+  @property
+  def LANDeviceNumberOfEntries(self):
+    return len(self.LANDeviceList)
+
+  @property
+  def WANDeviceNumberOfEntries(self):
+    return 0
 
 
 def PlatformInit(name, device_model_root):
   tr.download.INSTALLER = InstallerGFMedia
-  tr.download.SetStateDir("/config/tr69_dnld/")
+  tr.download.SetStateDir(CONFIGDIR + "/tr69_dnld/")
   params = []
   objects = []
-  device_model_root.Device = DeviceGFMedia()
+  dev_id = DeviceIdGFMedia()
+  device_model_root.Device = DeviceGFMedia(dev_id)
+  device_model_root.InternetGatewayDevice = InternetGatewayDeviceGFMedia(dev_id)
+  device_model_root.X_GOOGLE_COM_GVSB = gvsb.Gvsb()
   objects.append('Device')
+  objects.append('InternetGatewayDevice')
   objects.append('X_GOOGLE-COM_GVSB')
   return (params, objects)
 
 
 def main():
   root = DeviceGFMedia()
+  root.ValidateExports()
   tr.core.Dump(root)
 
 if __name__ == '__main__':

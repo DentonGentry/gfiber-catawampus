@@ -51,22 +51,40 @@ def FakeCPEInstance():
   return FAKECPEINSTANCE
 
 
-class DeviceIdFakeCPE(object):
-  def __init__(self):
-    self.Manufacturer = 'Catawampus'
-    self.ManufacturerOUI = '012345'
-    self.ModelName = "FakeCPE"
-    self.Description = "Simulated CPE device"
-    self.SerialNumber = str(FakeCPEInstance())
-    self.HardwareVersion = '0'
-    self.AdditionalHardwareVersion = '0'
-    self.SoftwareVersion = '1'  # TODO need Download to be able to upgrade us
-    self.AdditionalSoftwareVersion = '0'
-    self.ProductClass = 'Simulation'
-
-class DeviceInfoFakeCPE(dm.device_info.DeviceInfoLinux26):
-  def __init__(self):
-    dm.device_info.DeviceInfoLinux26.__init__(self, DeviceIdFakeCPE())
+class DeviceIdFakeCPE(dm.device_info.DeviceIdMeta):
+  @property
+  def Manufacturer(self):
+    return 'Catawampus'
+  @property
+  def ManufacturerOUI(self):
+    return '001a11'
+  @property
+  def ModelName(self):
+    return 'FakeCPE'
+  @property
+  def Description(self):
+    return "Simulated CPE device"
+  @property
+  def SerialNumber(self):
+    return str(FakeCPEInstance())
+  @property
+  def HardwareVersion(self):
+    return '0'
+  @property
+  def AdditionalHardwareVersion(self):
+    return '0'
+  @property
+  def SoftwareVersion(self):
+    return '1'  # TODO need Download to be able to upgrade us
+  @property
+  def AdditionalSoftwareVersion(self):
+    return '0'
+  @property
+  def ProductClass(self):
+    return 'Simulation'
+  @property
+  def ModemFirmwareVersion(self):
+    return '0'
 
 
 class DeviceFakeCPE(tr181.Device_v2_2.Device):
@@ -101,7 +119,7 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
     self.Unexport(objects="Users")
     self.Unexport(objects="WiFi")
 
-    self.DeviceInfo = DeviceInfoFakeCPE()
+    self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(DeviceIdFakeCPE())
     self.ManagementServer = tr.core.TODO()  # Higher layer code splices this in
 
     self.InterfaceStackNumberOfEntries = 0
