@@ -13,17 +13,17 @@ import netdev
 import unittest
 
 
-class Ether(object):
-  def __init__(self):
-    pass
-
 class NetdevTest(unittest.TestCase):
   """Tests for netdev.py."""
-  def testInterfaceStatsGood(self):
-    devstat = netdev.NetdevStatsLinux26("testdata/ethernet/net_dev")
-    eth = Ether()
-    devstat.get_stats("foo0", eth)
+  def setUp(self):
+    self._old_PROC_NET_DEV = netdev.PROC_NET_DEV
 
+  def tearDown(self):
+    netdev.PROC_NET_DEV = self._old_PROC_NET_DEV
+
+  def testInterfaceStatsGood(self):
+    netdev.PROC_NET_DEV = "testdata/ethernet/net_dev"
+    eth = netdev.NetdevStatsLinux26(ifname="foo0")
     self.assertEqual(eth.BroadcastPacketsReceived, None)
     self.assertEqual(eth.BroadcastPacketsSent, None)
     self.assertEqual(eth.BytesReceived, '1')
@@ -44,10 +44,8 @@ class NetdevTest(unittest.TestCase):
     # A test using a /proc/net/dev line taken from a running Linux 2.6.32
     # system. Most of the fields are zero, so we exercise the other handling
     # using the foo0 fake data instead.
-    devstat = netdev.NetdevStatsLinux26("testdata/ethernet/net_dev")
-    eth = Ether()
-    devstat.get_stats("eth0", eth)
-
+    netdev.PROC_NET_DEV = "testdata/ethernet/net_dev"
+    eth = netdev.NetdevStatsLinux26("eth0")
     self.assertEqual(eth.BroadcastPacketsReceived, None)
     self.assertEqual(eth.BroadcastPacketsSent, None)
     self.assertEqual(eth.BytesReceived, '21052761139')

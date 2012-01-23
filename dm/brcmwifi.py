@@ -9,13 +9,15 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import collections
+import netdev
 import re
 import subprocess
 import tr.core
 import tr.cwmpbool
-import tr.tr098_v1_2
+import tr.tr098_v1_2 as tr98
 
-BASEWIFI = tr.tr098_v1_2.InternetGatewayDevice_v1_4.InternetGatewayDevice.LANDevice.WLANConfiguration
+tr98BASEWIFI = tr98.InternetGatewayDevice_v1_4.InternetGatewayDevice.LANDevice.WLANConfiguration
 WL_EXE = "/usr/bin/wl"
 
 def _GetWlCounters():
@@ -67,6 +69,41 @@ def _OutputContiguousRanges(seq):
   if in_range:
     output.append(str(prev))
   return ''.join(output)
+
+
+def _GetAssociatedDevices():
+  """Return a list of MAC addresses of associated STAs."""
+  wl = subprocess.Popen([WL_EXE, "assoclist"], stdout=subprocess.PIPE)
+  out, err = wl.communicate(None)
+  stamac_re = re.compile('((?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})')
+  stations = list()
+  for line in out.splitlines():
+    sta = stamac_re.search(line)
+    if sta is not None:
+      stations.append(sta.group(1))
+  return stations
+
+
+def _GetAssociatedDevice(mac):
+  ad = collections.namedtuple('AssociatedDevice', ('AssociatedDeviceMACAddress AssociatedDeviceAuthenticationState LastDataTransmitRate'))
+  ad.AssociatedDeviceMACAddress = mac
+  ad.AssociatedDeviceAuthenticationState = False
+  ad.LastDataTransmitRate = "0"
+  wl = subprocess.Popen([WL_EXE, "sta_info", mac.upper()],
+                        stdout=subprocess.PIPE)
+  out, err = wl.communicate(None)
+  tx_re = re.compile('rate of last tx pkt: (\d+) kbps')
+  for line in out.splitlines():
+    if line.find("AUTHENTICATED") >= 0:
+      ad.AssociatedDeviceAuthenticationState = True
+    tx_rate = tx_re.search(line)
+    if tx_rate is not None:
+      try:
+        mbps = int(tx_rate.group(1)) / 1000
+      except ValueError:
+        mbps = 0
+      ad.LastDataTransmitRate = str(mbps)
+  return ad
 
 
 def _GetAutoRateFallBackEnabled(arg):
@@ -296,11 +333,10 @@ def _GetTransmitPowerSupported(arg):
   return "1-100"
 
 
-
-class BrcmWifiWlanConfiguration(BASEWIFI):
-  def __init__(self):
-    BASEWIFI.__init__(self)
-    self.AssociatedDeviceList = {}
+class BrcmWifiWlanConfiguration(tr98BASEWIFI):
+  def __init__(self, ifname):
+    tr98BASEWIFI.__init__(self)
+    self._ifname = ifname
     self.AuthenticationServiceMode = tr.core.TODO()
     self.AutoChannelEnable = tr.core.TODO()
     self.BasicAuthenticationMode = tr.core.TODO()
@@ -311,16 +347,12 @@ class BrcmWifiWlanConfiguration(BASEWIFI):
     self.Enable = tr.core.TODO()
     self.IEEE11iAuthenticationMode = tr.core.TODO()
     self.IEEE11iEncryptionModes = tr.core.TODO()
-    self.InsecureOOBAccessEnabled = True
+    self.InsecureOOBAccessEnabled = tr.core.TODO()
     self.KeyPassphrase = tr.core.TODO()
     self.LocationDescription = ""
     self.MaxBitRate = tr.core.TODO()
-    self.Name = tr.core.TODO()
     self.PreSharedKeyList = {}
     self.PossibleDataTransmitRates = tr.core.TODO()
-    self.Standard = 'n'
-    self.Stats = tr.core.TODO()
-    self.TotalAssociations = 0
     self.TotalIntegrityFailures = tr.core.TODO()
     self.TotalPSKFailures = tr.core.TODO()
     self.WEPEncryptionLevel = tr.core.TODO()
@@ -329,7 +361,9 @@ class BrcmWifiWlanConfiguration(BASEWIFI):
     self.WPAAuthenticationMode = tr.core.TODO()
     self.WPAEncryptionModes = tr.core.TODO()
 
-    self._new_Enabled = None
+    self.AssociatedDeviceList = tr.core.AutoDict(
+        'AssociatedDeviceList', iteritems=self.IterAssociations,
+        getitem=self.GetAssociationByIndex)
 
     # MAC Access controls, currently unimplemented but could be supported.
     self.Unexport("MACAddressControlEnabled")
@@ -348,10 +382,28 @@ class BrcmWifiWlanConfiguration(BASEWIFI):
     self.WMMSupported = False
 
     # WDS, currently unimplemented but could be supported at some point.
-    self.DeviceOperationMode = 'InfrastructureAccessPoint'
     self.Unexport("PeerBSSID")
     self.Unexport("DistanceFromRoot")
 
+  @property
+  def Name(self):
+    return self._ifname
+
+  @property  # TODO(dgentry) need @sessioncache decorator.
+  def Stats(self):
+    return BrcmWlanConfigurationStats(self._ifname)
+
+  @property
+  def Standard(self):
+    return 'n'
+
+  @property
+  def DeviceOperationMode(self):
+    return 'InfrastructureAccessPoint'
+
+  @property
+  def TotalAssociations(self):
+    return len(self.AssociatedDeviceList)
 
   AutoRateFallBackEnabled = property(
       _GetAutoRateFallBackEnabled, _SetAutoRateFallBackEnabled, None,
@@ -389,7 +441,6 @@ class BrcmWifiWlanConfiguration(BASEWIFI):
       _GetTransmitPowerSupported, None, None,
       'WLANConfiguration.TransmitPowerSupported')
 
-
   def GetTotalBytesReceived(self):
     counters = _GetWlCounters()  # TODO cache for lifetime of session
     return int(counters.get('rxbyte', 0))
@@ -415,8 +466,51 @@ class BrcmWifiWlanConfiguration(BASEWIFI):
   TotalPacketsSent = property(GetTotalPacketsSent, None, None,
                               'WLANConfiguration.TotalPacketsSent')
 
-  def _Configure(self):
-    subprocess.check_call("wl ap 1")
+  def GetAssociation(self, mac):
+    """Get an AssociatedDevice object for the given STA."""
+    ad = BrcmWlanAssociatedDevice(_GetAssociatedDevice(mac))
+    if ad:
+      ad.ValidateExports()
+    return ad
+
+  def IterAssociations(self):
+    """Retrieves a list of all associated STAs."""
+    stations = _GetAssociatedDevices()
+    for idx, mac in enumerate(stations):
+      yield idx, self.GetAssociation(mac)
+
+  def GetAssociationByIndex(self, index):
+    stations = _GetAssociatedDevices()
+    return self.GetAssociation(stations[index])
+
+
+class BrcmWlanConfigurationStats(tr98BASEWIFI.Stats):
+  """tr98 InternetGatewayDevice.LANDevice.WLANConfiguration.Stats"""
+  def __init__(self, ifname):
+    tr98BASEWIFI.Stats.__init__(self)
+    self._netdev = netdev.NetdevStatsLinux26(ifname)
+
+  def __getattr__(self, name):
+    if hasattr(self._netdev, name):
+      return getattr(self._netdev, name)
+    else:
+      raise AttributeError
+
+
+class BrcmWlanAssociatedDevice(tr98BASEWIFI.AssociatedDevice):
+  def __init__(self, device):
+    tr98BASEWIFI.AssociatedDevice.__init__(self)
+    self._device = device
+    self.Unexport("AssociatedDeviceIPAddress")
+    self.Unexport("LastPMKId")
+    self.Unexport("LastRequestedUnicastCipher")
+    self.Unexport("LastRequestedMulticastCipher")
+
+  def __getattr__(self, name):
+    if hasattr(self._device, name):
+      return getattr(self._device, name)
+    else:
+      raise AttributeError
 
 
 def main():

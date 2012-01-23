@@ -24,9 +24,15 @@ BASEETHERNET = tr181.Device_v2_2.Device.Ethernet
 
 class EthernetTest(unittest.TestCase):
   """Tests for ethernet.py."""
+  def setUp(self):
+    self._old_PROC_NET_DEV = netdev.PROC_NET_DEV
+
+  def tearDown(self):
+    netdev.PROC_NET_DEV = self._old_PROC_NET_DEV
+
   def testInterfaceStatsGood(self):
-    devstat = netdev.NetdevStatsLinux26("testdata/ethernet/net_dev")
-    eth = ethernet.EthernetInterfaceStatsLinux26("foo0", devstat)
+    netdev.PROC_NET_DEV = "testdata/ethernet/net_dev"
+    eth = ethernet.EthernetInterfaceStatsLinux26("foo0")
     eth.ValidateExports()
 
     self.assertEqual(eth.BroadcastPacketsReceived, None)
@@ -46,9 +52,14 @@ class EthernetTest(unittest.TestCase):
     self.assertEqual(eth.UnknownProtoPacketsReceived, None)
 
   def testInterfaceStatsNonexistent(self):
-    devstat = netdev.NetdevStatsLinux26("testdata/ethernet/net_dev")
-    self.assertRaises(TypeError, ethernet.EthernetInterfaceStatsLinux26,
-                      "doesnotexist0", devstat)
+    netdev.PROC_NET_DEV = "testdata/ethernet/net_dev"
+    eth = ethernet.EthernetInterfaceStatsLinux26("doesnotexist0")
+    exception_raised = False
+    try:
+      i = eth.ErrorsReceived
+    except AttributeError:
+      exception_raised = True
+    self.assertTrue(exception_raised)
 
   def _CheckEthernetInterfaceParameters(self, ifname, upstream, eth, pynet):
     self.assertEqual(eth.Alias, ifname)

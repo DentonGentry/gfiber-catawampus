@@ -24,9 +24,15 @@ BASEETHERNET = tr.tr181_v2_2.Device_v2_2.Device.Ethernet
 
 
 class EthernetInterfaceStatsLinux26(BASEETHERNET.Interface.Stats):
-  def __init__(self, ifname, devstat=netdev.NetdevStatsLinux26()):
+  def __init__(self, ifname):
     BASEETHERNET.Interface.Stats.__init__(self)
-    devstat.get_stats(ifname, self)
+    self._netdev = netdev.NetdevStatsLinux26(ifname)
+
+  def __getattr__(self, name):
+    if hasattr(self._netdev, name):
+      return getattr(self._netdev, name)
+    else:
+      raise AttributeError
 
 
 class EthernetInterfaceLinux26(BASEETHERNET.Interface):
@@ -84,7 +90,8 @@ class Ethernet(BASEETHERNET):
   def __init__(self):
     BASEETHERNET.__init__(self)
     self.InterfaceList = tr.core.AutoDict(
-        'InterfaceList', iteritems=self.IterInterfaces, getitem=self.GetInterface)
+        'InterfaceList', iteritems=self.IterInterfaces,
+        getitem=self.GetInterface)
     self._Interfaces = {}
     self._NextInterface = 0
     self.LinkList = {}

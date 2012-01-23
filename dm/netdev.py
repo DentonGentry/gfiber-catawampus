@@ -9,12 +9,11 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-class NetdevStatsLinux26(object):
-  """Parses /proc/net/dev to populate EthernetInterfaceStats
+# Unit tests can override this.
+PROC_NET_DEV = '/proc/net/dev'
 
-  Args:
-    proc_net_dev - string path to /proc/net/dev, allowing unit tests
-      to pass in fake data.
+class NetdevStatsLinux26(object):
+  """Parses /proc/net/dev to populate Stats objects in several TRs.
   """
   # Fields in /proc/net/dev
   _RX_BYTES = 0
@@ -33,55 +32,52 @@ class NetdevStatsLinux26(object):
   _TX_CARRIER = 13
   _TX_COMPRESSED = 14
 
-  def __init__(self, proc_net_dev='/proc/net/dev'):
-    self._proc_net_dev = proc_net_dev
-
-  def get_stats(self, ifname, ethstat):
+  def __init__(self, ifname):
     """Parse fields from a /proc/net/dev line.
 
     Args:
       ifname - string name of the interface, like "eth0"
-      ethstat - object to store EthernetInterfaceStat fields.
     """
-    ifstats = self._ReadProcNetDev(ifname, self._proc_net_dev)
-    ethstat.BroadcastPacketsReceived = None
-    ethstat.BroadcastPacketsSent = None
-    ethstat.BytesReceived = ifstats[self._RX_BYTES]
-    ethstat.BytesSent = ifstats[self._TX_BYTES]
-    ethstat.DiscardPacketsReceived = ifstats[self._RX_DROP]
-    ethstat.DiscardPacketsSent = ifstats[self._TX_DROP]
+    ifstats = self._ReadProcNetDev(ifname)
+    if ifstats:
+      self.BroadcastPacketsReceived = None
+      self.BroadcastPacketsSent = None
+      self.BytesReceived = ifstats[self._RX_BYTES]
+      self.BytesSent = ifstats[self._TX_BYTES]
+      self.DiscardPacketsReceived = ifstats[self._RX_DROP]
+      self.DiscardPacketsSent = ifstats[self._TX_DROP]
 
-    err = int(ifstats[self._RX_ERRS]) + int(ifstats[self._RX_FRAME])
-    ethstat.ErrorsReceived = str(err)
+      err = int(ifstats[self._RX_ERRS]) + int(ifstats[self._RX_FRAME])
+      self.ErrorsReceived = str(err)
 
-    ethstat.ErrorsSent = ifstats[self._TX_FIFO]
-    ethstat.MulticastPacketsReceived = ifstats[self._RX_MCAST]
-    ethstat.MulticastPacketsSent = None
-    ethstat.PacketsReceived = ifstats[self._RX_PKTS]
-    ethstat.PacketsSent = ifstats[self._TX_PKTS]
+      self.ErrorsSent = ifstats[self._TX_FIFO]
+      self.MulticastPacketsReceived = ifstats[self._RX_MCAST]
+      self.MulticastPacketsSent = None
+      self.PacketsReceived = ifstats[self._RX_PKTS]
+      self.PacketsSent = ifstats[self._TX_PKTS]
 
-    rx = int(ifstats[self._RX_PKTS]) - int(ifstats[self._RX_MCAST])
-    ethstat.UnicastPacketsReceived = str(rx)
+      rx = int(ifstats[self._RX_PKTS]) - int(ifstats[self._RX_MCAST])
+      self.UnicastPacketsReceived = str(rx)
 
-    # Linux doesn't break out transmit uni/multi/broadcast, but we don't
-    # want to return None for all of them. So we return all transmitted
-    # packets as unicast, though some were surely multicast or broadcast.
-    ethstat.UnicastPacketsSent = ifstats[self._TX_PKTS]
-    ethstat.UnknownProtoPacketsReceived = None
+      # Linux doesn't break out transmit uni/multi/broadcast, but we don't
+      # want to return None for all of them. So we return all transmitted
+      # packets as unicast, though some were surely multicast or broadcast.
+      self.UnicastPacketsSent = ifstats[self._TX_PKTS]
+      self.UnknownProtoPacketsReceived = None
 
-  def _ReadProcNetDev(self, ifname, proc_net_dev):
+  def _ReadProcNetDev(self, ifname):
     """Return the /proc/net/dev entry for ifname.
 
     Args:
       ifname - string name of the interface, ecx: "eth0"
-      proc_net_dev - string path to /proc/net/dev.
     """
-    f = open(proc_net_dev)
+    f = open(PROC_NET_DEV)
     devices = dict()
     for line in f:
       fields = line.split(':')
       if (len(fields) == 2) and (fields[0].strip() == ifname):
         return fields[1].split()
+    return None
 
 
 def main():
