@@ -95,6 +95,7 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
     self.Unexport(objects="ATM")
     self.Unexport(objects="Bridging")
     self.Unexport(objects="CaptivePortal")
+    self.Export(objects=['DeviceInfo'])
     self.Unexport(objects="DHCPv4")
     self.Unexport(objects="DNS")
     self.Unexport(objects="DSL")

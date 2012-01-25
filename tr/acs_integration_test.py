@@ -391,6 +391,133 @@ class GetParamsRpcTest(unittest.TestCase):
         </soap:Body>
       </soap:Envelope>"""
 
+  def _AssertCwmpFaultNopeNotHere(self, root):
+    fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
+    self.assertTrue(fault)
+    self.assertEqual(fault.find('faultcode').text, "Client")
+    self.assertEqual(fault.find('faultstring').text, "CWMP fault")
+    detail = fault.find('detail/' + CWMPNS + 'Fault')
+    self.assertTrue(detail)
+    self.assertEqual(detail.find('FaultCode').text, "9005")
+    self.assertTrue(detail.find('FaultString').text.find("NopeNotHere"))
+
+  def testGetBadParamValue(self):
+    cpe = self.getCpe()
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterValues><ParameterNames soapenc:arrayType="{urn:dslforum-org:cwmp-1-2}string[1]"><ns3:string xmlns="urn:dslforum-org:cwmp-1-2" xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" xmlns:ns3="urn:dslforum-org:cwmp-1-2">NopeNotHere</ns3:string></ParameterNames></cwmp:GetParameterValues></soapenv:Body></soapenv:Envelope>"""
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+
+    root = ET.fromstring(str(responseXml))
+    name = root.find(SOAPNS + 'Body/' + CWMPNS + 'GetParameterValuesResponse')
+    self.assertTrue(name is None)
+    self._AssertCwmpFaultNopeNotHere(root)
+
+    # We don't do a string compare of the XML output, that is too fragile
+    # as a test. We parse the XML and look for expected values. Nonetheless
+    # here is roughly what responseXml should look like, if you need to debug
+    # this test case:
+    expected = r"""<?xml version="1.0" encoding="utf-8"?>
+      <soap:Envelope xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+        <soap:Header>
+          <cwmp:ID soap:mustUnderstand="1">TestCwmpId</cwmp:ID>
+        </soap:Header>
+        <soap:Body>
+          <soap:Fault>
+            <faultcode>Client</faultcode>
+            <faultstring>CWMP fault</faultstring>
+            <detail>
+              <cwmp:Fault>
+                <FaultCode>9005</FaultCode>
+                <FaultString>No such parameter: NopeNotHere</FaultString>
+              </cwmp:Fault>
+            </detail>
+          </soap:Fault>
+        </soap:Body>
+      </soap:Envelope>"""
+
+  def testGetBadParamName(self):
+    cpe = self.getCpe()
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterNames><ParameterPath>NopeNotHere</ParameterPath><NextLevel>true</NextLevel></cwmp:GetParameterNames></soapenv:Body></soapenv:Envelope>"""
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+    root = ET.fromstring(str(responseXml))
+    name = root.find(SOAPNS + 'Body/' + CWMPNS + 'GetParameterNamesResponse')
+    self.assertTrue(name is None)
+    self._AssertCwmpFaultNopeNotHere(root)
+
+    # We don't do a string compare of the XML output, that is too fragile
+    # as a test. We parse the XML and look for expected values. Nonetheless
+    # here is roughly what responseXml should look like, if you need to debug
+    # this test case:
+    expected = r"""<?xml version="1.0" encoding="utf-8"?>
+      <soap:Envelope xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+        <soap:Header>
+          <cwmp:ID soap:mustUnderstand="1">TestCwmpId</cwmp:ID>
+        </soap:Header>
+        <soap:Body>
+          <soap:Fault>
+            <faultcode>Client</faultcode>
+            <faultstring>CWMP fault</faultstring>
+            <detail>
+              <cwmp:Fault>
+                <FaultCode>9005</FaultCode>
+                <FaultString>No such parameter: NopeNotHere</FaultString>
+              </cwmp:Fault>
+            </detail>
+          </soap:Fault>
+        </soap:Body>
+      </soap:Envelope>"""
+
+  def testBadAddObjectName(self):
+    cpe = self.getCpe()
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:AddObject><ObjectName>NopeNotHere.</ObjectName><ParameterKey>ParameterKey1</ParameterKey></cwmp:AddObject></soapenv:Body></soapenv:Envelope>"""
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+    root = ET.fromstring(str(responseXml))
+    name = root.find(SOAPNS + 'Body/' + CWMPNS + 'AddObjectResponse')
+    self.assertTrue(name is None)
+    self._AssertCwmpFaultNopeNotHere(root)
+
+  def testBadAddObjectNameNoDot(self):
+    """<ObjectName> does not end in a dot, as spec requires."""
+    cpe = self.getCpe()
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:AddObject><ObjectName>NopeNotHere</ObjectName><ParameterKey>ParameterKey1</ParameterKey></cwmp:AddObject></soapenv:Body></soapenv:Envelope>"""
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+    root = ET.fromstring(str(responseXml))
+    name = root.find(SOAPNS + 'Body/' + CWMPNS + 'AddObjectResponse')
+    self.assertTrue(name is None)
+    self._AssertCwmpFaultNopeNotHere(root)
+
+  def testBadDelObjectName(self):
+    cpe = self.getCpe()
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:DeleteObject><ObjectName>NopeNotHere.</ObjectName><ParameterKey>ParameterKey1</ParameterKey></cwmp:DeleteObject></soapenv:Body></soapenv:Envelope>"""
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+    root = ET.fromstring(str(responseXml))
+    name = root.find(SOAPNS + 'Body/' + CWMPNS + 'DeleteObjectResponse')
+    self.assertTrue(name is None)
+    self._AssertCwmpFaultNopeNotHere(root)
+
+  def testBadDelObjectNameNoDot(self):
+    """<ObjectName> does not end in a dot, as spec requires."""
+    cpe = self.getCpe()
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:DeleteObject><ObjectName>NopeNotHere</ObjectName><ParameterKey>ParameterKey1</ParameterKey></cwmp:DeleteObject></soapenv:Body></soapenv:Envelope>"""
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+    root = ET.fromstring(str(responseXml))
+    name = root.find(SOAPNS + 'Body/' + CWMPNS + 'DeleteObjectResponse')
+    self.assertTrue(name is None)
+    self._AssertCwmpFaultNopeNotHere(root)
+
+  def testNoSuchMethod(self):
+    cpe = self.getCpe()
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:NoSuchMethod><NoSuchArgument/></cwmp:NoSuchMethod></soapenv:Body></soapenv:Envelope>"""
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+    root = ET.fromstring(str(responseXml))
+    fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
+    self.assertTrue(fault)
+    self.assertEqual(fault.find('faultcode').text, "Server")
+    self.assertEqual(fault.find('faultstring').text, "CWMP fault")
+    detail = fault.find('detail/' + CWMPNS + 'Fault')
+    self.assertTrue(detail)
+    self.assertEqual(detail.find('FaultCode').text, "9000")
+    self.assertTrue(detail.find('FaultString').text.find("NoSuchMethod"))
+
 
 if __name__ == '__main__':
   unittest.main()

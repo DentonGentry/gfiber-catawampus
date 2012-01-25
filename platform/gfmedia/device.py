@@ -177,9 +177,11 @@ class DeviceGFMedia(tr181.Device_v2_2.Device):
     self.Unexport(objects='ATM')
     self.Unexport(objects='Bridging')
     self.Unexport(objects='CaptivePortal')
+    self.Export(objects=['DeviceInfo'])
     self.Unexport(objects='DHCPv4')
     self.Unexport(objects='DNS')
     self.Unexport(objects='DSL')
+    self.Unexport(objects='Ethernet')
     self.Unexport(objects='GatewayInfo')
     self.Unexport(objects='HPNA')
     self.Unexport(objects='HomePlug')
@@ -202,17 +204,16 @@ class DeviceGFMedia(tr181.Device_v2_2.Device):
 
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
-    self.Ethernet = tr.core.TODO()
     self.InterfaceStackList = {}
     self.InterfaceStackNumberOfEntries = 0
 
 
-tr98BASEIGD = tr98.InternetGatewayDevice_v1_4.InternetGatewayDevice
+BASE98IGD = tr98.InternetGatewayDevice_v1_4.InternetGatewayDevice
 
-class LANDeviceGFMedia(tr98BASEIGD.LANDevice):
+class LANDeviceGFMedia(BASE98IGD.LANDevice):
   """tr-98 InternetGatewayDevice for Google Fiber media platforms."""
   def __init__(self):
-    tr98BASEIGD.LANDevice.__init__(self)
+    BASE98IGD.LANDevice.__init__(self)
     self.Unexport(objects="Hosts")
     self.Unexport(lists="LANEthernetInterfaceConfig")
     self.Unexport(objects="LANHostConfigManagement")
@@ -227,9 +228,9 @@ class LANDeviceGFMedia(tr98BASEIGD.LANDevice):
     return len(self.WLANConfigurationList)
 
 
-class InternetGatewayDeviceGFMedia(tr98BASEIGD):
+class InternetGatewayDeviceGFMedia(BASE98IGD):
   def __init__(self, device_id):
-    tr98BASEIGD.__init__(self)
+    BASE98IGD.__init__(self)
     self.Unexport(objects="CaptivePortal")
     self.Unexport(objects="DeviceConfig")
     self.Unexport(params="DeviceSummary")

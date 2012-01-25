@@ -18,7 +18,7 @@ import tr.tr181_v2_2
 import tr.tr098_v1_2
 
 BASEMGMT181 = tr.tr181_v2_2.Device_v2_2.Device.ManagementServer
-BASEMGMT98 = tr.tr098_v1_2.InternetGatewayDevice_v1_3.InternetGatewayDevice.ManagementServer
+BASEMGMT98 = tr.tr098_v1_2.InternetGatewayDevice_v1_4.InternetGatewayDevice.ManagementServer
 
 class ManagementServer181(BASEMGMT181):
   MGMTATTRS = frozenset([
@@ -42,6 +42,7 @@ class ManagementServer181(BASEMGMT181):
 
     self.Unexport('DownloadProgressURL')
     self.Unexport('KickURL')
+    self.Unexport('NATDetected')
     self.Unexport('STUNMaximumKeepAlivePeriod')
     self.Unexport('STUNMinimumKeepAlivePeriod')
     self.Unexport('STUNPassword')
@@ -49,12 +50,17 @@ class ManagementServer181(BASEMGMT181):
     self.Unexport('STUNServerPort')
     self.Unexport('STUNUsername')
     self.Unexport('UDPConnectionRequestAddress')
-    self.Unexport('NATDetected')
 
     self.ManageableDeviceList = {}
     self.ManageableDeviceNumberOfEntries = 0
-    self.STUNEnable = False
-    self.UpgradesManaged = True
+
+  @property
+  def STUNEnable(self):
+    return False
+
+  @property
+  def UpgradesManaged(self):
+    return True
 
   def __getattr__(self, name):
     if name in self.MGMTATTRS:
@@ -94,10 +100,16 @@ class ManagementServer98(BASEMGMT98):
     """
     BASEMGMT98.__init__(self)
     self.mgmt = mgmt
-
     self.Unexport('DownloadProgressURL')
     self.Unexport('KickURL')
+    self.Unexport('UDPConnectionRequestAddress')
 
+    self.ManageableDeviceList = {}
+    self.ManageableDeviceNumberOfEntries = 0
+
+  @property
+  def UpgradesManaged(self):
+    return True
     self.UpgradesManaged = True
 
   def __getattr__(self, name):

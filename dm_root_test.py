@@ -25,7 +25,7 @@ class MockTr181(BASE181):
     BASE181.__init__(self)
 
 
-BASE98 = tr.tr098_v1_2.InternetGatewayDevice_v1_3.InternetGatewayDevice
+BASE98 = tr.tr098_v1_2.InternetGatewayDevice_v1_4.InternetGatewayDevice
 class MockTr98(BASE98):
   def __init__(self):
     BASE98.__init__(self)
@@ -44,6 +44,7 @@ class DeviceModelRootTest(unittest.TestCase):
 
     root.Device = MockTr181()
     root.InternetGatewayDevice = MockTr98()
+    root.Export(objects=['Device', 'InternetGatewayDevice'])
     self.assertFalse(isinstance(root.InternetGatewayDevice.ManagementServer,
                                 BASE98.ManagementServer))
     self.assertFalse(isinstance(root.Device.ManagementServer,

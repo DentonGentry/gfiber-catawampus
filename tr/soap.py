@@ -52,6 +52,13 @@ class AcsFault(object):
   # codes 8800-8899: vendor-defined faults
 
 
+class SoapFaultException(Exception):
+  """To be raised by API code desiring to send a SOAP:Fault response."""
+  def __init__(self, cpefault, faultstring):
+    self.cpefault = cpefault
+    self.faultstring = faultstring
+
+
 class _Enterable(object):
   def __init__(self, iterable):
     self.iter = iterable
@@ -127,6 +134,11 @@ def SetParameterValuesFault(xml, faults):
 
 def SimpleFault(xml, cpefault, faultstring):
   with Fault(xml, cpefault, faultstring) as xml:
+    return xml
+
+
+def FaultFromSoapException(xml, e):
+  with Fault(xml, e.cpefault, e.faultstring) as xml:
     return xml
 
 

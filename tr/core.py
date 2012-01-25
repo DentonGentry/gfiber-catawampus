@@ -15,6 +15,7 @@ Exporter yourself.
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 
+import soap
 import string
 
 class NotAddableError(KeyError):
@@ -229,10 +230,16 @@ class Exporter(object):
                     % type(obj))
         obj.ValidateExports(path + [name])
 
+  def IsValidExport(self, name):
+    if (name in self.export_params or
+        name in self.export_objects or
+        name in self.export_object_lists):
+      return True
+    else:
+      return False
+
   def AssertValidExport(self, name, path=None):
-    if (name not in self.export_params and
-        name not in self.export_objects and
-        name not in self.export_object_lists):
+    if not self.IsValidExport(name):
       raise KeyError(name)
     ename = self._GetExportName(self, name)
     if not hasattr(self, ename):
@@ -250,6 +257,10 @@ class Exporter(object):
       return name.translate(self.DASH_TO_UNDERSCORE)
 
   def _GetExport(self, parent, name):
+    if hasattr(parent, 'IsValidExport') and not parent.IsValidExport(name):
+      raise soap.SoapFaultException(
+          cpefault=soap.CpeFault.INVALID_PARAM_NAME,
+          faultstring='No such parameter: {0}'.format(name))
     if hasattr(parent, '_GetExport'):
       return getattr(parent, self._GetExportName(parent, name))
     elif _Int(name) in parent:
