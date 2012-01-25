@@ -5,7 +5,7 @@
 # TR-069 has mandatory attribute names that don't comply with policy
 #pylint: disable-msg=C6409
 
-"""Implementation of tr-981 WLAN objects for Broadcom Wifi chipsets. """
+"""Implementation of tr-98/181 WLAN objects for Broadcom Wifi chipsets. """
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
@@ -17,7 +17,7 @@ import tr.core
 import tr.cwmpbool
 import tr.tr098_v1_2 as tr98
 
-tr98BASEWIFI = tr98.InternetGatewayDevice_v1_4.InternetGatewayDevice.LANDevice.WLANConfiguration
+BASE98WIFI = tr98.InternetGatewayDevice_v1_4.InternetGatewayDevice.LANDevice.WLANConfiguration
 WL_EXE = "/usr/bin/wl"
 
 def _GetWlCounters():
@@ -307,6 +307,13 @@ def _GetStatus(arg):
   else:
     return 'Error'
 
+def _SetStatus(arg, enable):
+  status = "up" if enable else "down"
+  wl = subprocess.check_call([WL_EXE, "status", status])
+
+def _ValidateStatus(value):
+  return tr.cwmpbool.valid(value)
+
 
 def _GetTransmitPower(arg):
   wl = subprocess.Popen([WL_EXE, "pwr_percent"], stdout=subprocess.PIPE)
@@ -333,10 +340,11 @@ def _GetTransmitPowerSupported(arg):
   return "1-100"
 
 
-class BrcmWifiWlanConfiguration(tr98BASEWIFI):
+class BrcmWifiWlanConfiguration(BASE98WIFI):
   def __init__(self, ifname):
-    tr98BASEWIFI.__init__(self)
+    BASE98WIFI.__init__(self)
     self._ifname = ifname
+    self._enabled = False
     self.AuthenticationServiceMode = tr.core.TODO()
     self.AutoChannelEnable = tr.core.TODO()
     self.BasicAuthenticationMode = tr.core.TODO()
@@ -344,10 +352,8 @@ class BrcmWifiWlanConfiguration(tr98BASEWIFI):
     self.BeaconAdvertisementEnabled = tr.core.TODO()
     self.BeaconType = tr.core.TODO()
     self.ChannelsInUse = tr.core.TODO()
-    self.Enable = tr.core.TODO()
     self.IEEE11iAuthenticationMode = tr.core.TODO()
     self.IEEE11iEncryptionModes = tr.core.TODO()
-    self.InsecureOOBAccessEnabled = tr.core.TODO()
     self.KeyPassphrase = tr.core.TODO()
     self.LocationDescription = ""
     self.MaxBitRate = tr.core.TODO()
@@ -365,6 +371,10 @@ class BrcmWifiWlanConfiguration(tr98BASEWIFI):
         'AssociatedDeviceList', iteritems=self.IterAssociations,
         getitem=self.GetAssociationByIndex)
 
+    # Local settings, currently unimplemented. Will require more
+    # coordination with the underlying platform support.
+    self.Unexport('InsecureOOBAccessEnabled')
+
     # MAC Access controls, currently unimplemented but could be supported.
     self.Unexport("MACAddressControlEnabled")
 
@@ -377,9 +387,7 @@ class BrcmWifiWlanConfiguration(tr98BASEWIFI):
     self.Unexport(lists='APWMMParameter')
     self.Unexport(lists="STAWMMParameter")
     self.Unexport("UAPSDEnable")
-    self.UAPSDSupported = False
     self.Unexport("WMMEnable")
-    self.WMMSupported = False
 
     # WDS, currently unimplemented but could be supported at some point.
     self.Unexport("PeerBSSID")
@@ -402,8 +410,30 @@ class BrcmWifiWlanConfiguration(tr98BASEWIFI):
     return 'InfrastructureAccessPoint'
 
   @property
+  def UAPSDSupported(self):
+    return False
+
+  @property
+  def WMMSupported(self):
+    return False
+
+  @property
   def TotalAssociations(self):
     return len(self.AssociatedDeviceList)
+
+
+  def GetEnable(self):
+    return self._enabled
+
+  def SetEnable(self, value):
+    self._enabled = tr.cwmpbool.parse(value)
+    _SetStatus(None, self._enabled)
+
+  def ValidateEnable(self, value):
+    return _ValidateStatus(value)
+
+  Enable = property(GetEnable, SetEnable, None, 'WLANConfiguration.Enable')
+
 
   AutoRateFallBackEnabled = property(
       _GetAutoRateFallBackEnabled, _SetAutoRateFallBackEnabled, None,
@@ -484,10 +514,10 @@ class BrcmWifiWlanConfiguration(tr98BASEWIFI):
     return self.GetAssociation(stations[index])
 
 
-class BrcmWlanConfigurationStats(tr98BASEWIFI.Stats):
+class BrcmWlanConfigurationStats(BASE98WIFI.Stats):
   """tr98 InternetGatewayDevice.LANDevice.WLANConfiguration.Stats"""
   def __init__(self, ifname):
-    tr98BASEWIFI.Stats.__init__(self)
+    BASE98WIFI.Stats.__init__(self)
     self._netdev = netdev.NetdevStatsLinux26(ifname)
 
   def __getattr__(self, name):
@@ -497,9 +527,9 @@ class BrcmWlanConfigurationStats(tr98BASEWIFI.Stats):
       raise AttributeError
 
 
-class BrcmWlanAssociatedDevice(tr98BASEWIFI.AssociatedDevice):
+class BrcmWlanAssociatedDevice(BASE98WIFI.AssociatedDevice):
   def __init__(self, device):
-    tr98BASEWIFI.AssociatedDevice.__init__(self)
+    BASE98WIFI.AssociatedDevice.__init__(self)
     self._device = device
     self.Unexport("AssociatedDeviceIPAddress")
     self.Unexport("LastPMKId")

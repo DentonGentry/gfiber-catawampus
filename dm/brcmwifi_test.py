@@ -315,6 +315,31 @@ class BrcmWifiTest(unittest.TestCase):
     out.close()
     self.assertEqual(output, "radio off\n")
 
+  def testEnable(self):
+    bw = brcmwifi.BrcmWifiWlanConfiguration("wifi0")
+    (script, out) = self.MakeTestScript()
+    brcmwifi.WL_EXE = script.name
+    bw.Enable = "True"
+    output = out.read()
+    out.close()
+    self.assertEqual(output, "status up\n")
+    self.assertTrue(bw.Enable)
+    (script, out) = self.MakeTestScript()
+    brcmwifi.WL_EXE = script.name
+    bw.Enable = "False"
+    output = out.read()
+    out.close()
+    self.assertEqual(output, "status down\n")
+    self.assertFalse(bw.Enable)
+
+  def testValidateEnable(self):
+    bw = brcmwifi.BrcmWifiWlanConfiguration("wifi0")
+    self.assertTrue(bw.ValidateEnable("True"))
+    self.assertTrue(bw.ValidateEnable("False"))
+    self.assertTrue(bw.ValidateEnable("0"))
+    self.assertTrue(bw.ValidateEnable("1"))
+    self.assertFalse(bw.ValidateEnable("foo"))
+
   def testStats(self):
     netdev.PROC_NET_DEV = 'testdata/brcmwifi/proc_net_dev'
     bw = brcmwifi.BrcmWifiWlanConfiguration("wifi0")
