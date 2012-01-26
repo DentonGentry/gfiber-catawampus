@@ -250,7 +250,7 @@ class CPEStateMachine(object):
       else:
         self.session.state_update(acs_to_cpe_empty=True)
     else:
-      print('HTTP ERROR Code %d' % response.code)
+      print('HTTP ERROR {0!s}: {1}'.format(response.code, response.error))
       if self.session.close():
         # Ping received during session, start another
         self.ioloop.add_callback(self._NewPingSession)
