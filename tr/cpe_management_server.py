@@ -13,6 +13,7 @@ import cwmpbool
 import cwmpdate
 import datetime
 import random
+import socket
 import time
 import tornado.ioloop
 
@@ -58,11 +59,24 @@ class CpeManagementServer(object):
     return line
   URL = property(GetURL, None, None, 'tr-98/181 ManagementServer.URL')
 
+  def isIp6Address(self, ip):
+    try:
+      socket.inet_pton(socket.AF_INET6, ip)
+    except:
+      return False
+    return True
+
+  def formatIP(self, ip):
+    if self.isIp6Address(ip):
+      return '[' + ip + ']'
+    else:
+      return ip
 
   def GetConnectionRequestURL(self):
     if self.my_ip and self.port and self.ping_path:
       path = self.ping_path if self.ping_path[0] != '/' else self.ping_path[1:]
-      return 'http://{0}:{1!s}/{2}'.format(self.my_ip, self.port, path)
+      ip = self.formatIP(self.my_ip)
+      return 'http://{0}:{1!s}/{2}'.format(ip, self.port, path)
     else:
       return ''
   ConnectionRequestURL = property(

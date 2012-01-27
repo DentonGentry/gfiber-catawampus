@@ -54,11 +54,22 @@ class CpeManagementServerTest(unittest.TestCase):
     self.start_session_called = False
     del periodic_callbacks[:]
 
+  def testIsIp6Address(self):
+    cpe_ms = ms.CpeManagementServer(acs_url_file=None, port=5,
+                                    ping_path="/ping/path")
+    self.assertTrue(cpe_ms.isIp6Address("fe80::21d:9ff:fe11:f55f"))
+    self.assertTrue(cpe_ms.isIp6Address("2620:0:1000:5200:222:3ff:fe44:5555"))
+    self.assertFalse(cpe_ms.isIp6Address("1.2.3.4"))
+    self.assertFalse(cpe_ms.isIp6Address("foobar"))
+
   def testConnectionRequestURL(self):
     cpe_ms = ms.CpeManagementServer(acs_url_file=None, port=5,
                                     ping_path="/ping/path")
     cpe_ms.my_ip = "1.2.3.4"
     self.assertEqual(cpe_ms.ConnectionRequestURL, "http://1.2.3.4:5/ping/path")
+    cpe_ms.my_ip = "2620:0:1000:5200:222:3ff:fe44:5555"
+    self.assertEqual(cpe_ms.ConnectionRequestURL,
+                     "http://[2620:0:1000:5200:222:3ff:fe44:5555]:5/ping/path")
 
   def testUrl(self):
     cpe_ms = ms.CpeManagementServer(acs_url_file="testdata/http/acs_url_file",
