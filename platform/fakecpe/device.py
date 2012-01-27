@@ -12,6 +12,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import fix_path
 
 import dm.device_info
+import dm.storage
 import os
 import random
 import tornado.ioloop
@@ -87,6 +88,13 @@ class DeviceIdFakeCPE(dm.device_info.DeviceIdMeta):
     return '0'
 
 
+class ServicesFakeCPE(tr181.Device_v2_2.Device.Services):
+  def __init__(self):
+    tr181.Device_v2_2.Device.Services.__init__(self)
+    self.Export(objects=['StorageServices'])
+    self.StorageServices = dm.storage.StorageServiceLinux26()
+
+
 class DeviceFakeCPE(tr181.Device_v2_2.Device):
   """Device implementation for a simulated CPE device."""
 
@@ -113,7 +121,6 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
     self.Unexport(objects="PTM")
     self.Unexport(objects="QoS")
     self.Unexport(objects="Routing")
-    self.Unexport(objects="Services")
     self.Unexport(objects="SmartCardReaders")
     self.Unexport(objects="UPA")
     self.Unexport(objects="USB")
@@ -122,6 +129,7 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
 
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(DeviceIdFakeCPE())
     self.ManagementServer = tr.core.TODO()  # Higher layer code splices this in
+    self.Services = ServicesFakeCPE()
 
     self.InterfaceStackNumberOfEntries = 0
     self.InterfaceStackList = {}

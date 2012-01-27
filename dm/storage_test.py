@@ -37,29 +37,66 @@ def OsStatVfs(rootpath):
 class StorageTest(unittest.TestCase):
   def setUp(self):
     storage.STATVFS = OsStatVfs
+    self.old_PROC_FILESYSTEMS = storage.PROC_FILESYSTEMS
+    self.old_PROC_MOUNTS = storage.PROC_MOUNTS
+
+  def tearDown(self):
+    self.PROC_FILESYSTEMS = self.old_PROC_FILESYSTEMS
+    storage.PROC_MOUNTS = self.old_PROC_MOUNTS
 
   def testValidateExports(self):
-    stor = storage.LogicalVolumeLinux26("/fakepath", "fstype")
-    stor.ValidateExports()
+    storage.PROC_FILESYSTEMS = "testdata/storage/proc.filesystems"
+    storage.PROC_MOUNTS = "testdata/storage/proc.mounts"
+    service = storage.StorageServiceLinux26()
+    service.ValidateExports()
 
   def testCapacity(self):
     stor = storage.LogicalVolumeLinux26("/fakepath", "fstype")
     teststatvfs = OsStatVfs("/fakepath")
-    expected = str(teststatvfs.f_bsize * teststatvfs.f_blocks)
+    expected = teststatvfs.f_bsize * teststatvfs.f_blocks
     self.assertEqual(stor.Capacity, expected)
 
   def testUsedSpace(self):
     stor = storage.LogicalVolumeLinux26("/fakepath", "fstype")
     teststatvfs = OsStatVfs("/fakepath")
     used = (teststatvfs.f_blocks - teststatvfs.f_bavail) * teststatvfs.f_bsize
-    self.assertEqual(stor.UsedSpace, str(used))
+    self.assertEqual(stor.UsedSpace, used)
 
   def testLogicalVolumeList(self):
     storage.PROC_MOUNTS = "testdata/storage/proc.mounts"
     service = storage.StorageServiceLinux26()
     volumes = service.LogicalVolumeList
     self.assertEqual(len(volumes), 3)
+    expectedFs = {"/" : "X_GOOGLE-COM_squashfs",
+                  "/foo" : "X_GOOGLE-COM_ubifs",
+                  "/tmp" : "X_GOOGLE-COM_tmpfs" }
+    for vol in volumes.values():
+      t = OsStatVfs(vol.Name)
+      self.assertEqual(vol.Status, "Online")
+      self.assertTrue(vol.Enable)
+      self.assertEqual(vol.FileSystem, expectedFs[vol.Name])
+      self.assertEqual(vol.Capacity, t.f_bsize * t.f_blocks)
+      self.assertEqual(vol.UsedSpace, t.f_bsize * (t.f_blocks - t.f_bavail))
 
+  def testCapabilitiesNone(self):
+    storage.PROC_FILESYSTEMS = "testdata/storage/proc.filesystems"
+    cap = storage.CapabilitiesNoneLinux26()
+    cap.ValidateExports()
+    self.assertFalse(cap.FTPCapable)
+    self.assertFalse(cap.HTTPCapable)
+    self.assertFalse(cap.HTTPSCapable)
+    self.assertFalse(cap.HTTPWritable)
+    self.assertFalse(cap.SFTPCapable)
+    self.assertEqual(cap.SupportedNetworkProtocols, '')
+    self.assertEqual(cap.SupportedRaidTypes, '')
+    self.assertFalse(cap.VolumeEncryptionCapable)
+
+  def testCapabilitiesNoneFsTypes(self):
+    storage.PROC_FILESYSTEMS = "testdata/storage/proc.filesystems"
+    cap = storage.CapabilitiesNoneLinux26()
+    self.assertEqual(cap.SupportedFileSystemTypes,
+                     'ext2,ext3,ext4,FAT32,X_GOOGLE-COM_iso9660,'
+                     'X_GOOGLE-COM_squashfs,X_GOOGLE-COM_udf')
 
 if __name__ == '__main__':
   unittest.main()

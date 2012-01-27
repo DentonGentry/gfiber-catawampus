@@ -14,15 +14,33 @@ import os
 import tr.core
 import tr.tr140_v1_1
 
-BASE98STORAGE = tr.tr140_v1_1.StorageService_v1_1.StorageService
+BASESTORAGE = tr.tr140_v1_1.StorageService_v1_1.StorageService
 
 # Unit tests can override these
 STATVFS = os.statvfs
 PROC_MOUNTS = "/proc/mounts"
+PROC_FILESYSTEMS = "/proc/filesystems"
 
-class LogicalVolumeLinux26(BASE98STORAGE.LogicalVolume):
+def _FsType(fstype):
+  supported = {"vfat" : "FAT32", "ext2" : "ext2", "ext3" : "ext3",
+               "ext4" : "ext4", "msdos" : "FAT32", "xfs" : "xfs",
+               "reiserfs" : "REISER" }
+  if fstype in supported:
+    return supported[fstype]
+  else:
+    return "X_GOOGLE-COM_" + fstype
+
+
+def _IsSillyFilesystem(fstype):
+  """Filesystems which are not interesting to export to the ACS."""
+  SILLY = frozenset(['devtmpfs', 'proc', 'sysfs', 'usbfs', 'devpts',
+      'rpc_pipefs', 'autofs', 'nfsd', 'binfmt_misc', 'fuseblk'])
+  return fstype in SILLY
+
+
+class LogicalVolumeLinux26(BASESTORAGE.LogicalVolume):
   def __init__(self, rootpath, fstype):
-    BASE98STORAGE.LogicalVolume.__init__(self)
+    BASESTORAGE.LogicalVolume.__init__(self)
     self.rootpath = rootpath
     self.fstype = fstype
     self.Unexport('Encrypted')
@@ -55,23 +73,84 @@ class LogicalVolumeLinux26(BASE98STORAGE.LogicalVolume):
   @property
   def Capacity(self):
     vfs = self._GetStatVfs()
-    return str(vfs.f_blocks * vfs.f_bsize)
+    return vfs.f_blocks * vfs.f_bsize
 
   @property
   def UsedSpace(self):
     vfs = self._GetStatVfs()
     b_used = vfs.f_blocks - vfs.f_bavail
-    return str(b_used * vfs.f_bsize)
+    return b_used * vfs.f_bsize
 
   @property
   def FolderNumberOfEntries(self):
     return len(self.FolderList)
 
-
-class StorageServiceLinux26(BASE98STORAGE):
-  """Implements tr-140 for Linux 2.6-ish systems."""
+class CapabilitiesNoneLinux26(BASESTORAGE.Capabilities):
   def __init__(self):
-    BASE98STORAGE.__init__(self)
+    BASESTORAGE.Capabilities.__init__(self)
+
+  @property
+  def FTPCapable(self):
+    return False
+
+  @property
+  def HTTPCapable(self):
+    return False
+
+  @property
+  def HTTPSCapable(self):
+    return False
+
+  @property
+  def HTTPWritable(self):
+    return False
+
+  @property
+  def SFTPCapable(self):
+    return False
+
+  @property
+  def SupportedFileSystemTypes(self):
+    fslist = set()
+    f = open(PROC_FILESYSTEMS)
+    for line in f:
+      if line.find("nodev") >= 0:
+        # rule of thumb to skip internal, non-interesting filesystems
+        continue
+      fstype = line.strip()
+      if _IsSillyFilesystem(fstype):
+        continue
+      fslist.add(_FsType(fstype))
+    return ','.join(sorted(fslist, key=str.lower))
+
+  @property
+  def SupportedNetworkProtocols(self):
+    return ''
+
+  @property
+  def SupportedRaidTypes(self):
+    return ''
+
+  @property
+  def VolumeEncryptionCapable(self):
+    return False
+
+
+class StorageServiceLinux26(BASESTORAGE):
+  """Implements a basic tr-140 for Linux 2.6-ish systems.
+
+  This class implements no network file services, it only exports
+  the LogicalVolume information.
+  """
+  def __init__(self):
+    BASESTORAGE.__init__(self)
+    self.Capabilities = CapabilitiesNoneLinux26()
+    self.Unexport(objects='NetInfo')
+    self.Unexport(objects='NetworkServer')
+    self.Unexport(objects='FTPServer')
+    self.Unexport(objects='SFTPServer')
+    self.Unexport(objects='HTTPServer')
+    self.Unexport(objects='HTTPSServer')
     self.PhysicalMediumList = {}
     self.StorageArrayList = {}
     self.LogicalVolumeList = tr.core.AutoDict(
@@ -80,14 +159,10 @@ class StorageServiceLinux26(BASE98STORAGE):
     self.UserAccountList = {}
     self.UserGroupList = {}
 
-  # Filesystems which are not interesting to export to the ACS
-  SILLY = frozenset(['devtmpfs', 'proc', 'sysfs', 'usbfs', 'devpts',
-      'rpc_pipefs', 'autofs', 'nfsd', 'binfmt_misc'])
-
   @property
   def Enable(self):
     # TODO: tr-140 says this is supposed to be writable, and disable filesystems
-    return cwmpbool.format(True)
+    return True
 
   @property
   def PhysicalMediumNumberOfEntries(self):
@@ -124,9 +199,9 @@ class StorageServiceLinux26(BASE98STORAGE):
       fsname = fields[0]
       mountpoint = fields[1]
       fstype = fields[2]
-      if fsname == "none" or fstype in self.SILLY:
+      if fsname == "none" or _IsSillyFilesystem(fstype):
         continue
-      mounts[mountpoint] = fstype
+      mounts[mountpoint] = _FsType(fstype)
     return sorted(mounts.items())
 
   def GetLogicalVolume(self, fstuple):
