@@ -518,6 +518,35 @@ class GetParamsRpcTest(unittest.TestCase):
     self.assertEqual(detail.find('FaultCode').text, "9000")
     self.assertTrue(detail.find('FaultString').text.find("NoSuchMethod"))
 
+  def testGetRPCMethods(self):
+    cpe = self.getCpe()
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetRPCMethods></cwmp:GetRPCMethods></soapenv:Body></soapenv:Envelope>"""
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+    root = ET.fromstring(str(responseXml))
+    methods = root.find(SOAPNS + 'Body/' + CWMPNS + 'GetRPCMethodsResponse/MethodList')
+    self.assertTrue(methods)
+    rpcs = methods.findall('string')
+    rpcnames = [r.text for r in rpcs]
+    # Before adding RPC Names to this list, READ THIS!
+    # If this test fails, its because the CPE is responding to a GetRPCMethods
+    # call with an RPC which is not defined in the standard. This is ALMOST
+    # CERTAINLY because what should be an internal method has been added to
+    # http.py:CPE where the first letter is capitalized. That is how we
+    # determine which methods to return: everything with a capitalized
+    # first letter.
+    # Don't just add the name here and think you are done. You need to
+    # make the first character of internal methods a lowercase letter
+    # or underscore.
+    # Don't feel bad. This comment is here because I made the same mistake.
+    expected = ['AddObject', 'CancelTransfer', 'ChangeDUState', 'DeleteObject',
+                'Download', 'FactoryReset', 'GetAllQueuedTransfers',
+                'GetOptions', 'GetParameterAttributes', 'GetParameterNames',
+                'GetParameterValues', 'GetQueuedTransfers', 'GetRPCMethods',
+                'Reboot', 'ScheduleDownload', 'ScheduleInform',
+                'SetParameterAttributes', 'SetParameterValues', 'SetVouchers',
+                'Upload']
+    self.assertEqual(rpcnames, expected)
+
 
 if __name__ == '__main__':
   unittest.main()

@@ -88,7 +88,7 @@ class CPEStateMachine(object):
     self.my_configured_ip = ip
     self.cpe_management_server = cpe_management_server.CpeManagementServer(
         acs_url_file=acs_url_file, port=listenport, ping_path=ping_path,
-        get_parameter_key=cpe.GetParameterKey, start_session=self.StartSession,
+        get_parameter_key=cpe.getParameterKey, start_session=self.StartSession,
         ioloop=self.ioloop)
 
   def GetManagementServer(self):
@@ -305,7 +305,7 @@ class CPEStateMachine(object):
     self.session = cwmp_session.CwmpSession(self.cpe_management_server.URL,
                                             self.ioloop)
     # TODO(dgentry) Check whether we have a config, send '1 BOOT' instead
-    self.cpe.Startup()
+    self.cpe.startup()
     self.SendInform('0 BOOTSTRAP')
 
 
@@ -315,7 +315,7 @@ def Listen(ip, port, ping_path, acs, acs_url_file, cpe, cpe_listener):
   while ping_path.startswith('/'):
     ping_path = ping_path[1:]
   cpe_machine = CPEStateMachine(ip, cpe, port, acs_url_file, ping_path)
-  cpe.SetCallbacks(cpe_machine.SendTransferComplete,
+  cpe.setCallbacks(cpe_machine.SendTransferComplete,
                    cpe_machine.TransferCompleteReceived,
                    cpe_machine.InformResponseReceived)
   handlers = []

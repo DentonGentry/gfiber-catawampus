@@ -171,7 +171,7 @@ class CPE(SoapHandler):
     SoapHandler.__init__(self, impl=cpe)
 
   def InformResponse(self, xml, req):
-    self.impl.InformResponseReceived()
+    self.impl.informResponseReceived()
     return None
 
   def GetParameterNames(self, xml, req):
@@ -263,7 +263,7 @@ class CPE(SoapHandler):
 
   def TransferCompleteResponse(self, xml, req):
     """Response to a TransferComplete sent by the CPE."""
-    self.impl.TransferCompleteResponseReceived()
+    self.impl.transferCompleteResponseReceived()
     return None
 
   def GetQueuedTransfers(self, xml, req):

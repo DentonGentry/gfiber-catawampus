@@ -86,21 +86,21 @@ class CPE(TR069Service):
     self.transfer_complete_received_cb = None
     self.inform_response_received_cb = None
 
-  def SetCallbacks(self, send_transfer_complete,
+  def setCallbacks(self, send_transfer_complete,
                    transfer_complete_received,
                    inform_response_received):
     self.download_manager.SEND_TRANSFER_COMPLETE = send_transfer_complete
     self.transfer_complete_received_cb = transfer_complete_received
     self.inform_response_received_cb = inform_response_received
 
-  def Startup(self):
+  def startup(self):
     """Handle any initialization after reboot."""
     self.download_manager.RestoreDownloads()
 
   def _SetParameterKey(self, value):
     self._last_parameter_key = value
 
-  def GetParameterKey(self):
+  def getParameterKey(self):
     return self._last_parameter_key
 
   def _SplitParameterName(self, name):
@@ -244,11 +244,11 @@ class CPE(TR069Service):
     """Trigger an install, update, or uninstall operation."""
     raise NotImplementedError()
 
-  def TransferCompleteResponseReceived(self):
+  def transferCompleteResponseReceived(self):
     if self.transfer_complete_received_cb:
       self.transfer_complete_received_cb()
     return self.download_manager.TransferCompleteResponseReceived()
 
-  def InformResponseReceived(self):
+  def informResponseReceived(self):
     if self.inform_response_received_cb:
       self.inform_response_received_cb()
