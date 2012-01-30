@@ -187,12 +187,8 @@ class CPEStateMachine(object):
 
   def Run(self):
     print 'RUN'
-    if not self.session:
-      print('No ACS session, returning.')
-      return
-    acs_url = self.session.acs_url
-    if not acs_url:
-      print('No ACS URL populated yet, returning.')
+    if not self.session or not self.session.acs_url:
+      print('No ACS populated yet, returning.')
       self.RetrySession(wait=60)
       return
     if self.session.should_close():
@@ -227,7 +223,7 @@ class CPEStateMachine(object):
     print("CPE POST (at {0!s}):\n{1!s}\n{2!s}".format(
         time.ctime(), headers, self.outstanding))
     req = tornado.httpclient.HTTPRequest(
-        url=acs_url, method="POST", headers=headers,
+        url=self.session.acs_url, method="POST", headers=headers,
         body=self.outstanding, follow_redirects=True, max_redirects=5,
         request_timeout=30.0, use_gzip=True, allow_ipv6=True,
         user_agent="catawampus-tr69")
