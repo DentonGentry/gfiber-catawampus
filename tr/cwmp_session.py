@@ -19,13 +19,15 @@ graphviz = r"""
 digraph DLstates {
   node [shape=box]
 
-  INIT [label="INIT"]
+  WAIT [label="WAIT"]
+  CONNECT [label="CONNECT"]
   ACTIVE [label="ACTIVE\nsend responses or requests"]
   ONHOLD [label="ONHOLD\nsend responses"]
   NOMORE [label="NOMORE\nsend responses"]
   DONE [label="DONE\nclose session"]
 
-  INIT -> ACTIVE [label="Send Inform"]
+  WAIT -> CONNECT [label="Timer done"]
+  CONNECT -> ACTIVE [label="Send Inform"]
   ACTIVE -> ONHOLD [label="onhold=True"]
   ONHOLD -> ACTIVE [label="onhold=False"]
   ACTIVE -> NOMORE [label="send empty POST"]
@@ -36,7 +38,8 @@ digraph DLstates {
 HTTPCLIENT = tornado.httpclient.AsyncHTTPClient
 
 class CwmpSession(object):
-  INIT = "INIT"
+  WAIT = "WAIT"
+  CONNECT = "CONNECT"
   ACTIVE = "ACTIVE"
   ONHOLD = "ONHOLD"
   NOMORE = "NOMORE"
@@ -49,11 +52,14 @@ class CwmpSession(object):
     self.cookies = None
     self.my_ip = None
     self.ping_received = False
-    self.state = self.INIT
+    self.state = self.WAIT
 
-  def state_update(self, sent_inform=None, on_hold=None,
+  def state_update(self, timer_done=None, sent_inform=None, on_hold=None,
                    cpe_to_acs_empty=None, acs_to_cpe_empty=None):
-    if self.state == self.INIT:
+    if self.state == self.WAIT:
+      if timer_done:
+        self.state = self.CONNECT
+    elif self.state == self.CONNECT:
       if sent_inform:
         self.state = self.ACTIVE
     elif self._active():
@@ -68,8 +74,10 @@ class CwmpSession(object):
       if acs_to_cpe_empty:
         self.state = self.DONE
 
-  def _init(self):
-    return self.state == self.INIT
+  def _wait(self):
+    return self.state == self.WAIT
+  def _connect(self):
+    return self.state == self.CONNECT
   def _active(self):
     return self.state == self.ACTIVE
   def _onhold(self):
@@ -79,14 +87,17 @@ class CwmpSession(object):
   def _done(self):
     return self.state == self.DONE
 
+  def must_wait(self):
+    return True if self._wait() else False
+
   def inform_required(self):
-    return True if self._init() else False
+    return True if self._connect() else False
 
   def request_allowed(self):
     return True if self._active() else False
 
   def response_allowed(self):
-    return False if self._init() or self._done() else True
+    return True if self._active() or self._onhold() or self._nomore() else False
 
   def should_close(self):
     return True if self._done() else False

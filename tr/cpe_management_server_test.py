@@ -116,7 +116,7 @@ class CpeManagementServerTest(unittest.TestCase):
     ms.PERIODIC_CALLBACK = MockPeriodicCallback
     io = MockIoloop()
     cpe_ms = ms.CpeManagementServer(acs_url_file=None, port=0, ping_path="/",
-                                    start_session=self.start_session,
+                                    start_periodic_session=self.start_session,
                                     ioloop = io)
     cpe_ms.SetPeriodicInformEnable("true")
     cpe_ms.SetPeriodicInformTime(cwmpdate.format(datetime.datetime.now()))
@@ -125,6 +125,40 @@ class CpeManagementServerTest(unittest.TestCase):
     # Just check that the delay is reasonable
     self.assertNotEqual(io.timeout_time, datetime.timedelta(seconds=0))
 
+  def assertWithinRange(self, c, min, max):
+    self.assertTrue(min <= c <= max)
+
+  def testSessionRetryWait(self):
+    """Test $SPEC3 Table3 timings."""
+    cpe_ms = ms.CpeManagementServer(acs_url_file=None, port=5, ping_path="/")
+    for i in range(1000):
+      self.assertEqual(cpe_ms.SessionRetryWait(0), 0)
+      self.assertTrue(5 <= cpe_ms.SessionRetryWait(1) <= 10)
+      self.assertTrue(10 <= cpe_ms.SessionRetryWait(2) <= 20)
+      self.assertTrue(20 <= cpe_ms.SessionRetryWait(3) <= 40)
+      self.assertTrue(40 <= cpe_ms.SessionRetryWait(4) <= 80)
+      self.assertTrue(80 <= cpe_ms.SessionRetryWait(5) <= 160)
+      self.assertTrue(160 <= cpe_ms.SessionRetryWait(6) <= 320)
+      self.assertTrue(320 <= cpe_ms.SessionRetryWait(7) <= 640)
+      self.assertTrue(640 <= cpe_ms.SessionRetryWait(8) <= 1280)
+      self.assertTrue(1280 <= cpe_ms.SessionRetryWait(9) <= 2560)
+      self.assertTrue(2560 <= cpe_ms.SessionRetryWait(10) <= 5120)
+      self.assertTrue(2560 <= cpe_ms.SessionRetryWait(99) <= 5120)
+    cpe_ms.CWMPRetryMinimumWaitInterval = 10
+    cpe_ms.CWMPRetryIntervalMultiplier = 2500
+    for i in range(1000):
+      self.assertEqual(cpe_ms.SessionRetryWait(0), 0)
+      self.assertTrue(10 <= cpe_ms.SessionRetryWait(1) <= 25)
+      self.assertTrue(25 <= cpe_ms.SessionRetryWait(2) <= 62)
+      self.assertTrue(62 <= cpe_ms.SessionRetryWait(3) <= 156)
+      self.assertTrue(156 <= cpe_ms.SessionRetryWait(4) <= 390)
+      self.assertTrue(390 <= cpe_ms.SessionRetryWait(5) <= 976)
+      self.assertTrue(976 <= cpe_ms.SessionRetryWait(6) <= 2441)
+      self.assertTrue(2441 <= cpe_ms.SessionRetryWait(7) <= 6103)
+      self.assertTrue(6103 <= cpe_ms.SessionRetryWait(8) <= 15258)
+      self.assertTrue(15258 <= cpe_ms.SessionRetryWait(9) <= 38146)
+      self.assertTrue(38146 <= cpe_ms.SessionRetryWait(10) <= 95367)
+      self.assertTrue(38146 <= cpe_ms.SessionRetryWait(99) <= 95367)
 
 
 if __name__ == '__main__':

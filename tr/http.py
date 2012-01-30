@@ -81,15 +81,16 @@ class CPEStateMachine(object):
     self.response_queue = []
     self.request_queue = []
     self.event_queue = []
-    self.inform = None
+    self.inform_reason = None
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self.retry_count = 0  # for Inform.RetryCount
+    self.start_session_timeout = None  # timer for CWMPRetryInterval
     self.session = None
     self.my_configured_ip = ip
     self.cpe_management_server = cpe_management_server.CpeManagementServer(
         acs_url_file=acs_url_file, port=listenport, ping_path=ping_path,
-        get_parameter_key=cpe.getParameterKey, start_session=self.StartSession,
-        ioloop=self.ioloop)
+        get_parameter_key=cpe.getParameterKey,
+        start_periodic_session=self.NewPeriodicSession, ioloop=self.ioloop)
 
   def GetManagementServer(self):
     """Return the ManagementServer implementation for tr-98/181."""
@@ -128,12 +129,13 @@ class CPEStateMachine(object):
       pass
     return s.getsockname()[0]
 
-  def SendInform(self, reason):
+  def EncodeInform(self):
+    """Return an Inform message for this session."""
     if not self.session.my_ip:
       my_ip = self._GetLocalAddr()
       self.session.my_ip = my_ip
       self.cpe_management_server.my_ip = my_ip
-    events = [(reason, None)]
+    events = [(self.inform_reason, None)]
     for ev in self.event_queue:
       events.append(ev)
     parameter_list = []
@@ -161,25 +163,22 @@ class CPEStateMachine(object):
     req = self.encode.Inform(root=self.cpe.root, events=events,
                              retry_count=self.retry_count,
                              parameter_list=parameter_list)
-    self.inform = str(req)
-    self.Run()
+    return str(req)
 
   def SendTransferComplete(self, command_key, faultcode, faultstring,
                            starttime, endtime, event_code):
+    # TODO(dgentry) need to initiate a session reason '7 TRANSFER COMPLETE'
     self.event_queue.append((event_code, command_key))
     cmpl = self.encode.TransferComplete(command_key, faultcode, faultstring,
                                         starttime, endtime)
     self.Send(cmpl)
 
   def GetNext(self):
-    if not self.session:
+    if not self.session or self.session.must_wait():
       return None
     if self.session.inform_required():
-      if self.inform:
-        self.session.state_update(sent_inform=True)
-        inform = self.inform
-        self.inform = None
-        return inform
+      self.session.state_update(sent_inform=True)
+      return self.EncodeInform()
     if self.response_queue and self.session.response_allowed():
       return self.response_queue.pop(0)
     if self.request_queue and self.session.request_allowed():
@@ -194,15 +193,17 @@ class CPEStateMachine(object):
     acs_url = self.session.acs_url
     if not acs_url:
       print('No ACS URL populated yet, returning.')
+      self.RetrySession(wait=60)
       return
     if self.session.should_close():
       print('Idle CWMP session, terminating.')
       self.outstanding = None
       if self.session.close():
         # Ping received during session, start another
-        self.ioloop.add_callback(self._NewPingSession)
+        self._NewPingSession()
       self.session = None
       self.retry_count = 0  # Successful close
+      self.inform_reason = None
       return
 
     if self.outstanding is not None:
@@ -251,70 +252,80 @@ class CPEStateMachine(object):
         self.session.state_update(acs_to_cpe_empty=True)
     else:
       print('HTTP ERROR {0!s}: {1}'.format(response.code, response.error))
-      if self.session.close():
-        # Ping received during session, start another
-        self.ioloop.add_callback(self._NewPingSession)
-      self.session = None
-      self.retry_count += 1
+      self.RetrySession()
     self.Run()
     return 200
 
-  def _NewTransferCompleteSession(self):
-    if not self.session:
-      self.session = cwmp_session.CwmpSession(self.cpe_management_server.URL,
-                                              self.ioloop)
-      self.SendInform('7 TRANSFER COMPLETE')
+  def RetrySession(self, wait=None):
+    self.session.close()
+    self.session = None
+    self.retry_count += 1
+    self._NewSession(reason=self.inform_reason, wait=wait)
+
+
+  def _SessionWaitTimer(self):
+    """Timer for the CWMP Retry Interval before starting a new session."""
+    self.start_session_timeout = None
+    if self.session:
+      self.session.state_update(timer_done=True)
+    self.Run()
+
+  def _NewSession(self, reason, wait=None):
+    if not self.session and not self.start_session_timeout:
+      self.inform_reason = reason
+      self.session = cwmp_session.CwmpSession(
+          acs_url=self.cpe_management_server.URL, ioloop=self.ioloop)
+      if wait is None:
+        wait = self.cpe_management_server.SessionRetryWait(self.retry_count)
+      if wait > 0:
+        print('Waiting {0} seconds before initiating session'.format(wait))
+      self.start_session_timeout = self.ioloop.add_timeout(
+          time.time() + wait, self._SessionWaitTimer)
 
   def _NewPingSession(self):
     if not self.session:
-      self.session = cwmp_session.CwmpSession(self.cpe_management_server.URL,
-                                              self.ioloop)
-      self.SendInform('6 CONNECTION REQUEST')
+      self._NewSession('6 CONNECTION REQUEST')
     else:
       # $SPEC3 3.2.2 initiate at most one new session after this one closes.
       self.session.ping_received = True
 
-  def StartSession(self, event_code, event_queue=None):
-    if not self.session:
-      if event_queue:
-        self.event_queue.extend(event_queue)
-      self.session = cwmp_session.CwmpSession(self.cpe_management_server.URL,
-                                              self.ioloop)
-      self.SendInform(event_code)
+  def NewPeriodicSession(self):
+    self._NewSession('2 PERIODIC')
+
 
   def PingReceived(self):
-    # $SPEC3 3.2.2: CPE MUST respond immediately, before initiating session.
-    self.ioloop.add_callback(self._NewPingSession)
+    self._NewPingSession()
     return 204  # No Content
 
   def TransferCompleteReceived(self):
+    """Called when the ACS sends a TransferCompleteResponse."""
+    xfer_reasons = frozenset(['m download', 'm scheduledownload', 'm upload'])
     for ev in self.event_queue:
-      xfer_reasons = frozenset(['m download', 'm scheduledownload', 'm upload'])
       (reason, command_key) = ev
       if reason.lower() in xfer_reasons:
         self.event_queue.remove(ev)
 
   def InformResponseReceived(self):
+    """Called when the ACS sends an InformResponse."""
+    inform_reasons = frozenset(['m reboot', 'm scheduleinform'])
     for ev in self.event_queue:
-      inform_reasons = frozenset(['m reboot', 'm scheduleinform'])
       (reason, command_key) = ev
       if reason.lower() in inform_reasons:
         self.event_queue.remove(ev)
 
   def Startup(self):
-    self.session = cwmp_session.CwmpSession(self.cpe_management_server.URL,
-                                            self.ioloop)
+    self._NewSession('0 BOOTSTRAP', wait=1)
     # TODO(dgentry) Check whether we have a config, send '1 BOOT' instead
     self.cpe.startup()
-    self.SendInform('0 BOOTSTRAP')
 
 
-def Listen(ip, port, ping_path, acs, acs_url_file, cpe, cpe_listener):
+def Listen(ip, port, ping_path, acs, acs_url_file, cpe, cpe_listener,
+           ioloop=None):
   if not ping_path:
     ping_path = '/ping/%x' % random.getrandbits(120)
   while ping_path.startswith('/'):
     ping_path = ping_path[1:]
-  cpe_machine = CPEStateMachine(ip, cpe, port, acs_url_file, ping_path)
+  cpe_machine = CPEStateMachine(ip, cpe, port, acs_url_file, ping_path, ioloop)
   cpe.setCallbacks(cpe_machine.SendTransferComplete,
                    cpe_machine.TransferCompleteReceived,
                    cpe_machine.InformResponseReceived)

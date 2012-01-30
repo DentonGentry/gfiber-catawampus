@@ -12,6 +12,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import cwmpbool
 import cwmpdate
 import datetime
+import math
 import random
 import socket
 import time
@@ -23,19 +24,19 @@ PERIODIC_CALLBACK = tornado.ioloop.PeriodicCallback
 class CpeManagementServer(object):
   """Inner class implementing tr-98 & 181 ManagementServer."""
   def __init__(self, acs_url_file, port, ping_path, get_parameter_key=None,
-               start_session=None, ioloop=None):
+               start_periodic_session=None, ioloop=None):
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self.acs_url_file = acs_url_file
     self.port = port
     self.ping_path = ping_path
     self.get_parameter_key = get_parameter_key
-    self.start_session = start_session
+    self.start_periodic_session = start_periodic_session
     self.my_ip = None
     self._periodic_callback = None
     self._start_periodic_timeout = None
 
-    self.CWMPRetryIntervalMultiplier = 1
-    self.CWMPRetryMinimumWaitInterval = 1000
+    self.CWMPRetryMinimumWaitInterval = 5
+    self.CWMPRetryIntervalMultiplier = 2000
     self.ConnectionRequestPassword = '{0}'.format(hex(random.getrandbits(60)))
     self.ConnectionRequestUsername = '{0}'.format(hex(random.getrandbits(60)))
     self.DefaultActiveNotificationThrottle = 0
@@ -165,7 +166,24 @@ class CpeManagementServer(object):
     self._periodic_callback.start()
 
   def DoPeriodicInform(self):
-    self.start_session('2 PERIODIC')
+    self.start_periodic_session()
+
+
+  def SessionRetryWait(self, retry_count):
+    """Calculate wait time before next session retry.
+
+    See $SPEC3 section 3.2.1 for a description of the algorithm.
+
+    Returns:
+      Number of seconds to wait before initiating next session."""
+    if retry_count == 0:
+      return 0
+    c = 10 if retry_count >= 10 else retry_count
+    m = float(self.CWMPRetryMinimumWaitInterval)
+    k = float(self.CWMPRetryIntervalMultiplier) / 1000.0
+    start = math.floor(m * math.pow(k, c-1))
+    stop = math.floor(m * math.pow(k, c))
+    return random.randrange(start, stop)
 
 
 def main():
