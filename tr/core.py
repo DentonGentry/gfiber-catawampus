@@ -109,6 +109,7 @@ def _Int(s):
   try:
     return int(s)
   except ValueError:
+    assert '.' not in s  # dots aren't allowed in individual element names
     return s
 
 
@@ -264,7 +265,7 @@ class Exporter(object):
     else:
       return parent[name]
 
-  def FindExport(self, name):
+  def FindExport(self, name, allow_create=False):
     """Navigate through the export hierarchy to find the parent of 'name'.
 
     Args:
@@ -273,11 +274,18 @@ class Exporter(object):
       (parent, subname): the parent object and the name of the parameter or
          object referred to by 'name', relative to the parent.
     """
+    parent = None
     o = self
     assert not name.endswith('.')
     parts = name.split('.')
     for i in parts[:-1]:
+      parent = o
       o = self._GetExport(o, i)
+    if allow_create:
+      try:
+        self._GetExport(o, parts[-1])
+      except KeyError:
+        parent.AddExportObject(parts[-2], parts[-1])
     return o, parts[-1]
 
   def GetExport(self, name):
@@ -321,7 +329,10 @@ class Exporter(object):
     idx = str(idx)
     assert '.' not in idx
     newobj = constructor()
-    newobj.ValidateExports()
+    try:
+      newobj.ValidateExports()
+    except SchemaError:
+      raise NotAddableError(name)
     objlist[_Int(idx)] = newobj
     return idx, newobj
 

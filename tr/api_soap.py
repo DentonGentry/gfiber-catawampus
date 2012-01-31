@@ -5,7 +5,6 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-
 import time
 
 import google3
@@ -14,6 +13,7 @@ import core
 import cwmpbool
 import cwmpdate
 import soap
+
 
 class Encode(object):
   def __init__(self):
