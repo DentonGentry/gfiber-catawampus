@@ -11,7 +11,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import imp
 import sys
-import _fix_path  #pylint: disable-msg=W0611
+import google3
 import dm.catawampus
 import dm.management_server
 import tr.core

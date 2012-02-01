@@ -16,6 +16,6 @@ import sys
 
 mydir = os.path.dirname(__file__)
 sys.path += [
-    os.path.join(mydir, '../..'),
+    os.path.join(mydir, '..'),
 ]
 import tr.google3  #pylint: disable-msg=C6204,W0611

@@ -9,12 +9,10 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-# pylint ignores _fix_path, can't find some imports:
-#pylint: disable-msg=F0401
 import os.path
 import sys
 import tempfile
-import _fix_path  #pylint: disable-msg=W0611
+import google3
 import bup.options
 import dm_root
 import tornado.autoreload

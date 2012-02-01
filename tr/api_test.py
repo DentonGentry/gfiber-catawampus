@@ -8,7 +8,7 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import _fix_path  #pylint: disable-msg=W0611
+import google3
 
 import sys
 import api

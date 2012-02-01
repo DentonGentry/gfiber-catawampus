@@ -5,7 +5,6 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-
 import os.path
 import sys
 

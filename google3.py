@@ -11,11 +11,4 @@ come before other non-python-standard imports.
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 
-import os.path
-import sys
-
-mydir = os.path.dirname(__file__)
-sys.path += [
-    os.path.join(mydir, '../..'),
-]
 import tr.google3  #pylint: disable-msg=C6204,W0611

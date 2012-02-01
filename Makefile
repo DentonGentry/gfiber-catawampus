@@ -22,7 +22,7 @@ lint: all
 	grep -v 'tr/tr..._.*\.py' | \
 	grep -v 'tr/x_.*\.py' | \
 	xargs gpylint --disable=W0403,W0613 \
-	  --init-hook='sys.path.append("."); import _fix_path'
+	  --init-hook='sys.path.append("."); import tr.fix_path'
 
 DSTDIR?=/tmp/catawampus/
 INSTALL=install

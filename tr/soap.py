@@ -8,7 +8,7 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import re
 import xml.etree.ElementTree
-import _fix_path
+import google3
 import xmlwitch
 
 

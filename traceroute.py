@@ -13,7 +13,7 @@ import os
 import re
 import subprocess
 import sys
-import _fix_path  #pylint: disable-msg=W0611
+import google3
 import tr.core
 import tr.mainloop
 import tr.tr181_v2_2
