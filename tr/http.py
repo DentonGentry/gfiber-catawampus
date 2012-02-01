@@ -258,7 +258,6 @@ class CPEStateMachine(object):
     self.retry_count += 1
     self._NewSession(reason=self.inform_reason, wait=wait)
 
-
   def _SessionWaitTimer(self):
     """Timer for the CWMP Retry Interval before starting a new session."""
     self.start_session_timeout = None
@@ -288,7 +287,6 @@ class CPEStateMachine(object):
   def NewPeriodicSession(self):
     self._NewSession('2 PERIODIC')
 
-
   def PingReceived(self):
     self._NewPingSession()
     return 204  # No Content
@@ -310,7 +308,7 @@ class CPEStateMachine(object):
         self.event_queue.remove(ev)
 
   def Startup(self):
-    self._NewSession('0 BOOTSTRAP', wait=1)
+    self._NewSession('0 BOOTSTRAP')
     # TODO(dgentry) Check whether we have a config, send '1 BOOT' instead
     self.cpe.startup()
 
