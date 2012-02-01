@@ -249,6 +249,7 @@ class Exporter(object):
       raise SchemaError('%s is exported but does not exist' % fullname)
 
   DASH_TO_UNDERSCORE = string.maketrans('-', '_')
+
   def _GetExportName(self, parent, name):
     if name in parent.export_object_lists:
       return name + 'List'

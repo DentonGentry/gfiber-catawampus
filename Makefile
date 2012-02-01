@@ -1,5 +1,10 @@
 default: all
 
+
+GPYLINT=gpylint --disable=W0403,W0613 \
+	  --init-hook='sys.path.append("."); import tr.fix_path'
+
+
 all: tr/all
 
 test: all tr/test *_test.py
@@ -21,8 +26,11 @@ lint: all
 	grep -v '/\.' | \
 	grep -v 'tr/tr..._.*\.py' | \
 	grep -v 'tr/x_.*\.py' | \
-	xargs gpylint --disable=W0403,W0613 \
-	  --init-hook='sys.path.append("."); import tr.fix_path'
+	xargs $(GPYLINT)
+
+%.lint: all
+	$(GPYLINT) $*
+
 
 DSTDIR?=/tmp/catawampus/
 INSTALL=install
