@@ -9,9 +9,8 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import tr.fix_path
-
 import unittest
+import _fix_path  #pylint: disable-msg=W0611
 import tr.mainloop
 import traceroute
 

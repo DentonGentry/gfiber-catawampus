@@ -9,12 +9,10 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import tr.fix_path
-
 import os
 import subprocess
-import sys
 import unittest
+import _fix_path  #pylint: disable-msg=W0611
 
 
 class RunserverTest(unittest.TestCase):

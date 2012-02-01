@@ -10,7 +10,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import fix_path
+import _fix_path  #pylint: disable-msg=W0611
 
 import json
 import sys

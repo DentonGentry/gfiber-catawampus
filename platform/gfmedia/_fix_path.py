@@ -13,4 +13,4 @@ mydir = os.path.dirname(__file__)
 sys.path += [
     os.path.join(mydir, '../..'),
 ]
-import tr.fix_path
+import _fix_path  #pylint: disable-msg=W0611

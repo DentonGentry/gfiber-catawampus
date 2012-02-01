@@ -9,17 +9,14 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import tr.fix_path
-
+import imp
+import sys
+import _fix_path  #pylint: disable-msg=W0611
 import dm.catawampus
 import dm.management_server
-import imp
-import os.path
-import sys
-import traceroute
 import tr.core
 import tr.soap
-import platform
+import traceroute
 
 
 def _RecursiveImport(name):
@@ -29,8 +26,8 @@ def _RecursiveImport(name):
     path = _RecursiveImport('.'.join(split)).__path__
   else:
     path = sys.path
-  file, path, description = imp.find_module(last, path)
-  return imp.load_module(name, file, path, description)
+  fileobj, path, description = imp.find_module(last, path)
+  return imp.load_module(name, fileobj, path, description)
 
 
 class DeviceModelRoot(tr.core.Exporter):

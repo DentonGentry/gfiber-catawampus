@@ -9,16 +9,14 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import tr.fix_path
-
-import bup.options
-import dm.catawampus
-import dm.management_server
-import dm_root
-import imp
+# pylint ignores _fix_path, can't find some imports:
+#pylint: disable-msg=F0401
 import os.path
 import sys
 import tempfile
+import _fix_path  #pylint: disable-msg=W0611
+import bup.options
+import dm_root
 import tornado.autoreload
 import tornado.httpclient
 import tr.api
@@ -26,7 +24,6 @@ import tr.core
 import tr.http
 import tr.mainloop
 import tr.rcommand
-import traceroute
 
 
 optspec = """
@@ -54,6 +51,7 @@ def _WriteAcsFile(acs_url):
   return acsfile.name
 
 
+#pylint: disable-msg=W0613
 def _GotData(loop, fd, flags):
   if not os.read(fd, 1024):
     loop.ioloop.stop()
@@ -61,10 +59,10 @@ def _GotData(loop, fd, flags):
 
 def main():
   o = bup.options.Options(optspec)
-  (opt, flags, extra) = o.parse(sys.argv[1:])
+  (opt, flags, extra) = o.parse(sys.argv[1:])  #pylint: disable-msg=W0612
 
   tornado.httpclient.AsyncHTTPClient.configure(
-      "tornado.curl_httpclient.CurlAsyncHTTPClient")
+      'tornado.curl_httpclient.CurlAsyncHTTPClient')
   tornado.autoreload.start()
   loop = tr.mainloop.MainLoop()
   root = dm_root.DeviceModelRoot(loop, opt.platform)

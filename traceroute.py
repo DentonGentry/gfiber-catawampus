@@ -9,12 +9,11 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import tr.fix_path
-
 import os
 import re
 import subprocess
 import sys
+import _fix_path  #pylint: disable-msg=W0611
 import tr.core
 import tr.mainloop
 import tr.tr181_v2_2

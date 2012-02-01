@@ -5,30 +5,29 @@
 # unittest requires method names starting in 'test'
 #pylint: disable-msg=C6409
 
-"""Unit tests for dm_root.py"""
+"""Unit tests for dm_root.py."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import tr.fix_path
-
-import sys
-import dm_root
-import os
-import tr.tr181_v2_2
-import tr.tr098_v1_2
 import unittest
+import _fix_path  #pylint: disable-msg=W0611
+import dm_root
+import tr.tr098_v1_2
+import tr.tr181_v2_2
 
 
 BASE181 = tr.tr181_v2_2.Device_v2_2.Device
+
+
 class MockTr181(BASE181):
-  def __init__(self):
-    BASE181.__init__(self)
+  pass
 
 
 BASE98 = tr.tr098_v1_2.InternetGatewayDevice_v1_4.InternetGatewayDevice
+
+
 class MockTr98(BASE98):
-  def __init__(self):
-    BASE98.__init__(self)
+  pass
 
 
 class MockManagement(object):

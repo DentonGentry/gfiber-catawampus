@@ -6,11 +6,4 @@
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 
-import os.path
-import sys
-
-mydir = os.path.dirname(__file__)
-sys.path += [
-    os.path.join(mydir, '..'),
-]
-import tr.fix_path
+import tr._fix_path  #pylint: disable-msg=W0611

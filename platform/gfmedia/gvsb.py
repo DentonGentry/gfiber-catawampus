@@ -9,7 +9,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import fix_path
+import _fix_path  #pylint: disable-msg=W0611
 import tr.x_gvsb_1_0
 
 class Gvsb(tr.x_gvsb_1_0.X_GOOGLE_COM_GVSB_v1_0):

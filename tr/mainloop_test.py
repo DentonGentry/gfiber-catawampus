@@ -5,7 +5,7 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import fix_path
+import _fix_path  #pylint: disable-msg=W0611
 import sys
 import unittest
 import weakref
