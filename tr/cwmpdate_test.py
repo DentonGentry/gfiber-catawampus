@@ -10,9 +10,11 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import cwmpdate
+import calendar
 import datetime
 import time
 import unittest
+
 
 class UTC(datetime.tzinfo):
   def utcoffset(self, dt):
@@ -22,6 +24,7 @@ class UTC(datetime.tzinfo):
   def dst(self, dt):
     return datetime.timedelta(0)
 
+
 class OTH(datetime.tzinfo):
   def utcoffset(self, dt):
     return datetime.timedelta(0, 3600)
@@ -29,6 +32,7 @@ class OTH(datetime.tzinfo):
     return "OTH"
   def dst(self, dt):
     return datetime.timedelta(0, 3600)
+
 
 class CwmpDateTest(unittest.TestCase):
   """Tests for date formatting."""
@@ -60,8 +64,8 @@ class CwmpDateTest(unittest.TestCase):
 
   def testParse(self):
     dt = cwmpdate.parse("2012-01-12T00:20:03.217691Z")
-    timestamp = time.mktime(dt.timetuple())
-    self.assertEqual(timestamp, 1326356403.0)
+    timestamp = calendar.timegm(dt.timetuple())
+    self.assertEqual(timestamp, 1326327603.0)
 
   def testValid(self):
     self.assertTrue(cwmpdate.valid("2009-02-13T23:31:30.987654Z"))

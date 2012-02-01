@@ -15,8 +15,9 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import datetime
 
+
 def format(arg):
-  """Print a datetime object with 'Z' for the UTC timezone, as CWMP requires."""
+  """Print a datetime with 'Z' for the UTC timezone, as CWMP requires."""
   if not arg:
     return "0001-01-01T00:00:00Z"  # CWMP Unknown Time
   elif isinstance(arg, float):
@@ -32,6 +33,7 @@ def format(arg):
   else:
     return dt.isoformat()
 
+
 def parse(arg):
   # TODO(dgentry) handle timezone properly
   try:
@@ -39,6 +41,7 @@ def parse(arg):
   except ValueError:
     dt = datetime.datetime.strptime(arg, "%Y-%m-%dT%H:%M:%S.%fZ")
   return dt
+
 
 def valid(arg):
   try:
