@@ -16,14 +16,14 @@ clean: tr/clean
 
 lint: all
 	set -e; \
-	for dir in . tr; do \
-		( \
-			cd $$dir; \
-			files=$$(ls *.py | \
-				 egrep -v xmlwitch.py); \
-			gpylint $$files; \
-		); \
-	done
+	export PYTHONPATH=$$PWD:$$PWD/tr/vendor:$$PWD/tr/vendor/tornado; \
+	python -c 'import tornado.ioloop'; \
+	find -name '*.py' -size +1c | \
+	grep -v '/vendor/' | \
+	grep -v '/\.' | \
+	grep -v 'tr/tr..._.*\.py' | \
+	grep -v 'tr/x_.*\.py' | \
+	xargs gpylint --disable=W0403,W0613 _fix_path.py
 
 DSTDIR?=/tmp/catawampus/
 INSTALL=install

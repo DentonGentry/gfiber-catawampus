@@ -5,35 +5,33 @@
 # TR-069 has mandatory attribute names that don't comply with policy
 #pylint: disable-msg=C6409
 
-"""tr-181 Device implementations for supported platforms.
-"""
+"""tr-181 Device implementations for supported platforms."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import _fix_path  #pylint: disable-msg=W0611
-
-import dm.brcmwifi
-import dm.device_info
 import fcntl
-import gvsb
 import os
 import subprocess
+import _fix_path  #pylint: disable-msg=W0611
+import dm.brcmwifi
+import dm.device_info
 import tornado.ioloop
 import tr.core
 import tr.download
 import tr.soap
 import tr.tr098_v1_2 as tr98
 import tr.tr181_v2_2 as tr181
+import gvsb
 
 
 # tr-69 error codes
 INTERNAL_ERROR = 9002
 
 # Unit tests can override these with fake data
-CONFIGDIR = "/config"
-GINSTALL = "/bin/ginstall.py"
+CONFIGDIR = '/config'
+GINSTALL = '/bin/ginstall.py'
 HNVRAM = '/bin/hnvram'
-REBOOT = "/bin/tr69_reboot"
+REBOOT = '/bin/tr69_reboot'
 REPOMANIFEST = '/etc/repo-buildroot-manifest'
 VERSIONFILE = '/etc/version'
 
@@ -45,7 +43,7 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
     except:
       return default
 
-  def _GetNvramParam(self, param, default=""):
+  def _GetNvramParam(self, param, default=''):
     """Return a parameter from NVRAM, like the serial number.
     Args:
       param: string name of the parameter to fetch. This must match the
@@ -55,7 +53,7 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
     Returns:
       A string value of the contents.
     """
-    cmd = [HNVRAM, "-r", param]
+    cmd = [HNVRAM, '-r', param]
     devnull = open('/dev/null', 'w')
     try:
       hnvram = subprocess.Popen(cmd, stdin=devnull, stderr=devnull,
@@ -85,7 +83,7 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
 
   @property
   def ModelName(self):
-    return self._GetNvramParam("PRODUCT_NAME", default="UnknownModel")
+    return self._GetNvramParam('PRODUCT_NAME', default='UnknownModel')
 
   @property
   def Description(self):
@@ -93,7 +91,7 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
 
   @property
   def SerialNumber(self):
-    return self._GetNvramParam("SERIAL_NO", default="000000000000")
+    return self._GetNvramParam('SERIAL_NO', default='000000000000')
 
   @property
   def HardwareVersion(self):
@@ -135,16 +133,16 @@ class InstallerGFMedia(tr.download.Installer):
     type = file_type.split()
     if len(type) > 0 and type[0] != '1':
       self._call_callback(INTERNAL_ERROR,
-                          "Unsupported file_type {0}".format(type[0]))
+                          'Unsupported file_type {0}'.format(type[0]))
       return False
     self._install_cb = callback
-    cmd = [GINSTALL, "--tar={0}".format(self.filename), "--partition=other"]
+    cmd = [GINSTALL, '--tar={0}'.format(self.filename), '--partition=other']
     devnull = open('/dev/null', 'w')
     try:
       self._ginstall = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                         stderr=devnull)
     except OSError:
-      self._call_callback(INTERNAL_ERROR, "Unable to start installer process")
+      self._call_callback(INTERNAL_ERROR, 'Unable to start installer process')
       return False
     fd = self._ginstall.stdout.fileno()
     fcntl.fcntl(fd, fcntl.F_SETFL, os.O_NONBLOCK)
@@ -214,14 +212,14 @@ class LANDeviceGFMedia(BASE98IGD.LANDevice):
   """tr-98 InternetGatewayDevice for Google Fiber media platforms."""
   def __init__(self):
     BASE98IGD.LANDevice.__init__(self)
-    self.Unexport(objects="Hosts")
-    self.Unexport(lists="LANEthernetInterfaceConfig")
-    self.Unexport(objects="LANHostConfigManagement")
-    self.Unexport(lists="LANUSBInterfaceConfig")
+    self.Unexport(objects='Hosts')
+    self.Unexport(lists='LANEthernetInterfaceConfig')
+    self.Unexport(objects='LANHostConfigManagement')
+    self.Unexport(lists='LANUSBInterfaceConfig')
     self.LANEthernetInterfaceNumberOfEntries = 0
     self.LANUSBInterfaceNumberOfEntries = 0
-    wifi = dm.brcmwifi.BrcmWifiWlanConfiguration("eth2")
-    self.WLANConfigurationList = {"0" : wifi}
+    wifi = dm.brcmwifi.BrcmWifiWlanConfiguration('eth2')
+    self.WLANConfigurationList = {'0' : wifi}
 
   @property
   def LANWLANConfigurationNumberOfEntries(self):
@@ -231,24 +229,24 @@ class LANDeviceGFMedia(BASE98IGD.LANDevice):
 class InternetGatewayDeviceGFMedia(BASE98IGD):
   def __init__(self, device_id):
     BASE98IGD.__init__(self)
-    self.Unexport(objects="CaptivePortal")
-    self.Unexport(objects="DeviceConfig")
-    self.Unexport(params="DeviceSummary")
-    self.Unexport(objects="DownloadDiagnostics")
-    self.Unexport(objects="IPPingDiagnostics")
-    self.Unexport(objects="LANConfigSecurity")
-    self.LANDeviceList = {"0" : LANDeviceGFMedia() }
-    self.Unexport(objects="LANInterfaces")
-    self.Unexport(objects="Layer2Bridging")
-    self.Unexport(objects="Layer3Forwarding")
+    self.Unexport(objects='CaptivePortal')
+    self.Unexport(objects='DeviceConfig')
+    self.Unexport(params='DeviceSummary')
+    self.Unexport(objects='DownloadDiagnostics')
+    self.Unexport(objects='IPPingDiagnostics')
+    self.Unexport(objects='LANConfigSecurity')
+    self.LANDeviceList = {'0' : LANDeviceGFMedia() }
+    self.Unexport(objects='LANInterfaces')
+    self.Unexport(objects='Layer2Bridging')
+    self.Unexport(objects='Layer3Forwarding')
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
-    self.Unexport(objects="QueueManagement")
-    self.Unexport(objects="Services")
-    self.Unexport(objects="Time")
-    self.Unexport(objects="TraceRouteDiagnostics")
-    self.Unexport(objects="UploadDiagnostics")
-    self.Unexport(objects="UserInterface")
-    self.Unexport(lists="WANDevice")
+    self.Unexport(objects='QueueManagement')
+    self.Unexport(objects='Services')
+    self.Unexport(objects='Time')
+    self.Unexport(objects='TraceRouteDiagnostics')
+    self.Unexport(objects='UploadDiagnostics')
+    self.Unexport(objects='UserInterface')
+    self.Unexport(lists='WANDevice')
 
     self.DeviceInfo = dm.device_info.DeviceInfo98Linux26(device_id)
 
@@ -263,7 +261,7 @@ class InternetGatewayDeviceGFMedia(BASE98IGD):
 
 def PlatformInit(name, device_model_root):
   tr.download.INSTALLER = InstallerGFMedia
-  tr.download.SetStateDir(CONFIGDIR + "/tr69_dnld/")
+  tr.download.SetStateDir(CONFIGDIR + '/tr69_dnld/')
   params = []
   objects = []
   dev_id = DeviceIdGFMedia()
