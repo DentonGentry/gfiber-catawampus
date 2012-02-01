@@ -14,6 +14,7 @@ import tr.fix_path
 import os
 import re
 import subprocess
+import sys
 import tr.core
 import tr.mainloop
 import tr.tr181_v2_2
@@ -116,7 +117,9 @@ class TraceRoute(BASE_TRACEROUTE):
       raise Exception('TraceRoute.Host is not set')
     if ':' in self.Host:
       # IPv6
-      argv_base = ['traceroute6', '-l']
+      argv_base = ['traceroute6']
+      if sys.platform == 'darwin':
+        argv_base += ['-l']  # tell MacOS traceroute6 to include IP addr
     else:
       # assume IPv4
       argv_base = ['traceroute']
