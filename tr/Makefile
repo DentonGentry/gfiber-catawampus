@@ -22,6 +22,8 @@ stamp.validated: stamp.parsed *.py
 test: all stamp.validated $(wildcard *_test.py)
 	set -e; \
 	for d in $(filter %_test.py,$^); do \
+		echo; \
+		echo "Testing $$d"; \
 		python $$d; \
 	done
 
