@@ -8,14 +8,13 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import google3
-
 import os.path
 import re
 import readline
 import socket
 import sys
 import traceback
+import google3
 import bup.options
 import bup.shquote
 import mainloop

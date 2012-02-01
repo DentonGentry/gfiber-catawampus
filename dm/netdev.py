@@ -12,9 +12,10 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 # Unit tests can override this.
 PROC_NET_DEV = '/proc/net/dev'
 
+
 class NetdevStatsLinux26(object):
-  """Parses /proc/net/dev to populate Stats objects in several TRs.
-  """
+  """Parses /proc/net/dev to populate Stats objects in several TRs."""
+
   # Fields in /proc/net/dev
   _RX_BYTES = 0
   _RX_PKTS = 1

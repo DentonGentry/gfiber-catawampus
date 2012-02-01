@@ -1,22 +1,22 @@
 #!/usr/bin/python
 # Copyright 2011 Google Inc. All Rights Reserved.
 #
-"""Handlers for tr-69 Download and Scheduled Download"""
+"""Handlers for tr-69 Download and Scheduled Download."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import google3
-import sys
 import hashlib
 import json
 import os
 import random
+import sys
 import tempfile
+
+import google3
 import tornado
 import tornado.httpclient
 import tornado.ioloop
 import tornado.web
-import urlparse
 
 # Unit tests can override this to pass in a mock
 HTTPCLIENT = tornado.httpclient.AsyncHTTPClient

@@ -14,8 +14,8 @@ in http://www.broadband-forum.org/cwmp/tr-181-2-2-0.html
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import tr.core
-import tr.tr181_v2_2
 import tr.tr098_v1_2
+import tr.tr181_v2_2
 
 BASEMGMT181 = tr.tr181_v2_2.Device_v2_2.Device.ManagementServer
 BASEMGMT98 = tr.tr098_v1_2.InternetGatewayDevice_v1_4.InternetGatewayDevice.ManagementServer

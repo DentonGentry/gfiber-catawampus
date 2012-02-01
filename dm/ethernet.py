@@ -13,12 +13,10 @@ in http://www.broadband-forum.org/cwmp/tr-181-2-2-0.html
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import netdev
 import pynetlinux
-import string
-import subprocess
 import tr.core
 import tr.tr181_v2_2
+import netdev
 
 BASEETHERNET = tr.tr181_v2_2.Device_v2_2.Device.Ethernet
 

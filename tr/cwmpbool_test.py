@@ -5,12 +5,15 @@
 # unittest requires method names starting in 'test'
 #pylint: disable-msg=C6409
 
-"""Unit tests for cwmpboolean.py"""
+"""Unit tests for cwmpboolean.py."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import cwmpbool
 import unittest
+
+import google3
+import cwmpbool
+
 
 class CwmpBoolTest(unittest.TestCase):
   """Tests for boolean formatting."""

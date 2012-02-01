@@ -5,17 +5,16 @@
 # unittest requires method names starting in 'test'
 #pylint: disable-msg=C6409
 
-"""Unit tests for api_soap.py"""
+"""Unit tests for api_soap.py."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import google3
-
-import sys
-import api_soap
 import datetime
 import unittest
 import xml.etree.ElementTree as ET
+
+import google3
+import api_soap
 
 
 expectedTransferComplete = """<?xml version="1.0" encoding="utf-8"?>

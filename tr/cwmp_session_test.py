@@ -5,18 +5,19 @@
 # unittest requires method names starting in 'test'
 #pylint: disable-msg=C6409
 
-"""Unit tests for cwmp_session.py"""
+"""Unit tests for cwmp_session.py."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import google3
-
-import sys
-import cwmp_session
 import unittest
+
+import google3
+import cwmp_session
+
 
 class CwmpSessionTest(unittest.TestCase):
   """tests for cwmp_session.py."""
+
   def testStateWait(self):
     cs = cwmp_session.CwmpSession("")
 

@@ -1,28 +1,25 @@
 #!/usr/bin/python
 # Copyright 2011 Google Inc. All Rights Reserved.
 #
-"""Handlers for tr-69 Download and Scheduled Download"""
+"""Handlers for tr-69 Download and Scheduled Download."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import collections
 import errno
-import glob
-import hashlib
-import http_download
-import json
 import os
-import persistobj
-import random
-import soap
-import sys
-import tempfile
 import time
+import urlparse
+
+import google3
 import tornado
 import tornado.httpclient
 import tornado.ioloop
 import tornado.web
-import urlparse
+import http_download
+import persistobj
+import soap
+
 
 # Persistent object storage location and filename
 STATEDIR = "/tmp"
@@ -461,7 +458,7 @@ class DownloadManager(object):
 
 def main():
   # Generate diagram for Download state machine
-  import subprocess
+  import subprocess  #pylint: disable-msg=C6204
   cmd = ["dot", "-Tpdf", "-odownloadStateMachine.pdf"]
   p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
   print p.communicate(input=graphviz)[0]

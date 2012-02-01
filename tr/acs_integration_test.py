@@ -9,15 +9,14 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import google3
-
-import sys
-import api
 import collections
-import core
-import http
 import unittest
 import xml.etree.ElementTree as ET
+
+import google3
+import api
+import core
+import http
 
 
 class TestDeviceModelRoot(core.Exporter):

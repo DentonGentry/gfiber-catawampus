@@ -5,16 +5,17 @@
 # unittest requires method names starting in 'test'
 #pylint: disable-msg=C6409
 
-"""Unit tests for persistobj.py"""
+"""Unit tests for persistobj.py."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import os
-import persistobj
 import shutil
 import tempfile
-import time
 import unittest
+
+import google3
+import persistobj
 
 
 class PersistentObjectTest(unittest.TestCase):

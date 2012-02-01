@@ -9,8 +9,10 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import netdev
 import unittest
+
+import google3
+import netdev
 
 
 class NetdevTest(unittest.TestCase):

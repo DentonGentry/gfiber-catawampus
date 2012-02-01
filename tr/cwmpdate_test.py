@@ -9,11 +9,12 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import cwmpdate
 import calendar
 import datetime
-import time
 import unittest
+
+import google3
+import cwmpdate
 
 
 class UTC(datetime.tzinfo):

@@ -9,13 +9,15 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import google3
-
 import collections
-import storage
 import unittest
 
+import google3
+import storage
+
+
 statvfsstruct = collections.namedtuple('statvfs', ('f_bsize f_frsize f_blocks f_bfree f_bavail f_files f_ffree f_favail f_flag f_namemax'))
+
 
 def OsStatVfs(rootpath):
   teststatvfs = dict()

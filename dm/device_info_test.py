@@ -9,13 +9,12 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import google3
-
-import sys
-import device_info
 import os
 import unittest
+
+import google3
 import tr.core
+import device_info
 
 
 class TestDeviceId(device_info.DeviceIdMeta):

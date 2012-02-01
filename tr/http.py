@@ -10,19 +10,19 @@
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import collections
-import cpe_management_server
-import cwmpbool
-import cwmpdate
-import cwmp_session
-import time
 import random
 import socket
+import time
 import urllib
-import api_soap
-import soap
+
 import tornado.httpclient
 import tornado.ioloop
 import tornado.web
+
+import api_soap
+import cpe_management_server
+import cwmp_session
+import soap
 
 
 # SPEC3 = TR-069_Amendment-3.pdf

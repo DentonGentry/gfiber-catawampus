@@ -6,11 +6,14 @@
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 
+import time
+
+import google3
 import api
+import core
 import cwmpbool
 import cwmpdate
 import soap
-import time
 
 class Encode(object):
   def __init__(self):
@@ -299,8 +302,6 @@ class CPE(SoapHandler):
 
 
 def main():
-  import core
-
   class FakeDeviceInfo(object):
     Manufacturer = "manufacturer"
     ManufacturerOUI = "oui"

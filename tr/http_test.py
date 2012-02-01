@@ -5,33 +5,34 @@
 # unittest requires method names starting in 'test'
 #pylint: disable-msg=C6409
 
-"""Unit tests for http.py"""
+"""Unit tests for http.py."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import google3
-
-import sys
-import api
-import core
-import cwmpdate
-import cwmp_session
-import dm_root
-import download
-import http
 import os
 import shutil
 import tempfile
 import time
-import tornado.httpclient
-import tornado.ioloop
-import tornado.testing
 import unittest
 import xml.etree.ElementTree as ET
 
+import google3
+import dm_root
+import tornado.httpclient
+import tornado.ioloop
+import tornado.testing
+
+import api
+import cwmp_session
+import cwmpdate
+import download
+import http
+
 
 mock_http_client_stop = None
-mock_http_clients = list()
+mock_http_clients = []
+
+
 class MockHttpClient(object):
   def __init__(self, **kwargs):
     self.ResetMock()

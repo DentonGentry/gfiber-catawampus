@@ -8,12 +8,11 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import google3
+import unittest
 
-import sys
+import google3
 import api
 import core
-import unittest
 
 
 class Word(core.Exporter):

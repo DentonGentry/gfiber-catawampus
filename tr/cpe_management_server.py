@@ -9,17 +9,20 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import cwmpbool
-import cwmpdate
-import datetime
 import math
 import random
 import socket
 import time
+
+import google3
 import tornado.ioloop
+import cwmpbool
+import cwmpdate
+
 
 # Allow unit tests to override with a mock
 PERIODIC_CALLBACK = tornado.ioloop.PeriodicCallback
+
 
 class CpeManagementServer(object):
   """Inner class implementing tr-98 & 181 ManagementServer."""

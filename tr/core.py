@@ -14,9 +14,9 @@ Exporter yourself.
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-
-import soap
 import string
+import soap
+
 
 class NotAddableError(KeyError):
   """Raised when AddObject is not allowed on an object list."""

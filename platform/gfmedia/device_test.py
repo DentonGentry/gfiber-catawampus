@@ -5,21 +5,17 @@
 # unittest requires method names starting in 'test'
 #pylint: disable-msg=C6409
 
-"""Unit tests for device.py"""
+"""Unit tests for device.py."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import google3
+import unittest
 
-import dm_root
-import sys
-import device
-import os
-import shutil
-import tempfile
+import google3
 import tornado.ioloop
 import tornado.testing
-import unittest
+import device
+
 
 class DeviceGFMediaTest(tornado.testing.AsyncTestCase):
   """Tests for device.py."""

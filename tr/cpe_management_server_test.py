@@ -5,16 +5,16 @@
 # unittest requires method names starting in 'test'
 #pylint: disable-msg=C6409
 
-"""Unit tests for cpe_management_server.py"""
+"""Unit tests for cpe_management_server.py."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import google3
-import sys
-import cpe_management_server as ms
-import cwmpdate
 import datetime
 import unittest
+
+import google3
+import cpe_management_server as ms
+import cwmpdate
 
 class MockIoloop(object):
   def __init__(self):

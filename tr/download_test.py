@@ -5,23 +5,24 @@
 # unittest requires method names starting in 'test'
 #pylint: disable-msg=C6409
 
-"""Unit tests for download.py"""
+"""Unit tests for download.py."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-from collections import namedtuple
-import download
-import os
 import shutil
-import persistobj
-import soap
 import tempfile
 import time
-import tornado.ioloop
 import unittest
+
+import google3
+import download
+import persistobj
+import soap
 
 
 mock_http_clients = []
+
+
 class MockHttpClient(object):
   def __init__(self, io_loop=None):
     self.did_fetch = False

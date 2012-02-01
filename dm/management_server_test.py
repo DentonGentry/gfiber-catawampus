@@ -9,10 +9,10 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import google3
-
-import management_server
 import unittest
+
+import google3
+import management_server
 
 
 class MockCpeManagementServer(object):

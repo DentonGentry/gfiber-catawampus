@@ -9,15 +9,12 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import google3
-
-import netdev
-import sys
-import os
 import unittest
+
+import google3
 import ethernet
-import tr.core
-import tr.tr181_v2_2 as tr181
+import netdev
+
 
 BASEETHERNET = tr181.Device_v2_2.Device.Ethernet
 

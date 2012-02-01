@@ -5,15 +5,16 @@
 # unittest requires method names starting in 'test'
 #pylint: disable-msg=C6409
 
-"""Unit tests for gvsb.py"""
+"""Unit tests for gvsb.py."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import google3
-
-import gvsb
 import tempfile
 import unittest
+
+import google3
+import gvsb
+
 
 class GvsbTest(unittest.TestCase):
   """Tests for gvsb.py."""
@@ -26,10 +27,10 @@ class GvsbTest(unittest.TestCase):
     temp = tempfile.NamedTemporaryFile()
     gv = gvsb.Gvsb()
     gv.GVSBSERVERFILE = temp.name
-    gv.GvsbServer = "Booga"
-    self.assertEqual(gv.GvsbServer, "Booga")
+    gv.GvsbServer = 'Booga'
+    self.assertEqual(gv.GvsbServer, 'Booga')
     temp.seek(0)
-    self.assertEqual(temp.readline(), "Booga")
+    self.assertEqual(temp.readline(), 'Booga')
     temp.close()
 
   def testGvsbChannelLineup(self):
@@ -39,7 +40,7 @@ class GvsbTest(unittest.TestCase):
     gv.GvsbChannelLineup = 1000
     self.assertEqual(gv.GvsbChannelLineup, 1000)
     temp.seek(0)
-    self.assertEqual(temp.readline(), "1000")
+    self.assertEqual(temp.readline(), '1000')
     temp.close()
 
 

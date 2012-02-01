@@ -5,17 +5,17 @@
 # TR-069 has mandatory attribute names that don't comply with policy
 #pylint: disable-msg=C6409
 
-"""Implementation of tr-98/181 WLAN objects for Broadcom Wifi chipsets. """
+"""Implementation of tr-98/181 WLAN objects for Broadcom Wifi chipsets."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import collections
-import netdev
 import re
 import subprocess
 import tr.core
 import tr.cwmpbool
 import tr.tr098_v1_2 as tr98
+import netdev
 
 BASE98WIFI = tr98.InternetGatewayDevice_v1_4.InternetGatewayDevice.LANDevice.WLANConfiguration
 WL_EXE = "/usr/bin/wl"

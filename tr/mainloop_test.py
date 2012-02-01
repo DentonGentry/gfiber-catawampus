@@ -5,12 +5,12 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import google3
-import sys
 import unittest
 import weakref
-import mainloop
+
+import google3
 import tornado.ioloop
+import mainloop
 
 
 REQUEST_STRING = 'this is the request\n'

@@ -9,14 +9,14 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import google3
-
-import brcmwifi
-import netdev
 import os
 import stat
 import tempfile
 import unittest
+
+import google3
+import brcmwifi
+import netdev
 
 
 class BrcmWifiTest(unittest.TestCase):
