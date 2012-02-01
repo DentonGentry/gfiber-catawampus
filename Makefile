@@ -16,14 +16,13 @@ clean: tr/clean
 
 lint: all
 	set -e; \
-	export PYTHONPATH=$$PWD:$$PWD/tr/vendor:$$PWD/tr/vendor/tornado; \
-	python -c 'import tornado.ioloop'; \
 	find -name '*.py' -size +1c | \
 	grep -v '/vendor/' | \
 	grep -v '/\.' | \
 	grep -v 'tr/tr..._.*\.py' | \
 	grep -v 'tr/x_.*\.py' | \
-	xargs gpylint --disable=W0403,W0613 _fix_path.py
+	xargs gpylint --disable=W0403,W0613 \
+	  --init-hook='sys.path.append("."); import _fix_path'
 
 DSTDIR?=/tmp/catawampus/
 INSTALL=install

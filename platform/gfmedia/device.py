@@ -12,7 +12,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import fcntl
 import os
 import subprocess
-import _fix_path  #pylint: disable-msg=W0611
+import google3
 import dm.brcmwifi
 import dm.device_info
 import tornado.ioloop

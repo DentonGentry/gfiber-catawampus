@@ -10,7 +10,7 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import os
-import _fix_path  #pylint: disable-msg=W0611
+import google3
 import dm.device_info
 import dm.storage
 import tornado.ioloop
