@@ -1,1 +1,0 @@
-vendor/xmlwitch.py
