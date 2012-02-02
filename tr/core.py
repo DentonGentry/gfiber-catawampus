@@ -311,7 +311,8 @@ class Exporter(object):
     parent, subname = self.FindExport(name)
     if subname not in parent.export_params:
       raise KeyError(name)
-    setattr(parent, subname, value)
+    if getattr(parent, subname) != value:
+      setattr(parent, subname, value)
 
   def _AddExportObject(self, name, idx):
     objlist = self._GetExport(self, name)
