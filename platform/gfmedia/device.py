@@ -18,7 +18,6 @@ import dm.device_info
 import tornado.ioloop
 import tr.core
 import tr.download
-import tr.soap
 import tr.tr098_v1_2 as tr98
 import tr.tr181_v2_2 as tr181
 import gvsb

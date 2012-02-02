@@ -15,7 +15,6 @@ Exporter yourself.
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import string
-import soap
 
 
 class NotAddableError(KeyError):
@@ -248,20 +247,16 @@ class Exporter(object):
       fullname = '.'.join(path + [ename])
       raise SchemaError('%s is exported but does not exist' % fullname)
 
-  DASH_TO_UNDERSCORE = string.maketrans('-', '_')
-
   def _GetExportName(self, parent, name):
     if name in parent.export_object_lists:
       return name + 'List'
     else:
       # Vendor models contain a dash in the domain name.
-      return name.translate(self.DASH_TO_UNDERSCORE)
+      return name.replace('-', '_')
 
   def _GetExport(self, parent, name):
     if hasattr(parent, 'IsValidExport') and not parent.IsValidExport(name):
-      raise soap.SoapFaultException(
-          cpefault=soap.CpeFault.INVALID_PARAM_NAME,
-          faultstring='No such parameter: {0}'.format(name))
+      raise KeyError(name)
     if hasattr(parent, '_GetExport'):
       return getattr(parent, self._GetExportName(parent, name))
     elif _Int(name) in parent:

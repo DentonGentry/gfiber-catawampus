@@ -132,6 +132,10 @@ class SoapHandler(object):
       try:
         responder = self._GetResponder(method)
         result = responder(xml, req)
+      except KeyError, e:
+        result = soap.SimpleFault(
+            xml, cpefault=soap.CpeFault.INVALID_PARAM_NAME,
+            faultstring='No such parameter: %s' % e.args[0])
       except soap.SoapFaultException as e:
         result = soap.FaultFromSoapException(xml, e)
       except NotImplementedError:

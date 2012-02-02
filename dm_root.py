@@ -15,7 +15,6 @@ import google3
 import dm.catawampus
 import dm.management_server
 import tr.core
-import tr.soap
 import traceroute
 
 
@@ -52,12 +51,12 @@ class DeviceModelRoot(tr.core.Exporter):
     try:
       ms181 = self.GetExport('Device')
       ms181.ManagementServer = dm.management_server.ManagementServer181(mgmt)
-    except (AttributeError, tr.soap.SoapFaultException):
+    except (AttributeError, KeyError):
       pass  # no tr-181 for this platform
 
     # tr-98 InternetGatewayDevice.ManagementServer
     try:
       ms98 = self.GetExport('InternetGatewayDevice')
       ms98.ManagementServer = dm.management_server.ManagementServer98(mgmt)
-    except (AttributeError, tr.soap.SoapFaultException):
+    except (AttributeError, KeyError):
       pass  # no tr-98 for this platform
