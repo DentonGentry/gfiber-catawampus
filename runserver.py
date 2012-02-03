@@ -21,7 +21,6 @@ import tr.api
 import tr.core
 import tr.http
 import tr.mainloop
-import tr.persist
 import tr.rcommand
 
 
@@ -106,16 +105,7 @@ def main():
                               lambda *args: _GotData(loop, *args),
                               loop.ioloop.READ)
 
-  store = tr.persist.Store('/tmp/cwmp.db', root)
-  store.Load()
-  
-  try:
-    loop.Start()
-  except KeyboardInterrupt:
-    #TODO(apenwarr): save the config during runtime, not just on exit.
-    print
-    print 'Keyboard interrupt: saving config settings.'
-    store.Save()
+  loop.Start()
 
 
 if __name__ == '__main__':
