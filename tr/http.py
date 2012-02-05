@@ -244,6 +244,7 @@ class CPEStateMachine(object):
         out = self.cpe_soap.Handle(response.body)
         if out is not None:
           self.SendResponse(out)
+        # TODO(dgentry): $SPEC3 3.7.1.6 ACS Fault 8005 == retry same request
       else:
         self.session.state_update(acs_to_cpe_empty=True)
     else:
@@ -265,6 +266,18 @@ class CPEStateMachine(object):
       self.session.state_update(timer_done=True)
     self.Run()
 
+  def _CancelSessionRetries(self):
+    if self.session and self.session.must_wait():
+      if self.start_session_timeout:
+        self.ioloop.remove_timeout(self.start_session_timeout)
+        self.start_session_timeout = None
+      self.session.close()
+      self.session = None
+      self.retry_count = 0
+      return True
+    else:
+      return False
+
   def _NewSession(self, reason, wait=None):
     if not self.session and not self.start_session_timeout:
       self.inform_reason = reason
@@ -278,7 +291,7 @@ class CPEStateMachine(object):
           time.time() + wait, self._SessionWaitTimer)
 
   def _NewPingSession(self):
-    if not self.session:
+    if not self.session or self._CancelSessionRetries():
       self._NewSession('6 CONNECTION REQUEST')
     else:
       # $SPEC3 3.2.2 initiate at most one new session after this one closes.
