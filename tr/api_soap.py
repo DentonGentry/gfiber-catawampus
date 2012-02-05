@@ -136,6 +136,10 @@ class SoapHandler(object):
         result = soap.SimpleFault(
             xml, cpefault=soap.CpeFault.INVALID_PARAM_NAME,
             faultstring='No such parameter: %s' % e.args[0])
+      except IndexError as e:
+        result = soap.SimpleFault(
+            xml, cpefault=soap.CpeFault.INVALID_ARGUMENTS,
+            faultstring=str(e))
       except soap.SoapFaultException as e:
         result = soap.FaultFromSoapException(xml, e)
       except NotImplementedError:

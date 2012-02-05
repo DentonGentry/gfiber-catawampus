@@ -28,7 +28,15 @@ class TestDeviceModelRoot(core.Exporter):
     objects = []
     self.Foo = 'bar'
     params.append('Foo')
+    params.append('RaiseIndexError')
     self.Export(params=params, objects=objects)
+
+  @property
+  def RaiseIndexError(self):
+    """A parameter which, when accessed, will raise an IndexError.
+    This should turn into a 9003 Invalid Arguments fault."""
+    l = list()
+    return l[0]
 
 
 class MockDownloadManager(object):
@@ -516,6 +524,19 @@ class GetParamsRpcTest(unittest.TestCase):
     self.assertTrue(detail)
     self.assertEqual(detail.find('FaultCode').text, "9000")
     self.assertTrue(detail.find('FaultString').text.find("NoSuchMethod"))
+
+  def testInvalidArgument(self):
+    cpe = self.getCpe()
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterValues><ParameterNames soapenc:arrayType="{urn:dslforum-org:cwmp-1-2}string[1]"><ns3:string xmlns="urn:dslforum-org:cwmp-1-2" xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" xmlns:ns3="urn:dslforum-org:cwmp-1-2">RaiseIndexError</ns3:string></ParameterNames></cwmp:GetParameterValues></soapenv:Body></soapenv:Envelope>"""
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+    root = ET.fromstring(str(responseXml))
+    fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
+    self.assertTrue(fault)
+    self.assertEqual(fault.find('faultcode').text, "Client")
+    self.assertEqual(fault.find('faultstring').text, "CWMP fault")
+    detail = fault.find('detail/' + CWMPNS + 'Fault')
+    self.assertTrue(detail)
+    self.assertEqual(detail.find('FaultCode').text, "9003")
 
   def testGetRPCMethods(self):
     cpe = self.getCpe()
