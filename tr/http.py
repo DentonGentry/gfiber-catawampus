@@ -174,7 +174,7 @@ class CPEStateMachine(object):
     self.Send(cmpl)
 
   def GetNext(self):
-    if not self.session or self.session.must_wait():
+    if not self.session:
       return None
     if self.session.inform_required():
       self.session.state_update(sent_inform=True)
@@ -187,9 +187,12 @@ class CPEStateMachine(object):
 
   def Run(self):
     print 'RUN'
-    if not self.session or not self.session.acs_url:
-      print('No ACS populated yet, returning.')
-      self.RetrySession(wait=60)
+    if not self.session:
+      print('No ACS session, returning.')
+      return
+    if not self.session.acs_url:
+      print('No ACS URL populated, returning.')
+      self._ScheduleRetrySession(wait=60)
       return
     if self.session.should_close():
       print('Idle CWMP session, terminating.')
@@ -244,41 +247,57 @@ class CPEStateMachine(object):
         out = self.cpe_soap.Handle(response.body)
         if out is not None:
           self.SendResponse(out)
+        # TODO(dgentry): $SPEC3 3.7.1.6 ACS Fault 8005 == retry same request
       else:
         self.session.state_update(acs_to_cpe_empty=True)
     else:
       print('HTTP ERROR {0!s}: {1}'.format(response.code, response.error))
-      self.RetrySession()
+      self._ScheduleRetrySession()
     self.Run()
     return 200
 
-  def RetrySession(self, wait=None):
-    self.session.close()
-    self.session = None
-    self.retry_count += 1
-    self._NewSession(reason=self.inform_reason, wait=wait)
+  def _ScheduleRetrySession(self, wait=None):
+    """Start a timer to retry a CWMP session.
+
+    Args:
+      wait - number of seconds to wait. If wait=None, choose a random wait
+        time according to $SPEC3 section 3.2.1
+    """
+    if self.session:
+      self.session.close()
+      self.session = None
+    if wait is None:
+      self.retry_count += 1
+      wait = self.cpe_management_server.SessionRetryWait(self.retry_count)
+    timeout = time.time() + wait
+    self.start_session_timeout = self.ioloop.add_timeout(
+        timeout, self._SessionWaitTimer)
 
   def _SessionWaitTimer(self):
-    """Timer for the CWMP Retry Interval before starting a new session."""
+    """Handler for the CWMP Retry timer, to start a new session."""
     self.start_session_timeout = None
-    if self.session:
-      self.session.state_update(timer_done=True)
+    self.session = cwmp_session.CwmpSession(
+        acs_url=self.cpe_management_server.URL, ioloop=self.ioloop)
     self.Run()
 
-  def _NewSession(self, reason, wait=None):
-    if not self.session and not self.start_session_timeout:
+  def _CancelSessionRetries(self):
+    """Cancel any pending CWMP session retry."""
+    if self.start_session_timeout:
+      self.ioloop.remove_timeout(self.start_session_timeout)
+      self.start_session_timeout = None
+    self.retry_count = 0
+
+  def _NewSession(self, reason):
+    if not self.session:
+      self._CancelSessionRetries()
       self.inform_reason = reason
       self.session = cwmp_session.CwmpSession(
           acs_url=self.cpe_management_server.URL, ioloop=self.ioloop)
-      if wait is None:
-        wait = self.cpe_management_server.SessionRetryWait(self.retry_count)
-      if wait > 0:
-        print('Waiting {0} seconds before initiating session'.format(wait))
-      self.start_session_timeout = self.ioloop.add_timeout(
-          time.time() + wait, self._SessionWaitTimer)
+      self.Run()
 
   def _NewPingSession(self):
     if not self.session:
+      # If we failed to reach the ACS previously, try again now.
       self._NewSession('6 CONNECTION REQUEST')
     else:
       # $SPEC3 3.2.2 initiate at most one new session after this one closes.

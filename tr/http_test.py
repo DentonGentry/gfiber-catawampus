@@ -99,7 +99,6 @@ class HttpTest(tornado.testing.AsyncTestCase):
     time.time = self.advanceTime
     cpe_machine = self.getCpe()
     cpe_machine.Startup()
-    self.advance_time += 1
     self.wait()
 
     self.assertEqual(len(mock_http_clients), 1)
@@ -115,7 +114,6 @@ class HttpTest(tornado.testing.AsyncTestCase):
     time.time = self.advanceTime
     cpe_machine = self.getCpe()
     cpe_machine.Startup()
-    self.advance_time += 1
     self.wait()
 
     self.assertEqual(len(mock_http_clients), 1)
@@ -131,7 +129,6 @@ class HttpTest(tornado.testing.AsyncTestCase):
     time.time = self.advanceTime
     cpe_machine = self.getCpe()
     cpe_machine.Startup()
-    self.advance_time += 1
     self.wait(timeout=20)
 
     self.assertEqual(len(mock_http_clients), 1)
@@ -147,7 +144,6 @@ class HttpTest(tornado.testing.AsyncTestCase):
     httpresp = tornado.httpclient.HTTPResponse(http.fetch_req, 404)
     http.fetch_callback(httpresp)
 
-    cpe_machine.Startup()
     self.advance_time += 10
     self.wait(timeout=20)
     self.assertEqual(len(mock_http_clients), 2)

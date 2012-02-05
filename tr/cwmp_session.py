@@ -19,14 +19,12 @@ graphviz = r"""
 digraph DLstates {
   node [shape=box]
 
-  WAIT [label="WAIT"]
   CONNECT [label="CONNECT"]
   ACTIVE [label="ACTIVE\nsend responses or requests"]
   ONHOLD [label="ONHOLD\nsend responses"]
   NOMORE [label="NOMORE\nsend responses"]
   DONE [label="DONE\nclose session"]
 
-  WAIT -> CONNECT [label="Timer done"]
   CONNECT -> ACTIVE [label="Send Inform"]
   ACTIVE -> ONHOLD [label="onhold=True"]
   ONHOLD -> ACTIVE [label="onhold=False"]
@@ -38,7 +36,6 @@ digraph DLstates {
 HTTPCLIENT = tornado.httpclient.AsyncHTTPClient
 
 class CwmpSession(object):
-  WAIT = "WAIT"
   CONNECT = "CONNECT"
   ACTIVE = "ACTIVE"
   ONHOLD = "ONHOLD"
@@ -52,14 +49,11 @@ class CwmpSession(object):
     self.cookies = None
     self.my_ip = None
     self.ping_received = False
-    self.state = self.WAIT
+    self.state = self.CONNECT
 
-  def state_update(self, timer_done=None, sent_inform=None, on_hold=None,
+  def state_update(self, sent_inform=None, on_hold=None,
                    cpe_to_acs_empty=None, acs_to_cpe_empty=None):
-    if self.state == self.WAIT:
-      if timer_done:
-        self.state = self.CONNECT
-    elif self.state == self.CONNECT:
+    if self.state == self.CONNECT:
       if sent_inform:
         self.state = self.ACTIVE
     elif self._active():
@@ -74,8 +68,6 @@ class CwmpSession(object):
       if acs_to_cpe_empty:
         self.state = self.DONE
 
-  def _wait(self):
-    return self.state == self.WAIT
   def _connect(self):
     return self.state == self.CONNECT
   def _active(self):
@@ -86,9 +78,6 @@ class CwmpSession(object):
     return self.state == self.NOMORE
   def _done(self):
     return self.state == self.DONE
-
-  def must_wait(self):
-    return True if self._wait() else False
 
   def inform_required(self):
     return True if self._connect() else False
