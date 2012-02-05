@@ -296,6 +296,7 @@ class CPEStateMachine(object):
       self.Run()
 
   def _NewPingSession(self):
+    if not self.session:
       self._NewSession('6 CONNECTION REQUEST')
     else:
       # $SPEC3 3.2.2 initiate at most one new session after this one closes.
