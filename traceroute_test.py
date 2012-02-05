@@ -37,7 +37,8 @@ class TraceRouteTest(unittest.TestCase):
 
     self._DoTrace(loop, trace, '::1', 2)
     self.assertEqual(len(trace.RouteHopsList), 1)
-    self.assertEqual(trace.RouteHopsList[1].Host, 'localhost')
+    self.assertTrue(trace.RouteHopsList[1].Host == 'localhost' or
+                    trace.RouteHopsList[1].Host == 'ip6-localhost')
     self.assertEqual(trace.RouteHopsList[1].HostAddress, '::1')
     self.assertEqual(trace.DiagnosticsState, 'Complete')
 
