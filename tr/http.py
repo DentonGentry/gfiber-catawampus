@@ -296,8 +296,6 @@ class CPEStateMachine(object):
       self.Run()
 
   def _NewPingSession(self):
-    if not self.session:
-      # If we failed to reach the ACS previously, try again now.
       self._NewSession('6 CONNECTION REQUEST')
     else:
       # $SPEC3 3.2.2 initiate at most one new session after this one closes.
