@@ -13,10 +13,10 @@ in http://www.broadband-forum.org/cwmp/tr-181-2-2-0.html
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import netdev
 import pynetlinux
 import tr.core
 import tr.tr181_v2_2
-import netdev
 
 BASEETHERNET = tr.tr181_v2_2.Device_v2_2.Device.Ethernet
 
@@ -53,7 +53,7 @@ class EthernetInterfaceLinux26(BASEETHERNET.Interface):
       ifstats = EthernetInterfaceStatsLinux26(state.ifname)
     self._ethernet_state = state
     self.Alias = state.ifname
-    self.DuplexMode = "Auto"
+    self.DuplexMode = 'Auto'
     self.Enable = True
     self.LastChange = 0  # TODO(dgentry) figure out date format
     self.LowerLayers = None  # Ethernet.Interface is L1, nothing below it.
@@ -69,12 +69,12 @@ class EthernetInterfaceLinux26(BASEETHERNET.Interface):
   @property
   def Status(self):
     if not self._pynet.is_up():
-      return "Down"
+      return 'Down'
     (speed, duplex, auto, link_up) = self._pynet.get_link_info()
     if link_up:
-      return "Up"
+      return 'Up'
     else:
-      return "Dormant"
+      return 'Dormant'
 
 
 class EthernetState(object):
@@ -85,6 +85,8 @@ class EthernetState(object):
 
 
 class Ethernet(BASEETHERNET):
+  """Implementation of tr-181 Ethernet objects for Linux netdevs."""
+
   def __init__(self):
     BASEETHERNET.__init__(self)
     self.InterfaceList = tr.core.AutoDict(
@@ -117,7 +119,7 @@ class Ethernet(BASEETHERNET):
     return state.iftype(state)
 
   def IterInterfaces(self):
-    for ifnum in sorted(self._Interfaces.keys()):
+    for ifnum in sorted(self._Interfaces):
       interface = self.GetInterface(ifnum)
       yield ifnum, interface
 

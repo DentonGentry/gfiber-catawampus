@@ -14,6 +14,7 @@ import unittest
 import google3
 import ethernet
 import netdev
+import tr.tr181_v2_2 as tr181
 
 
 BASEETHERNET = tr181.Device_v2_2.Device.Ethernet
@@ -21,6 +22,7 @@ BASEETHERNET = tr181.Device_v2_2.Device.Ethernet
 
 class EthernetTest(unittest.TestCase):
   """Tests for ethernet.py."""
+
   def setUp(self):
     self._old_PROC_NET_DEV = netdev.PROC_NET_DEV
 
@@ -28,8 +30,8 @@ class EthernetTest(unittest.TestCase):
     netdev.PROC_NET_DEV = self._old_PROC_NET_DEV
 
   def testInterfaceStatsGood(self):
-    netdev.PROC_NET_DEV = "testdata/ethernet/net_dev"
-    eth = ethernet.EthernetInterfaceStatsLinux26("foo0")
+    netdev.PROC_NET_DEV = 'testdata/ethernet/net_dev'
+    eth = ethernet.EthernetInterfaceStatsLinux26('foo0')
     eth.ValidateExports()
 
     self.assertEqual(eth.BroadcastPacketsReceived, None)
@@ -49,11 +51,11 @@ class EthernetTest(unittest.TestCase):
     self.assertEqual(eth.UnknownProtoPacketsReceived, None)
 
   def testInterfaceStatsNonexistent(self):
-    netdev.PROC_NET_DEV = "testdata/ethernet/net_dev"
-    eth = ethernet.EthernetInterfaceStatsLinux26("doesnotexist0")
+    netdev.PROC_NET_DEV = 'testdata/ethernet/net_dev'
+    eth = ethernet.EthernetInterfaceStatsLinux26('doesnotexist0')
     exception_raised = False
     try:
-      i = eth.ErrorsReceived
+      eth.ErrorsReceived
     except AttributeError:
       exception_raised = True
     self.assertTrue(exception_raised)
@@ -72,7 +74,7 @@ class EthernetTest(unittest.TestCase):
   def testInterfaceGood(self):
     ifstats = MockIfStats()
     pynet = MockPynet()
-    ifname = "foo0"
+    ifname = 'foo0'
     upstream = False
 
     ethroot = ethernet.Ethernet()
@@ -105,14 +107,15 @@ class EthernetTest(unittest.TestCase):
 
   def testAddInterface(self):
     ethroot = ethernet.Ethernet()
-    ethroot.AddInterface("foo0", False, MockEthernetInterface)
-    ethroot.AddInterface("foo1", False, MockEthernetInterface)
+    ethroot.AddInterface('foo0', False, MockEthernetInterface)
+    ethroot.AddInterface('foo1', False, MockEthernetInterface)
     ethroot.ValidateExports()
+    self.assertEqual(len(ethroot.InterfaceList), 2)
 
 
 class MockPynet(object):
   v_is_up = True
-  v_mac = "00:11:22:33:44:55"
+  v_mac = '00:11:22:33:44:55'
   v_speed = 1000
   v_duplex = True
   v_auto = True
@@ -150,15 +153,15 @@ class MockEthernetInterface(BASEETHERNET.Interface):
   def __init__(self, state):
     BASEETHERNET.Interface.__init__(self)
     self.Alias = state.ifname
-    self.DuplexMode = "Auto"
+    self.DuplexMode = 'Auto'
     self.Enable = True
     self.LastChange = 0
     self.LowerLayers = None
-    self.MACAddress = "00:11:22:33:44:55"
+    self.MACAddress = '00:11:22:33:44:55'
     self.MaxBitRate = -1
     self.Name = state.ifname
     self.Stats = MockIfStats()
-    self.Status = "Up"
+    self.Status = 'Up'
     self.Upstream = state.upstream
 
 
