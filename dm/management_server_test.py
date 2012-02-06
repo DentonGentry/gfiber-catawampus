@@ -30,8 +30,10 @@ class MockCpeManagementServer(object):
     self.PeriodicInformTime = 5
     self.Username = 'Username'
 
+
 class ManagementServerTest(unittest.TestCase):
   """Tests for management_server.py."""
+
   def testGetMgmt181(self):
     mgmt = MockCpeManagementServer()
     mgmt181 = management_server.ManagementServer181(mgmt)

@@ -18,9 +18,13 @@ import tr.tr098_v1_2
 import tr.tr181_v2_2
 
 BASEMGMT181 = tr.tr181_v2_2.Device_v2_2.Device.ManagementServer
-BASEMGMT98 = tr.tr098_v1_2.InternetGatewayDevice_v1_4.InternetGatewayDevice.ManagementServer
+BASE98IGD = tr.tr098_v1_2.InternetGatewayDevice_v1_4.InternetGatewayDevice
+BASEMGMT98 = BASE98IGD.ManagementServer
+
 
 class ManagementServer181(BASEMGMT181):
+  """Implementation of tr-181 Device.ManagementServer."""
+
   MGMTATTRS = frozenset([
       'CWMPRetryIntervalMultiplier', 'CWMPRetryMinimumWaitInterval',
       'ConnectionRequestPassword', 'ConnectionRequestURL',
@@ -82,6 +86,8 @@ class ManagementServer181(BASEMGMT181):
 
 
 class ManagementServer98(BASEMGMT98):
+  """Implementation of tr-98 InternetGatewayDevice.ManagementServer."""
+
   MGMTATTRS = frozenset([
       'CWMPRetryIntervalMultiplier', 'CWMPRetryMinimumWaitInterval',
       'ConnectionRequestPassword', 'ConnectionRequestURL',
@@ -110,7 +116,6 @@ class ManagementServer98(BASEMGMT98):
   @property
   def UpgradesManaged(self):
     return True
-    self.UpgradesManaged = True
 
   def __getattr__(self, name):
     if name in self.MGMTATTRS:
