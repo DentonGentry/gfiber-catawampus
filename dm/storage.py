@@ -232,6 +232,8 @@ class StorageServiceLinux26(BASESTORAGE):
 
   def GetLogicalVolumeByIndex(self, index):
     fstuples = self._ParseProcMounts()
+    if index >= len(fstuples):
+      raise IndexError('No such object LogicalVolume.{0}'.format(index))
     return self.GetLogicalVolume(fstuples[index])
 
 
