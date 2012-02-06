@@ -22,11 +22,12 @@ import netdev
 class BrcmWifiTest(unittest.TestCase):
   def setUp(self):
     self.old_WL_EXE = brcmwifi.WL_EXE
-    brcmwifi.WL_EXE = 'testdata/brcmwifi/wlcounters'
+    self.old_PROC_NET_DEV = netdev.PROC_NET_DEV
     self.files_to_remove = list()
 
   def tearDown(self):
     brcmwifi.WL_EXE = self.old_WL_EXE
+    netdev.PROC_NET_DEV = self.old_PROC_NET_DEV
     for f in self.files_to_remove:
       os.remove(f)
 
@@ -43,9 +44,12 @@ class BrcmWifiTest(unittest.TestCase):
     return (scriptfile, outfile)
 
   def testValidateExports(self):
-    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    netdev.PROC_NET_DEV = 'testdata/brcmwifi/proc_net_dev'
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlempty'
+    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     bw.ValidateExports()
+    stats = brcmwifi.BrcmWlanConfigurationStats('wifi0')
+    stats.ValidateExports()
 
   def testCounters(self):
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlcounters'
@@ -377,6 +381,7 @@ class BrcmWifiTest(unittest.TestCase):
             'a0:b0:c0:00:00:03': True}
     seen = set()
     for ad in bw.AssociatedDeviceList.values():
+      ad.ValidateExports()
       mac = ad.AssociatedDeviceMACAddress.lower()
       self.assertEqual(ad.LastDataTransmitRate, speeds[mac])
       self.assertEqual(ad.AssociatedDeviceAuthenticationState, auth[mac])
