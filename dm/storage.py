@@ -5,7 +5,7 @@
 # TR-069 has mandatory attribute names that don't comply with policy
 #pylint: disable-msg=C6409
 
-"""Implementation of tr-140 Storage Services objects. """
+"""Implementation of tr-140 Storage Services objects."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
@@ -18,27 +18,30 @@ BASESTORAGE = tr.tr140_v1_1.StorageService_v1_1.StorageService
 
 # Unit tests can override these
 STATVFS = os.statvfs
-PROC_MOUNTS = "/proc/mounts"
-PROC_FILESYSTEMS = "/proc/filesystems"
+PROC_MOUNTS = '/proc/mounts'
+PROC_FILESYSTEMS = '/proc/filesystems'
+
 
 def _FsType(fstype):
-  supported = {"vfat" : "FAT32", "ext2" : "ext2", "ext3" : "ext3",
-               "ext4" : "ext4", "msdos" : "FAT32", "xfs" : "xfs",
-               "reiserfs" : "REISER" }
+  supported = {'vfat': 'FAT32', 'ext2': 'ext2', 'ext3': 'ext3',
+               'ext4': 'ext4', 'msdos': 'FAT32', 'xfs': 'xfs',
+               'reiserfs': 'REISER'}
   if fstype in supported:
     return supported[fstype]
   else:
-    return "X_GOOGLE-COM_" + fstype
+    return 'X_GOOGLE-COM_' + fstype
 
 
 def _IsSillyFilesystem(fstype):
   """Filesystems which are not interesting to export to the ACS."""
   SILLY = frozenset(['devtmpfs', 'proc', 'sysfs', 'usbfs', 'devpts',
-      'rpc_pipefs', 'autofs', 'nfsd', 'binfmt_misc', 'fuseblk'])
+                     'rpc_pipefs', 'autofs', 'nfsd', 'binfmt_misc', 'fuseblk'])
   return fstype in SILLY
 
 
 class LogicalVolumeLinux26(BASESTORAGE.LogicalVolume):
+  """Implementation of tr-140 StorageService.LogicalVolume for Linux FS."""
+
   def __init__(self, rootpath, fstype):
     BASESTORAGE.LogicalVolume.__init__(self)
     self.rootpath = rootpath
@@ -56,7 +59,7 @@ class LogicalVolumeLinux26(BASESTORAGE.LogicalVolume):
 
   @property
   def Status(self):
-    return "Online"
+    return 'Online'
 
   @property
   def Enable(self):
@@ -85,7 +88,10 @@ class LogicalVolumeLinux26(BASESTORAGE.LogicalVolume):
   def FolderNumberOfEntries(self):
     return len(self.FolderList)
 
+
 class CapabilitiesNoneLinux26(BASESTORAGE.Capabilities):
+  """Trivial tr-140 StorageService.Capabilities, all False."""
+
   def __init__(self):
     BASESTORAGE.Capabilities.__init__(self)
 
@@ -111,10 +117,18 @@ class CapabilitiesNoneLinux26(BASESTORAGE.Capabilities):
 
   @property
   def SupportedFileSystemTypes(self):
+    """Returns possible filesystems.
+
+    Parses /proc/filesystems, omit any defined as uninteresting in
+    _IsSillyFileSystem(), and return the rest.
+
+    Returns:
+      a string of comma-separated filesystem types.
+    """
     fslist = set()
     f = open(PROC_FILESYSTEMS)
     for line in f:
-      if line.find("nodev") >= 0:
+      if line.find('nodev') >= 0:
         # rule of thumb to skip internal, non-interesting filesystems
         continue
       fstype = line.strip()
@@ -142,6 +156,7 @@ class StorageServiceLinux26(BASESTORAGE):
   This class implements no network file services, it only exports
   the LogicalVolume information.
   """
+
   def __init__(self):
     BASESTORAGE.__init__(self)
     self.Capabilities = CapabilitiesNoneLinux26()
@@ -161,7 +176,7 @@ class StorageServiceLinux26(BASESTORAGE):
 
   @property
   def Enable(self):
-    # TODO: tr-140 says this is supposed to be writable, and disable filesystems
+    # TODO(dgentry): tr-140 says this is supposed to be writable
     return True
 
   @property
@@ -199,7 +214,7 @@ class StorageServiceLinux26(BASESTORAGE):
       fsname = fields[0]
       mountpoint = fields[1]
       fstype = fields[2]
-      if fsname == "none" or _IsSillyFilesystem(fstype):
+      if fsname == 'none' or _IsSillyFilesystem(fstype):
         continue
       mounts[mountpoint] = _FsType(fstype)
     return sorted(mounts.items())
@@ -218,7 +233,6 @@ class StorageServiceLinux26(BASESTORAGE):
   def GetLogicalVolumeByIndex(self, index):
     fstuples = self._ParseProcMounts()
     return self.GetLogicalVolume(fstuples[index])
-
 
 
 def main():
