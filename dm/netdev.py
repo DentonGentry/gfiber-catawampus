@@ -37,7 +37,7 @@ class NetdevStatsLinux26(object):
     """Parse fields from a /proc/net/dev line.
 
     Args:
-      ifname - string name of the interface, like "eth0"
+      ifname: string name of the interface, like "eth0"
     """
     ifstats = self._ReadProcNetDev(ifname)
     if ifstats:
@@ -70,10 +70,12 @@ class NetdevStatsLinux26(object):
     """Return the /proc/net/dev entry for ifname.
 
     Args:
-      ifname - string name of the interface, ecx: "eth0"
+      ifname: string name of the interface, ecx: "eth0"
+
+    Returns:
+      The /proc/net/dev entry for ifname as a list.
     """
     f = open(PROC_NET_DEV)
-    devices = dict()
     for line in f:
       fields = line.split(':')
       if (len(fields) == 2) and (fields[0].strip() == ifname):
