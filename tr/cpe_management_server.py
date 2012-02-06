@@ -15,9 +15,9 @@ import socket
 import time
 
 import google3
-import tornado.ioloop
 import cwmpbool
 import cwmpdate
+import tornado.ioloop
 
 
 # Allow unit tests to override with a mock
@@ -26,6 +26,7 @@ PERIODIC_CALLBACK = tornado.ioloop.PeriodicCallback
 
 class CpeManagementServer(object):
   """Inner class implementing tr-98 & 181 ManagementServer."""
+
   def __init__(self, acs_url_file, port, ping_path, get_parameter_key=None,
                start_periodic_session=None, ioloop=None):
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
@@ -55,7 +56,7 @@ class CpeManagementServer(object):
 
   def GetURL(self):
     try:
-      f = open(self.acs_url_file, "r")
+      f = open(self.acs_url_file, 'r')
       line = f.readline().strip()
       f.close()
     except IOError:
@@ -64,6 +65,7 @@ class CpeManagementServer(object):
   URL = property(GetURL, None, None, 'tr-98/181 ManagementServer.URL')
 
   def isIp6Address(self, ip):
+    # pylint: disable-msg=W0702
     try:
       socket.inet_pton(socket.AF_INET6, ip)
     except:
@@ -95,7 +97,6 @@ class CpeManagementServer(object):
   ParameterKey = property(GetParameterKey, None, None,
                           'tr-98/181 ManagementServer.ParameterKey')
 
-
   def GetPeriodicInformEnable(self):
     return self._PeriodicInformEnable
 
@@ -109,7 +110,6 @@ class CpeManagementServer(object):
   PeriodicInformEnable = property(
       GetPeriodicInformEnable, SetPeriodicInformEnable, None,
       'tr-98/181 ManagementServer.PeriodicInformEnable')
-
 
   def GetPeriodicInformInterval(self):
     return self._PeriodicInformInterval
@@ -126,11 +126,10 @@ class CpeManagementServer(object):
       GetPeriodicInformInterval, SetPeriodicInformInterval, None,
       'tr-98/181 ManagementServer.PeriodicInformInterval')
 
-
   def GetPeriodicInformTime(self):
     return self._PeriodicInformTime
 
-  def SetPeriodicInformTime(self,value):
+  def SetPeriodicInformTime(self, value):
     self._PeriodicInformTime = value
     self.ConfigurePeriodicInform()
 
@@ -140,7 +139,6 @@ class CpeManagementServer(object):
   PeriodicInformTime = property(
       GetPeriodicInformTime, SetPeriodicInformTime, None,
       'tr-98/181 ManagementServer.PeriodicInformTime')
-
 
   def ConfigurePeriodicInform(self):
     if self._periodic_callback:
@@ -158,7 +156,7 @@ class CpeManagementServer(object):
         timetuple = cwmpdate.parse(self._PeriodicInformTime).timetuple()
         wait = time.mktime(timetuple) - time.time()
         if wait < 0.0:  # PeriodicInformTime has already passed
-          wait = wait % float(self._PeriodicInformInterval)
+          wait %= float(self._PeriodicInformInterval)
           wait = float(self._PeriodicInformInterval) + wait
       else:
         wait = 0.0
@@ -171,14 +169,17 @@ class CpeManagementServer(object):
   def DoPeriodicInform(self):
     self.start_periodic_session()
 
-
   def SessionRetryWait(self, retry_count):
     """Calculate wait time before next session retry.
 
     See $SPEC3 section 3.2.1 for a description of the algorithm.
 
+    Args:
+      retry_count: integer number of retries attempted so far.
+
     Returns:
-      Number of seconds to wait before initiating next session."""
+      Number of seconds to wait before initiating next session.
+    """
     if retry_count == 0:
       return 0
     c = 10 if retry_count >= 10 else retry_count
