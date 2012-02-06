@@ -13,37 +13,48 @@ import os
 import unittest
 
 import google3
-import tr.core
 import device_info
+import tr.core
 
 
 class TestDeviceId(device_info.DeviceIdMeta):
   def Manufacturer(self):
     return 'Manufacturer'
+
   def ManufacturerOUI(self):
     return '000000'
+
   def ModelName(self):
     return 'ModelName'
+
   def Description(self):
     return 'Description'
+
   def SerialNumber(self):
     return '00000000'
+
   def HardwareVersion(self):
     return '0'
+
   def AdditionalHardwareVersion(self):
     return '0'
+
   def SoftwareVersion(self):
     return '0'
+
   def AdditionalSoftwareVersion(self):
     return '0'
+
   def ProductClass(self):
     return 'ProductClass'
+
   def ModemFirmwareVersion(self):
     return 'ModemFirmwareVersion'
 
 
 class DeviceInfoTest(unittest.TestCase):
   """Tests for device_info.py."""
+
   def setUp(self):
     self.old_PROC_MEMINFO = device_info.PROC_MEMINFO
     self.old_PROC_NET_DEV = device_info.PROC_NET_DEV

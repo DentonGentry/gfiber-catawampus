@@ -20,13 +20,15 @@ import tr.core
 import tr.tr098_v1_2
 import tr.tr181_v2_2
 
+BASE98IGD = tr.tr098_v1_2.InternetGatewayDevice_v1_4.InternetGatewayDevice
 BASE181DEVICE = tr.tr181_v2_2.Device_v2_2
 
 # Unit tests can override these with fake data
-PROC_MEMINFO = "/proc/meminfo"
-PROC_NET_DEV = "/proc/net/dev"
-PROC_UPTIME = "/proc/uptime"
-SLASH_PROC = "/proc"
+PROC_MEMINFO = '/proc/meminfo'
+PROC_NET_DEV = '/proc/net/dev'
+PROC_UPTIME = '/proc/uptime'
+SLASH_PROC = '/proc'
+
 
 class DeviceIdMeta(object):
   """Class to provide platform-specific fields for DeviceInfo.
@@ -36,7 +38,8 @@ class DeviceIdMeta(object):
   to protect against future versions. If we add fields to this class,
   any existing platform implementations will be prompted to add implementations
   (because they will fail to startup when their DeviceId fails to
-  instantiate."""
+  instantiate.
+  """
   __metaclass__ = abc.ABCMeta
 
   @abc.abstractproperty
@@ -278,17 +281,19 @@ class ProcessStatusLinux26(BASE181DEVICE.DeviceInfo.ProcessStatus):
       yield pid, proc
 
 
-class DeviceInfo98Linux26(tr.tr098_v1_2.InternetGatewayDevice_v1_4.InternetGatewayDevice.DeviceInfo):
+class DeviceInfo98Linux26(BASE98IGD.DeviceInfo):
+  """Implementation of tr-98 DeviceInfo for Linux."""
+
   def __init__(self, device_id):
-    tr.tr098_v1_2.InternetGatewayDevice_v1_4.InternetGatewayDevice.DeviceInfo.__init__(self)
+    BASE98IGD.DeviceInfo.__init__(self)
     assert isinstance(device_id, DeviceIdMeta)
     self._device_id = device_id
-    self.Unexport(params="DeviceLog")
-    self.Unexport(params="EnabledOptions")
-    self.Unexport(params="FirstUseDate")
-    self.Unexport(params="ProvisioningCode")
-    self.Unexport(params="SpecVersion")
-    self.Unexport(lists="VendorConfigFile")
+    self.Unexport(params='DeviceLog')
+    self.Unexport(params='EnabledOptions')
+    self.Unexport(params='FirstUseDate')
+    self.Unexport(params='ProvisioningCode')
+    self.Unexport(params='SpecVersion')
+    self.Unexport(lists='VendorConfigFile')
     self.VendorConfigFileNumberOfEntries = 0
 
   @property
