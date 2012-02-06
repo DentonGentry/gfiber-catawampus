@@ -19,7 +19,7 @@ class CwmpSessionTest(unittest.TestCase):
   """tests for cwmp_session.py."""
 
   def testStateConnect(self):
-    cs = cwmp_session.CwmpSession("")
+    cs = cwmp_session.CwmpSession('')
 
     self.assertTrue(cs.inform_required())
     self.assertFalse(cs.request_allowed())
@@ -48,7 +48,7 @@ class CwmpSessionTest(unittest.TestCase):
     self.assertTrue(cs.response_allowed())
 
   def testActive(self):
-    cs = cwmp_session.CwmpSession("")
+    cs = cwmp_session.CwmpSession('')
     cs.state_update(sent_inform=True)
     self.assertFalse(cs.inform_required())
     self.assertTrue(cs.request_allowed())
@@ -83,7 +83,7 @@ class CwmpSessionTest(unittest.TestCase):
     self.assertTrue(cs.response_allowed())
 
   def testOnHold(self):
-    cs = cwmp_session.CwmpSession("")
+    cs = cwmp_session.CwmpSession('')
     cs.state_update(sent_inform=True)
     cs.state_update(on_hold=True)
     self.assertFalse(cs.inform_required())
@@ -118,7 +118,7 @@ class CwmpSessionTest(unittest.TestCase):
     self.assertTrue(cs.response_allowed())
 
   def testNoMore(self):
-    cs = cwmp_session.CwmpSession("")
+    cs = cwmp_session.CwmpSession('')
 
     # transition to NOMORE
     cs.state_update(sent_inform=True)
@@ -145,7 +145,7 @@ class CwmpSessionTest(unittest.TestCase):
     self.assertFalse(cs.response_allowed())
 
   def testDone(self):
-    cs = cwmp_session.CwmpSession("")
+    cs = cwmp_session.CwmpSession('')
     cs.state_update(sent_inform=True)
     cs.state_update(cpe_to_acs_empty=True)
     cs.state_update(acs_to_cpe_empty=True)

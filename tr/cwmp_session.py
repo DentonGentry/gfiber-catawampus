@@ -35,12 +35,15 @@ digraph DLstates {
 
 HTTPCLIENT = tornado.httpclient.AsyncHTTPClient
 
+
 class CwmpSession(object):
-  CONNECT = "CONNECT"
-  ACTIVE = "ACTIVE"
-  ONHOLD = "ONHOLD"
-  NOMORE = "NOMORE"
-  DONE = "DONE"
+  """State machine to handle the lifecycle of a TCP session with the ACS."""
+
+  CONNECT = 'CONNECT'
+  ACTIVE = 'ACTIVE'
+  ONHOLD = 'ONHOLD'
+  NOMORE = 'NOMORE'
+  DONE = 'DONE'
 
   def __init__(self, acs_url, ioloop=None):
     self.http = HTTPCLIENT(max_simultaneous_connections=1,
@@ -70,12 +73,16 @@ class CwmpSession(object):
 
   def _connect(self):
     return self.state == self.CONNECT
+
   def _active(self):
     return self.state == self.ACTIVE
+
   def _onhold(self):
     return self.state == self.ONHOLD
+
   def _nomore(self):
     return self.state == self.NOMORE
+
   def _done(self):
     return self.state == self.DONE
 
@@ -100,8 +107,9 @@ class CwmpSession(object):
 
 
 def main():
-  print("# pipe this to grapviz, ex:")
-  print("# ./cwmp_session.py | dot -Tpdf -ocwmp_session.pdf")
+  # pylint: disable-msg=C6003
+  print('# pipe this to grapviz, ex:')
+  print('# ./cwmp_session.py | dot -Tpdf -ocwmp_session.pdf')
   print(graphviz)
 
 

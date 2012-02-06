@@ -19,6 +19,8 @@ import http_download
 
 
 mock_http_clients = []
+
+
 class MockHttpClient(object):
   def __init__(self, io_loop=None):
     self.did_fetch = False
@@ -51,6 +53,7 @@ class MockIoloop(object):
 
 class HttpDownloadTest(unittest.TestCase):
   """tests for http_download.py HttpDownload."""
+
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp()
     http_download.HTTPCLIENT = MockHttpClient
@@ -83,9 +86,9 @@ class HttpDownloadTest(unittest.TestCase):
 
   def testFetch(self):
     ioloop = MockIoloop()
-    username = "uname"
-    password = "pword"
-    url = "scheme://host:port/"
+    username = 'uname'
+    password = 'pword'
+    url = 'scheme://host:port/'
     dl = http_download.HttpDownload(url, username=username, password=password,
                                     download_complete_cb=self.downloadCallback,
                                     ioloop=ioloop)
