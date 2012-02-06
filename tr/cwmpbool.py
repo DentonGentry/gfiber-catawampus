@@ -12,20 +12,24 @@ represent the logical value false.
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+
 def format(arg):
   """Print a CWMP boolean object."""
-  return "1" if arg else "0"
+  return '1' if arg else '0'
+
 
 def parse(arg):
   lower = arg.lower()
-  if lower == "false" or lower == "0":
+  if lower == 'false' or lower == '0':
     return False
-  elif lower == "true" or lower == "1":
+  elif lower == 'true' or lower == '1':
     return True
   else:
     raise ValueError('Invalid CWMP boolean')
 
+
 def valid(arg):
+  # pylint: disable-msg=W0702
   try:
     parse(arg)
   except:

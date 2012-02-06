@@ -19,7 +19,7 @@ import datetime
 def format(arg):
   """Print a datetime with 'Z' for the UTC timezone, as CWMP requires."""
   if not arg:
-    return "0001-01-01T00:00:00Z"  # CWMP Unknown Time
+    return '0001-01-01T00:00:00Z'  # CWMP Unknown Time
   elif isinstance(arg, float):
     dt = datetime.datetime.utcfromtimestamp(arg)
   else:
@@ -27,9 +27,9 @@ def format(arg):
 
   if not dt.tzinfo or not dt.tzinfo.utcoffset(dt):
     if dt.microsecond:
-      return dt.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+      return dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
     else:
-      return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+      return dt.strftime('%Y-%m-%dT%H:%M:%SZ')
   else:
     return dt.isoformat()
 
@@ -37,13 +37,14 @@ def format(arg):
 def parse(arg):
   # TODO(dgentry) handle timezone properly
   try:
-    dt = datetime.datetime.strptime(arg, "%Y-%m-%dT%H:%M:%SZ")
+    dt = datetime.datetime.strptime(arg, '%Y-%m-%dT%H:%M:%SZ')
   except ValueError:
-    dt = datetime.datetime.strptime(arg, "%Y-%m-%dT%H:%M:%S.%fZ")
+    dt = datetime.datetime.strptime(arg, '%Y-%m-%dT%H:%M:%S.%fZ')
   return dt
 
 
 def valid(arg):
+  # pylint: disable-msg=W0702
   try:
     parse(arg)
   except:

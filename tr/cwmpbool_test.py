@@ -19,17 +19,17 @@ class CwmpBoolTest(unittest.TestCase):
   """Tests for boolean formatting."""
 
   def testParse(self):
-    self.assertTrue(cwmpbool.parse("true"))
-    self.assertTrue(cwmpbool.parse("True"))
-    self.assertTrue(cwmpbool.parse("1"))
-    self.assertFalse(cwmpbool.parse("false"))
-    self.assertFalse(cwmpbool.parse("False"))
-    self.assertFalse(cwmpbool.parse("0"))
-    self.assertRaises(ValueError, cwmpbool.parse, "booga")
+    self.assertTrue(cwmpbool.parse('true'))
+    self.assertTrue(cwmpbool.parse('True'))
+    self.assertTrue(cwmpbool.parse('1'))
+    self.assertFalse(cwmpbool.parse('false'))
+    self.assertFalse(cwmpbool.parse('False'))
+    self.assertFalse(cwmpbool.parse('0'))
+    self.assertRaises(ValueError, cwmpbool.parse, 'booga')
 
   def testFormat(self):
-    self.assertEqual(cwmpbool.format(True), "1")
-    self.assertEqual(cwmpbool.format(False), "0")
+    self.assertEqual(cwmpbool.format(True), '1')
+    self.assertEqual(cwmpbool.format(False), '0')
 
   def testValid(self):
     self.assertTrue(cwmpbool.valid('True'))
