@@ -27,21 +27,22 @@ class CatawampusDm(BASEDM):
 
   @property
   def RuntimeEnvInfo(self):
+    """Return string of interesting settings from Python environment."""
     python = dict()
-    python["exec_prefix"] = sys.exec_prefix
-    python["executable"] = sys.executable
-    python["path"] = str(sys.path)
-    python["platform"] = sys.platform
-    python["prefix"] = sys.prefix
-    python["version"] = sys.version
+    python['exec_prefix'] = sys.exec_prefix
+    python['executable'] = sys.executable
+    python['path'] = str(sys.path)
+    python['platform'] = sys.platform
+    python['prefix'] = sys.prefix
+    python['version'] = sys.version
 
     env = dict()
-    env["python"] = python
+    env['python'] = python
 
     return json.dumps(env)
 
 
 if __name__ == '__main__':
-  sys.path.append("../")
+  sys.path.append('../')
   cm = CatawampusDm()
   print tr.core.Dump(cm)
