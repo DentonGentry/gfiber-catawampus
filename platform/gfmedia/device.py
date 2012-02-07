@@ -15,6 +15,7 @@ import subprocess
 import google3
 import dm.brcmwifi
 import dm.device_info
+import dm.storage
 import tornado.ioloop
 import tr.core
 import tr.download
@@ -166,6 +167,13 @@ class InstallerGFMedia(tr.download.Installer):
         self._call_callback(INTERNAL_ERROR, 'Unable to install image.')
 
 
+class Services181GFMedia(tr181.Device_v2_2.Device.Services):
+  def __init__(self):
+    tr181.Device_v2_2.Device.Services.__init__(self)
+    self.Export(objects=['StorageServices'])
+    self.StorageServices = dm.storage.StorageServiceLinux26()
+
+
 class DeviceGFMedia(tr181.Device_v2_2.Device):
   """tr-181 Device implementation for Google Fiber media platforms."""
 
@@ -192,7 +200,6 @@ class DeviceGFMedia(tr181.Device_v2_2.Device):
     self.Unexport(objects='PTM')
     self.Unexport(objects='QoS')
     self.Unexport(objects='Routing')
-    self.Unexport(objects='Services')
     self.Unexport(objects='SmartCardReaders')
     self.Unexport(objects='UPA')
     self.Unexport(objects='USB')
@@ -201,6 +208,7 @@ class DeviceGFMedia(tr181.Device_v2_2.Device):
 
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
+    self.Services = Services181GFMedia()
     self.InterfaceStackList = {}
     self.InterfaceStackNumberOfEntries = 0
 
