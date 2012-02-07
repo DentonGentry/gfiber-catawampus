@@ -18,8 +18,12 @@ import tr.core
 import tr.download
 import tr.tr181_v2_2 as tr181
 
+INTERNAL_ERROR = 9002
+
 
 class InstallerFakeCPE(tr.download.Installer):
+  """Fake Installer to install fake images on a fake CPE."""
+
   def __init__(self, filename, ioloop=None):
     tr.download.Installer.__init__(self)
     self.filename = filename
@@ -31,8 +35,8 @@ class InstallerFakeCPE(tr.download.Installer):
       self._install_cb(faultcode, faultstring, must_reboot=True)
 
   def install(self, file_type, target_filename, callback):
-    type = file_type.split()
-    if len(type) > 0 and type[0] != '1':
+    ftype = file_type.split()
+    if ftype and ftype[0] != '1':
       self._call_callback(INTERNAL_ERROR,
                           'Unsupported file_type {0}'.format(type[0]))
       return False
@@ -54,6 +58,7 @@ def FakeCPEInstance():
 
 
 class DeviceIdFakeCPE(dm.device_info.DeviceIdMeta):
+  """Parameters for the DeviceInfo object for a FakeCPE platform."""
 
   @property
   def Manufacturer(self):

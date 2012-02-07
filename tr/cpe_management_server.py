@@ -15,9 +15,9 @@ import socket
 import time
 
 import google3
+import tornado.ioloop
 import cwmpbool
 import cwmpdate
-import tornado.ioloop
 
 
 # Allow unit tests to override with a mock

@@ -70,7 +70,7 @@ class HttpDownload(object):
                   request_timeout=3600.0,
                   streaming_callback=self.tempfile.write,
                   use_gzip=True, allow_ipv6=True,
-                  user_agent="catawampus-tr69")
+                  user_agent='catawampus-tr69')
     if self.auth_header:
       kwargs.update(dict(headers=dict(Authorization=self.auth_header)))
     elif self.username and self.password:
@@ -123,7 +123,7 @@ class HttpDownload(object):
                                            realm=realm,
                                            password=password)
 
-    returnlist = [('%s="%s"' % (k,v)) for k,v in returns.items()]
+    returnlist = [('%s="%s"' % (k, v)) for k, v in returns.items()]
     return 'Digest %s' % ','.join(returnlist)
 
   def _async_fetch_callback(self, response):
@@ -140,22 +140,22 @@ class HttpDownload(object):
     self.tempfile.close()
 
     if response.error:
-      print("Download failed: {0!r}".format(response.error))
+      print('Download failed: {0!r}'.format(response.error))
       print json.dumps(response.headers, indent=2)
       os.unlink(self.tempfile.name)
       self.download_complete_cb(
           DOWNLOAD_FAILED,
-          "Download failed {0!s}".format(response.error.code),
+          'Download failed {0!s}'.format(response.error.code),
           None)
     else:
       self.download_complete_cb(0, '', self.tempfile.name)
-      print("Download success: {0}".format(self.tempfile.name))
+      print('Download success: {0}'.format(self.tempfile.name))
 
 
 def main():
   ioloop = tornado.ioloop.IOLoop.instance()
   dl = HttpDownload(ioloop)
-  url = len(sys.argv) > 1 and sys.argv[1] or "http://www.google.com/"
+  url = len(sys.argv) > 1 and sys.argv[1] or 'http://www.google.com/'
   username = len(sys.argv) > 2 and sys.argv[2]
   password = len(sys.argv) > 3 and sys.argv[3]
   print 'using URL: %s' % url

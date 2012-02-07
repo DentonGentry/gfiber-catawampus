@@ -43,35 +43,35 @@ class DeviceGFMediaTest(tornado.testing.AsyncTestCase):
 
   def testGetSerialNumber(self):
     did = device.DeviceIdGFMedia()
-    device.HNVRAM = "testdata/device/hnvramSN"
-    self.assertEqual(did.SerialNumber, "123456789")
+    device.HNVRAM = 'testdata/device/hnvramSN'
+    self.assertEqual(did.SerialNumber, '123456789')
 
-    device.HNVRAM = "testdata/device/hnvramFOO_Empty"
-    self.assertEqual(did.SerialNumber, "000000000000")
+    device.HNVRAM = 'testdata/device/hnvramFOO_Empty'
+    self.assertEqual(did.SerialNumber, '000000000000')
 
-    device.HNVRAM = "testdata/device/hnvramSN_Err"
-    self.assertEqual(did.SerialNumber, "000000000000")
+    device.HNVRAM = 'testdata/device/hnvramSN_Err'
+    self.assertEqual(did.SerialNumber, '000000000000')
 
   def testBadHnvram(self):
     did = device.DeviceIdGFMedia()
-    device.HNVRAM = "/no_such_binary_at_this_path"
-    self.assertEqual(did.SerialNumber, "000000000000")
+    device.HNVRAM = '/no_such_binary_at_this_path'
+    self.assertEqual(did.SerialNumber, '000000000000')
 
   def testModelName(self):
     did = device.DeviceIdGFMedia()
-    device.HNVRAM = "testdata/device/hnvramPN"
-    self.assertEqual(did.ModelName, "ModelName")
+    device.HNVRAM = 'testdata/device/hnvramPN'
+    self.assertEqual(did.ModelName, 'ModelName')
 
   def testSoftwareVersion(self):
     did = device.DeviceIdGFMedia()
-    device.VERSIONFILE = "testdata/device/version"
-    self.assertEqual(did.SoftwareVersion, "1.2.3")
+    device.VERSIONFILE = 'testdata/device/version'
+    self.assertEqual(did.SoftwareVersion, '1.2.3')
 
   def testAdditionalSoftwareVersion(self):
     did = device.DeviceIdGFMedia()
-    device.REPOMANIFEST = "testdata/device/repomanifest"
+    device.REPOMANIFEST = 'testdata/device/repomanifest'
     self.assertEqual(did.AdditionalSoftwareVersion,
-                     "platform 1111111111111111111111111111111111111111")
+                     'platform 1111111111111111111111111111111111111111')
 
   def install_callback(self, faultcode, faultstring, must_reboot):
     self.install_cb_called = True
@@ -81,8 +81,8 @@ class DeviceGFMediaTest(tornado.testing.AsyncTestCase):
     self.stop()
 
   def testBadInstaller(self):
-    device.GINSTALL = "/dev/null"
-    inst = device.InstallerGFMedia("/dev/null", ioloop=self.io_loop)
+    device.GINSTALL = '/dev/null'
+    inst = device.InstallerGFMedia('/dev/null', ioloop=self.io_loop)
     inst.install(file_type='1 Firmware Upgrade Image',
                  target_filename='',
                  callback=self.install_callback)
@@ -91,9 +91,9 @@ class DeviceGFMediaTest(tornado.testing.AsyncTestCase):
     self.assertTrue(self.install_cb_faultstring)
 
   def testInstallerStdout(self):
-    device.GINSTALL = "testdata/device/installer_128k_stdout"
-    inst = device.InstallerGFMedia("testdata/device/imagefile",
-                                           ioloop=self.io_loop)
+    device.GINSTALL = 'testdata/device/installer_128k_stdout'
+    inst = device.InstallerGFMedia('testdata/device/imagefile',
+                                   ioloop=self.io_loop)
     inst.install(file_type='1 Firmware Upgrade Image',
                  target_filename='',
                  callback=self.install_callback)
@@ -104,9 +104,9 @@ class DeviceGFMediaTest(tornado.testing.AsyncTestCase):
     self.assertTrue(self.install_cb_must_reboot)
 
   def testInstallerFailed(self):
-    device.GINSTALL = "testdata/device/installer_fails"
-    inst = device.InstallerGFMedia("testdata/device/imagefile",
-                                           ioloop=self.io_loop)
+    device.GINSTALL = 'testdata/device/installer_fails'
+    inst = device.InstallerGFMedia('testdata/device/imagefile',
+                                   ioloop=self.io_loop)
     inst.install(file_type='1 Firmware Upgrade Image',
                  target_filename='',
                  callback=self.install_callback)
