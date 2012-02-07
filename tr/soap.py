@@ -53,19 +53,6 @@ class AcsFault(object):
   # codes 8800-8899: vendor-defined faults
 
 
-#TODO(apenwarr): probably near-everything that uses this is wrong.
-# There's no good reason to have non-soap-related code know anything about
-# SOAP fault codes.  We should catch other kinds of exceptions in this file
-# and api_soap.py, and translate them to the appropriate fault code.  That
-# way we keep the ugliness of SOAP and XML isolated to the smallest amount
-# of code possible.
-class SoapFaultException(Exception):
-  """To be raised by API code desiring to send a SOAP:Fault response."""
-  def __init__(self, cpefault, faultstring):
-    self.cpefault = cpefault
-    self.faultstring = faultstring
-
-
 class _Enterable(object):
   def __init__(self, iterable):
     self.iter = iterable

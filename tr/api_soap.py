@@ -118,6 +118,10 @@ class Encode(object):
     return xml
 
 
+class ParameterNameError(AttributeError):
+  pass
+
+
 class SoapHandler(object):
   def __init__(self, impl):
     self.impl = impl
@@ -140,12 +144,14 @@ class SoapHandler(object):
         result = soap.SimpleFault(
             xml, cpefault=soap.CpeFault.INVALID_ARGUMENTS,
             faultstring=str(e))
-      except soap.SoapFaultException as e:
-        result = soap.FaultFromSoapException(xml, e)
       except NotImplementedError:
         cpefault = soap.CpeFault.METHOD_NOT_SUPPORTED
         faultstring = 'Unsupported RPC method: {0}'.format(method)
         result = soap.SimpleFault(xml, cpefault, faultstring)
+      except ParameterNameError as e:
+        result = soap.SimpleFault(
+            xml, cpefault=soap.CpeFault.INVALID_PARAM_NAME,
+            faultstring=str(e))
     if result is not None:
       return xml
     else:
@@ -225,9 +231,7 @@ class CPE(SoapHandler):
 
   def _CheckObjectName(self, name):
     if not name.endswith('.'):
-      raise soap.SoapFaultException(
-          cpefault=soap.CpeFault.INVALID_PARAM_NAME,
-          faultstring='ObjectName must end in period: {0}'.format(name))
+      raise ParameterNameError('ObjectName must end in period: {0}'.format(name))
 
   def AddObject(self, xml, req):
     self._CheckObjectName(req.ObjectName)
