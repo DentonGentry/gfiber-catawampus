@@ -10,16 +10,23 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 
+import fcntl
 import os
+import re
+import subprocess
 import tr.core
+import tr.cwmpbool
 import tr.tr140_v1_1
 
 BASESTORAGE = tr.tr140_v1_1.StorageService_v1_1.StorageService
 
 # Unit tests can override these
-STATVFS = os.statvfs
-PROC_MOUNTS = '/proc/mounts'
 PROC_FILESYSTEMS = '/proc/filesystems'
+PROC_MOUNTS = '/proc/mounts'
+SLASHDEV = '/dev/'
+SMARTCTL = '/usr/sbin/smartctl'
+STATVFS = os.statvfs
+SYS_BLOCK = '/sys/block/'
 
 
 def _FsType(fstype):
@@ -87,6 +94,121 @@ class LogicalVolumeLinux26(BASESTORAGE.LogicalVolume):
   @property
   def FolderNumberOfEntries(self):
     return len(self.FolderList)
+
+
+class PhysicalMediumFixedDiskLinux26(BASESTORAGE.PhysicalMedium):
+  """tr-140 PhysicalMedium implementation for non-removable disks."""
+
+  def __init__(self, dev, conn_type=None):
+    BASESTORAGE.PhysicalMedium.__init__(self)
+    self.dev = dev
+    self.name = dev
+    self.conn_type = conn_type
+
+    # transport is really, really hard to infer programatically.
+    # If platform code doesn't provide it, we don't try to guess.
+    if conn_type is None:
+      self.Unexport('ConnectionType')
+
+    # TODO(dgentry) read SMART attribute for PowerOnHours
+    self.Unexport('Uptime')
+
+  def _ReadOneLine(self, filename, default):
+    """Read one line from a file. Return default if anything fails."""
+    try:
+      f = open(filename, 'r')
+      return f.readline().strip()
+    except IOError:
+      return default
+
+  # TODO(dgentry) need @sessioncache decorator
+  def _GetSmartctlOutput(self):
+    """Return smartctl info and health output."""
+    dev = SLASHDEV + self.dev
+    smart = subprocess.Popen([SMARTCTL, '--info', '--health', dev],
+                             stdout=subprocess.PIPE)
+    out, _ = smart.communicate(None)
+    return out
+
+  def _GetFieldFromSmartctl(self, prefix, default=''):
+    """Search smartctl output for line of the form 'Foo: Bar', return 'Bar'."""
+    field_re = re.compile(prefix + '\s*(\S+)')
+    out = self._GetSmartctlOutput().splitlines()
+    for line in out:
+      result = field_re.search(line)
+      if result is not None:
+        return result.group(1).strip()
+    return default
+
+  def GetName(self):
+    return self.name
+
+  def SetName(self, value):
+    self.name = value
+
+  Name = property(GetName, SetName, None, 'PhysicalMedium.Name')
+
+  @property
+  def Vendor(self):
+    filename = SYS_BLOCK + '/' + self.dev + '/device/vendor'
+    vendor = self._ReadOneLine(filename=filename, default='')
+    # /sys/block/?da/device/vendor is often 'ATA'. Not useful.
+    return '' if vendor == 'ATA' else vendor
+
+  @property
+  def Model(self):
+    filename = SYS_BLOCK + '/' + self.dev + '/device/model'
+    return self._ReadOneLine(filename=filename, default='')
+
+  @property
+  def SerialNumber(self):
+    return self._GetFieldFromSmartctl('Serial Number:')
+
+  @property
+  def FirmwareVersion(self):
+    return self._GetFieldFromSmartctl('Firmware Version:')
+
+  @property
+  def ConnectionType(self):
+    return self.conn_type
+
+  @property
+  def Removable(self):
+    return False
+
+  @property
+  def Capacity(self):
+    """Return capacity in Megabytes."""
+    filename = SYS_BLOCK + '/' + self.dev + '/size'
+    size = self._ReadOneLine(filename=filename, default='0')
+    try:
+      # TODO(dgentry) Do 4k sector drives still populate size in 512 byte blocks?
+      return int(size) * 512 / 1048576
+    except ValueError:
+      return 0
+
+  @property
+  def SMARTCapable(self):
+    capable = self._GetFieldFromSmartctl('SMART support is: Enab', default=None)
+    if capable:
+      return tr.cwmpbool.format(True)
+    else:
+      return tr.cwmpbool.format(False)
+
+  @property
+  def Health(self):
+    health = self._GetFieldFromSmartctl(
+        'SMART overall-health self-assessment test result:')
+    if health == 'PASSED':
+      return 'OK'
+    elif health.find('FAIL') >= 0:
+      return 'Failing'
+    else:
+      return 'Error'
+
+  @property
+  def HotSwappable(self):
+    return False
 
 
 class CapabilitiesNoneLinux26(BASESTORAGE.Capabilities):

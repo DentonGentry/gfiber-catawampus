@@ -14,6 +14,7 @@ import unittest
 
 import google3
 import storage
+import tr.cwmpbool
 
 
 statvfsstruct = collections.namedtuple(
@@ -43,16 +44,24 @@ class StorageTest(unittest.TestCase):
     storage.STATVFS = OsStatVfs
     self.old_PROC_FILESYSTEMS = storage.PROC_FILESYSTEMS
     self.old_PROC_MOUNTS = storage.PROC_MOUNTS
+    self.old_SMARTCTL = storage.SMARTCTL
+    self.old_SYS_BLOCK = storage.SYS_BLOCK
 
   def tearDown(self):
-    self.PROC_FILESYSTEMS = self.old_PROC_FILESYSTEMS
+    storage.PROC_FILESYSTEMS = self.old_PROC_FILESYSTEMS
     storage.PROC_MOUNTS = self.old_PROC_MOUNTS
+    storage.SMARTCTL = self.old_SMARTCTL
+    storage.SYS_BLOCK = self.old_SYS_BLOCK
 
   def testValidateExports(self):
     storage.PROC_FILESYSTEMS = 'testdata/storage/proc.filesystems'
     storage.PROC_MOUNTS = 'testdata/storage/proc.mounts'
+    storage.SYS_BLOCK = 'testdata/storage/sys/block'
     service = storage.StorageServiceLinux26()
     service.ValidateExports()
+    stor = storage.LogicalVolumeLinux26('/fakepath', 'fstype')
+    stor.ValidateExports()
+    pm = storage.PhysicalMediumFixedDiskLinux26('sda')
 
   def testCapacity(self):
     stor = storage.LogicalVolumeLinux26('/fakepath', 'fstype')
@@ -101,6 +110,54 @@ class StorageTest(unittest.TestCase):
     self.assertEqual(cap.SupportedFileSystemTypes,
                      'ext2,ext3,ext4,FAT32,X_GOOGLE-COM_iso9660,'
                      'X_GOOGLE-COM_squashfs,X_GOOGLE-COM_udf')
+
+  def testPhysicalMediumName(self):
+    pm = storage.PhysicalMediumFixedDiskLinux26('sda')
+    self.assertEqual(pm.Name, 'sda')
+    pm.Name = 'sdb'
+    self.assertEqual(pm.Name, 'sdb')
+
+  def testPhysicalMediumFields(self):
+    storage.SMARTCTL = 'testdata/storage/smartctl'
+    storage.SYS_BLOCK = 'testdata/storage/sys/block'
+    pm = storage.PhysicalMediumFixedDiskLinux26('sda')
+    self.assertEqual(pm.Vendor, 'vendor_name')
+    self.assertEqual(pm.Model, 'model_name')
+    self.assertEqual(pm.SerialNumber, 'serial_number')
+    self.assertEqual(pm.FirmwareVersion, 'firmware_version')
+    self.assertTrue(tr.cwmpbool.parse(pm.SMARTCapable))
+    self.assertEqual(pm.Health, 'OK')
+    self.assertFalse(pm.Removable)
+
+  def testNotSmartCapable(self):
+    storage.SMARTCTL = 'testdata/storage/smartctl_disabled'
+    storage.SYS_BLOCK = 'testdata/storage/sys/block'
+    pm = storage.PhysicalMediumFixedDiskLinux26('sda')
+    self.assertFalse(tr.cwmpbool.parse(pm.SMARTCapable))
+
+  def testHealthFailing(self):
+    storage.SMARTCTL = 'testdata/storage/smartctl_healthfail'
+    storage.SYS_BLOCK = 'testdata/storage/sys/block'
+    pm = storage.PhysicalMediumFixedDiskLinux26('sda')
+    self.assertEqual(pm.Health, 'Failing')
+
+  def testHealthError(self):
+    storage.SMARTCTL = 'testdata/storage/smartctl_healtherr'
+    storage.SYS_BLOCK = 'testdata/storage/sys/block'
+    pm = storage.PhysicalMediumFixedDiskLinux26('sda')
+    self.assertEqual(pm.Health, 'Error')
+
+  def testPhysicalMediumVendorATA(self):
+    storage.SYS_BLOCK = 'testdata/storage/sys/block_ATA'
+    pm = storage.PhysicalMediumFixedDiskLinux26('sda')
+    # vendor 'ATA' is suppressed, as it is useless
+    self.assertEqual(pm.Vendor, '')
+
+  def testCapacity(self):
+    storage.SYS_BLOCK = 'testdata/storage/sys/block'
+    pm = storage.PhysicalMediumFixedDiskLinux26('sda')
+    self.assertEqual(pm.Capacity, 512)
+
 
 if __name__ == '__main__':
   unittest.main()
