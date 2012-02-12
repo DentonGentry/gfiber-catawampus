@@ -5,7 +5,16 @@
 # TR-069 has mandatory attribute names that don't comply with policy
 #pylint: disable-msg=C6409
 
-"""Implementation of tr-98/181 WLAN objects for Broadcom Wifi chipsets."""
+"""Implementation of tr-98/181 WLAN objects for Broadcom Wifi chipsets.
+
+The platform code is expected to set the BSSID (which is really a MAC address).
+The Wifi module should be populated with a MAC address. For example if it
+appears as eth2, then "ifconfig eth2" will show the MAC address from the Wifi
+card. The platform should execute:
+  wl bssid xx:xx:xx:xx:xx:xx
+To set the bssid to the desired MAC address, either the one from the wifi
+card or your own.
+"""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
@@ -87,6 +96,12 @@ def _OutputContiguousRanges(seq):
   return ''.join(output)
 
 
+def _SetApMode():
+  """Put device into AP mode."""
+  subprocess.check_call([WL_EXE, 'ap', '1'])
+  subprocess.check_call([WL_EXE, 'infra', '1'])
+
+
 def _GetAssociatedDevices():
   """Return a list of MAC addresses of associated STAs."""
   wl = subprocess.Popen([WL_EXE, 'assoclist'], stdout=subprocess.PIPE)
@@ -101,6 +116,14 @@ def _GetAssociatedDevices():
 
 
 def _GetAssociatedDevice(mac):
+  """Return information about as associated STA.
+
+  Args:
+    mac: MAC address of the requested STA as a string, xx:xx:xx:xx:xx:xx
+
+  Returns:
+    An AssociatedDevice namedtuple.
+  """
   ad = collections.namedtuple(
       'AssociatedDevice', ('AssociatedDeviceMACAddress '
                            'AssociatedDeviceAuthenticationState '
@@ -126,6 +149,7 @@ def _GetAssociatedDevice(mac):
 
 
 def _GetAutoRateFallBackEnabled(arg):
+  """Return WLANConfiguration.AutoRateFallBackEnabled as a boolean."""
   wl = subprocess.Popen([WL_EXE, 'interference'], stdout=subprocess.PIPE)
   out, _ = wl.communicate(None)
   mode_re = re.compile('\(mode (\d)\)')
@@ -136,8 +160,9 @@ def _GetAutoRateFallBackEnabled(arg):
   return True if mode == 3 or mode == 4 else False
 
 
-def _SetAutoRateFallBackEnabled(arg, value):
-  interference = 4 if tr.cwmpbool.parse(value) else 3
+def _SetAutoRateFallBackEnabled(value):
+  """Set WLANConfiguration.AutoRateFallBackEnabled, expects a boolean."""
+  interference = 4 if value else 3
   subprocess.check_call([WL_EXE, 'interference', str(interference)])
 
 
@@ -152,7 +177,7 @@ def _GetBasicDataTransmitRates(arg):
   return ','.join(basic_re.findall(out))
 
 
-def _SetBasicDataTransmitRates(arg, value):
+def _SetBasicDataTransmitRates(value):
   # TODO(dgentry) implement
   raise NotImplementedError()
 
@@ -160,6 +185,27 @@ def _SetBasicDataTransmitRates(arg, value):
 def _ValidateBasicDataTransmitRates(value):
   # TODO(dgentry) implement
   raise NotImplementedError()
+
+
+def _GetBeaconType(arg):
+  beacon = {'0': 'None', '1': 'Basic', '2': 'WPA', '3': 'BasicandWPA',
+            '4': '11i', '5': 'Basicand11i', '6': 'WPAand11i',
+            '7': 'BasicandWPAand11i'}
+  wl = subprocess.Popen([WL_EXE, 'wsec'], stdout=subprocess.PIPE)
+  out, _ = wl.communicate(None)
+  return beacon.get(out.strip(), 'None')
+
+
+def _SetBeaconType(value):
+  beacon = {'None': 0, 'Basic': 1, 'WPA': 2, 'BasicandWPA': 3, '11i': 4,
+            'Basicand11i': 5, 'WPAand11i': 6, 'BasicandWPAand11i': 7}
+  subprocess.check_call([WL_EXE, 'wsec', str(beacon[value])])
+
+
+def _ValidateBeaconType(value):
+  BEACONTYPES = frozenset(['None', 'Basic', 'WPA', 'BasicandWPA', '11i',
+                           'Basicand11i', 'WPAand11i', 'BasicandWPAand11i'])
+  return True if value in BEACONTYPES else False
 
 
 def _GetBSSID(arg):
@@ -173,7 +219,7 @@ def _GetBSSID(arg):
   return '00:00:00:00:00:00'
 
 
-def _SetBSSID(arg, value):
+def _SetBSSID(value):
   subprocess.check_call([WL_EXE, 'bssid', value])
 
 
@@ -198,7 +244,7 @@ def _GetChannel(arg):
   return 0
 
 
-def _SetChannel(arg, value):
+def _SetChannel(value):
   subprocess.check_call([WL_EXE, 'channel', value])
 
 
@@ -226,7 +272,7 @@ def _GetOperationalDataTransmitRates(arg):
   return ','.join(oper_re.findall(line1))
 
 
-def _SetOperationalDataTransmitRates(arg, value):
+def _SetOperationalDataTransmitRates(value):
   # TODO(dgentry) implement
   raise NotImplementedError()
 
@@ -257,8 +303,8 @@ def _GetRadioEnabled(arg):
     return False
 
 
-def _SetRadioEnabled(arg, value):
-  radio = 'on' if tr.cwmpbool.parse(value) else 'off'
+def _SetRadioEnabled(value):
+  radio = 'on' if value else 'off'
   subprocess.check_call([WL_EXE, 'radio', radio])
 
 
@@ -276,7 +322,7 @@ def _GetRegulatoryDomain(arg):
     return ''
 
 
-def _SetRegulatoryDomain(arg, value):
+def _SetRegulatoryDomain(value):
   subprocess.check_call([WL_EXE, 'country', value])
 
 
@@ -303,7 +349,7 @@ def _GetSSID(arg):
   return ''
 
 
-def _SetSSID(arg, value):
+def _SetSSID(value):
   subprocess.check_call([WL_EXE, 'ssid', value])
 
 
@@ -323,8 +369,8 @@ def _GetSSIDAdvertisementEnabled(arg):
   return True if out.strip() == '0' else False
 
 
-def _SetSSIDAdvertisementEnabled(arg, value):
-  closed = '0' if tr.cwmpbool.parse(value) else '1'
+def _SetSSIDAdvertisementEnabled(value):
+  closed = '0' if value else '1'
   subprocess.check_call([WL_EXE, 'closed', closed])
 
 
@@ -344,9 +390,9 @@ def _GetStatus(arg):
     return 'Error'
 
 
-def _SetStatus(arg, enable):
+def _SetStatus(enable):
   status = 'up' if enable else 'down'
-  subprocess.check_call([WL_EXE, 'status', status])
+  subprocess.check_call([WL_EXE, 'bss', status])
 
 
 def _ValidateStatus(value):
@@ -359,7 +405,7 @@ def _GetTransmitPower(arg):
   return out.strip()
 
 
-def _SetTransmitPower(arg, value):
+def _SetTransmitPower(value):
   subprocess.check_call([WL_EXE, 'pwr_percent', value])
 
 
@@ -385,13 +431,11 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   def __init__(self, ifname):
     BASE98WIFI.__init__(self)
     self._ifname = ifname
-    self._enabled = False
     self.AuthenticationServiceMode = tr.core.TODO()
     self.AutoChannelEnable = tr.core.TODO()
     self.BasicAuthenticationMode = tr.core.TODO()
     self.BasicEncryptionModes = tr.core.TODO()
     self.BeaconAdvertisementEnabled = tr.core.TODO()
-    self.BeaconType = tr.core.TODO()
     self.ChannelsInUse = tr.core.TODO()
     self.IEEE11iAuthenticationMode = tr.core.TODO()
     self.IEEE11iEncryptionModes = tr.core.TODO()
@@ -434,6 +478,22 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     self.Unexport('PeerBSSID')
     self.Unexport('DistanceFromRoot')
 
+    self._SetDefaults()
+
+  def _SetDefaults(self):
+    self.p_auto_rate_fallback_enabled = None
+    self.p_basic_data_transmit_rates = None
+    self.p_beacon_type = None
+    self.p_bssid = None
+    self.p_channel = None
+    self.p_enable = False
+    self.p_operational_data_transmit_rates = None
+    self.p_radio_enabled = None
+    self.p_regulatory_domain = None
+    self.p_ssid = None
+    self.p_ssid_advertisement_enabled = None
+    self.p_transmit_power = None
+
   @property
   def Name(self):
     return self._ifname
@@ -462,53 +522,147 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   def TotalAssociations(self):
     return len(self.AssociatedDeviceList)
 
+  def SetAutoRateFallBackEnabled(self, value):
+    self.p_auto_rate_fallback_enabled = tr.cwmpbool.parse(value)
+    self._ConfigureBrcmWifi()
+
+  AutoRateFallBackEnabled = property(
+      _GetAutoRateFallBackEnabled, SetAutoRateFallBackEnabled, None,
+      'WLANConfiguration.AutoRateFallBackEnabled')
+
+  def SetBasicDataTransmitRates(self, value):
+    self.p_basic_data_transmit_rates = value
+    self._ConfigureBrcmWifi()
+
+  BasicDataTransmitRates = property(
+      _GetBasicDataTransmitRates, SetBasicDataTransmitRates, None,
+      'WLANConfiguration.BasicDataTransmitRates')
+
+  def SetBeaconType(self, value):
+    self.p_beacon_type = value
+    self._ConfigureBrcmWifi()
+
+  BeaconType = property(_GetBeaconType, SetBeaconType, None,
+                        'WLANConfiguration.BeaconType')
+
+  def SetBSSID(self, value):
+    self.p_bssid = value
+    self._ConfigureBrcmWifi()
+
+  BSSID = property(_GetBSSID, SetBSSID, None, 'WLANConfiguration.BSSID')
+
+  def SetChannel(self, value):
+    self.p_channel = value
+    self._ConfigureBrcmWifi()
+
+  Channel = property(_GetChannel, SetChannel, None, 'WLANConfiguration.Channel')
+
   def GetEnable(self):
-    return self._enabled
+    return self.p_enable
 
   def SetEnable(self, value):
-    self._enabled = tr.cwmpbool.parse(value)
-    _SetStatus(None, self._enabled)
+    self.p_enable = tr.cwmpbool.parse(value)
+    self._ConfigureBrcmWifi()
 
   def ValidateEnable(self, value):
     return _ValidateStatus(value)
 
   Enable = property(GetEnable, SetEnable, None, 'WLANConfiguration.Enable')
 
-  AutoRateFallBackEnabled = property(
-      _GetAutoRateFallBackEnabled, _SetAutoRateFallBackEnabled, None,
-      'WLANConfiguration.AutoRateFallBackEnabled')
-  BasicDataTransmitRates = property(
-      _GetBasicDataTransmitRates, _SetBasicDataTransmitRates, None,
-      'WLANConfiguration.BasicDataTransmitRates')
-  BSSID = property(_GetBSSID, _SetBSSID, None, 'WLANConfiguration.BSSID')
-  Channel = property(
-      _GetChannel, _SetChannel, None,
-      'WLANConfiguration.Channel')
+  def SetOperationalDataTransmitRates(self, value):
+    self.p_operational_data_transmit_rates = value
+    self._ConfigureBrcmWifi()
+
   OperationalDataTransmitRates = property(
-      _GetOperationalDataTransmitRates, _SetOperationalDataTransmitRates, None,
+      _GetOperationalDataTransmitRates, SetOperationalDataTransmitRates, None,
       'WLANConfiguration.OperationalDataTransmitRates')
-  PossibleChannels = property(
-      _GetPossibleChannels, None, None,
-      'WLANConfiguration.PossibleChannels')
+
+  PossibleChannels = property(_GetPossibleChannels, None, None,
+                              'WLANConfiguration.PossibleChannels')
+
+  def SetRadioEnabled(self, value):
+    self.p_radio_enabled = tr.cwmpbool.parse(value)
+    self._ConfigureBrcmWifi()
+
   RadioEnabled = property(
-      _GetRadioEnabled, _SetRadioEnabled, None,
+      _GetRadioEnabled, SetRadioEnabled, None,
       'WLANConfiguration.RadioEnabled')
+
+  def SetRegulatoryDomain(self, value):
+    self.p_regulatory_domain = value
+    self._ConfigureBrcmWifi()
+
   RegulatoryDomain = property(
-      _GetRegulatoryDomain, _SetRegulatoryDomain, None,
+      _GetRegulatoryDomain, SetRegulatoryDomain, None,
       'WLANConfiguration.RegulatoryDomain')
-  SSID = property(_GetSSID, _SetSSID, None, 'WLANConfiguration.SSID')
+
+  def SetSSID(self, value):
+    self.p_ssid = value
+    self._ConfigureBrcmWifi()
+
+  SSID = property(_GetSSID, SetSSID, None, 'WLANConfiguration.SSID')
+
+  def SetSSIDAdvertisementEnabled(self, value):
+    self.p_ssid_advertisement_enabled = tr.cwmpbool.parse(value)
+    self._ConfigureBrcmWifi()
+
   SSIDAdvertisementEnabled = property(
-      _GetSSIDAdvertisementEnabled, _SetSSIDAdvertisementEnabled, None,
+      _GetSSIDAdvertisementEnabled, SetSSIDAdvertisementEnabled, None,
       'WLANConfiguration.SSIDAdvertisementEnabled')
-  Status = property(
-      _GetStatus, None, None,
-      'WLANConfiguration.Status')
-  TransmitPower = property(
-      _GetTransmitPower, _SetTransmitPower, None,
-      'WLANConfiguration.TransmitPower')
+
+  Status = property(_GetStatus, None, None, 'WLANConfiguration.Status')
+
+  def SetTransmitPower(self, value):
+    self.p_transmit_power = value
+    self._ConfigureBrcmWifi()
+
+  TransmitPower = property(_GetTransmitPower, SetTransmitPower, None,
+                           'WLANConfiguration.TransmitPower')
+
   TransmitPowerSupported = property(
       _GetTransmitPowerSupported, None, None,
       'WLANConfiguration.TransmitPowerSupported')
+
+  # TODO(dgentry) we shouldn't call this from every Set*. There should
+  # be a callback once the entire SetParameterValues has been processed.
+  def _ConfigureBrcmWifi(self):
+    """Issue commands to the wifi device to configure it.
+
+    The Wifi driver is somewhat picky about the order of the commands.
+    For example, some settings can only be changed while the radio is on.
+    """
+
+    if not self.p_enable:
+      return
+    _SetStatus(False)  # About to change the config
+    if not self.p_radio_enabled:
+      _SetRadioEnabled(False)
+      return
+
+    _SetRadioEnabled(True)
+    _SetApMode()
+    if self.p_auto_rate_fallback_enabled is not None:
+      _SetAutoRateFallBackEnabled(self.p_auto_rate_fallback_enabled)
+    if self.p_basic_data_transmit_rates is not None:
+      _SetBasicDataTransmitRates(self.p_basic_data_transmit_rates)
+    if self.p_beacon_type is not None:
+      _SetBeaconType(self.p_beacon_type)
+    if self.p_bssid is not None:
+      _SetBSSID(self.p_bssid)
+    if self.p_channel is not None:
+      _SetChannel(self.p_channel)
+    if self.p_operational_data_transmit_rates is not None:
+      _SetOperationalDataTransmitRates(
+          self.p_operational_data_transmit_rates)
+    if self.p_regulatory_domain is not None:
+      _SetRegulatoryDomain(self.p_regulatory_domain)
+    if self.p_ssid is not None:
+      _SetSSID(self.p_ssid)
+    if self.p_ssid_advertisement_enabled is not None:
+      _SetSSIDAdvertisementEnabled(self.p_ssid_advertisement_enabled)
+    if self.p_transmit_power is not None:
+      _SetTransmitPower(self.p_transmit_power)
+    _SetStatus(True)
 
   def GetTotalBytesReceived(self):
     counters = _GetWlCounters()  # TODO(dgentry) cache for lifetime of session

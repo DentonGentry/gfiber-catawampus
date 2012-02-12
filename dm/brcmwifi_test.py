@@ -36,7 +36,7 @@ class BrcmWifiTest(unittest.TestCase):
     scriptfile = tempfile.NamedTemporaryFile(mode='r+', delete=False)
     os.chmod(scriptfile.name, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
     outfile = tempfile.NamedTemporaryFile(delete=False)
-    text = '#!/bin/sh\necho $* > {0}'.format(outfile.name)
+    text = '#!/bin/sh\necho $* >> {0}'.format(outfile.name)
     scriptfile.write(text)
     scriptfile.close()  # Linux won't run it if text file is busy
     self.files_to_remove.append(scriptfile.name)
@@ -89,10 +89,15 @@ class BrcmWifiTest(unittest.TestCase):
   def testSetChannel(self):
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
-    brcmwifi._SetChannel(None, '11')
+    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    bw.Enable = 'True'
+    bw.RadioEnabled = 'True'
+    out.truncate()
+    bw.Channel = '11'
     output = out.read()
     out.close()
-    self.assertEqual(output, 'channel 11\n')
+    self.assertEqual(output,
+                     'bss down\nradio on\nap 1\ninfra 1\nchannel 11\nbss up\n')
 
   def testOutputContiguousRanges(self):
     self.assertEqual(brcmwifi._OutputContiguousRanges([1, 2, 3, 4, 5]), '1-5')
@@ -138,10 +143,14 @@ class BrcmWifiTest(unittest.TestCase):
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    bw.Enable = 'True'
+    bw.RadioEnabled = 'True'
+    out.truncate()
     bw.SSID = 'myssid'
     output = out.read()
     out.close()
-    self.assertEqual(output, 'ssid myssid\n')
+    self.assertEqual(output,
+                     'bss down\nradio on\nap 1\ninfra 1\nssid myssid\nbss up\n')
 
   def testBSSID(self):
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlbssid'
@@ -160,10 +169,15 @@ class BrcmWifiTest(unittest.TestCase):
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    bw.Enable = 'True'
+    bw.RadioEnabled = 'True'
+    out.truncate()
     bw.BSSID = '00:99:aa:bb:cc:dd'
     output = out.read()
     out.close()
-    self.assertEqual(output, 'bssid 00:99:aa:bb:cc:dd\n')
+    self.assertEqual(
+        output,
+        'bss down\nradio on\nap 1\ninfra 1\nbssid 00:99:aa:bb:cc:dd\nbss up\n')
 
   def testRegulatoryDomain(self):
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlcountry.us'
@@ -181,13 +195,17 @@ class BrcmWifiTest(unittest.TestCase):
     self.assertFalse(brcmwifi._ValidateRegulatoryDomain(''))
 
   def testSetRegulatoryDomain(self):
-    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
+    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    bw.Enable = 'True'
+    bw.RadioEnabled = 'True'
+    out.truncate()
     bw.RegulatoryDomain = 'US'
     output = out.read()
     out.close()
-    self.assertEqual(output, 'country US\n')
+    self.assertEqual(output,
+                     'bss down\nradio on\nap 1\ninfra 1\ncountry US\nbss up\n')
 
   def testBasicRateSet(self):
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlrateset'
@@ -220,10 +238,14 @@ class BrcmWifiTest(unittest.TestCase):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
+    bw.Enable = 'True'
+    bw.RadioEnabled = 'True'
+    out.truncate()
     bw.TransmitPower = '77'
     output = out.read()
     out.close()
-    self.assertEqual(output, 'pwr_percent 77\n')
+    self.assertEqual(
+        output, 'bss down\nradio on\nap 1\ninfra 1\npwr_percent 77\nbss up\n')
 
   def testTransmitPowerSupported(self):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
@@ -243,19 +265,23 @@ class BrcmWifiTest(unittest.TestCase):
     self.assertTrue(bw.AutoRateFallBackEnabled)
 
   def testSetAutoRateFallBackEnabled(self):
-    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
+    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    bw.Enable = 'True'
+    bw.RadioEnabled = 'True'
+    out.truncate()
+
     bw.AutoRateFallBackEnabled = 'True'
     output = out.read()
-    out.close()
-    self.assertEqual(output, 'interference 4\n')
-    (script, out) = self.MakeTestScript()
-    brcmwifi.WL_EXE = script.name
+    self.assertEqual(
+        output, 'bss down\nradio on\nap 1\ninfra 1\ninterference 4\nbss up\n')
+    out.truncate()
     bw.AutoRateFallBackEnabled = 'False'
     output = out.read()
     out.close()
-    self.assertEqual(output, 'interference 3\n')
+    self.assertEqual(
+        output, 'bss down\nradio on\nap 1\ninfra 1\ninterference 3\nbss up\n')
 
   def testValidateAutoRateFallBackEnabled(self):
     self.assertTrue(brcmwifi._ValidateAutoRateFallBackEnabled('True'))
@@ -282,16 +308,19 @@ class BrcmWifiTest(unittest.TestCase):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
+    bw.Enable = 'True'
+    bw.RadioEnabled = 'True'
+    out.truncate()
     bw.SSIDAdvertisementEnabled = 'True'
     output = out.read()
-    out.close()
-    self.assertEqual(output, 'closed 0\n')
-    (script, out) = self.MakeTestScript()
-    brcmwifi.WL_EXE = script.name
+    self.assertEqual(
+        output, 'bss down\nradio on\nap 1\ninfra 1\nclosed 0\nbss up\n')
+    out.truncate()
     bw.SSIDAdvertisementEnabled = 'False'
     output = out.read()
     out.close()
-    self.assertEqual(output, 'closed 1\n')
+    self.assertEqual(
+        output, 'bss down\nradio on\nap 1\ninfra 1\nclosed 1\nbss up\n')
 
   def testRadioEnabled(self):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
@@ -308,35 +337,28 @@ class BrcmWifiTest(unittest.TestCase):
     self.assertFalse(brcmwifi._ValidateRadioEnabled('foo'))
 
   def testSetRadioEnabled(self):
-    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
+    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    bw.Enable = 'True'
+    out.truncate()
     bw.RadioEnabled = 'True'
     output = out.read()
-    out.close()
-    self.assertEqual(output, 'radio on\n')
-    (script, out) = self.MakeTestScript()
-    brcmwifi.WL_EXE = script.name
+    self.assertEqual(output, 'bss down\nradio on\nap 1\ninfra 1\nbss up\n')
+    out.truncate()
     bw.RadioEnabled = 'False'
     output = out.read()
     out.close()
-    self.assertEqual(output, 'radio off\n')
+    self.assertEqual(output, 'bss down\nradio off\n')
 
-  def testEnable(self):
+  def testNoEnable(self):
+    (script, out) = self.MakeTestScript()
+    brcmwifi.WL_EXE = script.name
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
-    (script, out) = self.MakeTestScript()
-    brcmwifi.WL_EXE = script.name
-    bw.Enable = 'True'
-    output = out.read()
-    out.close()
-    self.assertEqual(output, 'status up\n')
-    self.assertTrue(bw.Enable)
-    (script, out) = self.MakeTestScript()
-    brcmwifi.WL_EXE = script.name
     bw.Enable = 'False'
     output = out.read()
     out.close()
-    self.assertEqual(output, 'status down\n')
+    self.assertEqual(output, '')
     self.assertFalse(bw.Enable)
 
   def testValidateEnable(self):
@@ -346,6 +368,51 @@ class BrcmWifiTest(unittest.TestCase):
     self.assertTrue(bw.ValidateEnable('0'))
     self.assertTrue(bw.ValidateEnable('1'))
     self.assertFalse(bw.ValidateEnable('foo'))
+
+  def testBeaconType(self):
+    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec0'
+    self.assertEqual(bw.BeaconType, 'None')
+    brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec1'
+    self.assertEqual(bw.BeaconType, 'Basic')
+    brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec2'
+    self.assertEqual(bw.BeaconType, 'WPA')
+    brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec3'
+    self.assertEqual(bw.BeaconType, 'BasicandWPA')
+    brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec4'
+    self.assertEqual(bw.BeaconType, '11i')
+    brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec5'
+    self.assertEqual(bw.BeaconType, 'Basicand11i')
+    brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec6'
+    self.assertEqual(bw.BeaconType, 'WPAand11i')
+    brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec7'
+    self.assertEqual(bw.BeaconType, 'BasicandWPAand11i')
+    brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec15'
+    self.assertEqual(bw.BeaconType, 'None')
+
+  def testValidateBeaconType(self):
+    self.assertTrue(brcmwifi._ValidateBeaconType('None'))
+    self.assertTrue(brcmwifi._ValidateBeaconType('Basic'))
+    self.assertTrue(brcmwifi._ValidateBeaconType('WPA'))
+    self.assertTrue(brcmwifi._ValidateBeaconType('BasicandWPA'))
+    self.assertTrue(brcmwifi._ValidateBeaconType('11i'))
+    self.assertTrue(brcmwifi._ValidateBeaconType('Basicand11i'))
+    self.assertTrue(brcmwifi._ValidateBeaconType('WPAand11i'))
+    self.assertTrue(brcmwifi._ValidateBeaconType('BasicandWPAand11i'))
+    self.assertFalse(brcmwifi._ValidateBeaconType('FooFi'))
+
+  def testSetBeaconType(self):
+    (script, out) = self.MakeTestScript()
+    brcmwifi.WL_EXE = script.name
+    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    bw.Enable = 'True'
+    bw.RadioEnabled = 'True'
+    out.truncate()
+    bw.BeaconType = 'None'
+    output = out.read()
+    self.assertEqual(output,
+                     'bss down\nradio on\nap 1\ninfra 1\nwsec 0\nbss up\n')
+    out.truncate()
 
   def testStats(self):
     netdev.PROC_NET_DEV = 'testdata/brcmwifi/proc_net_dev'
