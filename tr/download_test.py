@@ -21,6 +21,9 @@ import soap
 
 
 mock_http_clients = []
+mock_http_downloads = []
+mock_installers = []
+mock_downloads = []
 
 
 class MockHttpClient(object):
@@ -41,12 +44,11 @@ class MockIoloop(object):
     self.time = None
     self.callback = None
 
-  def add_timeout(self, time, callback):
-    self.time = time
+  def add_timeout(self, timeout, callback):
+    self.timeout = timeout
     self.callback = callback
 
 
-mock_http_downloads = []
 class MockHttpDownload(object):
   def __init__(self, url, username=None, password=None,
                download_complete_cb=None, ioloop=None):
@@ -62,7 +64,6 @@ class MockHttpDownload(object):
     self.did_fetch = True
 
 
-mock_installers = []
 class MockInstaller(object):
   def __init__(self, filename):
     self.filename = filename
@@ -129,11 +130,11 @@ class DownloadTest(unittest.TestCase):
   def QCheckBoring(self, dl, args):
     """Check get_queue_state() fields which don't change, and return qstate."""
     q = dl.get_queue_state()
-    self.assertEqual(q.CommandKey, args["command_key"])
+    self.assertEqual(q.CommandKey, args['command_key'])
     self.assertTrue(q.IsDownload)
-    self.assertEqual(q.FileType, args["file_type"])
-    self.assertEqual(q.FileSize, args["file_size"])
-    self.assertEqual(q.TargetFileName, args["target_filename"])
+    self.assertEqual(q.FileType, args['file_type'])
+    self.assertEqual(q.FileSize, args['file_size'])
+    self.assertEqual(q.TargetFileName, args['target_filename'])
     return q.State
 
   def testSuccess(self):
@@ -141,15 +142,16 @@ class DownloadTest(unittest.TestCase):
     cmpl = MockTransferComplete()
     time.time = self.mockTime
 
-    kwargs = dict(command_key="testCommandKey",
-                  file_type="testFileType",
-                  url="http://example.com/foo",
-                  username="testUsername",
-                  password="testPassword",
+    kwargs = dict(command_key='testCommandKey',
+                  file_type='testFileType',
+                  url='http://example.com/foo',
+                  username='testUsername',
+                  password='testPassword',
                   file_size=1000,
-                  target_filename="testTargetFilename",
+                  target_filename='testTargetFilename',
                   delay_seconds=99)
-    stateobj = persistobj.PersistentObject(dir=self.tmpdir, rootname="testObj",
+    stateobj = persistobj.PersistentObject(objdir=self.tmpdir,
+                                           rootname='testObj',
                                            filename=None, **kwargs)
 
     dl = download.Download(stateobj=stateobj,
@@ -159,7 +161,7 @@ class DownloadTest(unittest.TestCase):
 
     # Step 1: Wait delay_seconds
     dl.do_start()
-    self.assertEqual(ioloop.time, self.mockTime() + kwargs['delay_seconds'])
+    self.assertEqual(ioloop.timeout, self.mockTime() + kwargs['delay_seconds'])
     self.assertEqual(self.QCheckBoring(dl, kwargs), 1)  # 1: Not Yet Started
 
     # Step 2: HTTP Download
@@ -210,10 +212,11 @@ class DownloadTest(unittest.TestCase):
     cmpl = MockTransferComplete()
     time.time = self.mockTime
 
-    kwargs = dict(command_key="testCommandKey",
-                  url="http://example.com/foo",
+    kwargs = dict(command_key='testCommandKey',
+                  url='http://example.com/foo',
                   delay_seconds=1)
-    stateobj = persistobj.PersistentObject(dir=self.tmpdir, rootname="testObj",
+    stateobj = persistobj.PersistentObject(objdir=self.tmpdir,
+                                           rootname='testObj',
                                            filename=None, **kwargs)
 
     dl = download.Download(stateobj=stateobj,
@@ -222,7 +225,7 @@ class DownloadTest(unittest.TestCase):
 
     # Step 1: Wait delay_seconds
     dl.do_start()
-    self.assertEqual(ioloop.time, self.mockTime() + kwargs['delay_seconds'])
+    self.assertEqual(ioloop.timeout, self.mockTime() + kwargs['delay_seconds'])
 
     # Step 2: HTTP Download
     dl.timer_callback()
@@ -246,10 +249,11 @@ class DownloadTest(unittest.TestCase):
     cmpl = MockTransferComplete()
     time.time = self.mockTime
 
-    kwargs = dict(command_key="testCommandKey",
-                  url="http://example.com/foo",
+    kwargs = dict(command_key='testCommandKey',
+                  url='http://example.com/foo',
                   delay_seconds=1)
-    stateobj = persistobj.PersistentObject(dir=self.tmpdir, rootname="testObj",
+    stateobj = persistobj.PersistentObject(objdir=self.tmpdir,
+                                           rootname='testObj',
                                            filename=None, **kwargs)
 
     dl = download.Download(stateobj=stateobj,
@@ -258,7 +262,7 @@ class DownloadTest(unittest.TestCase):
 
     # Step 1: Wait delay_seconds
     dl.do_start()
-    self.assertEqual(ioloop.time, self.mockTime() + kwargs['delay_seconds'])
+    self.assertEqual(ioloop.timeout, self.mockTime() + kwargs['delay_seconds'])
 
     # Step 2: HTTP Download
     dl.timer_callback()
@@ -290,10 +294,11 @@ class DownloadTest(unittest.TestCase):
     cmpl = MockTransferComplete()
     time.time = self.mockTime
 
-    kwargs = dict(command_key="testCommandKey",
-                  url="http://example.com/foo",
+    kwargs = dict(command_key='testCommandKey',
+                  url='http://example.com/foo',
                   delay_seconds=1)
-    stateobj = persistobj.PersistentObject(dir=self.tmpdir, rootname="testObj",
+    stateobj = persistobj.PersistentObject(objdir=self.tmpdir,
+                                           rootname='testObj',
                                            filename=None, **kwargs)
 
     dl = download.Download(stateobj=stateobj,
@@ -302,7 +307,7 @@ class DownloadTest(unittest.TestCase):
 
     # Step 1: Wait delay_seconds
     dl.do_start()
-    self.assertEqual(ioloop.time, self.mockTime() + kwargs['delay_seconds'])
+    self.assertEqual(ioloop.timeout, self.mockTime() + kwargs['delay_seconds'])
 
     # Step 2: HTTP Download
     dl.timer_callback()
@@ -333,9 +338,10 @@ class DownloadTest(unittest.TestCase):
     ioloop = MockIoloop()
     cmpl = MockTransferComplete()
 
-    kwargs = dict(command_key="testCommandKey",
-                  url="http://example.com/foo")
-    stateobj = persistobj.PersistentObject(dir=self.tmpdir, rootname="testObj",
+    kwargs = dict(command_key='testCommandKey',
+                  url='http://example.com/foo')
+    stateobj = persistobj.PersistentObject(objdir=self.tmpdir,
+                                           rootname='testObj',
                                            filename=None, **kwargs)
     dl = download.Download(stateobj=stateobj,
                            transfer_complete_cb=cmpl.SendTransferComplete,
@@ -350,20 +356,21 @@ class DownloadTest(unittest.TestCase):
     self.assertFalse(dl.cleanup())
 
   def testCommandKey(self):
-    kwargs = dict(command_key="testCommandKey")
-    stateobj = persistobj.PersistentObject(dir=self.tmpdir, rootname="testObj",
+    kwargs = dict(command_key='testCommandKey')
+    stateobj = persistobj.PersistentObject(objdir=self.tmpdir,
+                                           rootname='testObj',
                                            filename=None, **kwargs)
     dl = download.Download(stateobj=stateobj, transfer_complete_cb=None)
     self.assertEqual(dl.CommandKey(), kwargs['command_key'])
 
     kwargs = dict()
-    stateobj = persistobj.PersistentObject(dir=self.tmpdir, rootname="testObj",
+    stateobj = persistobj.PersistentObject(objdir=self.tmpdir,
+                                           rootname='testObj',
                                            filename=None, **kwargs)
     dl = download.Download(stateobj=stateobj, transfer_complete_cb=None)
     self.assertEqual(dl.CommandKey(), None)
 
 
-mock_downloads = []
 class MockDownloadObj(object):
   def __init__(self, stateobj, transfer_complete_cb, done_cb=None, ioloop=None):
     self.stateobj = stateobj
@@ -389,7 +396,7 @@ class MockDownloadObj(object):
     self.reboot_callback_called = True
 
   def get_queue_state(self):
-    return "This_is_not_a_real_queue_state."
+    return 'This_is_not_a_real_queue_state.'
 
 
 class DownloadManagerTest(unittest.TestCase):
@@ -412,36 +419,36 @@ class DownloadManagerTest(unittest.TestCase):
     return (dm, cmpl)
 
   def testSimpleDownload(self):
-    (dm, cmpl) = self.allocTestDM()
-    args = {"command_key": "TestCommandKey",
-            "file_type": "TestFileType",
-            "url": "http://example.com/",
-            "username": "TestUser",
-            "password": "TestPassword",
-            "file_size": 99,
-            "target_filename": "TestFilename",
-            "delay_seconds": 30}
+    (dm, _) = self.allocTestDM()
+    args = {'command_key': 'TestCommandKey',
+            'file_type': 'TestFileType',
+            'url': 'http://example.com/',
+            'username': 'TestUser',
+            'password': 'TestPassword',
+            'file_size': 99,
+            'target_filename': 'TestFilename',
+            'delay_seconds': 30}
     (code, (start, end)) = dm.NewDownload(**args)
     self.assertEqual(code, 1)
     self.assertEqual(start, 0.0)
     self.assertEqual(end, 0.0)
     self.assertEqual(len(mock_downloads), 1)
     dl = mock_downloads[0]
-    self.assertEqual(dl.stateobj.command_key, args["command_key"])
-    self.assertEqual(dl.stateobj.file_type, args["file_type"])
-    self.assertEqual(dl.stateobj.url, args["url"])
-    self.assertEqual(dl.stateobj.username, args["username"])
-    self.assertEqual(dl.stateobj.password, args["password"])
-    self.assertEqual(dl.stateobj.file_size, args["file_size"])
-    self.assertEqual(dl.stateobj.target_filename, args["target_filename"])
-    self.assertEqual(dl.stateobj.delay_seconds, args["delay_seconds"])
+    self.assertEqual(dl.stateobj.command_key, args['command_key'])
+    self.assertEqual(dl.stateobj.file_type, args['file_type'])
+    self.assertEqual(dl.stateobj.url, args['url'])
+    self.assertEqual(dl.stateobj.username, args['username'])
+    self.assertEqual(dl.stateobj.password, args['password'])
+    self.assertEqual(dl.stateobj.file_size, args['file_size'])
+    self.assertEqual(dl.stateobj.target_filename, args['target_filename'])
+    self.assertEqual(dl.stateobj.delay_seconds, args['delay_seconds'])
 
   def testMaxDownloads(self):
-    (dm, cmpl) = self.allocTestDM()
+    (dm, _) = self.allocTestDM()
     maxdl = download.DownloadManager.MAXDOWNLOADS
     for i in range(maxdl):
-      args = {"command_key": "TestCommandKey" + str(i),
-              "url": "http://example.com/"}
+      args = {'command_key': 'TestCommandKey' + str(i),
+              'url': 'http://example.com/'}
       (code, (start, end)) = dm.NewDownload(**args)
       self.assertEqual(code, 1)
       self.assertEqual(start, 0.0)
@@ -454,9 +461,9 @@ class DownloadManagerTest(unittest.TestCase):
     self.assertTrue(faultstring)
 
   def testBadUrlScheme(self):
-    (dm, cmpl) = self.allocTestDM()
-    args = {"command_key": "TestCommandKey",
-            "url": "invalid://bad.url/"}
+    (dm, _) = self.allocTestDM()
+    args = {'command_key': 'TestCommandKey',
+            'url': 'invalid://bad.url/'}
     (code, ((faultcode, faulttype), faultstring)) = dm.NewDownload(**args)
     self.assertTrue(code < 0)
     self.assertEqual(faultcode, 9013)
@@ -464,20 +471,20 @@ class DownloadManagerTest(unittest.TestCase):
     self.assertTrue(faultstring)
 
   def testRestoreMultiple(self):
-    (dm, cmpl) = self.allocTestDM()
+    (dm, _) = self.allocTestDM()
     numdl = 4
     for i in range(numdl):
-      args = {"command_key": "TestCommandKey" + str(i),
-              "file_type": "TestFileType",
-              "url": "http://example.com/",
-              "username": "TestUser",
-              "password": "TestPassword",
-              "file_size": 99,
-              "target_filename": "TestFilename",
-              "delay_seconds": 30}
-      pobj = persistobj.PersistentObject(dir=download.STATEDIR,
-                                         rootname=download.ROOTNAME,
-                                         filename=None, **args)
+      args = {'command_key': 'TestCommandKey' + str(i),
+              'file_type': 'TestFileType',
+              'url': 'http://example.com/',
+              'username': 'TestUser',
+              'password': 'TestPassword',
+              'file_size': 99,
+              'target_filename': 'TestFilename',
+              'delay_seconds': 30}
+      persistobj.PersistentObject(objdir=download.STATEDIR,
+                                  rootname=download.ROOTNAME,
+                                  filename=None, **args)
     dm.RestoreDownloads()
     self.assertEqual(len(mock_downloads), numdl)
     for i in range(numdl):
@@ -487,17 +494,17 @@ class DownloadManagerTest(unittest.TestCase):
       self.assertTrue(dl.reboot_callback_called)
 
   def testGetAllQueuedTransfers(self):
-    (dm, cmpl) = self.allocTestDM()
+    (dm, _) = self.allocTestDM()
     numdl = 2
     for i in range(numdl):
-      args = {"command_key": "TestCommandKey" + str(i),
-              "file_type": "TestFileType",
-              "url": "http://example.com/",
-              "username": "TestUser",
-              "password": "TestPassword",
-              "file_size": 99,
-              "target_filename": "TestFilename",
-              "delay_seconds": 30}
+      args = {'command_key': 'TestCommandKey' + str(i),
+              'file_type': 'TestFileType',
+              'url': 'http://example.com/',
+              'username': 'TestUser',
+              'password': 'TestPassword',
+              'file_size': 99,
+              'target_filename': 'TestFilename',
+              'delay_seconds': 30}
       dm.NewDownload(**args)
     transfers = dm.GetAllQueuedTransfers()
     self.assertEqual(len(transfers), numdl)

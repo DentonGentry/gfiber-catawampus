@@ -10,28 +10,30 @@ import json
 import os
 import tempfile
 
+
 class PersistentObject(object):
   """Object holding simple data fields which can persist itself to json."""
 
-  def __init__(self, dir, rootname="object", filename=None, **kwargs):
+  def __init__(self, objdir, rootname='object', filename=None, **kwargs):
     """Create either a fresh new object, or restored state from filesystem.
 
     Args:
+      objdir: the directory to write the json file to
       rootname: the tag for the root of the json file for this object.
       filename: name of an json file on disk, to restore object state from.
         If filename is None then this is a new object, and will create
         a file for itself in dir.
-      kwargs: Parameters to be passed to self.Update
+      kwargs parameters will be passed to self.Update
     """
-    self.dir = dir
+    self.objdir = objdir
     self.rootname = rootname
     self._fields = {}
     if filename:
       self._ReadFromFS(filename)
     else:
-      prefix = rootname + "_"
-      f = tempfile.NamedTemporaryFile(mode="a+", prefix=prefix,
-                                      dir=dir, delete=False)
+      prefix = rootname + '_'
+      f = tempfile.NamedTemporaryFile(mode='a+', prefix=prefix,
+                                      dir=objdir, delete=False)
       filename = f.name
       f.close()
     self.filename = filename
@@ -93,9 +95,9 @@ class PersistentObject(object):
     self._fields.update(d)
 
   def _WriteToFS(self):
-    """Write PersistentState object out to an json file."""
+    """Write PersistentState object out to a json file."""
     f = tempfile.NamedTemporaryFile(
-        mode="a+", prefix="tmpwrite", dir=self.dir, delete=False)
+        mode='a+', prefix='tmpwrite', dir=self.objdir, delete=False)
     f.write(self._ToJson())
     f.close()
     os.rename(f.name, self.filename)
@@ -105,11 +107,11 @@ class PersistentObject(object):
     os.remove(self.filename)
 
 
-def GetPersistentObjects(dir, rootname=''):
-  globstr = dir + "/" + rootname + "*"
+def GetPersistentObjects(objdir, rootname=''):
+  globstr = objdir + '/' + rootname + '*'
   objs = []
   for f in glob.glob(globstr):
-    objs.append(PersistentObject(dir, rootname=rootname, filename=f))
+    objs.append(PersistentObject(objdir, rootname=rootname, filename=f))
   return objs
 
 

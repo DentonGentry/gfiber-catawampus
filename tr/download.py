@@ -10,7 +10,6 @@ import errno
 import os
 import time
 import urlparse
-
 import google3
 import tornado
 import tornado.httpclient
@@ -22,23 +21,23 @@ import soap
 
 
 # Persistent object storage location and filename
-STATEDIR = "/tmp"
-ROOTNAME = "tr69_dnld"
+STATEDIR = '/tmp'
+ROOTNAME = 'tr69_dnld'
 
 # tr-69 fault codes
 INTERNAL_ERROR = 9002
 
 
-def SetStateDir(dir):
+def SetStateDir(statedir):
   global STATEDIR
   try:
-    os.makedirs(dir, 0755)
-  except OSError, e:
+    os.makedirs(statedir, 0755)
+  except OSError as e:
     if e.errno == errno.EEXIST:
       pass
     else:
       raise
-  STATEDIR = dir
+  STATEDIR = statedir
 
 
 class Installer(object):
@@ -48,6 +47,7 @@ class Installer(object):
   expected to implement their own Install object, and set
   tr.download.INSTALLER = their object.
   """
+
   def __init__(self, filename):
     self.filename = filename
 
@@ -66,8 +66,8 @@ INSTALLER = Installer
 
 # Unit tests can substitute mock objects here
 DOWNLOAD_CLIENT = {
-  'http' : http_download.HttpDownload,
-  'https' : http_download.HttpDownload
+    'http': http_download.HttpDownload,
+    'https': http_download.HttpDownload
 }
 
 
@@ -98,16 +98,17 @@ digraph DLstates {
 }
 """
 
+
 class Download(object):
   """A state machine to handle a single tr-69 Download RPC."""
 
   # States in the state machine. See docs/download.dot for details
-  START = "START"
-  WAITING = "WAITING"
-  DOWNLOADING = "DOWNLOADING"
-  INSTALLING = "INSTALLING"
-  REBOOTING = "REBOOTING"
-  EXITING = "EXITING"
+  START = 'START'
+  WAITING = 'WAITING'
+  DOWNLOADING = 'DOWNLOADING'
+  INSTALLING = 'INSTALLING'
+  REBOOTING = 'REBOOTING'
+  EXITING = 'EXITING'
 
   # State machine events
   EV_START = 1
@@ -121,10 +122,10 @@ class Download(object):
     """Download object.
 
     Args:
-      stateobj - a PersistentObject to store state across reboots.
+      stateobj: a PersistentObject to store state across reboots.
         This class requires that command_key and url attributes be present.
-      transfer_complete_cb - function to send a TransferComplete message.
-      ioloop - Tornado ioloop. Unit tests can pass in a mock.
+      transfer_complete_cb: function to send a TransferComplete message.
+      ioloop: Tornado ioloop. Unit tests can pass in a mock.
     """
     self.stateobj = self._restore_dlstate(stateobj)
     self.transfer_complete_cb = transfer_complete_cb
@@ -152,7 +153,13 @@ class Download(object):
     we lose the file and have to download it again.
 
     The state machine can only resume into the START and REBOOTING states.
+
+    Args:
+      stateobj: the PersistentObject for this transfer
+    Returns:
+      the stateobj
     """
+
     if not hasattr(stateobj, 'dlstate'):
       stateobj.Update(dlstate=self.START)
     dlstate = stateobj.dlstate
@@ -306,7 +313,8 @@ class Download(object):
 
   def get_queue_state(self):
     """Data needed for GetQueuedTransfers/GetAllQueuedTransfers RPC."""
-    q = collections.namedtuple('queued_transfer_struct',
+    q = collections.namedtuple(
+        'queued_transfer_struct',
         ('CommandKey State IsDownload FileType FileSize TargetFileName'))
     q.CommandKey = self.stateobj.command_key
 
@@ -355,9 +363,9 @@ class DownloadManager(object):
     """Initiate a new download, handling a tr-69 Download RPC.
 
     Args:
-      command_key, file_type, url, username, password, file_size,
-      target_filename, delay_seconds - as defined in tr-69 Amendment 3
-      (page 82 of $SPEC)
+      command_key, file_type, url, username, password, file_size:
+      target_filename, delay_seconds: as defined in tr-69 Amendment 3
+        (page 82 of $SPEC)
 
     Returns:
       (code, (args)) where:
@@ -371,12 +379,12 @@ class DownloadManager(object):
     # TODO(dgentry) check free space?
 
     if len(self._downloads) >= self.MAXDOWNLOADS:
-      faultstring = "Max downloads ({0}) reached.".format(self.MAXDOWNLOADS)
+      faultstring = 'Max downloads ({0}) reached.'.format(self.MAXDOWNLOADS)
       return (-1, (soap.CpeFault.RESOURCES_EXCEEDED, faultstring))
 
     o = urlparse.urlparse(url)
     if o.scheme not in DOWNLOAD_CLIENT:
-      faultstring = "Unsupported URL scheme {0}".format(o.scheme)
+      faultstring = 'Unsupported URL scheme {0}'.format(o.scheme)
       return (-1, (soap.CpeFault.FILE_TRANSFER_PROTOCOL, faultstring))
 
     kwargs = dict(command_key=command_key,
@@ -387,8 +395,8 @@ class DownloadManager(object):
                   file_size=file_size,
                   target_filename=target_filename,
                   delay_seconds=delay_seconds,
-                  event_code = 'M Download')
-    pobj = persistobj.PersistentObject(dir=STATEDIR, rootname=ROOTNAME,
+                  event_code='M Download')
+    pobj = persistobj.PersistentObject(objdir=STATEDIR, rootname=ROOTNAME,
                                        filename=None, **kwargs)
     dl = self.DOWNLOADOBJ(stateobj=pobj,
                           transfer_complete_cb=self.TransferCompleteCallback)
@@ -406,10 +414,10 @@ class DownloadManager(object):
                                 starttime, endtime, event_code)
 
   def RestoreDownloads(self):
-    pobjs = persistobj.GetPersistentObjects(dir=STATEDIR, rootname=ROOTNAME)
+    pobjs = persistobj.GetPersistentObjects(objdir=STATEDIR, rootname=ROOTNAME)
     for pobj in pobjs:
       if not hasattr(pobj, 'command_key'):
-        # TODO(Log error)
+        # TODO(dgentry) Log error
         continue
       dl = self.DOWNLOADOBJ(stateobj=pobj,
                             transfer_complete_cb=self.TransferCompleteCallback)
@@ -432,16 +440,17 @@ class DownloadManager(object):
     """Cancel an in-progress transfer.
 
     Args:
-      command_key - the command_key to cancel. There can be multiple transfers
+      command_key: the command_key to cancel. There can be multiple transfers
         with the same command_key. $SPEC says to attempt to cancel all of them,
         return failure if any cannot be cancelled.
 
-    Returns: (code, arg) where:
-      code = 0 means success, non-zero means failure
-      if failed, arg = ((faultcode, faulttype), faultstring) for a
-        soap:Fault message.
+    Returns:
+      (code, arg) where:
+        code = 0 means success, non-zero means failure
+        if failed, arg = ((faultcode, faulttype), faultstring) for a
+          soap:Fault message.
     """
-    rc = (0, )
+    rc = (0,)
     for dl in self._downloads:
       if dl.CommandKey() == command_key:
         faultstring = dl.cleanup()
@@ -452,14 +461,14 @@ class DownloadManager(object):
     for dl in self._pending_complete:
       if dl.CommandKey() == command_key:
         rc = (-1, (soap.CpeFault.DOWNLOAD_CANCEL_NOTPERMITTED,
-                   "Installed, awaiting TransferCompleteResponse"))
+                   'Installed, awaiting TransferCompleteResponse'))
     return rc
 
 
 def main():
   # Generate diagram for Download state machine
   import subprocess  #pylint: disable-msg=C6204
-  cmd = ["dot", "-Tpdf", "-odownloadStateMachine.pdf"]
+  cmd = ['dot', '-Tpdf', '-odownloadStateMachine.pdf']
   p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
   print p.communicate(input=graphviz)[0]
 

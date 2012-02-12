@@ -28,22 +28,22 @@ class PersistentObjectTest(unittest.TestCase):
     shutil.rmtree(self.tmpdir)
 
   def testPersistentObjectAttrs(self):
-    kwargs = { "foo1" : "bar1", "foo2" : "bar2", "foo3" : 3 }
-    tobj = persistobj.PersistentObject(self.tmpdir, "TestObj", **kwargs)
-    self.assertEqual(tobj.foo1, "bar1")
-    self.assertEqual(tobj.foo2, "bar2")
+    kwargs = {'foo1': 'bar1', 'foo2': 'bar2', 'foo3': 3}
+    tobj = persistobj.PersistentObject(self.tmpdir, 'TestObj', **kwargs)
+    self.assertEqual(tobj.foo1, 'bar1')
+    self.assertEqual(tobj.foo2, 'bar2')
     self.assertEqual(tobj.foo3, 3)
 
   def testReversibleEncoding(self):
-    kwargs = dict(foo1="bar1", foo3=3)
-    tobj = persistobj.PersistentObject(self.tmpdir, "TestObj", **kwargs)
+    kwargs = dict(foo1='bar1', foo3=3)
+    tobj = persistobj.PersistentObject(self.tmpdir, 'TestObj', **kwargs)
     encoded = tobj._ToJson()
     decoded = tobj._FromJson(encoded)
     self.assertEqual(sorted(kwargs.items()), sorted(decoded.items()))
 
   def testWriteToFile(self):
-    kwargs = dict(foo1="bar1", foo3=3)
-    tobj = persistobj.PersistentObject(self.tmpdir, "TestObj", **kwargs)
+    kwargs = dict(foo1='bar1', foo3=3)
+    tobj = persistobj.PersistentObject(self.tmpdir, 'TestObj', **kwargs)
     encoded = open(tobj.filename).read()
     decoded = tobj._FromJson(encoded)
     self.assertEqual(sorted(kwargs.items()), sorted(decoded.items()))
@@ -53,47 +53,47 @@ class PersistentObjectTest(unittest.TestCase):
     with tempfile.NamedTemporaryFile(dir=self.tmpdir, delete=False) as f:
       f.write(contents)
       f.close()
-      tobj = persistobj.PersistentObject(self.tmpdir, "TestObj",
+      tobj = persistobj.PersistentObject(self.tmpdir, 'TestObj',
                                          filename=f.name)
-    self.assertEqual(tobj.foo, "bar")
+    self.assertEqual(tobj.foo, 'bar')
     self.assertEqual(tobj.baz, 4)
 
   def testUpdate(self):
-    kwargs = dict(foo1="bar1", foo3=3)
-    tobj = persistobj.PersistentObject(self.tmpdir, "TestObj", **kwargs)
-    tobj2 = persistobj.PersistentObject(self.tmpdir, "TestObj",
+    kwargs = dict(foo1='bar1', foo3=3)
+    tobj = persistobj.PersistentObject(self.tmpdir, 'TestObj', **kwargs)
+    tobj2 = persistobj.PersistentObject(self.tmpdir, 'TestObj',
                                         filename=tobj.filename)
     self.assertEqual(list(sorted(tobj.items())), list(sorted(tobj2.items())))
-    kwargs["foo1"] = "bar2"
+    kwargs['foo1'] = 'bar2'
     tobj.Update(**kwargs)
-    tobj3 = persistobj.PersistentObject(self.tmpdir, "TestObj",
+    tobj3 = persistobj.PersistentObject(self.tmpdir, 'TestObj',
                                         filename=tobj.filename)
     self.assertEqual(list(sorted(tobj.items())), list(sorted(tobj3.items())))
 
   def testUpdateInline(self):
-    kwargs = dict(foo1="bar1", foo3=3)
-    tobj = persistobj.PersistentObject(self.tmpdir, "TestObj", **kwargs)
-    tobj.Update(foo1="bar2")
-    self.assertEqual(tobj.foo1, "bar2")
+    kwargs = dict(foo1='bar1', foo3=3)
+    tobj = persistobj.PersistentObject(self.tmpdir, 'TestObj', **kwargs)
+    tobj.Update(foo1='bar2')
+    self.assertEqual(tobj.foo1, 'bar2')
 
   def testUpdateInlineMultiple(self):
-    kwargs = dict(foo1="bar1", foo3=3)
-    tobj = persistobj.PersistentObject(self.tmpdir, "TestObj", **kwargs)
-    tobj.Update(foo1="bar2", foo3=4)
-    self.assertEqual(tobj.foo1, "bar2")
+    kwargs = dict(foo1='bar1', foo3=3)
+    tobj = persistobj.PersistentObject(self.tmpdir, 'TestObj', **kwargs)
+    tobj.Update(foo1='bar2', foo3=4)
+    self.assertEqual(tobj.foo1, 'bar2')
     self.assertEqual(tobj.foo3, 4)
 
   def testUpdateInlineDict(self):
-    kwargs = dict(foo1="bar1", foo3=3)
-    tobj = persistobj.PersistentObject(self.tmpdir, "TestObj", **kwargs)
-    tobj.Update(**dict(foo1="bar2"))
-    self.assertEqual(tobj.foo1, "bar2")
+    kwargs = dict(foo1='bar1', foo3=3)
+    tobj = persistobj.PersistentObject(self.tmpdir, 'TestObj', **kwargs)
+    tobj.Update(**dict(foo1='bar2'))
+    self.assertEqual(tobj.foo1, 'bar2')
 
   def testUpdateFails(self):
-    kwargs = dict(foo1="bar1", foo3=3)
-    tobj = persistobj.PersistentObject(self.tmpdir, "TestObj", **kwargs)
-    tobj.dir = "/this_path_should_not_exist_hijhgvWRQ4MVVSDHuheifuh"
-    kwargs["foo1"] = "bar2"
+    kwargs = dict(foo1='bar1', foo3=3)
+    tobj = persistobj.PersistentObject(self.tmpdir, 'TestObj', **kwargs)
+    tobj.objdir = '/this_path_should_not_exist_hijhgvWRQ4MVVSDHuheifuh'
+    kwargs['foo1'] = 'bar2'
     self.assertRaises(OSError, tobj.Update, **kwargs)
 
   def testGetPersistentObjects(self):
@@ -102,17 +102,17 @@ class PersistentObjectTest(unittest.TestCase):
                 '{"foo": "bar3", "baz": 6}']
     for obj in expected:
       with tempfile.NamedTemporaryFile(
-          dir=self.tmpdir, prefix="tr69_dnld", delete=False) as f:
+          dir=self.tmpdir, prefix='tr69_dnld', delete=False) as f:
         f.write(obj)
     actual = persistobj.GetPersistentObjects(self.tmpdir)
     self.assertEqual(len(actual), len(expected))
-    found = [ False, False, False ]
+    found = [False, False, False]
     for entry in actual:
-      if entry.foo == "bar1" and entry.baz == 4:
+      if entry.foo == 'bar1' and entry.baz == 4:
         found[0] = True
-      if entry.foo == "bar2" and entry.baz == 5:
+      if entry.foo == 'bar2' and entry.baz == 5:
         found[1] = True
-      if entry.foo == "bar3" and entry.baz == 6:
+      if entry.foo == 'bar3' and entry.baz == 6:
         found[2] = True
     self.assertTrue(found[0])
     self.assertTrue(found[1])
@@ -120,12 +120,12 @@ class PersistentObjectTest(unittest.TestCase):
 
   def testDefaultValue(self):
     kwargs = dict(foo=3)
-    tobj = persistobj.PersistentObject(self.tmpdir, "TestObj", **kwargs)
+    tobj = persistobj.PersistentObject(self.tmpdir, 'TestObj', **kwargs)
     self.assertEqual(getattr(tobj, 'foo2', 2), 2)
 
   def testDelete(self):
-    kwargs = dict(foo1="bar1", foo3=3)
-    tobj = persistobj.PersistentObject(self.tmpdir, "TestObj", **kwargs)
+    kwargs = dict(foo1='bar1', foo3=3)
+    tobj = persistobj.PersistentObject(self.tmpdir, 'TestObj', **kwargs)
     tobj.Delete()
     self.assertRaises(OSError, os.stat, tobj.filename)
 
