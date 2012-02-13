@@ -10,7 +10,6 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 
-import fcntl
 import os
 import re
 import subprocess
@@ -96,22 +95,36 @@ class LogicalVolumeLinux26(BASESTORAGE.LogicalVolume):
     return len(self.FolderList)
 
 
-class PhysicalMediumFixedDiskLinux26(BASESTORAGE.PhysicalMedium):
+class PhysicalMediumDiskLinux26(BASESTORAGE.PhysicalMedium):
   """tr-140 PhysicalMedium implementation for non-removable disks."""
+
+  CONNECTION_TYPES = frozenset(
+      ['USB 1.1', 'USB 2.0', 'IEEE1394', 'IEEE1394b', 'IDE', 'EIDE',
+       'ATA/33', 'ATA/66', 'ATA/100', 'ATA/133', 'SATA/150', 'SATA/300',
+       'SCSI-1', 'Fast SCSI', 'Fast-Wide SCSI', 'Ultra SCSI', 'Ultra Wide SCSI',
+       'Ultra2 SCSI', 'Ultra2 Wide SCSI', 'Ultra3 SCSI', 'Ultra-320 SCSI',
+       'Ultra-640 SCSI', 'SSA', 'SSA-40', 'Fibre Channel'])
 
   def __init__(self, dev, conn_type=None):
     BASESTORAGE.PhysicalMedium.__init__(self)
     self.dev = dev
     self.name = dev
-    self.conn_type = conn_type
 
-    # transport is really, really hard to infer programatically.
-    # If platform code doesn't provide it, we don't try to guess.
     if conn_type is None:
+      # transport is really, really hard to infer programatically.
+      # If platform code doesn't provide it, don't try to guess.
       self.Unexport('ConnectionType')
+    else:
+      # Provide a hint to the platform code: use a valid enumerated string,
+      # or define a vendor extension. Don't just make something up.
+      assert conn_type[0:1] == 'X_' or conn_type in self.CONNECTION_TYPES
+    self.conn_type = conn_type
 
     # TODO(dgentry) read SMART attribute for PowerOnHours
     self.Unexport('Uptime')
+
+    # TODO(dgentry) What does 'Standby' or 'Offline' mean?
+    self.Unexport('Status')
 
   def _ReadOneLine(self, filename, default):
     """Read one line from a file. Return default if anything fails."""
@@ -182,7 +195,7 @@ class PhysicalMediumFixedDiskLinux26(BASESTORAGE.PhysicalMedium):
     filename = SYS_BLOCK + '/' + self.dev + '/size'
     size = self._ReadOneLine(filename=filename, default='0')
     try:
-      # TODO(dgentry) Do 4k sector drives still populate size in 512 byte blocks?
+      # TODO(dgentry) Do 4k sector drives populate size in 512 byte blocks?
       return int(size) * 512 / 1048576
     except ValueError:
       return 0
@@ -208,7 +221,9 @@ class PhysicalMediumFixedDiskLinux26(BASESTORAGE.PhysicalMedium):
 
   @property
   def HotSwappable(self):
-    return False
+    filename = SYS_BLOCK + '/' + self.dev + '/removable'
+    removable = self._ReadOneLine(filename=filename, default='0').strip()
+    return False if removable == '0' else True
 
 
 class CapabilitiesNoneLinux26(BASESTORAGE.Capabilities):

@@ -61,7 +61,8 @@ class StorageTest(unittest.TestCase):
     service.ValidateExports()
     stor = storage.LogicalVolumeLinux26('/fakepath', 'fstype')
     stor.ValidateExports()
-    pm = storage.PhysicalMediumFixedDiskLinux26('sda')
+    pm = storage.PhysicalMediumDiskLinux26('sda')
+    pm.ValidateExports()
 
   def testCapacity(self):
     stor = storage.LogicalVolumeLinux26('/fakepath', 'fstype')
@@ -112,7 +113,7 @@ class StorageTest(unittest.TestCase):
                      'X_GOOGLE-COM_squashfs,X_GOOGLE-COM_udf')
 
   def testPhysicalMediumName(self):
-    pm = storage.PhysicalMediumFixedDiskLinux26('sda')
+    pm = storage.PhysicalMediumDiskLinux26('sda')
     self.assertEqual(pm.Name, 'sda')
     pm.Name = 'sdb'
     self.assertEqual(pm.Name, 'sdb')
@@ -120,7 +121,7 @@ class StorageTest(unittest.TestCase):
   def testPhysicalMediumFields(self):
     storage.SMARTCTL = 'testdata/storage/smartctl'
     storage.SYS_BLOCK = 'testdata/storage/sys/block'
-    pm = storage.PhysicalMediumFixedDiskLinux26('sda')
+    pm = storage.PhysicalMediumDiskLinux26('sda')
     self.assertEqual(pm.Vendor, 'vendor_name')
     self.assertEqual(pm.Model, 'model_name')
     self.assertEqual(pm.SerialNumber, 'serial_number')
@@ -132,31 +133,45 @@ class StorageTest(unittest.TestCase):
   def testNotSmartCapable(self):
     storage.SMARTCTL = 'testdata/storage/smartctl_disabled'
     storage.SYS_BLOCK = 'testdata/storage/sys/block'
-    pm = storage.PhysicalMediumFixedDiskLinux26('sda')
+    pm = storage.PhysicalMediumDiskLinux26('sda')
     self.assertFalse(tr.cwmpbool.parse(pm.SMARTCapable))
 
   def testHealthFailing(self):
     storage.SMARTCTL = 'testdata/storage/smartctl_healthfail'
     storage.SYS_BLOCK = 'testdata/storage/sys/block'
-    pm = storage.PhysicalMediumFixedDiskLinux26('sda')
+    pm = storage.PhysicalMediumDiskLinux26('sda')
     self.assertEqual(pm.Health, 'Failing')
 
   def testHealthError(self):
     storage.SMARTCTL = 'testdata/storage/smartctl_healtherr'
     storage.SYS_BLOCK = 'testdata/storage/sys/block'
-    pm = storage.PhysicalMediumFixedDiskLinux26('sda')
+    pm = storage.PhysicalMediumDiskLinux26('sda')
     self.assertEqual(pm.Health, 'Error')
 
   def testPhysicalMediumVendorATA(self):
     storage.SYS_BLOCK = 'testdata/storage/sys/block_ATA'
-    pm = storage.PhysicalMediumFixedDiskLinux26('sda')
+    pm = storage.PhysicalMediumDiskLinux26('sda')
     # vendor 'ATA' is suppressed, as it is useless
     self.assertEqual(pm.Vendor, '')
 
   def testCapacity(self):
     storage.SYS_BLOCK = 'testdata/storage/sys/block'
-    pm = storage.PhysicalMediumFixedDiskLinux26('sda')
+    pm = storage.PhysicalMediumDiskLinux26('sda')
     self.assertEqual(pm.Capacity, 512)
+
+  def testPhysicalMediumConnType(self):
+    storage.SYS_BLOCK = 'testdata/storage/sys/block'
+    pm = storage.PhysicalMediumDiskLinux26('sda', conn_type='IDE')
+    self.assertEqual(pm.ConnectionType, 'IDE')
+    self.assertRaises(AssertionError, storage.PhysicalMediumDiskLinux26,
+                      'sda', conn_type='NotValid')
+
+  def testPhysicalMediumHotSwappable(self):
+    storage.SYS_BLOCK = 'testdata/storage/sys/block'
+    pm = storage.PhysicalMediumDiskLinux26('sda')
+    self.assertFalse(pm.HotSwappable)
+    storage.SYS_BLOCK = 'testdata/storage/sys/blockRemovable'
+    self.assertTrue(pm.HotSwappable)
 
 
 if __name__ == '__main__':
