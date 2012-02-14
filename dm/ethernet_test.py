@@ -23,10 +23,12 @@ class EthernetTest(unittest.TestCase):
   """Tests for ethernet.py."""
 
   def setUp(self):
-    self._old_PROC_NET_DEV = netdev.PROC_NET_DEV
+    self.old_PROC_NET_DEV = netdev.PROC_NET_DEV
+    self.old_PYNETIFCONF = ethernet.PYNETIFCONF
 
   def tearDown(self):
-    netdev.PROC_NET_DEV = self._old_PROC_NET_DEV
+    netdev.PROC_NET_DEV = self.old_PROC_NET_DEV
+    ethernet.PYNETIFCONF = self.old_PYNETIFCONF
 
   def testInterfaceStatsGood(self):
     netdev.PROC_NET_DEV = 'testdata/ethernet/net_dev'
@@ -59,20 +61,20 @@ class EthernetTest(unittest.TestCase):
       exception_raised = True
     self.assertTrue(exception_raised)
 
-  def _CheckEthernetInterfaceParameters(self, ifname, upstream, eth, pynet):
+  def _CheckEthernetInterfaceParameters(self, ifname, upstream, eth, mac):
     self.assertEqual(eth.Alias, ifname)
     self.assertEqual(eth.DuplexMode, 'Auto')
     self.assertEqual(eth.Enable, True)
     self.assertEqual(eth.LastChange, 0)
     self.assertEqual(eth.LowerLayers, None)
-    self.assertEqual(eth.MACAddress, pynet.v_mac)
+    self.assertEqual(eth.MACAddress, mac)
     self.assertEqual(eth.MaxBitRate, -1)
     self.assertEqual(eth.Name, ifname)
     self.assertEqual(eth.Upstream, upstream)
 
   def testInterfaceGood(self):
     ifstats = MockIfStats()
-    pynet = MockPynet()
+    ethernet.PYNETIFCONF = MockPynet
     ifname = 'foo0'
     upstream = False
 
@@ -80,27 +82,28 @@ class EthernetTest(unittest.TestCase):
     ethroot.AddInterface(ifname, upstream, ethernet.EthernetInterfaceLinux26)
     state = ethernet.EthernetState(ifname, upstream,
                                    ethernet.EthernetInterfaceLinux26)
-    eth = ethernet.EthernetInterfaceLinux26(state, ifstats, pynet)
-    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, pynet)
+    mac = MockPynet.v_mac
+    eth = ethernet.EthernetInterfaceLinux26(state, ifstats)
+    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, mac)
 
-    eth = ethernet.EthernetInterfaceLinux26(state, ifstats, pynet)
-    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, pynet)
+    eth = ethernet.EthernetInterfaceLinux26(state, ifstats)
+    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, mac)
 
-    pynet.v_is_up = False
-    eth = ethernet.EthernetInterfaceLinux26(state, ifstats, pynet)
-    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, pynet)
+    MockPynet.v_is_up = False
+    eth = ethernet.EthernetInterfaceLinux26(state, ifstats)
+    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, mac)
 
-    pynet.v_duplex = False
-    eth = ethernet.EthernetInterfaceLinux26(state, ifstats, pynet)
-    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, pynet)
+    MockPynet.v_duplex = False
+    eth = ethernet.EthernetInterfaceLinux26(state, ifstats)
+    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, mac)
 
-    pynet.v_auto = False
-    eth = ethernet.EthernetInterfaceLinux26(state, ifstats, pynet)
-    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, pynet)
+    MockPynet.v_auto = False
+    eth = ethernet.EthernetInterfaceLinux26(state, ifstats)
+    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, mac)
 
-    pynet.v_link_up = False
-    eth = ethernet.EthernetInterfaceLinux26(state, ifstats, pynet)
-    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, pynet)
+    MockPynet.v_link_up = False
+    eth = ethernet.EthernetInterfaceLinux26(state, ifstats)
+    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, mac)
 
     eth.ValidateExports()
 
@@ -119,6 +122,9 @@ class MockPynet(object):
   v_duplex = True
   v_auto = True
   v_link_up = True
+
+  def __init__(self, ifname):
+    self.ifname = ifname
 
   def is_up(self):
     return self.v_is_up

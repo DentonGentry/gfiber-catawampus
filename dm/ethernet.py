@@ -13,12 +13,13 @@ in http://www.broadband-forum.org/cwmp/tr-181-2-2-0.html
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import netdev
 import pynetlinux
 import tr.core
 import tr.tr181_v2_2
+import netdev
 
 BASEETHERNET = tr.tr181_v2_2.Device_v2_2.Device.Ethernet
+PYNETIFCONF = pynetlinux.ifconfig.Interface
 
 
 class EthernetInterfaceStatsLinux26(BASEETHERNET.Interface.Stats):
@@ -40,15 +41,11 @@ class EthernetInterfaceLinux26(BASEETHERNET.Interface):
     state - an InterfaceState object for this interface, holding
       configuration state.
     ifstats - a constructor for an EthernetInterfaceStats object
-    pynet - an object implementing the pynetlinux ifconfig object.
-      This argument allows unit tests to pass in a mock.
   """
 
-  def __init__(self, state, ifstats=None, pynet=None):
+  def __init__(self, state, ifstats=None):
     BASEETHERNET.Interface.__init__(self)
-    if not pynet:
-      pynet = pynetlinux.ifconfig.Interface(state.ifname)
-    self._pynet = pynet
+    self._pynet = PYNETIFCONF(state.ifname)
     if not ifstats:
       ifstats = EthernetInterfaceStatsLinux26(state.ifname)
     self._ethernet_state = state
