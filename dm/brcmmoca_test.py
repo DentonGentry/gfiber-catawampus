@@ -20,10 +20,12 @@ class MocaTest(unittest.TestCase):
   """Tests for brcmmoca.py."""
 
   def setUp(self):
+    self.old_MOCACTL = brcmmoca.MOCACTL
     self.old_PYNETIFCONF = brcmmoca.PYNETIFCONF
     self.old_PROC_NET_DEV = netdev.PROC_NET_DEV
 
   def tearDown(self):
+    brcmmoca.MOCACTL = self.old_MOCACTL
     brcmmoca.PYNETIFCONF = self.old_PYNETIFCONF
     netdev.PROC_NET_DEV = self.old_PROC_NET_DEV
 
@@ -60,6 +62,7 @@ class MocaTest(unittest.TestCase):
 
   def testMocaInterface(self):
     brcmmoca.PYNETIFCONF = MockPynet
+    brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl'
     moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=False)
     self.assertEqual(moca.Name, 'foo0')
     self.assertEqual(moca.LowerLayers, '')
@@ -74,6 +77,15 @@ class MocaTest(unittest.TestCase):
     self.assertEqual(moca.Status, 'Dormant')
     MockPynet.v_is_up = False
     self.assertEqual(moca.Status, 'Down')
+    self.assertEqual(moca.FirmwareVersion, '5.6.789')
+    self.assertEqual(moca.NetworkCoordinator, 1)
+    self.assertEqual(moca.NodeID, 2)
+
+  def testMocaInterfaceMocaCtlFails(self):
+    brcmmoca.PYNETIFCONF = MockPynet
+    brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl_fail'
+    moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=False)
+    self.assertEqual(moca.FirmwareVersion, '0')
 
 
 class MockPynet(object):
