@@ -18,6 +18,8 @@ class FaultType(object):
 
 
 class CpeFault(object):
+  """CPE Fault codes for SOAP:Fault messages."""
+
   METHOD_NOT_SUPPORTED = 9000, FaultType.SERVER
   REQUEST_DENIED = 9001, FaultType.SERVER
   INTERNAL_ERROR = 9002, FaultType.SERVER
@@ -25,7 +27,7 @@ class CpeFault(object):
   RESOURCES_EXCEEDED = 9004, FaultType.SERVER
   INVALID_PARAM_NAME = 9005, FaultType.CLIENT
   INVALID_PARAM_TYPE = 9006, FaultType.CLIENT
-  INVALID_PARAM_VALUE= 9007, FaultType.CLIENT
+  INVALID_PARAM_VALUE = 9007, FaultType.CLIENT
   NON_WRITABLE_PARAM = 9008, FaultType.CLIENT
   NOTIFICATION_REQUEST_REJECTED = 9009, FaultType.SERVER
   DOWNLOAD_FAILURE = 9010, FaultType.SERVER
@@ -44,6 +46,8 @@ class CpeFault(object):
 
 
 class AcsFault(object):
+  """ACS Fault codes for SOAP:Fault messages."""
+
   METHOD_NOT_SUPPORTED = 8000, FaultType.SERVER
   REQUEST_DENIED = 8001, FaultType.SERVER
   INTERNAL_ERROR = 8002, FaultType.SERVER
@@ -79,14 +83,14 @@ def Enterable(func):
 @Enterable
 def Envelope(request_id, hold_requests):
   xml = xmlwitch.Builder(version='1.0', encoding='utf-8')
-  attrs = { 'xmlns:soap': 'http://schemas.xmlsoap.org/soap/envelope/',
-            'xmlns:soap-enc': 'http://schemas.xmlsoap.org/soap/encoding/',
-            'xmlns:xsd': 'http://www.w3.org/2001/XMLSchema',
-            'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
-            'xmlns:cwmp': 'urn:dslforum-org:cwmp-1-2' }
+  attrs = {'xmlns:soap': 'http://schemas.xmlsoap.org/soap/envelope/',
+           'xmlns:soap-enc': 'http://schemas.xmlsoap.org/soap/encoding/',
+           'xmlns:xsd': 'http://www.w3.org/2001/XMLSchema',
+           'xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance',
+           'xmlns:cwmp': 'urn:dslforum-org:cwmp-1-2'}
   with xml['soap:Envelope'](**attrs):
     with xml['soap:Header']:
-      must_understand_attrs = { 'soap:mustUnderstand': '1' }
+      must_understand_attrs = {'soap:mustUnderstand': '1'}
       if request_id is not None:
         xml['cwmp:ID'](str(request_id), **must_understand_attrs)
       if hold_requests is not None:
@@ -184,7 +188,7 @@ class NodeWrapper(object):
         value = '\n' + re.sub(re.compile(r'^', re.M), '  ', value)
       out.append('%s: %s' % (key, value))
     return '\n'.join(out)
-    
+
   def __repr__(self):
     return str(self._list)
 
@@ -207,9 +211,10 @@ def main():
   with Envelope(1234, False) as xml:
     print GetParameterNames(xml, 'System.', 1)
   with Envelope(11, None) as xml:
-    print SetParameterValuesFault(xml,
-                                  [('Object.x.y', CpeFault.INVALID_PARAM_TYPE, 'stupid error'),
-                                   ('Object.y.z', CpeFault.INVALID_PARAM_NAME, 'blah error')])
+    print SetParameterValuesFault(
+        xml,
+        [('Object.x.y', CpeFault.INVALID_PARAM_TYPE, 'stupid error'),
+         ('Object.y.z', CpeFault.INVALID_PARAM_NAME, 'blah error')])
   parsed = Parse(str(xml))
   print repr(parsed)
   print parsed.Body

@@ -13,8 +13,8 @@ import collections
 import unittest
 
 import google3
-import storage
 import tr.cwmpbool
+import storage
 
 
 statvfsstruct = collections.namedtuple(
@@ -64,7 +64,7 @@ class StorageTest(unittest.TestCase):
     pm = storage.PhysicalMediumDiskLinux26('sda')
     pm.ValidateExports()
 
-  def testCapacity(self):
+  def testLogicalVolumeCapacity(self):
     stor = storage.LogicalVolumeLinux26('/fakepath', 'fstype')
     teststatvfs = OsStatVfs('/fakepath')
     expected = teststatvfs.f_bsize * teststatvfs.f_blocks
@@ -154,7 +154,7 @@ class StorageTest(unittest.TestCase):
     # vendor 'ATA' is suppressed, as it is useless
     self.assertEqual(pm.Vendor, '')
 
-  def testCapacity(self):
+  def testPhysicalMediumCapacity(self):
     storage.SYS_BLOCK = 'testdata/storage/sys/block'
     pm = storage.PhysicalMediumDiskLinux26('sda')
     self.assertEqual(pm.Capacity, 512)

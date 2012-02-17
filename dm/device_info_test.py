@@ -13,8 +13,8 @@ import os
 import unittest
 
 import google3
-import device_info
 import tr.core
+import device_info
 
 
 class TestDeviceId(device_info.DeviceIdMeta):

@@ -35,24 +35,25 @@ expectedTransferComplete = """<?xml version="1.0" encoding="utf-8"?>
 </soap:Envelope>"""
 
 
-SOAPNS = "{http://schemas.xmlsoap.org/soap/envelope/}"
-CWMPNS = "{urn:dslforum-org:cwmp-1-2}"
+SOAPNS = '{http://schemas.xmlsoap.org/soap/envelope/}'
+CWMPNS = '{urn:dslforum-org:cwmp-1-2}'
+
 
 class RpcMessageTest(unittest.TestCase):
   """Tests for formatting of XML objects."""
 
   def testTransferComplete(self):
     encode = api_soap.Encode()
-    start = datetime.datetime(2011, 12, 5, 12, 01, 02);
-    end = datetime.datetime(2011, 12, 5, 12, 01, 03);
-    xml = str(encode.TransferComplete("cmdkey", 123, "faultstring", start, end))
+    start = datetime.datetime(2011, 12, 5, 12, 01, 02)
+    end = datetime.datetime(2011, 12, 5, 12, 01, 03)
+    xml = str(encode.TransferComplete('cmdkey', 123, 'faultstring', start, end))
 
     root = ET.fromstring(str(xml))
     xfer = root.find(SOAPNS + 'Body/' + CWMPNS + 'TransferComplete')
     self.assertTrue(xfer)
-    self.assertEqual(xfer.find('CommandKey').text, "cmdkey")
-    self.assertEqual(xfer.find('FaultStruct/FaultCode').text, "123")
-    self.assertEqual(xfer.find('FaultStruct/FaultString').text, "faultstring")
+    self.assertEqual(xfer.find('CommandKey').text, 'cmdkey')
+    self.assertEqual(xfer.find('FaultStruct/FaultCode').text, '123')
+    self.assertEqual(xfer.find('FaultStruct/FaultString').text, 'faultstring')
     self.assertTrue(xfer.find('StartTime').text)
     self.assertTrue(xfer.find('CompleteTime').text)
 

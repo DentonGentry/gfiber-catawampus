@@ -33,14 +33,14 @@ class Tree(Leaf):
     self.SubList = {}
 
 Tree.Sub = Tree
-  
+
 
 class PersistTest(unittest.TestCase):
   def testPersist(self):
     fd, dbname = tempfile.mkstemp()
     os.close(fd)
     print 'database file: %s' % dbname
-    
+
     t = Tree(5, Leaf(6))
     t.SubList[7] = Tree(77, Tree(777, Leaf(7777)))
     t.SubList[11] = Tree(88, Tree(888, Leaf(8888)))

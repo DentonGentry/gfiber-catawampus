@@ -31,6 +31,8 @@ import http
 
 mock_http_client_stop = None
 mock_http_clients = []
+SOAPNS = '{http://schemas.xmlsoap.org/soap/envelope/}'
+CWMPNS = '{urn:dslforum-org:cwmp-1-2}'
 
 
 class MockHttpClient(object):
@@ -48,9 +50,6 @@ class MockHttpClient(object):
     self.fetch_called = True
     mock_http_client_stop()
 
-
-SOAPNS = "{http://schemas.xmlsoap.org/soap/envelope/}"
-CWMPNS = "{urn:dslforum-org:cwmp-1-2}"
 
 class HttpTest(tornado.testing.AsyncTestCase):
   def setUp(self):
@@ -79,18 +78,18 @@ class HttpTest(tornado.testing.AsyncTestCase):
     return self.old_time() + self.advance_time
 
   def getCpe(self):
-    dm_root.PLATFORMDIR = "../platform"
-    root = dm_root.DeviceModelRoot(self.io_loop, "fakecpe")
+    dm_root.PLATFORMDIR = '../platform'
+    root = dm_root.DeviceModelRoot(self.io_loop, 'fakecpe')
     cpe = api.CPE(root)
     dldir = tempfile.mkdtemp()
     self.removedirs.append(dldir)
     download.SetStateDir(dldir)
     acsfile = tempfile.NamedTemporaryFile(delete=False)
     self.removefiles.append(acsfile.name)
-    acsfile.write("http://example.com/cwmp")
+    acsfile.write('http://example.com/cwmp')
     acsfile.close()
     cpe_machine = http.Listen(ip=None, port=0,
-                              ping_path="/ping/acs_integration_test",
+                              ping_path='/ping/acs_integration_test',
                               acs=None, acs_url_file=acsfile.name,
                               cpe=cpe, cpe_listener=False, ioloop=self.io_loop)
     return cpe_machine
@@ -102,13 +101,13 @@ class HttpTest(tornado.testing.AsyncTestCase):
     self.wait()
 
     self.assertEqual(len(mock_http_clients), 1)
-    http = mock_http_clients[0]
-    self.assertTrue(http.fetch_called)
+    ht = mock_http_clients[0]
+    self.assertTrue(ht.fetch_called)
 
-    root = ET.fromstring(http.fetch_req.body)
+    root = ET.fromstring(ht.fetch_req.body)
     envelope = root.find(SOAPNS + 'Body/' + CWMPNS + 'Inform/MaxEnvelopes')
     self.assertTrue(envelope is not None)
-    self.assertEqual(envelope.text, "1")
+    self.assertEqual(envelope.text, '1')
 
   def testCurrentTime(self):
     time.time = self.advanceTime
@@ -117,10 +116,10 @@ class HttpTest(tornado.testing.AsyncTestCase):
     self.wait()
 
     self.assertEqual(len(mock_http_clients), 1)
-    http = mock_http_clients[0]
-    self.assertTrue(http.fetch_called)
+    ht = mock_http_clients[0]
+    self.assertTrue(ht.fetch_called)
 
-    root = ET.fromstring(http.fetch_req.body)
+    root = ET.fromstring(ht.fetch_req.body)
     ctime = root.find(SOAPNS + 'Body/' + CWMPNS + 'Inform/CurrentTime')
     self.assertTrue(ctime is not None)
     self.assertTrue(cwmpdate.valid(ctime.text))
@@ -132,27 +131,27 @@ class HttpTest(tornado.testing.AsyncTestCase):
     self.wait(timeout=20)
 
     self.assertEqual(len(mock_http_clients), 1)
-    http = mock_http_clients[0]
-    self.assertTrue(http.fetch_called)
+    ht = mock_http_clients[0]
+    self.assertTrue(ht.fetch_called)
 
-    root = ET.fromstring(http.fetch_req.body)
+    root = ET.fromstring(ht.fetch_req.body)
     retry = root.find(SOAPNS + 'Body/' + CWMPNS + 'Inform/RetryCount')
     self.assertTrue(retry is not None)
-    self.assertEqual(retry.text, "0")
+    self.assertEqual(retry.text, '0')
 
     # Fail the first request
-    httpresp = tornado.httpclient.HTTPResponse(http.fetch_req, 404)
-    http.fetch_callback(httpresp)
+    httpresp = tornado.httpclient.HTTPResponse(ht.fetch_req, 404)
+    ht.fetch_callback(httpresp)
 
     self.advance_time += 10
     self.wait(timeout=20)
     self.assertEqual(len(mock_http_clients), 2)
-    http = mock_http_clients[1]
+    ht = mock_http_clients[1]
 
-    root = ET.fromstring(http.fetch_req.body)
+    root = ET.fromstring(ht.fetch_req.body)
     retry = root.find(SOAPNS + 'Body/' + CWMPNS + 'Inform/RetryCount')
     self.assertTrue(retry is not None)
-    self.assertEqual(retry.text, "1")
+    self.assertEqual(retry.text, '1')
 
 
 if __name__ == '__main__':

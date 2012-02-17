@@ -18,7 +18,6 @@ import google3
 import core
 import download
 import persistobj
-import soap
 
 
 mock_http_clients = []
