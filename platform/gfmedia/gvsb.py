@@ -13,8 +13,10 @@ import google3
 import tr.x_gvsb_1_0
 
 class Gvsb(tr.x_gvsb_1_0.X_GOOGLE_COM_GVSB_v1_0):
-  GVSBSERVERFILE = "/tmp/gvsbserver"
-  GVSBCHANNELFILE = "/tmp/gvsbchannel"
+  """Implementation of x-gvsb.xml."""
+
+  GVSBSERVERFILE = '/tmp/gvsbhost'
+  GVSBCHANNELFILE = '/tmp/gvsbchannel'
 
   def __init__(self):
     tr.x_gvsb_1_0.X_GOOGLE_COM_GVSB_v1_0.__init__(self)
