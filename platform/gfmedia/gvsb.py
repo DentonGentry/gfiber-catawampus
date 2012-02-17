@@ -16,7 +16,7 @@ import tr.x_gvsb_1_0
 class Gvsb(tr.x_gvsb_1_0.X_GOOGLE_COM_GVSB_v1_0):
   """Implementation of x-gvsb.xml."""
 
-  GVSBSERVERFILE = '/tmp/gvsbserver'
+  GVSBSERVERFILE = '/tmp/gvsbhost'
   GVSBCHANNELFILE = '/tmp/gvsbchannel'
 
   def __init__(self):
