@@ -15,17 +15,14 @@ import tornado
 import tornado.httpclient
 import tornado.ioloop
 import tornado.web
+import core
 import http_download
 import persistobj
-import soap
 
 
 # Persistent object storage location and filename
 STATEDIR = '/tmp'
 ROOTNAME = 'tr69_dnld'
-
-# tr-69 fault codes
-INTERNAL_ERROR = 9002
 
 
 def SetStateDir(statedir):
@@ -52,6 +49,7 @@ class Installer(object):
     self.filename = filename
 
   def install(self, file_type, target_filename, callback):
+    INTERNAL_ERROR = 9002
     self.callback(faultcode=INTERNAL_ERROR,
                   faultstring='No installer for this platform.',
                   must_reboot=False)
@@ -367,25 +365,27 @@ class DownloadManager(object):
       target_filename, delay_seconds: as defined in tr-69 Amendment 3
         (page 82 of $SPEC)
 
+    Raises:
+      core.ResourcesExceededError: too many simultaneous downloads
+      core.FileTransferProtocolError: Unsupported URL type, ex: ftp
+
     Returns:
-      (code, (args)) where:
-      code = 0 or 1 means send DownloadResponse.
-        args will be (starttime, endtime), two floating point numbers in
-        seconds for the StartTime and CompleteTime of the DownloadResponse.
-      code < 0 means send SoapFault.
-        args will be ((FaultCode, FaultType), FaultString)
+      (code, starttime, endtime):
+      code = status to return (1 == send TransferComplete later, $SPEC pg 85)
+      starttime, endtime = two floating point numbers in seconds for the
+        StartTime and CompleteTime of the DownloadResponse.
     """
 
     # TODO(dgentry) check free space?
 
     if len(self._downloads) >= self.MAXDOWNLOADS:
-      faultstring = 'Max downloads ({0}) reached.'.format(self.MAXDOWNLOADS)
-      return (-1, (soap.CpeFault.RESOURCES_EXCEEDED, faultstring))
+      faultstring = 'Max downloads (%d) reached.' % self.MAXDOWNLOADS
+      raise core.ResourcesExceededError(faultstring)
 
     o = urlparse.urlparse(url)
     if o.scheme not in DOWNLOAD_CLIENT:
-      faultstring = 'Unsupported URL scheme {0}'.format(o.scheme)
-      return (-1, (soap.CpeFault.FILE_TRANSFER_PROTOCOL, faultstring))
+      raise core.FileTransferProtocolError(
+          'Unsupported URL scheme %s' % o.scheme)
 
     kwargs = dict(command_key=command_key,
                   file_type=file_type,
@@ -403,8 +403,7 @@ class DownloadManager(object):
     self._downloads.append(dl)
     dl.do_start()
 
-    # status=1 == send TransferComplete later, $SPEC pg 85
-    return (1, (0.0, 0.0))
+    return (1, 0.0, 0.0)
 
   def TransferCompleteCallback(self, dl, command_key, faultcode, faultstring,
                                starttime, endtime, event_code):
@@ -444,25 +443,20 @@ class DownloadManager(object):
         with the same command_key. $SPEC says to attempt to cancel all of them,
         return failure if any cannot be cancelled.
 
-    Returns:
-      (code, arg) where:
-        code = 0 means success, non-zero means failure
-        if failed, arg = ((faultcode, faulttype), faultstring) for a
-          soap:Fault message.
+    Raises:
+      core.CancelNotPermitted: download cannot be cancelled right now.
     """
-    rc = (0,)
     for dl in self._downloads:
       if dl.CommandKey() == command_key:
         faultstring = dl.cleanup()
         if faultstring:
-          rc = (-1, (soap.CpeFault.DOWNLOAD_CANCEL_NOTPERMITTED, faultstring))
+          raise core.CancelNotPermitted(faultstring)
         else:
           self._downloads.remove(dl)
     for dl in self._pending_complete:
       if dl.CommandKey() == command_key:
-        rc = (-1, (soap.CpeFault.DOWNLOAD_CANCEL_NOTPERMITTED,
-                   'Installed, awaiting TransferCompleteResponse'))
-    return rc
+        raise core.CancelNotPermitted(
+            'Installed, awaiting TransferCompleteResponse')
 
 
 def main():

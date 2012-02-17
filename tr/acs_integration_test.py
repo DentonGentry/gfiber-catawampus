@@ -46,8 +46,10 @@ class MockDownloadManager(object):
   def __init__(self):
     self.new_download_called = False
     self.cancel_called = False
-    self.newdl_return = (1, (0.0, 0.0))
-    self.cancel_return = (0, '')
+    self.newdl_return = (1, 0.0, 0.0)
+    self.newdl_raise_resources = False
+    self.newdl_raise_protocol = False
+    self.cancel_raise = False
     self.queue = list()
     self.queue_num = 1
 
@@ -63,6 +65,10 @@ class MockDownloadManager(object):
     self.newdl_file_size = file_size
     self.newdl_target_filename = target_filename
     self.newdl_delay_seconds = delay_seconds
+    if self.newdl_raise_resources:
+      raise core.ResourcesExceededError('FaultString')
+    if self.newdl_raise_protocol:
+      raise core.FileTransferProtocolError('FaultString')
     return self.newdl_return
 
   def TransferCompleteResponseReceived(self):
@@ -87,7 +93,8 @@ class MockDownloadManager(object):
   def CancelTransfer(self, command_key):
     self.cancel_called = True
     self.cancel_command_key = command_key
-    return self.cancel_return
+    if self.cancel_raise:
+      raise core.CancelNotPermitted('Refused')
 
 
 class TransferRpcTest(unittest.TestCase):
@@ -128,7 +135,7 @@ class TransferRpcTest(unittest.TestCase):
     cpe = self.getCpe()
     downloadXml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:Download><CommandKey>CommandKey</CommandKey><FileType>1 Firmware Upgrade Image</FileType><URL>invalid</URL><Username>Username</Username><Password>Password</Password><FileSize>123456</FileSize><TargetFileName>TargetFileName</TargetFileName><DelaySeconds>321</DelaySeconds><SuccessURL/><FailureURL/></cwmp:Download></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     dm = cpe.cpe.download_manager
-    dm.newdl_return = (-1, ((9000, 'FaultType'), 'FaultString'))
+    dm.newdl_raise_resources = True
     responseXml = cpe.cpe_soap.Handle(downloadXml)
     self.assertTrue(dm.new_download_called)
     self.assertEqual(dm.newdl_command_key, 'CommandKey')
@@ -143,11 +150,11 @@ class TransferRpcTest(unittest.TestCase):
     self.assertFalse(dlresp)
     fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
     self.assertTrue(fault)
-    self.assertEqual(fault.find('faultcode').text, 'FaultType')
+    self.assertEqual(fault.find('faultcode').text, 'Server')
     self.assertEqual(fault.find('faultstring').text, 'CWMP fault')
     detail = fault.find('detail/' + CWMPNS + 'Fault')
     self.assertTrue(detail)
-    self.assertEqual(detail.find('FaultCode').text, '9000')
+    self.assertEqual(detail.find('FaultCode').text, '9004')
     self.assertEqual(detail.find('FaultString').text, 'FaultString')
 
     # We don't do a string compare of the XML output, that is too fragile
@@ -161,11 +168,11 @@ class TransferRpcTest(unittest.TestCase):
         </soap:Header>
         <soap:Body>
           <soap:Fault>
-            <faultcode>FaultType</faultcode>
+            <faultcode>Server</faultcode>
             <faultstring>CWMP fault</faultstring>
             <detail>
               <cwmp:Fault>
-                <FaultCode>9000</FaultCode>
+                <FaultCode>9004</FaultCode>
                 <FaultString>FaultString</FaultString>
               </cwmp:Fault>
             </detail>
@@ -288,13 +295,13 @@ class TransferRpcTest(unittest.TestCase):
     cpe = self.getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:CancelTransfer><CommandKey>CommandKey</CommandKey></cwmp:CancelTransfer></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     dm = cpe.cpe.download_manager
-    dm.cancel_return = (-1, ((9021, 'FaultType'), 'Refused'))
+    dm.cancel_raise = True
     responseXml = cpe.cpe_soap.Handle(soapxml)
 
     root = ET.fromstring(str(responseXml))
     fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
     self.assertTrue(fault)
-    self.assertEqual(fault.find('faultcode').text, 'FaultType')
+    self.assertEqual(fault.find('faultcode').text, 'Client')
     self.assertEqual(fault.find('faultstring').text, 'CWMP fault')
     detail = fault.find('detail/' + CWMPNS + 'Fault')
     self.assertTrue(detail)
@@ -312,7 +319,7 @@ class TransferRpcTest(unittest.TestCase):
         </soap:Header>
         <soap:Body>
           <soap:Fault>
-            <faultcode>FaultType</faultcode>
+            <faultcode>Client</faultcode>
             <faultstring>CWMP fault</faultstring>
             <detail>
               <cwmp:Fault>

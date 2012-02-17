@@ -491,3 +491,18 @@ def DumpSchema(root):
     root = root()
   _DumpSchema(root, out, [root.__class__.__name__])
   return '\n'.join(sorted(out))
+
+
+class ResourcesExceededError(BufferError):
+  """Exception to send a RESOURCES_EXCEEDED SOAP:Fault."""
+  pass
+
+
+class FileTransferProtocolError(NotImplementedError):
+  """Exception to send a FILE_TRANSFER_PROTOCOL SOAP:Fault."""
+  pass
+
+
+class CancelNotPermitted(Exception):
+  """Exception to send a DOWNLOAD_CANCEL_NOTPERMITTED SOAP:Fault."""
+  pass

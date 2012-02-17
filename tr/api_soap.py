@@ -231,7 +231,7 @@ class CPE(SoapHandler):
 
   def _CheckObjectName(self, name):
     if not name.endswith('.'):
-      raise ParameterNameError('ObjectName must end in period: {0}'.format(name))
+      raise ParameterNameError('ObjectName must end in period: %s' % name)
 
   def AddObject(self, xml, req):
     self._CheckObjectName(req.ObjectName)
@@ -255,26 +255,23 @@ class CPE(SoapHandler):
     except:
       username = password = None
 
-    (code, args) = self.impl.Download(command_key=req.CommandKey,
-                                      file_type=req.FileType,
-                                      url=req.URL,
-                                      username=username,
-                                      password=password,
-                                      file_size=int(req.FileSize),
-                                      target_filename=req.TargetFileName,
-                                      delay_seconds=int(req.DelaySeconds),
-                                      success_url=req.SuccessURL,
-                                      failure_url=req.FailureURL)
-    if code >= 0:
-      (starttime, endtime) = args
-      with xml['cwmp:DownloadResponse']:
-        xml.Status(str(code))
-        xml.StartTime(cwmpdate.format(starttime))
-        xml.CompleteTime(cwmpdate.format(endtime))
-      return xml
-    else:
-      (cpefault, faultstring) = args
-      return soap.SimpleFault(xml, cpefault, faultstring)
+    try:
+      (code, starttime, endtime) = self.impl.Download(
+          command_key=req.CommandKey, file_type=req.FileType,
+          url=req.URL, username=username, password=password,
+          file_size=int(req.FileSize), target_filename=req.TargetFileName,
+          delay_seconds=int(req.DelaySeconds),
+          success_url=req.SuccessURL, failure_url=req.FailureURL)
+    except core.ResourcesExceededError as e:
+      return soap.SimpleFault(xml, soap.CpeFault.RESOURCES_EXCEEDED, str(e))
+    except core.FileTransferProtocolError as e:
+      return soap.SimpleFault(xml, soap.CpeFault.FILE_TRANSFER_PROTOCOL, str(e))
+
+    with xml['cwmp:DownloadResponse']:
+      xml.Status(str(code))
+      xml.StartTime(cwmpdate.format(starttime))
+      xml.CompleteTime(cwmpdate.format(endtime))
+    return xml
 
   def TransferCompleteResponse(self, xml, req):
     """Response to a TransferComplete sent by the CPE."""
@@ -304,12 +301,12 @@ class CPE(SoapHandler):
     return xml
 
   def CancelTransfer(self, xml, req):
-    (code, args) = self.impl.CancelTransfer(req.CommandKey)
-    if code != 0:
-      (cpefault, faultstring) = args
-      return soap.SimpleFault(xml, cpefault, faultstring)
-    else:
-      xml['cwmp:CancelTransferResponse'](None)
+    try:
+      self.impl.CancelTransfer(req.CommandKey)
+    except core.CancelNotPermitted as e:
+      return soap.SimpleFault(xml, soap.CpeFault.DOWNLOAD_CANCEL_NOTPERMITTED,
+                              str(e))
+    xml['cwmp:CancelTransferResponse'](None)
     return xml
 
 

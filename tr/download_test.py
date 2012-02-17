@@ -15,6 +15,7 @@ import time
 import unittest
 
 import google3
+import core
 import download
 import persistobj
 import soap
@@ -428,7 +429,7 @@ class DownloadManagerTest(unittest.TestCase):
             'file_size': 99,
             'target_filename': 'TestFilename',
             'delay_seconds': 30}
-    (code, (start, end)) = dm.NewDownload(**args)
+    (code, start, end) = dm.NewDownload(**args)
     self.assertEqual(code, 1)
     self.assertEqual(start, 0.0)
     self.assertEqual(end, 0.0)
@@ -449,26 +450,18 @@ class DownloadManagerTest(unittest.TestCase):
     for i in range(maxdl):
       args = {'command_key': 'TestCommandKey' + str(i),
               'url': 'http://example.com/'}
-      (code, (start, end)) = dm.NewDownload(**args)
+      (code, start, end) = dm.NewDownload(**args)
       self.assertEqual(code, 1)
       self.assertEqual(start, 0.0)
       self.assertEqual(end, 0.0)
     self.assertEqual(len(mock_downloads), maxdl)
-    (code, ((faultcode, faulttype), faultstring)) = dm.NewDownload(**args)
-    self.assertTrue(code < 0)
-    self.assertEqual(faultcode, 9004)
-    self.assertEqual(faulttype, soap.FaultType.SERVER)
-    self.assertTrue(faultstring)
+    self.assertRaises(core.ResourcesExceededError, dm.NewDownload, **args)
 
   def testBadUrlScheme(self):
     (dm, _) = self.allocTestDM()
     args = {'command_key': 'TestCommandKey',
             'url': 'invalid://bad.url/'}
-    (code, ((faultcode, faulttype), faultstring)) = dm.NewDownload(**args)
-    self.assertTrue(code < 0)
-    self.assertEqual(faultcode, 9013)
-    self.assertEqual(faulttype, soap.FaultType.SERVER)
-    self.assertTrue(faultstring)
+    self.assertRaises(core.FileTransferProtocolError, dm.NewDownload, **args)
 
   def testRestoreMultiple(self):
     (dm, _) = self.allocTestDM()
