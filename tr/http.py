@@ -140,26 +140,32 @@ class CPEStateMachine(object):
       events.append(ev)
     parameter_list = []
     try:
+      ms = self.cpe.root.GetExport('Device.ManagementServer')
       di = self.cpe.root.GetExport('Device.DeviceInfo')
       parameter_list += [
           ('Device.ManagementServer.ConnectionRequestURL',
-           self.cpe_management_server.ConnectionRequestURL),
+           ms.ConnectionRequestURL),
+          ('Device.ManagementServer.ParameterKey', ms.ParameterKey),
           ('Device.DeviceInfo.HardwareVersion', di.HardwareVersion),
           ('Device.DeviceInfo.SoftwareVersion', di.SoftwareVersion),
       ]
-    except AttributeError:
-      try:
-        di = self.cpe.root.GetExport('InternetGatewayDevice.DeviceInfo')
-        parameter_list += [
-            ('InternetGatewayDevice.ManagementServer.ConnectionRequestURL',
-             self.cpe_management_server.ConnectionRequestURL),
-            ('InternetGatewayDevice.DeviceInfo.HardwareVersion',
-             di.HardwareVersion),
-            ('InternetGatewayDevice.DeviceInfo.SoftwareVersion',
-             di.SoftwareVersion),
-        ]
-      except AttributeError:
-        pass
+    except (AttributeError, KeyError):
+      pass
+    try:
+      ms = self.cpe.root.GetExport('InternetGatewayDevice.ManagementServer')
+      di = self.cpe.root.GetExport('InternetGatewayDevice.DeviceInfo')
+      parameter_list += [
+          ('InternetGatewayDevice.ManagementServer.ConnectionRequestURL',
+           ms.ConnectionRequestURL),
+          ('InternetGatewayDevice.ManagementServer.ParameterKey',
+           ms.ParameterKey),
+          ('InternetGatewayDevice.DeviceInfo.HardwareVersion',
+           di.HardwareVersion),
+          ('InternetGatewayDevice.DeviceInfo.SoftwareVersion',
+           di.SoftwareVersion),
+      ]
+    except (AttributeError, KeyError):
+      pass
     req = self.encode.Inform(root=self.cpe.root, events=events,
                              retry_count=self.retry_count,
                              parameter_list=parameter_list)

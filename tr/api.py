@@ -80,7 +80,7 @@ class CPE(TR069Service):
 
   def __init__(self, root):
     TR069Service.__init__(self)
-    self._last_parameter_key = None
+    self._last_parameter_key = ''
     self.root = root
     self.download_manager = download.DownloadManager()
     self.transfer_complete_received_cb = None
