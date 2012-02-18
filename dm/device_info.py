@@ -292,9 +292,12 @@ class DeviceInfo98Linux26(BASE98IGD.DeviceInfo):
     self.Unexport(params='EnabledOptions')
     self.Unexport(params='FirstUseDate')
     self.Unexport(params='ProvisioningCode')
-    self.Unexport(params='SpecVersion')
     self.Unexport(lists='VendorConfigFile')
     self.VendorConfigFileNumberOfEntries = 0
+
+  @property
+  def SpecVersion(self):
+    return '1.0'
 
   @property
   def UpTime(self):

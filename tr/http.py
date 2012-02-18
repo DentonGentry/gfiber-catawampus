@@ -163,6 +163,7 @@ class CPEStateMachine(object):
            di.HardwareVersion),
           ('InternetGatewayDevice.DeviceInfo.SoftwareVersion',
            di.SoftwareVersion),
+          ('InternetGatewayDevice.DeviceInfo.SpecVersion', di.SpecVersion),
       ]
     except (AttributeError, KeyError):
       pass
