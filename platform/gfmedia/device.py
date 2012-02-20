@@ -83,7 +83,7 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
 
   @property
   def ModelName(self):
-    return self._GetNvramParam('PRODUCT_NAME', default='UnknownModel')
+    return self._GetNvramParam('PLATFORM_NAME', default='UnknownModel')
 
   @property
   def Description(self):
@@ -111,7 +111,7 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
 
   @property
   def ProductClass(self):
-    return self._GetNvramParam('PRODUCT_NAME', default='UnknownModel')
+    return self._GetNvramParam('PLATFORM_NAME', default='UnknownModel')
 
   @property
   def ModemFirmwareVersion(self):
