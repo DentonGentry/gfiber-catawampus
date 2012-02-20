@@ -75,11 +75,11 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
 
   @property
   def Manufacturer(self):
-    return 'Google'
+    return 'Google Fiber'
 
   @property
   def ManufacturerOUI(self):
-    return '001a11'
+    return 'f88fca'
 
   @property
   def ModelName(self):
@@ -111,7 +111,7 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
 
   @property
   def ProductClass(self):
-    return 'STB'
+    return self._GetNvramParam('PRODUCT_NAME', default='UnknownModel')
 
   @property
   def ModemFirmwareVersion(self):
@@ -172,6 +172,14 @@ class Services181GFMedia(tr181.Device_v2_2.Device.Services):
     tr181.Device_v2_2.Device.Services.__init__(self)
     self.Export(objects=['StorageServices'])
     self.StorageServices = dm.storage.StorageServiceLinux26()
+
+    for drive in ['sda', 'sdb', 'sdc', 'sdd']:
+      try:
+        if os.stat('/sys/block/' + drive):
+          phys = dm.storage.PhysicalMediumDiskLinux26(drive, 'SATA/300')
+          self.StorageServices.PhysicalMediumList['0'] = phys
+      except OSError:
+        pass
 
 
 class DeviceGFMedia(tr181.Device_v2_2.Device):
