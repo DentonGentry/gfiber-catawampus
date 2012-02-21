@@ -2,20 +2,22 @@ from tornado.escape import json_decode, utf8, to_unicode, recursive_unicode, nat
 from tornado.iostream import IOStream
 from tornado.template import DictLoader
 from tornado.testing import LogTrapTestCase, AsyncHTTPTestCase
-from tornado.util import b, bytes_type
-from tornado.web import RequestHandler, _O, authenticated, Application, asynchronous, url
+from tornado.util import b, bytes_type, ObjectDict
+from tornado.web import RequestHandler, authenticated, Application, asynchronous, url, HTTPError, StaticFileHandler, _create_signature
 
 import binascii
 import logging
+import os
 import re
 import socket
+import sys
 
 class CookieTestRequestHandler(RequestHandler):
     # stub out enough methods to make the secure_cookie functions work
     def __init__(self):
         # don't call super.__init__
         self._cookies = {}
-        self.application = _O(settings=dict(cookie_secret='0123456789'))
+        self.application = ObjectDict(settings=dict(cookie_secret='0123456789'))
 
     def get_cookie(self, name):
         return self._cookies.get(name)
@@ -38,13 +40,16 @@ class SecureCookieTest(LogTrapTestCase):
         assert match
         timestamp = match.group(1)
         sig = match.group(2)
-        self.assertEqual(handler._cookie_signature('foo', '12345678',
-                                                   timestamp), sig)
+        self.assertEqual(
+            _create_signature(handler.application.settings["cookie_secret"],
+                              'foo', '12345678', timestamp),
+            sig)
         # shifting digits from payload to timestamp doesn't alter signature
         # (this is not desirable behavior, just confirming that that's how it
         # works)
         self.assertEqual(
-            handler._cookie_signature('foo', '1234', b('5678') + timestamp),
+            _create_signature(handler.application.settings["cookie_secret"],
+                              'foo', '1234', b('5678') + timestamp),
             sig)
         # tamper with the cookie
         handler._cookies['foo'] = utf8('1234|5678%s|%s' % (timestamp, sig))
@@ -63,7 +68,7 @@ class CookieTest(AsyncHTTPTestCase, LogTrapTestCase):
 
         class GetCookieHandler(RequestHandler):
             def get(self):
-                self.write(self.get_cookie("foo"))
+                self.write(self.get_cookie("foo", "default"))
 
         class SetCookieDomainHandler(RequestHandler):
             def get(self):
@@ -72,11 +77,19 @@ class CookieTest(AsyncHTTPTestCase, LogTrapTestCase):
                 self.set_cookie("unicode_args", "blah", domain=u"foo.com",
                                 path=u"/foo")
 
+        class SetCookieSpecialCharHandler(RequestHandler):
+            def get(self):
+                self.set_cookie("equals", "a=b")
+                self.set_cookie("semicolon", "a;b")
+                self.set_cookie("quote", 'a"b')
+
 
         return Application([
                 ("/set", SetCookieHandler),
                 ("/get", GetCookieHandler),
-                ("/set_domain", SetCookieDomainHandler)])
+                ("/set_domain", SetCookieDomainHandler),
+                ("/special_char", SetCookieSpecialCharHandler),
+                ])
 
     def test_set_cookie(self):
         response = self.fetch("/set")
@@ -89,10 +102,39 @@ class CookieTest(AsyncHTTPTestCase, LogTrapTestCase):
         response = self.fetch("/get", headers={"Cookie": "foo=bar"})
         self.assertEqual(response.body, b("bar"))
 
+        response = self.fetch("/get", headers={"Cookie": 'foo="bar"'})
+        self.assertEqual(response.body, b("bar"))
+
+        response = self.fetch("/get", headers={"Cookie": "/=exception;"})
+        self.assertEqual(response.body, b("default"))
+
     def test_set_cookie_domain(self):
         response = self.fetch("/set_domain")
         self.assertEqual(response.headers.get_list("Set-Cookie"),
                          ["unicode_args=blah; Domain=foo.com; Path=/foo"])
+
+    def test_cookie_special_char(self):
+        response = self.fetch("/special_char")
+        headers = response.headers.get_list("Set-Cookie")
+        self.assertEqual(len(headers), 3)
+        self.assertEqual(headers[0], 'equals="a=b"; Path=/')
+        # python 2.7 octal-escapes the semicolon; older versions leave it alone
+        self.assertTrue(headers[1] in ('semicolon="a;b"; Path=/',
+                                       'semicolon="a\\073b"; Path=/'),
+                        headers[1])
+        self.assertEqual(headers[2], 'quote="a\\"b"; Path=/')
+
+        data = [('foo=a=b', 'a=b'),
+                ('foo="a=b"', 'a=b'),
+                ('foo="a;b"', 'a;b'),
+                #('foo=a\\073b', 'a;b'),  # even encoded, ";" is a delimiter
+                ('foo="a\\073b"', 'a;b'),
+                ('foo="a\\"b"', 'a"b'),
+                ]
+        for header, expected in data:
+            logging.info("trying %r", header)
+            response = self.fetch("/get", headers={"Cookie": header})
+            self.assertEqual(response.body, utf8(expected))
 
 class AuthRedirectRequestHandler(RequestHandler):
     def initialize(self, login_url):
@@ -202,11 +244,9 @@ class TypeCheckHandler(RequestHandler):
         # get_argument is an exception from the general rule of using
         # type str for non-body data mainly for historical reasons.
         self.check_type('argument', self.get_argument('foo'), unicode)
-
         self.check_type('cookie_key', self.cookies.keys()[0], str)
         self.check_type('cookie_value', self.cookies.values()[0].value, str)
-        # secure cookies
-    
+
         self.check_type('xsrf_token', self.xsrf_token, bytes_type)
         self.check_type('xsrf_form_html', self.xsrf_form_html(), str)
 
@@ -262,6 +302,39 @@ class OptionalPathHandler(RequestHandler):
     def get(self, path):
         self.write({"path": path})
 
+class FlowControlHandler(RequestHandler):
+    # These writes are too small to demonstrate real flow control,
+    # but at least it shows that the callbacks get run.
+    @asynchronous
+    def get(self):
+        self.write("1")
+        self.flush(callback=self.step2)
+
+    def step2(self):
+        self.write("2")
+        self.flush(callback=self.step3)
+
+    def step3(self):
+        self.write("3")
+        self.finish()
+
+class MultiHeaderHandler(RequestHandler):
+    def get(self):
+        self.set_header("x-overwrite", "1")
+        self.set_header("x-overwrite", 2)
+        self.add_header("x-multi", 3)
+        self.add_header("x-multi", "4")
+
+class RedirectHandler(RequestHandler):
+    def get(self):
+        if self.get_argument('permanent', None) is not None:
+            self.redirect('/', permanent=int(self.get_argument('permanent')))
+        elif self.get_argument('status', None) is not None:
+            self.redirect('/', status=int(self.get_argument('status')))
+        else:
+            raise Exception("didn't get permanent or status arguments")
+
+
 class WebTest(AsyncHTTPTestCase, LogTrapTestCase):
     def get_app(self):
         loader = DictLoader({
@@ -283,6 +356,9 @@ class WebTest(AsyncHTTPTestCase, LogTrapTestCase):
             url("/linkify", LinkifyHandler),
             url("/uimodule_resources", UIModuleResourceHandler),
             url("/optional_path/(.+)?", OptionalPathHandler),
+            url("/flow_control", FlowControlHandler),
+            url("/multi_header", MultiHeaderHandler),
+            url("/redirect", RedirectHandler),
             ]
         return Application(urls,
                            template_loader=loader,
@@ -359,3 +435,204 @@ js_embed()
                          {u"path": u"foo"})
         self.assertEqual(self.fetch_json("/optional_path/"),
                          {u"path": None})
+
+    def test_flow_control(self):
+        self.assertEqual(self.fetch("/flow_control").body, b("123"))
+
+    def test_multi_header(self):
+        response = self.fetch("/multi_header")
+        self.assertEqual(response.headers["x-overwrite"], "2")
+        self.assertEqual(response.headers.get_list("x-multi"), ["3", "4"])
+
+    def test_redirect(self):
+        response = self.fetch("/redirect?permanent=1", follow_redirects=False)
+        self.assertEqual(response.code, 301)
+        response = self.fetch("/redirect?permanent=0", follow_redirects=False)
+        self.assertEqual(response.code, 302)
+        response = self.fetch("/redirect?status=307", follow_redirects=False)
+        self.assertEqual(response.code, 307)
+
+
+class ErrorResponseTest(AsyncHTTPTestCase, LogTrapTestCase):
+    def get_app(self):
+        class DefaultHandler(RequestHandler):
+            def get(self):
+                if self.get_argument("status", None):
+                    raise HTTPError(int(self.get_argument("status")))
+                1/0
+
+        class WriteErrorHandler(RequestHandler):
+            def get(self):
+                if self.get_argument("status", None):
+                    self.send_error(int(self.get_argument("status")))
+                else:
+                    1/0
+
+            def write_error(self, status_code, **kwargs):
+                self.set_header("Content-Type", "text/plain")
+                if "exc_info" in kwargs:
+                    self.write("Exception: %s" % kwargs["exc_info"][0].__name__)
+                else:
+                    self.write("Status: %d" % status_code)
+
+        class GetErrorHtmlHandler(RequestHandler):
+            def get(self):
+                if self.get_argument("status", None):
+                    self.send_error(int(self.get_argument("status")))
+                else:
+                    1/0
+
+            def get_error_html(self, status_code, **kwargs):
+                self.set_header("Content-Type", "text/plain")
+                if "exception" in kwargs:
+                    self.write("Exception: %s" % sys.exc_info()[0].__name__)
+                else:
+                    self.write("Status: %d" % status_code)
+
+        class FailedWriteErrorHandler(RequestHandler):
+            def get(self):
+                1/0
+
+            def write_error(self, status_code, **kwargs):
+                raise Exception("exception in write_error")
+
+
+        return Application([
+                url("/default", DefaultHandler),
+                url("/write_error", WriteErrorHandler),
+                url("/get_error_html", GetErrorHtmlHandler),
+                url("/failed_write_error", FailedWriteErrorHandler),
+                ])
+
+    def test_default(self):
+        response = self.fetch("/default")
+        self.assertEqual(response.code, 500)
+        self.assertTrue(b("500: Internal Server Error") in response.body)
+
+        response = self.fetch("/default?status=503")
+        self.assertEqual(response.code, 503)
+        self.assertTrue(b("503: Service Unavailable") in response.body)
+
+    def test_write_error(self):
+        response = self.fetch("/write_error")
+        self.assertEqual(response.code, 500)
+        self.assertEqual(b("Exception: ZeroDivisionError"), response.body)
+
+        response = self.fetch("/write_error?status=503")
+        self.assertEqual(response.code, 503)
+        self.assertEqual(b("Status: 503"), response.body)
+
+    def test_get_error_html(self):
+        response = self.fetch("/get_error_html")
+        self.assertEqual(response.code, 500)
+        self.assertEqual(b("Exception: ZeroDivisionError"), response.body)
+
+        response = self.fetch("/get_error_html?status=503")
+        self.assertEqual(response.code, 503)
+        self.assertEqual(b("Status: 503"), response.body)
+
+    def test_failed_write_error(self):
+        response = self.fetch("/failed_write_error")
+        self.assertEqual(response.code, 500)
+        self.assertEqual(b(""), response.body)
+
+class StaticFileTest(AsyncHTTPTestCase, LogTrapTestCase):
+    def get_app(self):
+        class StaticUrlHandler(RequestHandler):
+            def get(self, path):
+                self.write(self.static_url(path))
+
+        class AbsoluteStaticUrlHandler(RequestHandler):
+            include_host = True
+            def get(self, path):
+                self.write(self.static_url(path))
+
+        class OverrideStaticUrlHandler(RequestHandler):
+            def get(self, path):
+                do_include = bool(self.get_argument("include_host"))
+                self.include_host = not do_include
+
+                regular_url = self.static_url(path)
+                override_url = self.static_url(path, include_host=do_include)
+                if override_url == regular_url:
+                    return self.write(str(False))
+
+                protocol = self.request.protocol + "://"
+                protocol_length = len(protocol)
+                check_regular = regular_url.find(protocol, 0, protocol_length)
+                check_override = override_url.find(protocol, 0, protocol_length)
+
+                if do_include:
+                    result = (check_override == 0 and check_regular == -1)
+                else:
+                    result = (check_override == -1 and check_regular == 0)
+                self.write(str(result))
+
+        return Application([('/static_url/(.*)', StaticUrlHandler),
+                            ('/abs_static_url/(.*)', AbsoluteStaticUrlHandler),
+                            ('/override_static_url/(.*)', OverrideStaticUrlHandler)],
+                           static_path=os.path.join(os.path.dirname(__file__), 'static'))
+
+    def test_static_files(self):
+        response = self.fetch('/robots.txt')
+        assert b("Disallow: /") in response.body
+
+        response = self.fetch('/static/robots.txt')
+        assert b("Disallow: /") in response.body
+
+    def test_static_url(self):
+        response = self.fetch("/static_url/robots.txt")
+        self.assertEqual(response.body, b("/static/robots.txt?v=f71d2"))
+
+    def test_absolute_static_url(self):
+        response = self.fetch("/abs_static_url/robots.txt")
+        self.assertEqual(response.body,
+                         utf8(self.get_url("/") + "static/robots.txt?v=f71d2"))
+
+    def test_include_host_override(self):
+        self._trigger_include_host_check(False)
+        self._trigger_include_host_check(True)
+
+    def _trigger_include_host_check(self, include_host):
+        path = "/override_static_url/robots.txt?include_host=%s"
+        response = self.fetch(path % int(include_host))
+        self.assertEqual(response.body, utf8(str(True)))
+
+class CustomStaticFileTest(AsyncHTTPTestCase, LogTrapTestCase):
+    def get_app(self):
+        class MyStaticFileHandler(StaticFileHandler):
+            def get(self, path):
+                path = self.parse_url_path(path)
+                assert path == "foo.txt"
+                self.write("bar")
+
+            @classmethod
+            def make_static_url(cls, settings, path):
+                version_hash = cls.get_version(settings, path)
+                extension_index = path.rindex('.')
+                before_version = path[:extension_index]
+                after_version = path[(extension_index + 1):]
+                return '/static/%s.%s.%s' % (before_version, 42, after_version)
+
+            @classmethod
+            def parse_url_path(cls, url_path):
+                extension_index = url_path.rindex('.')
+                version_index = url_path.rindex('.', 0, extension_index)
+                return '%s%s' % (url_path[:version_index],
+                                 url_path[extension_index:])
+
+        class StaticUrlHandler(RequestHandler):
+            def get(self, path):
+                self.write(self.static_url(path))
+
+        return Application([("/static_url/(.*)", StaticUrlHandler)],
+                           static_path="dummy",
+                           static_handler_class=MyStaticFileHandler)
+
+    def test_serve(self):
+        response = self.fetch("/static/foo.42.txt")
+        self.assertEqual(response.body, b("bar"))
+
+    def test_static_url(self):
+        response = self.fetch("/static_url/foo.txt")
+        self.assertEqual(response.body, b("/static/foo.42.txt"))

@@ -10,6 +10,10 @@ The default implementation is `simple_httpclient`, and this is expected
 to be suitable for most users' needs.  However, some applications may wish
 to switch to `curl_httpclient` for reasons such as the following:
 
+* `curl_httpclient` has some features not found in `simple_httpclient`,
+  including support for HTTP proxies and the ability to use a specified
+  network interface.
+
 * `curl_httpclient` is more likely to be compatible with sites that are
   not-quite-compliant with the HTTP spec, or sites that use little-exercised
   features of HTTP.
@@ -28,7 +32,6 @@ supported version is 7.18.2, and the recommended version is 7.21.1 or newer.
 import calendar
 import email.utils
 import httplib
-import os
 import time
 import weakref
 
@@ -51,13 +54,23 @@ class HTTPClient(object):
         except httpclient.HTTPError, e:
             print "Error:", e
     """
-    def __init__(self):
+    def __init__(self, async_client_class=None):
         self._io_loop = IOLoop()
-        self._async_client = AsyncHTTPClient(self._io_loop)
+        if async_client_class is None:
+            async_client_class = AsyncHTTPClient
+        self._async_client = async_client_class(self._io_loop)
         self._response = None
+        self._closed = False
 
     def __del__(self):
-        self._async_client.close()
+        self.close()
+
+    def close(self):
+        """Closes the HTTPClient, freeing any resources used."""
+        if not self._closed:
+            self._async_client.close()
+            self._io_loop.close()
+            self._closed = True
 
     def fetch(self, request, **kwargs):
         """Executes a request, returning an `HTTPResponse`.
@@ -104,23 +117,29 @@ class AsyncHTTPClient(object):
     are deprecated.  The implementation subclass as well as arguments to
     its constructor can be set with the static method configure()
     """
-    _async_clients = weakref.WeakKeyDictionary()
     _impl_class = None
     _impl_kwargs = None
+
+    @classmethod
+    def _async_clients(cls):
+        assert cls is not AsyncHTTPClient, "should only be called on subclasses"
+        if not hasattr(cls, '_async_client_dict'):
+            cls._async_client_dict = weakref.WeakKeyDictionary()
+        return cls._async_client_dict
 
     def __new__(cls, io_loop=None, max_clients=10, force_instance=False, 
                 **kwargs):
         io_loop = io_loop or IOLoop.instance()
-        if io_loop in cls._async_clients and not force_instance:
-            return cls._async_clients[io_loop]
+        if cls is AsyncHTTPClient:
+            if cls._impl_class is None:
+                from tornado.simple_httpclient import SimpleAsyncHTTPClient
+                AsyncHTTPClient._impl_class = SimpleAsyncHTTPClient
+            impl = AsyncHTTPClient._impl_class
         else:
-            if cls is AsyncHTTPClient:
-                if cls._impl_class is None:
-                    from tornado.simple_httpclient import SimpleAsyncHTTPClient
-                    AsyncHTTPClient._impl_class = SimpleAsyncHTTPClient
-                impl = cls._impl_class
-            else:
-                impl = cls
+            impl = cls
+        if io_loop in impl._async_clients() and not force_instance:
+            return impl._async_clients()[io_loop]
+        else:
             instance = super(AsyncHTTPClient, cls).__new__(impl)
             args = {}
             if cls._impl_kwargs:
@@ -128,7 +147,7 @@ class AsyncHTTPClient(object):
             args.update(kwargs)
             instance.initialize(io_loop, max_clients, **args)
             if not force_instance:
-                cls._async_clients[io_loop] = instance
+                impl._async_clients()[io_loop] = instance
             return instance
 
     def close(self):
@@ -137,8 +156,8 @@ class AsyncHTTPClient(object):
         create and destroy http clients.  No other methods may be called
         on the AsyncHTTPClient after close().
         """
-        if self._async_clients[self.io_loop] is self:
-            del self._async_clients[self.io_loop]
+        if self._async_clients().get(self.io_loop) is self:
+            del self._async_clients()[self.io_loop]
 
     def fetch(self, request, callback, **kwargs):
         """Executes a request, calling callback with an `HTTPResponse`.
@@ -193,7 +212,8 @@ class HTTPRequest(object):
                  proxy_host=None, proxy_port=None, proxy_username=None,
                  proxy_password='', allow_nonstandard_methods=False,
                  validate_cert=True, ca_certs=None,
-                 allow_ipv6=None):
+                 allow_ipv6=None,
+                 client_key=None, client_cert=None):
         """Creates an `HTTPRequest`.
 
         All parameters except `url` are optional.
@@ -242,6 +262,8 @@ class HTTPRequest(object):
            to mix requests with ca_certs and requests that use the defaults.
         :arg bool allow_ipv6: Use IPv6 when available?  Default is false in 
            `simple_httpclient` and true in `curl_httpclient`
+        :arg string client_key: Filename for client SSL key, if any
+        :arg string client_cert: Filename for client SSL certificate, if any
         """
         if headers is None:
             headers = httputil.HTTPHeaders()
@@ -273,6 +295,8 @@ class HTTPRequest(object):
         self.validate_cert = validate_cert
         self.ca_certs = ca_certs
         self.allow_ipv6 = allow_ipv6
+        self.client_key = client_key
+        self.client_cert = client_cert
         self.start_time = time.time()
 
 
@@ -369,12 +393,15 @@ def main():
     define("print_headers", type=bool, default=False)
     define("print_body", type=bool, default=True)
     define("follow_redirects", type=bool, default=True)
+    define("validate_cert", type=bool, default=True)
     args = parse_command_line()
     client = HTTPClient()
     for arg in args:
         try:
             response = client.fetch(arg,
-                                    follow_redirects=options.follow_redirects)
+                                    follow_redirects=options.follow_redirects,
+                                    validate_cert=options.validate_cert,
+                                    )
         except HTTPError, e:
             if e.response is not None:
                 response = e.response
@@ -384,6 +411,7 @@ def main():
             print response.headers
         if options.print_body:
             print response.body
+    client.close()
 
 if __name__ == "__main__":
     main()

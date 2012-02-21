@@ -4,15 +4,16 @@ from __future__ import with_statement
 
 import base64
 import binascii
-import gzip
-import socket
-
 from contextlib import closing
+import functools
+
 from tornado.escape import utf8
 from tornado.httpclient import AsyncHTTPClient
+from tornado.iostream import IOStream
+from tornado import netutil
 from tornado.testing import AsyncHTTPTestCase, LogTrapTestCase, get_unused_port
 from tornado.util import b, bytes_type
-from tornado.web import Application, RequestHandler, asynchronous, url
+from tornado.web import Application, RequestHandler, url
 
 class HelloWorldHandler(RequestHandler):
     def get(self):
@@ -34,11 +35,6 @@ class ChunkHandler(RequestHandler):
 class AuthHandler(RequestHandler):
     def get(self):
         self.finish(self.request.headers["Authorization"])
-
-class HangHandler(RequestHandler):
-    @asynchronous
-    def get(self):
-        pass
 
 class CountdownHandler(RequestHandler):
     def get(self, count):
@@ -66,7 +62,6 @@ class HTTPClientCommonTestCase(AsyncHTTPTestCase, LogTrapTestCase):
             url("/post", PostHandler),
             url("/chunk", ChunkHandler),
             url("/auth", AuthHandler),
-            url("/hang", HangHandler),
             url("/countdown/([0-9]+)", CountdownHandler, name="countdown"),
             url("/echopost", EchoPostHandler),
             ], gzip=True)
@@ -81,6 +76,7 @@ class HTTPClientCommonTestCase(AsyncHTTPTestCase, LogTrapTestCase):
         self.assertEqual(response.code, 200)
         self.assertEqual(response.headers["Content-Type"], "text/plain")
         self.assertEqual(response.body, b("Hello world!"))
+        self.assertEqual(int(response.request_time), 0)
 
         response = self.fetch("/hello?name=Ben")
         self.assertEqual(response.body, b("Hello Ben!"))
@@ -110,46 +106,41 @@ class HTTPClientCommonTestCase(AsyncHTTPTestCase, LogTrapTestCase):
         self.assertEqual(chunks, [b("asdf"), b("qwer")])
         self.assertFalse(response.body)
 
+    def test_chunked_close(self):
+        # test case in which chunks spread read-callback processing
+        # over several ioloop iterations, but the connection is already closed.
+        port = get_unused_port()
+        (sock,) = netutil.bind_sockets(port, address="127.0.0.1")
+        with closing(sock):
+            def write_response(stream, request_data):
+                stream.write(b("""\
+HTTP/1.1 200 OK
+Transfer-Encoding: chunked
+
+1
+1
+1
+2
+0
+
+""").replace(b("\n"), b("\r\n")), callback=stream.close)
+            def accept_callback(conn, address):
+                # fake an HTTP server using chunked encoding where the final chunks
+                # and connection close all happen at once
+                stream = IOStream(conn, io_loop=self.io_loop)
+                stream.read_until(b("\r\n\r\n"),
+                                  functools.partial(write_response, stream))
+            netutil.add_accept_handler(sock, accept_callback, self.io_loop)
+            self.http_client.fetch("http://127.0.0.1:%d/" % port, self.stop)
+            resp = self.wait()
+            resp.rethrow()
+            self.assertEqual(resp.body, b("12"))
+        
+
     def test_basic_auth(self):
         self.assertEqual(self.fetch("/auth", auth_username="Aladdin",
                                     auth_password="open sesame").body,
                          b("Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ=="))
-
-    def test_gzip(self):
-        # All the tests in this file should be using gzip, but this test
-        # ensures that it is in fact getting compressed.
-        # Setting Accept-Encoding manually bypasses the client's
-        # decompression so we can see the raw data.
-        response = self.fetch("/chunk", use_gzip=False,
-                              headers={"Accept-Encoding": "gzip"})
-        self.assertEqual(response.headers["Content-Encoding"], "gzip")
-        self.assertNotEqual(response.body, b("asdfqwer"))
-        # Our test data gets bigger when gzipped.  Oops.  :)
-        self.assertEqual(len(response.body), 34)
-        f = gzip.GzipFile(mode="r", fileobj=response.buffer)
-        self.assertEqual(f.read(), b("asdfqwer"))
-
-    def test_connect_timeout(self):
-        # create a socket and bind it to a port, but don't
-        # call accept so the connection will timeout.
-        #get_unused_port()
-        port = get_unused_port()
-
-        with closing(socket.socket()) as sock:
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            sock.bind(('127.0.0.1', port))
-            sock.listen(1)
-            self.http_client.fetch("http://localhost:%d/" % port,
-                                   self.stop,
-                                   connect_timeout=0.1)
-            response = self.wait()
-            self.assertEqual(response.code, 599)
-            self.assertEqual(str(response.error), "HTTP 599: Timeout")
-
-    def test_request_timeout(self):
-        response = self.fetch('/hang', request_timeout=0.1)
-        self.assertEqual(response.code, 599)
-        self.assertEqual(str(response.error), "HTTP 599: Timeout")
 
     def test_follow_redirect(self):
         response = self.fetch("/countdown/2", follow_redirects=False)
@@ -160,15 +151,6 @@ class HTTPClientCommonTestCase(AsyncHTTPTestCase, LogTrapTestCase):
         self.assertEqual(200, response.code)
         self.assertTrue(response.effective_url.endswith("/countdown/0"))
         self.assertEqual(b("Zero"), response.body)
-
-    def test_max_redirects(self):
-        response = self.fetch("/countdown/5", max_redirects=3)
-        self.assertEqual(302, response.code)
-        # We requested 5, followed three redirects for 4, 3, 2, then the last
-        # unfollowed redirect is to 1.
-        self.assertTrue(response.request.url.endswith("/countdown/5"))
-        self.assertTrue(response.effective_url.endswith("/countdown/2"))
-        self.assertTrue(response.headers["Location"].endswith("/countdown/1"))
 
     def test_credentials_in_url(self):
         url = self.get_url("/auth").replace("http://", "http://me:secret@")
@@ -201,19 +183,6 @@ class HTTPClientCommonTestCase(AsyncHTTPTestCase, LogTrapTestCase):
                               user_agent=u"foo")
         self.assertEqual(response.headers["Content-Length"], "1")
         self.assertEqual(response.body, byte_body)
-
-    def test_ipv6(self):
-        self.http_server.bind(self.get_http_port(), address='::1')
-        url = self.get_url("/hello").replace("localhost", "[::1]")
-
-        # ipv6 is currently disabled by default and must be explicitly requested
-        self.http_client.fetch(url, self.stop)
-        response = self.wait()
-        self.assertEqual(response.code, 599)
-
-        self.http_client.fetch(url, self.stop, allow_ipv6=True)
-        response = self.wait()
-        self.assertEqual(response.body, b("Hello world!"))
 
     def test_types(self):
         response = self.fetch("/hello")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2009 Facebook
+# Copyright 2011 Facebook
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -14,14 +14,18 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-"""The Tornado web server and tools."""
+"""Implementation of platform-specific functionality.
 
-# version is a human-readable version number.
+For each function or class described in `tornado.platform.interface`,
+the appropriate platform-specific implementation exists in this module.
+Most code that needs access to this functionality should do e.g.::
 
-# version_info is a four-tuple for programmatic comparison. The first
-# three numbers are the components of the version number.  The fourth
-# is zero for an official release, positive for a development branch,
-# or negative for a release candidate (after the base version number
-# has been incremented)
-version = "2.2"
-version_info = (2, 2, 0, 0)
+    from tornado.platform.auto import set_close_exec
+"""
+
+import os
+
+if os.name == 'nt':
+    from tornado.platform.windows import set_close_exec, Waker
+else:
+    from tornado.platform.posix import set_close_exec, Waker

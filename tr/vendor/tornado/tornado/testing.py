@@ -21,15 +21,22 @@ information.
 from __future__ import with_statement
 
 from cStringIO import StringIO
-from tornado.httpclient import AsyncHTTPClient
-from tornado.httpserver import HTTPServer
+try:
+    from tornado.httpclient import AsyncHTTPClient
+    from tornado.httpserver import HTTPServer
+    from tornado.ioloop import IOLoop
+except ImportError:
+    # These modules are not importable on app engine.  Parts of this module
+    # won't work, but e.g. LogTrapTestCase and main() will.
+    AsyncHTTPClient = None
+    HTTPServer = None
+    IOLoop = None
 from tornado.stack_context import StackContext, NullContext
 import contextlib
 import logging
-import os
+import signal
 import sys
 import time
-import tornado.ioloop
 import unittest
 
 _next_port = 10000
@@ -69,20 +76,27 @@ class AsyncTestCase(unittest.TestCase):
                 client.fetch("http://www.tornadoweb.org/", self.handle_fetch)
                 self.wait()
 
-            def handle_fetch(self, response)
+            def handle_fetch(self, response):
                 # Test contents of response (failures and exceptions here
                 # will cause self.wait() to throw an exception and end the
                 # test).
+                # Exceptions thrown here are magically propagated to
+                # self.wait() in test_http_fetch() via stack_context.
+                self.assertIn("FriendFeed", response.body)
                 self.stop()
 
         # This test uses the argument passing between self.stop and self.wait
-        # for a simpler, more synchronous style
+        # for a simpler, more synchronous style.
+        # This style is recommended over the preceding example because it
+        # keeps the assertions in the test method itself, and is therefore
+        # less sensitive to the subtleties of stack_context.
         class MyTestCase2(AsyncTestCase):
             def test_http_fetch(self):
                 client = AsyncHTTPClient(self.io_loop)
                 client.fetch("http://www.tornadoweb.org/", self.stop)
                 response = self.wait()
                 # Test contents of response
+                self.assertIn("FriendFeed", response.body)
     """
     def __init__(self, *args, **kwargs):
         super(AsyncTestCase, self).__init__(*args, **kwargs)
@@ -96,24 +110,13 @@ class AsyncTestCase(unittest.TestCase):
         self.io_loop = self.get_new_ioloop()
 
     def tearDown(self):
-        if self.io_loop is not tornado.ioloop.IOLoop.instance():
+        if (not IOLoop.initialized() or
+            self.io_loop is not IOLoop.instance()):
             # Try to clean up any file descriptors left open in the ioloop.
             # This avoids leaks, especially when tests are run repeatedly
             # in the same process with autoreload (because curl does not
             # set FD_CLOEXEC on its file descriptors)
-            for fd in self.io_loop._handlers.keys()[:]:
-                if (fd == self.io_loop._waker_reader.fileno() or
-                    fd == self.io_loop._waker_writer.fileno()):
-                    # Close these through the file objects that wrap
-                    # them, or else the destructor will try to close
-                    # them later and log a warning
-                    continue
-                try:
-                    os.close(fd)
-                except:
-                    logging.debug("error closing fd %d", fd, exc_info=True)
-            self.io_loop._waker_reader.close()
-            self.io_loop._waker_writer.close()
+            self.io_loop.close(all_fds=True)
         super(AsyncTestCase, self).tearDown()
 
     def get_new_ioloop(self):
@@ -121,13 +124,13 @@ class AsyncTestCase(unittest.TestCase):
         subclasses for tests that require a specific IOLoop (usually
         the singleton).
         '''
-        return tornado.ioloop.IOLoop()
+        return IOLoop()
 
     @contextlib.contextmanager
     def _stack_context(self):
         try:
             yield
-        except:
+        except Exception:
             self.__failure = sys.exc_info()
             self.stop()
 
@@ -164,7 +167,7 @@ class AsyncTestCase(unittest.TestCase):
                         raise self.failureException(
                           'Async operation timed out after %d seconds' %
                           timeout)
-                    except:
+                    except Exception:
                         self.__failure = sys.exc_info()
                     self.stop()
                 self.io_loop.add_timeout(time.time() + timeout, timeout_func)
@@ -306,11 +309,15 @@ class LogTrapTestCase(unittest.TestCase):
             handler.stream = old_stream
 
 def main():
-    """A simple test runner with autoreload support.
+    """A simple test runner.
+
+    This test runner is essentially equivalent to `unittest.main` from
+    the standard library, but adds support for tornado-style option
+    parsing and log formatting.
 
     The easiest way to run a test is via the command line::
 
-        python -m tornado.testing --autoreload tornado.test.stack_context_test
+        python -m tornado.testing tornado.test.stack_context_test
 
     See the standard library unittest module for ways in which tests can
     be specified.
@@ -322,25 +329,29 @@ def main():
     be overridden by naming a single test on the command line::
 
         # Runs all tests
-        tornado/test/runtests.py --autoreload
+        tornado/test/runtests.py
         # Runs one test
-        tornado/test/runtests.py --autoreload tornado.test.stack_context_test
+        tornado/test/runtests.py tornado.test.stack_context_test
 
-    If --autoreload is specified, the process will continue running
-    after the tests finish, and when any source file changes the tests
-    will be rerun.  Without --autoreload, the process will exit
-    once the tests finish (with an exit status of 0 for success and
-    non-zero for failures).
     """
     from tornado.options import define, options, parse_command_line
 
-    define('autoreload', type=bool, default=False)
+    define('autoreload', type=bool, default=False,
+           help="DEPRECATED: use tornado.autoreload.main instead")
     define('httpclient', type=str, default=None)
+    define('exception_on_interrupt', type=bool, default=True,
+           help=("If true (default), ctrl-c raises a KeyboardInterrupt "
+                 "exception.  This prints a stack trace but cannot interrupt "
+                 "certain operations.  If false, the process is more reliably "
+                 "killed, but does not print a stack trace."))
     argv = [sys.argv[0]] + parse_command_line(sys.argv)
 
     if options.httpclient:
         from tornado.httpclient import AsyncHTTPClient
         AsyncHTTPClient.configure(options.httpclient)
+
+    if not options.exception_on_interrupt:
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
 
     if __name__ == '__main__' and len(argv) == 1:
         print >> sys.stderr, "No tests specified"
@@ -365,10 +376,7 @@ def main():
             raise
     if options.autoreload:
         import tornado.autoreload
-        import tornado.ioloop
-        ioloop = tornado.ioloop.IOLoop()
-        tornado.autoreload.start(ioloop)
-        ioloop.start()
+        tornado.autoreload.wait()
 
 if __name__ == '__main__':
     main()

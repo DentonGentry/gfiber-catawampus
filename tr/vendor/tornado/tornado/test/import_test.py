@@ -17,6 +17,9 @@ class ImportTest(unittest.TestCase):
         import tornado.iostream
         import tornado.locale
         import tornado.options
+        import tornado.netutil
+        # import tornado.platform.twisted # depends on twisted
+        import tornado.process
         import tornado.simple_httpclient
         import tornado.stack_context
         import tornado.template
@@ -24,5 +27,31 @@ class ImportTest(unittest.TestCase):
         import tornado.util
         import tornado.web
         import tornado.websocket
-        # import tornado.win32_support  # depends on windows
         import tornado.wsgi
+
+    # for modules with dependencies, if those dependencies can be loaded,
+    # load them too.
+
+    def test_import_pycurl(self):
+        try:
+            import pycurl
+        except ImportError:
+            pass
+        else:
+            import tornado.curl_httpclient
+
+    def test_import_mysqldb(self):
+        try:
+            import MySQLdb
+        except ImportError:
+            pass
+        else:
+            import tornado.database
+
+    def test_import_twisted(self):
+        try:
+            import twisted
+        except ImportError:
+            pass
+        else:
+            import tornado.platform.twisted
