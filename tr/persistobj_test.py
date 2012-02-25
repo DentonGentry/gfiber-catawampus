@@ -58,6 +58,14 @@ class PersistentObjectTest(unittest.TestCase):
     self.assertEqual(tobj.foo, 'bar')
     self.assertEqual(tobj.baz, 4)
 
+  def testReadFromCorruptFile(self):
+    contents = 'this is not a JSON file'
+    f = tempfile.NamedTemporaryFile(dir=self.tmpdir, delete=False)
+    f.write(contents)
+    f.close()
+    self.assertRaises(ValueError, persistobj.PersistentObject,
+                      self.tmpdir, 'TestObj', filename=f.name)
+
   def testUpdate(self):
     kwargs = dict(foo1='bar1', foo3=3)
     tobj = persistobj.PersistentObject(self.tmpdir, 'TestObj', **kwargs)
@@ -99,13 +107,14 @@ class PersistentObjectTest(unittest.TestCase):
   def testGetPersistentObjects(self):
     expected = ['{"foo": "bar1", "baz": 4}',
                 '{"foo": "bar2", "baz": 5}',
-                '{"foo": "bar3", "baz": 6}']
+                '{"foo": "bar3", "baz": 6}',
+                'This is not a JSON file']  # test corrupt file hanlding
     for obj in expected:
       with tempfile.NamedTemporaryFile(
           dir=self.tmpdir, prefix='tr69_dnld', delete=False) as f:
         f.write(obj)
     actual = persistobj.GetPersistentObjects(self.tmpdir)
-    self.assertEqual(len(actual), len(expected))
+    self.assertEqual(len(actual), len(expected)-1)
     found = [False, False, False]
     for entry in actual:
       if entry.foo == 'bar1' and entry.baz == 4:

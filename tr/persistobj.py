@@ -17,6 +17,9 @@ class PersistentObject(object):
   def __init__(self, objdir, rootname='object', filename=None, **kwargs):
     """Create either a fresh new object, or restored state from filesystem.
 
+    Raises:
+      ValueError: reading an object from a JSON file failed.
+
     Args:
       objdir: the directory to write the json file to
       rootname: the tag for the root of the json file for this object.
@@ -110,8 +113,13 @@ class PersistentObject(object):
 def GetPersistentObjects(objdir, rootname=''):
   globstr = objdir + '/' + rootname + '*'
   objs = []
-  for f in glob.glob(globstr):
-    objs.append(PersistentObject(objdir, rootname=rootname, filename=f))
+  for filename in glob.glob(globstr):
+    try:
+      obj = PersistentObject(objdir, rootname=rootname, filename=filename)
+    except ValueError:
+      os.remove(filename)
+      continue
+    objs.append(obj)
   return objs
 
 
