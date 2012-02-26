@@ -8,6 +8,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import collections
 import errno
 import os
+import shutil
 import time
 import urlparse
 import google3
@@ -20,21 +21,8 @@ import http_download
 import persistobj
 
 
-# Persistent object storage location and filename
-STATEDIR = '/tmp'
+# Persistent object storage filename
 ROOTNAME = 'tr69_dnld'
-
-
-def SetStateDir(statedir):
-  global STATEDIR
-  try:
-    os.makedirs(statedir, 0755)
-  except OSError as e:
-    if e.errno == errno.EEXIST:
-      pass
-    else:
-      raise
-  STATEDIR = statedir
 
 
 class Installer(object):
@@ -116,7 +104,8 @@ class Download(object):
   EV_REBOOT_COMPLETE = 5
   EV_TCRESPONSE = 6
 
-  def __init__(self, stateobj, transfer_complete_cb, ioloop=None):
+  def __init__(self, stateobj, transfer_complete_cb,
+               download_dir=None, ioloop=None):
     """Download object.
 
     Args:
@@ -127,6 +116,7 @@ class Download(object):
     """
     self.stateobj = self._restore_dlstate(stateobj)
     self.transfer_complete_cb = transfer_complete_cb
+    self.download_dir = download_dir
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self.download = None
     self.downloaded_file = None
@@ -187,7 +177,8 @@ class Download(object):
     o = urlparse.urlparse(url)
     client = DOWNLOAD_CLIENT[o.scheme]
     return client(url=url, username=username, password=password,
-                  download_complete_cb=self.download_complete_callback)
+                  download_complete_cb=self.download_complete_callback,
+                  download_dir=self.download_dir)
 
   def _send_transfer_complete(self, faultcode, faultstring, start=0.0, end=0.0):
     event_code = getattr(self.stateobj, 'event_code', 'M Download')
@@ -332,6 +323,10 @@ class Download(object):
     return q
 
 
+# Object to track an individual Download RPC. Unit tests can override this.
+DOWNLOADOBJ = Download
+
+
 class DownloadManager(object):
   """Manage Download requests from the ACS.
 
@@ -345,15 +340,13 @@ class DownloadManager(object):
   # Maximum simultaneous downloads. tr-69 requires minimum of 3.
   MAXDOWNLOADS = 3
 
-  # Object to track an individual Download RPC. Unit tests can override this.
-  DOWNLOADOBJ = Download
-
-  # Functions to send RPCs, to be filled in by parent object.
-  SEND_TRANSFER_COMPLETE = None
-
   def __init__(self):
     self._downloads = list()
     self._pending_complete = list()
+    self.config_dir = '/tmp/'
+    self.download_dir = '/tmp/'
+    # Function to send RPCs, to be filled in by parent object.
+    self.send_transfer_complete = None
 
   def NewDownload(self, command_key=None, file_type=None, url=None,
                   username=None, password=None, file_size=0,
@@ -396,10 +389,11 @@ class DownloadManager(object):
                   target_filename=target_filename,
                   delay_seconds=delay_seconds,
                   event_code='M Download')
-    pobj = persistobj.PersistentObject(objdir=STATEDIR, rootname=ROOTNAME,
+    pobj = persistobj.PersistentObject(objdir=self.config_dir, rootname=ROOTNAME,
                                        filename=None, **kwargs)
-    dl = self.DOWNLOADOBJ(stateobj=pobj,
-                          transfer_complete_cb=self.TransferCompleteCallback)
+    dl = DOWNLOADOBJ(stateobj=pobj,
+                     transfer_complete_cb=self.TransferCompleteCallback,
+                     download_dir=self.download_dir)
     self._downloads.append(dl)
     dl.do_start()
 
@@ -409,17 +403,19 @@ class DownloadManager(object):
                                starttime, endtime, event_code):
     self._downloads.remove(dl)
     self._pending_complete.append(dl)
-    self.SEND_TRANSFER_COMPLETE(command_key, faultcode, faultstring,
+    self.send_transfer_complete(command_key, faultcode, faultstring,
                                 starttime, endtime, event_code)
 
   def RestoreDownloads(self):
-    pobjs = persistobj.GetPersistentObjects(objdir=STATEDIR, rootname=ROOTNAME)
+    pobjs = persistobj.GetPersistentObjects(objdir=self.config_dir,
+                                            rootname=ROOTNAME)
     for pobj in pobjs:
       if not hasattr(pobj, 'command_key'):
         # TODO(dgentry) Log error
         continue
-      dl = self.DOWNLOADOBJ(stateobj=pobj,
-                            transfer_complete_cb=self.TransferCompleteCallback)
+      dl = DOWNLOADOBJ(stateobj=pobj,
+                       transfer_complete_cb=self.TransferCompleteCallback,
+                       download_dir=self.download_dir)
       self._downloads.append(dl)
       dl.reboot_callback(0, None)
 
@@ -457,6 +453,29 @@ class DownloadManager(object):
       if dl.CommandKey() == command_key:
         raise core.CancelNotPermitted(
             'Installed, awaiting TransferCompleteResponse')
+
+  def _DoubleCheckDirectory(self, directory):
+    """Make sure a directory exists."""
+    try:
+      os.makedirs(directory, 0755)
+    except OSError as e:
+      if e.errno == errno.EEXIST:
+        pass
+      else:
+        raise
+
+  def _CleanDirectory(self, directory):
+    try:
+      shutil.rmtree(directory)
+    except OSError as e:
+      pass
+
+  def SetDirectories(self, config_dir, download_dir):
+    self.config_dir = os.path.join(config_dir, 'state')
+    self.download_dir = os.path.join(download_dir, 'dnld')
+    self._DoubleCheckDirectory(self.config_dir)
+    self._CleanDirectory(self.download_dir)
+    self._DoubleCheckDirectory(self.download_dir)
 
 
 def main():

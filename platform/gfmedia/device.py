@@ -16,6 +16,7 @@ import google3
 import dm.brcmwifi
 import dm.device_info
 import dm.storage
+import platform_config
 import tornado.ioloop
 import tr.core
 import tr.download
@@ -28,12 +29,24 @@ import gvsb
 INTERNAL_ERROR = 9002
 
 # Unit tests can override these with fake data
-CONFIGDIR = '/config'
+CONFIGDIR = '/config/tr69'
+DOWNLOADDIR = '/rw/tr69'
 GINSTALL = '/bin/ginstall.py'
 HNVRAM = '/bin/hnvram'
 REBOOT = '/bin/tr69_reboot'
 REPOMANIFEST = '/etc/repo-buildroot-manifest'
 VERSIONFILE = '/etc/version'
+
+
+class PlatformConfig(platform_config.PlatformConfigMeta):
+  """PlatformConfig for GFMedia devices."""
+
+  def ConfigDir(self):
+    return CONFIGDIR
+
+  def DownloadDir(self):
+    return DOWNLOADDIR
+
 
 class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
   def _GetOneLine(self, filename, default):
@@ -276,7 +289,6 @@ class InternetGatewayDeviceGFMedia(BASE98IGD):
 
 def PlatformInit(name, device_model_root):
   tr.download.INSTALLER = InstallerGFMedia
-  tr.download.SetStateDir(CONFIGDIR + '/tr69_dnld/')
   params = []
   objects = []
   dev_id = DeviceIdGFMedia()

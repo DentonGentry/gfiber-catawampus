@@ -35,9 +35,9 @@ class DeviceModelRoot(tr.core.Exporter):
   def __init__(self, loop, platform):
     tr.core.Exporter.__init__(self)
     if platform:
-      device = _RecursiveImport('platform.%s.device' % platform)
-      (params, objects) = device.PlatformInit(name=platform,
-                                              device_model_root=self)
+      self.device = _RecursiveImport('platform.%s.device' % platform)
+      (params, objects) = self.device.PlatformInit(name=platform,
+                                                   device_model_root=self)
     else:
       (params, objects) = (list(), list())
     self.TraceRoute = traceroute.TraceRoute(loop)
@@ -45,6 +45,10 @@ class DeviceModelRoot(tr.core.Exporter):
     self.X_CATAWAMPUS_ORG_CATAWAMPUS = dm.catawampus.CatawampusDm()
     objects.append('X_CATAWAMPUS-ORG_CATAWAMPUS')
     self.Export(params=params, objects=objects)
+
+  def get_platform_config(self):
+    """Return the platform_config.py object for this platform."""
+    return self.device.PlatformConfig()
 
   def add_management_server(self, mgmt):
     # tr-181 Device.ManagementServer

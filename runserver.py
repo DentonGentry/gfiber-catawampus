@@ -15,6 +15,7 @@ import tempfile
 import google3
 import bup.options
 import dm_root
+import platform_config
 import tornado.autoreload
 import tornado.httpclient
 import tr.api
@@ -92,6 +93,9 @@ def main():
       acs_url_file = _WriteAcsFile('')
 
     if cpe:
+      pc = root.get_platform_config()
+      cpe.download_manager.SetDirectories(config_dir=pc.ConfigDir(),
+                                          download_dir=pc.DownloadDir())
       cpe_machine = tr.http.Listen(opt.ip, opt.port, opt.ping_path, acs,
                                    acs_url_file, cpe, opt.cpe_listener)
       root.add_management_server(cpe_machine.GetManagementServer())

@@ -49,12 +49,13 @@ def calc_http_digest(method, uripath, qop, nonce, cnonce, nc,
 
 class HttpDownload(object):
   def __init__(self, url, username=None, password=None,
-               download_complete_cb=None, ioloop=None):
+               download_complete_cb=None, ioloop=None, download_dir=None):
     self.url = str(url)
     self.username = str(username)
     self.password = str(password)
     self.download_complete_cb = download_complete_cb
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
+    self.download_dir = download_dir
 
   def fetch(self):
     """Begin downloading file."""
@@ -65,7 +66,8 @@ class HttpDownload(object):
   def _start_download(self):
     print 'starting (auth_header=%r)' % self.auth_header
     if not self.tempfile:
-      self.tempfile = tempfile.NamedTemporaryFile(delete=False)
+      self.tempfile = tempfile.NamedTemporaryFile(delete=False,
+                                                  dir=self.download_dir)
     kwargs = dict(url=self.url,
                   request_timeout=3600.0,
                   streaming_callback=self.tempfile.write,

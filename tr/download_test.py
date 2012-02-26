@@ -51,11 +51,12 @@ class MockIoloop(object):
 
 class MockHttpDownload(object):
   def __init__(self, url, username=None, password=None,
-               download_complete_cb=None, ioloop=None):
+               download_complete_cb=None, download_dir=None, ioloop=None):
     self.url = url
     self.username = username
     self.password = password
     self.download_complete_cb = download_complete_cb
+    self.download_dir = download_dir
     self.ioloop = ioloop
     self.did_fetch = False
     mock_http_downloads.append(self)
@@ -372,10 +373,12 @@ class DownloadTest(unittest.TestCase):
 
 
 class MockDownloadObj(object):
-  def __init__(self, stateobj, transfer_complete_cb, done_cb=None, ioloop=None):
+  def __init__(self, stateobj, transfer_complete_cb, done_cb=None,
+               download_dir=None, ioloop=None):
     self.stateobj = stateobj
     self.transfer_complete_cb = transfer_complete_cb
     self.done_cb = done_cb
+    self.download_dir = download_dir
     self.ioloop = ioloop
     self.do_start_called = False
     self.immediate_complete_called = False
@@ -401,21 +404,21 @@ class MockDownloadObj(object):
 
 class DownloadManagerTest(unittest.TestCase):
   def setUp(self):
+    self.old_DOWNLOADOBJ = download.DOWNLOADOBJ
+    download.DOWNLOADOBJ = MockDownloadObj
     self.tmpdir = tempfile.mkdtemp()
-    self.old_statedir = download.STATEDIR
-    download.STATEDIR = self.tmpdir
     del mock_downloads[:]
 
   def tearDown(self):
-    download.STATEDIR = self.old_statedir
+    download.DOWNLOADOBJ = self.old_DOWNLOADOBJ
     shutil.rmtree(self.tmpdir)
     del mock_downloads[:]
 
   def allocTestDM(self):
     dm = download.DownloadManager()
+    dm.SetDirectories(self.tmpdir, self.tmpdir)
     cmpl = MockTransferComplete()
-    dm.SEND_TRANSFER_COMPLETE = cmpl.SendTransferComplete
-    dm.DOWNLOADOBJ = MockDownloadObj
+    dm.send_transfer_complete = cmpl.SendTransferComplete
     return (dm, cmpl)
 
   def testSimpleDownload(self):
@@ -474,7 +477,7 @@ class DownloadManagerTest(unittest.TestCase):
               'file_size': 99,
               'target_filename': 'TestFilename',
               'delay_seconds': 30}
-      persistobj.PersistentObject(objdir=download.STATEDIR,
+      persistobj.PersistentObject(objdir=dm.config_dir,
                                   rootname=download.ROOTNAME,
                                   filename=None, **args)
     dm.RestoreDownloads()

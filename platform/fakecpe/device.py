@@ -13,12 +13,24 @@ import os
 import google3
 import dm.device_info
 import dm.storage
+import platform_config
 import tornado.ioloop
 import tr.core
 import tr.download
 import tr.tr181_v2_2 as tr181
 
+FAKECPEINSTANCE = None
 INTERNAL_ERROR = 9002
+
+
+class PlatformConfig(platform_config.PlatformConfigMeta):
+  """PlatformConfig for FakeCPE."""
+
+  def ConfigDir(self):
+    return '/tmp/catawampus.%s/config/' % FakeCPEInstance()
+
+  def DownloadDir(self):
+    return '/tmp/catawampus.%s/download/' % FakeCPEInstance()
 
 
 class InstallerFakeCPE(tr.download.Installer):
@@ -45,9 +57,6 @@ class InstallerFakeCPE(tr.download.Installer):
   def reboot(self):
     #TODO(dgentry): Need to exit, and automatically restart
     pass
-
-
-FAKECPEINSTANCE = None
 
 
 def FakeCPEInstance():
@@ -154,7 +163,6 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
 
 def PlatformInit(name, device_model_root):
   tr.download.INSTALLER = InstallerFakeCPE
-  tr.download.SetStateDir('/tmp/tr69_dnld.{0}/'.format(FakeCPEInstance()))
   params = list()
   objects = list()
   device_model_root.Device = DeviceFakeCPE()

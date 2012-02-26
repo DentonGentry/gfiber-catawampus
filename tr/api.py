@@ -89,7 +89,7 @@ class CPE(TR069Service):
   def setCallbacks(self, send_transfer_complete,
                    transfer_complete_received,
                    inform_response_received):
-    self.download_manager.SEND_TRANSFER_COMPLETE = send_transfer_complete
+    self.download_manager.send_transfer_complete = send_transfer_complete
     self.transfer_complete_received_cb = transfer_complete_received
     self.inform_response_received_cb = inform_response_received
 
