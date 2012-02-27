@@ -104,7 +104,7 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
 
   @property
   def SerialNumber(self):
-    return self._GetNvramParam('SERIAL_NO', default='000000000000')
+    return self._GetNvramParam('1ST_SERIAL_NUMBER', default='000000000000')
 
   @property
   def HardwareVersion(self):
