@@ -12,18 +12,16 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import unittest
 import google3
 import dm_root
-import tr.tr098_v1_2
+import tr.tr098_v1_4
 import tr.tr181_v2_2
 
 
 BASE181 = tr.tr181_v2_2.Device_v2_2.Device
+BASE98 = tr.tr098_v1_4.InternetGatewayDevice_v1_9.InternetGatewayDevice
 
 
 class MockTr181(BASE181):
   pass
-
-
-BASE98 = tr.tr098_v1_2.InternetGatewayDevice_v1_4.InternetGatewayDevice
 
 
 class MockTr98(BASE98):

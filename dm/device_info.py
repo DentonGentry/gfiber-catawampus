@@ -17,10 +17,10 @@ import abc
 import glob
 import os
 import tr.core
-import tr.tr098_v1_2
+import tr.tr098_v1_4
 import tr.tr181_v2_2
 
-BASE98IGD = tr.tr098_v1_2.InternetGatewayDevice_v1_4.InternetGatewayDevice
+BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_9.InternetGatewayDevice
 BASE181DEVICE = tr.tr181_v2_2.Device_v2_2
 
 # Unit tests can override these with fake data
@@ -125,7 +125,7 @@ class DeviceInfo181Linux26(BASE181DEVICE.DeviceInfo):
     if hasattr(self._device_id, name):
       return getattr(self._device_id, name)
     else:
-      raise AttributeError
+      raise AttributeError('No such attribute %s' % name)
 
   @property
   def UpTime(self):

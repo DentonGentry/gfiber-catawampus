@@ -24,9 +24,9 @@ import subprocess
 import netdev
 import tr.core
 import tr.cwmpbool
-import tr.tr098_v1_2 as tr98
+import tr.tr098_v1_4
 
-BASE98IGD = tr98.InternetGatewayDevice_v1_4.InternetGatewayDevice
+BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_9.InternetGatewayDevice
 BASE98WIFI = BASE98IGD.LANDevice.WLANConfiguration
 WL_EXE = '/usr/bin/wl'
 
@@ -442,7 +442,6 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     self.KeyPassphrase = tr.core.TODO()
     self.LocationDescription = ''
     self.MaxBitRate = tr.core.TODO()
-    self.PreSharedKeyList = {}
     self.PossibleDataTransmitRates = tr.core.TODO()
     self.TotalIntegrityFailures = tr.core.TODO()
     self.TotalPSKFailures = tr.core.TODO()
@@ -455,6 +454,11 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     self.AssociatedDeviceList = tr.core.AutoDict(
         'AssociatedDeviceList', iteritems=self.IterAssociations,
         getitem=self.GetAssociationByIndex)
+
+    self.PreSharedKeyList = {}
+    for i in range(10):
+      # tr-98 mandates exactly 10 PreSharedKey objects.
+      self.PreSharedKeyList[i] = BrcmWlanPreSharedKey()
 
     # Local settings, currently unimplemented. Will require more
     # coordination with the underlying platform support.
@@ -719,6 +723,23 @@ class BrcmWlanConfigurationStats(BASE98WIFI.Stats):
       return getattr(self._netdev, name)
     else:
       raise AttributeError
+
+
+class BrcmWlanPreSharedKey(BASE98WIFI.PreSharedKey):
+  def __init__(self):
+    BASE98WIFI.PreSharedKey.__init__(self)
+    self.Unexport('KeyPassphrase')
+    self.Unexport('AssociatedDeviceMACAddress')
+
+  def SetPreSharedKey(self, value):
+    # TODO(dgentry): populate in wifi driver
+    self.key = value
+
+  def PreSharedKey(self):
+    return self.key
+
+  property(PreSharedKey, SetPreSharedKey, None,
+           'WLANConfiguration.{i}.PreSharedKey.{i}.')
 
 
 class BrcmWlanAssociatedDevice(BASE98WIFI.AssociatedDevice):

@@ -20,10 +20,12 @@ import platform_config
 import tornado.ioloop
 import tr.core
 import tr.download
-import tr.tr098_v1_2 as tr98
+import tr.tr098_v1_2
 import tr.tr181_v2_2 as tr181
 import gvsb
 
+
+BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_9.InternetGatewayDevice
 
 # tr-69 error codes
 INTERNAL_ERROR = 9002
@@ -58,6 +60,7 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
 
   def _GetNvramParam(self, param, default=''):
     """Return a parameter from NVRAM, like the serial number.
+
     Args:
       param: string name of the parameter to fetch. This must match the
         predefined names supported by /bin/hnvram
@@ -71,7 +74,7 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
     try:
       hnvram = subprocess.Popen(cmd, stdin=devnull, stderr=devnull,
                                 stdout=subprocess.PIPE)
-      out, err = hnvram.communicate()
+      out, _ = hnvram.communicate()
       if hnvram.returncode != 0:
         # Treat failure to run hnvram same as not having the field populated
         out = ''
@@ -81,7 +84,7 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
 
     # HNVRAM does not distinguish between "value not present" and
     # "value present, and is empty." Treat empty values as invalid.
-    if len(outlist) > 1 and len(outlist[1].strip()) > 0:
+    if outlist and outlist[1].strip():
       return outlist[1].strip()
     else:
       return default
@@ -108,11 +111,11 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
 
   @property
   def HardwareVersion(self):
-    return '0'  # TODO
+    return '0'  # TODO(dgentry) implement
 
   @property
   def AdditionalHardwareVersion(self):
-    return '0'  # TODO
+    return '0'  # TODO(dgentry) implement
 
   @property
   def SoftwareVersion(self):
@@ -132,7 +135,8 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
 
 
 class InstallerGFMedia(tr.download.Installer):
-  """Installer class used by tr/download.py"""
+  """Installer class used by tr/download.py."""
+
   def __init__(self, filename, ioloop=None):
     self.filename = filename
     self._install_cb = None
@@ -143,10 +147,10 @@ class InstallerGFMedia(tr.download.Installer):
       self._install_cb(faultcode, faultstring, must_reboot=True)
 
   def install(self, file_type, target_filename, callback):
-    type = file_type.split()
-    if len(type) > 0 and type[0] != '1':
+    ftype = file_type.split()
+    if ftype and ftype[0] != '1':
       self._call_callback(INTERNAL_ERROR,
-                          'Unsupported file_type {0}'.format(type[0]))
+                          'Unsupported file_type {0}'.format(ftype[0]))
       return False
     self._install_cb = callback
     cmd = [GINSTALL, '--tar={0}'.format(self.filename), '--partition=other']
@@ -234,10 +238,9 @@ class DeviceGFMedia(tr181.Device_v2_2.Device):
     self.InterfaceStackNumberOfEntries = 0
 
 
-BASE98IGD = tr98.InternetGatewayDevice_v1_4.InternetGatewayDevice
-
 class LANDeviceGFMedia(BASE98IGD.LANDevice):
   """tr-98 InternetGatewayDevice for Google Fiber media platforms."""
+
   def __init__(self):
     BASE98IGD.LANDevice.__init__(self)
     self.Unexport(objects='Hosts')
@@ -247,7 +250,7 @@ class LANDeviceGFMedia(BASE98IGD.LANDevice):
     self.LANEthernetInterfaceNumberOfEntries = 0
     self.LANUSBInterfaceNumberOfEntries = 0
     wifi = dm.brcmwifi.BrcmWifiWlanConfiguration('eth2')
-    self.WLANConfigurationList = {'0' : wifi}
+    self.WLANConfigurationList = {'0': wifi}
 
   @property
   def LANWLANConfigurationNumberOfEntries(self):
@@ -263,7 +266,7 @@ class InternetGatewayDeviceGFMedia(BASE98IGD):
     self.Unexport(objects='DownloadDiagnostics')
     self.Unexport(objects='IPPingDiagnostics')
     self.Unexport(objects='LANConfigSecurity')
-    self.LANDeviceList = {'0' : LANDeviceGFMedia() }
+    self.LANDeviceList = {'0': LANDeviceGFMedia()}
     self.Unexport(objects='LANInterfaces')
     self.Unexport(objects='Layer2Bridging')
     self.Unexport(objects='Layer3Forwarding')
@@ -302,7 +305,8 @@ def PlatformInit(name, device_model_root):
 
 
 def main():
-  root = DeviceGFMedia()
+  dev_id = DeviceIdGFMedia()
+  root = DeviceGFMedia(dev_id)
   root.ValidateExports()
   tr.core.Dump(root)
 
