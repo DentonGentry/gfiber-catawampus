@@ -21,7 +21,7 @@
       </syntax>
     </parameter>
     <parameter name="GvsbChannelLineup" access="readWrite">
-      <description>Identifier for current version of the channel lineup. When this value changes, the channel information should be fetched afresh.</description>
+      <description>Identifier for the current channel lineup.</description>
       <syntax>
         <base64>
           <size minLength="1" maxLength="64"/>
