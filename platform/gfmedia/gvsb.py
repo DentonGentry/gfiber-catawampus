@@ -13,18 +13,21 @@ import google3
 import tr.x_gvsb_1_0
 
 
-class Gvsb(tr.x_gvsb_1_0.X_GOOGLE_COM_GVSB_v1_0):
+class Gvsb(tr.x_gvsb_1_0.X_GOOGLE_COM_GVSB_v1_1):
   """Implementation of x-gvsb.xml."""
 
   GVSBSERVERFILE = '/tmp/gvsbhost'
   GVSBCHANNELFILE = '/tmp/gvsbchannel'
+  GVSBKICKFILE = '/tmp/gvsbkick'
 
   def __init__(self):
-    tr.x_gvsb_1_0.X_GOOGLE_COM_GVSB_v1_0.__init__(self)
+    super(Gvsb, self).__init__()
     self._gvsbserver = None
     self._gvsb_channel_lineup = None
+    self._gvsb_kick = None
     self._written_gvsbserver = None
     self._written_gvsb_channel_lineup = None
+    self._written_gvsb_kick = None
 
   def GetGvsbServer(self):
     return self._gvsbserver
@@ -57,17 +60,37 @@ class Gvsb(tr.x_gvsb_1_0.X_GOOGLE_COM_GVSB_v1_0):
   GvsbChannelLineup = property(GetGvsbChannelLineup, SetGvsbChannelLineup, None,
                                'X_GVSB.GvsbChannelLineup')
 
+  def GetGvsbKick(self):
+    return self._gvsb_kick
+
+  def SetGvsbKick(self, value):
+    self._gvsb_kick = value
+    self.ConfigureGvsb()
+
+  def ValidateGvsbKick(self, value):
+    return True
+
+  GvsbKick = property(GetGvsbKick, SetGvsbKick, None, 'X_GVSB.GvsbKick')
+
+  def WriteFile(self, filename, content):
+    try:
+      f = open(filename, 'w')
+      f.write(content)
+      f.close()
+      return True
+    except IOError:
+      return False
+
   def ConfigureGvsb(self):
     if self._gvsbserver != self._written_gvsbserver:
-      f = open(self.GVSBSERVERFILE, 'w')
-      f.write(str(self._gvsbserver))
-      f.close()
-      self._written_gvsbserver = self._gvsbserver
+      if self.WriteFile(self.GVSBSERVERFILE, str(self._gvsbserver)):
+        self._written_gvsbserver = self._gvsbserver
     if self._gvsb_channel_lineup != self._written_gvsb_channel_lineup:
-      f = open(self.GVSBCHANNELFILE, 'w')
-      f.write(str(self._gvsb_channel_lineup))
-      f.close()
-      self._written_gvsb_channel_lineup = self._gvsb_channel_lineup
+      if self.WriteFile(self.GVSBCHANNELFILE, str(self._gvsb_channel_lineup)):
+        self._written_gvsb_channel_lineup = self._gvsb_channel_lineup
+    if self._gvsb_kick != self._written_gvsb_kick:
+      if self.WriteFile(self.GVSBKICKFILE, self._gvsb_kick):
+        self._written_gvsb_kick = self._gvsb_kick
 
 
 def main():

@@ -43,6 +43,16 @@ class GvsbTest(unittest.TestCase):
     self.assertEqual(temp.readline(), '1000')
     temp.close()
 
+  def testGvsbKick(self):
+    temp = tempfile.NamedTemporaryFile()
+    gv = gvsb.Gvsb()
+    gv.GVSBKICKFILE = temp.name
+    gv.GvsbKick = 'kickme'
+    self.assertEqual(gv.GvsbKick, 'kickme')
+    temp.seek(0)
+    self.assertEqual(temp.readline(), 'kickme')
+    temp.close()
+
 
 if __name__ == '__main__':
   unittest.main()
