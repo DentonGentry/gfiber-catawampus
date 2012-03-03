@@ -140,18 +140,6 @@ class CPEStateMachine(object):
       events.append(ev)
     parameter_list = []
     try:
-      ms = self.cpe.root.GetExport('Device.ManagementServer')
-      di = self.cpe.root.GetExport('Device.DeviceInfo')
-      parameter_list += [
-          ('Device.ManagementServer.ConnectionRequestURL',
-           ms.ConnectionRequestURL),
-          ('Device.ManagementServer.ParameterKey', ms.ParameterKey),
-          ('Device.DeviceInfo.HardwareVersion', di.HardwareVersion),
-          ('Device.DeviceInfo.SoftwareVersion', di.SoftwareVersion),
-      ]
-    except (AttributeError, KeyError):
-      pass
-    try:
       ms = self.cpe.root.GetExport('InternetGatewayDevice.ManagementServer')
       di = self.cpe.root.GetExport('InternetGatewayDevice.DeviceInfo')
       parameter_list += [

@@ -21,6 +21,7 @@ import tr.tr181_v2_2 as tr181
 
 FAKECPEINSTANCE = None
 INTERNAL_ERROR = 9002
+BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_9.InternetGatewayDevice
 
 
 class PlatformConfig(platform_config.PlatformConfigMeta):
@@ -124,8 +125,8 @@ class ServicesFakeCPE(tr181.Device_v2_2.Device.Services):
 class DeviceFakeCPE(tr181.Device_v2_2.Device):
   """Device implementation for a simulated CPE device."""
 
-  def __init__(self):
-    tr181.Device_v2_2.Device.__init__(self)
+  def __init__(self, device_id):
+    super(DeviceFakeCPE, self).__init__()
     self.Unexport(objects='ATM')
     self.Unexport(objects='Bridging')
     self.Unexport(objects='CaptivePortal')
@@ -153,7 +154,7 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
     self.Unexport(objects='Users')
     self.Unexport(objects='WiFi')
 
-    self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(DeviceIdFakeCPE())
+    self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
     self.ManagementServer = tr.core.TODO()  # Higher layer code splices this in
     self.Services = ServicesFakeCPE()
 
@@ -161,18 +162,60 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
     self.InterfaceStackList = {}
 
 
+class InternetGatewayDeviceFakeCPE(BASE98IGD):
+  def __init__(self, device_id):
+    BASE98IGD.__init__(self)
+    self.Unexport(objects='CaptivePortal')
+    self.Unexport(objects='DeviceConfig')
+    self.Unexport(params='DeviceSummary')
+    self.Unexport(objects='DownloadDiagnostics')
+    self.Unexport(objects='IPPingDiagnostics')
+    self.Unexport(objects='LANConfigSecurity')
+    self.Unexport(lists='LANDevice')
+    self.Unexport(objects='LANInterfaces')
+    self.Unexport(objects='Layer2Bridging')
+    self.Unexport(objects='Layer3Forwarding')
+    self.ManagementServer = tr.core.TODO()  # higher level code splices this in
+    self.Unexport(objects='QueueManagement')
+    self.Unexport(objects='Services')
+    self.Unexport(objects='Time')
+    self.Unexport(objects='TraceRouteDiagnostics')
+    self.Unexport(objects='UploadDiagnostics')
+    self.Unexport(objects='UserInterface')
+    self.Unexport(lists='WANDevice')
+
+    self.DeviceInfo = dm.device_info.DeviceInfo98Linux26(device_id)
+
+  @property
+  def LANDeviceNumberOfEntries(self):
+    return 0
+
+  @property
+  def WANDeviceNumberOfEntries(self):
+    return 0
+
+
 def PlatformInit(name, device_model_root):
   tr.download.INSTALLER = InstallerFakeCPE
   params = list()
   objects = list()
-  device_model_root.Device = DeviceFakeCPE()
+  devid = DeviceIdFakeCPE()
+  device_model_root.Device = DeviceFakeCPE(devid)
   objects.append('Device')
+  device_model_root.InternetGatewayDevice = InternetGatewayDeviceFakeCPE(devid)
+  objects.append('InternetGatewayDevice')
   return (params, objects)
 
 
 def main():
-  root = DeviceFakeCPE()
-  tr.core.Dump(root)
+  devid = DeviceIdFakeCPE()
+  device = DeviceFakeCPE(devid)
+  igd = InternetGatewayDeviceFakeCPE(devid)
+  tr.core.Dump(device)
+  tr.core.Dump(igd)
+  device.ValidateExports()
+  igd.ValidateExports()
+  print 'done'
 
 if __name__ == '__main__':
   main()
