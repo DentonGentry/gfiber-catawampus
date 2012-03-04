@@ -34,7 +34,7 @@ INTERNAL_ERROR = 9002
 CONFIGDIR = '/config/tr69'
 DOWNLOADDIR = '/rw/tr69'
 GINSTALL = '/bin/ginstall.py'
-HNVRAM = '/bin/hnvram'
+HNVRAM = '/usr/bin/hnvram'
 REBOOT = '/bin/tr69_reboot'
 REPOMANIFEST = '/etc/repo-buildroot-manifest'
 VERSIONFILE = '/etc/version'
@@ -84,7 +84,7 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
 
     # HNVRAM does not distinguish between "value not present" and
     # "value present, and is empty." Treat empty values as invalid.
-    if outlist and outlist[1].strip():
+    if len(outlist) > 1 and len(outlist[1].strip()) > 0:
       return outlist[1].strip()
     else:
       return default
@@ -107,7 +107,10 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
 
   @property
   def SerialNumber(self):
-    return self._GetNvramParam('1ST_SERIAL_NUMBER', default='000000000000')
+    serial = self._GetNvramParam('1ST_SERIAL_NUMBER', default=None)
+    if serial is None:
+      serial = self._GetNvramParam('SERIAL_NO', default='000000000000')
+    return serial
 
   @property
   def HardwareVersion(self):
