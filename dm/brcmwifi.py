@@ -19,12 +19,14 @@ card or your own.
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import collections
+import pbkdf2
 import re
 import subprocess
 import netdev
 import tr.core
 import tr.cwmpbool
 import tr.tr098_v1_4
+import wifi
 
 BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_9.InternetGatewayDevice
 BASE98WIFI = BASE98IGD.LANDevice.WLANConfiguration
@@ -65,35 +67,6 @@ def _GetWlCounters():
     elif p3 is not None:
       sdict[p3.group(1).lower()] = '0'
   return sdict
-
-
-def _OutputContiguousRanges(seq):
-  """Given an integer sequence, return contiguous ranges.
-
-  Args:
-    seq: a sequence of integers, like [1,2,3,4,5]
-
-  Returns:
-    A string of the collapsed ranges.
-    Given [1,2,3,4,5] as input, will return '1-5'
-  """
-  in_range = False
-  prev = seq[0]
-  output = list(str(seq[0]))
-  for item in seq[1:]:
-    if item == prev + 1:
-      if not in_range:
-        in_range = True
-        output.append('-')
-    else:
-      if in_range:
-        output.append(str(prev))
-      output.append(',' + str(item))
-      in_range = False
-    prev = item
-  if in_range:
-    output.append(str(prev))
-  return ''.join(output)
 
 
 def _SetApMode():
@@ -287,9 +260,20 @@ def _GetPossibleChannels(arg):
   out, _ = wl.communicate(None)
   if out:
     channels = [int(x) for x in out.split()]
-    return _OutputContiguousRanges(channels)
+    return wifi.ContiguousRanges(channels)
   else:
     return ''
+
+
+def _SetPreSharedKey(index, key, mac):
+  wl_cmd = [WL_EXE, 'addwep', str(index), key]
+  if mac is not None:
+    wl_cmd.append(mac)
+  subprocess.check_call(wl_cmd)
+
+
+def _ClrPreSharedKey(index):
+  subprocess.check_call([WL_EXE, 'rmwep', str(index)])
 
 
 def _GetRadioEnabled(arg):
@@ -393,6 +377,7 @@ def _GetStatus(arg):
 def _SetStatus(enable):
   status = 'up' if enable else 'down'
   subprocess.check_call([WL_EXE, 'bss', status])
+  subprocess.check_call([WL_EXE, status])
 
 
 def _ValidateStatus(value):
@@ -456,9 +441,10 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
         getitem=self.GetAssociationByIndex)
 
     self.PreSharedKeyList = {}
-    for i in range(10):
-      # tr-98 mandates exactly 10 PreSharedKey objects.
-      self.PreSharedKeyList[i] = BrcmWlanPreSharedKey()
+    for i in range(1,5):
+      # tr-98 mandates exactly 10 PreSharedKey objects. Unfortunately
+      # BRCM Wifi adaptors only supply 4.
+      self.PreSharedKeyList[i] = wifi.PreSharedKey98()
 
     # Local settings, currently unimplemented. Will require more
     # coordination with the underlying platform support.
@@ -639,7 +625,8 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     if not self.p_enable:
       return
     _SetStatus(False)  # About to change the config
-    if not self.p_radio_enabled:
+    if self.p_radio_enabled is False:
+      # p_radio_enabled defaults to True
       _SetRadioEnabled(False)
       return
 
@@ -666,6 +653,12 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
       _SetSSIDAdvertisementEnabled(self.p_ssid_advertisement_enabled)
     if self.p_transmit_power is not None:
       _SetTransmitPower(self.p_transmit_power)
+    for idx, psk in self.PreSharedKeyList.items():
+      key = psk.GetKey(self.p_ssid)
+      if key is None:
+        _ClrPreSharedKey(idx-1)
+      else:
+        _SetPreSharedKey(idx-1, key, psk.AssociatedDeviceMACAddress)
     _SetStatus(True)
 
   def GetTotalBytesReceived(self):
@@ -723,23 +716,6 @@ class BrcmWlanConfigurationStats(BASE98WIFI.Stats):
       return getattr(self._netdev, name)
     else:
       raise AttributeError
-
-
-class BrcmWlanPreSharedKey(BASE98WIFI.PreSharedKey):
-  def __init__(self):
-    BASE98WIFI.PreSharedKey.__init__(self)
-    self.Unexport('KeyPassphrase')
-    self.Unexport('AssociatedDeviceMACAddress')
-
-  def SetPreSharedKey(self, value):
-    # TODO(dgentry): populate in wifi driver
-    self.key = value
-
-  def PreSharedKey(self):
-    return self.key
-
-  property(PreSharedKey, SetPreSharedKey, None,
-           'WLANConfiguration.{i}.PreSharedKey.{i}.')
 
 
 class BrcmWlanAssociatedDevice(BASE98WIFI.AssociatedDevice):

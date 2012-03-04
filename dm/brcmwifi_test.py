@@ -43,6 +43,29 @@ class BrcmWifiTest(unittest.TestCase):
     self.files_to_remove.append(outfile.name)
     return (scriptfile, outfile)
 
+  def RmFromList(self, l, item):
+    try:
+      l.remove(item)
+      return True
+    except ValueError:
+      return False
+
+  def VerifyCommonWlCommands(self, cmd):
+    # Verify the number of "rmwep #" commands, and remove them.
+    l = [x for x in cmd.split('\n') if x]  # Suppress blank lines
+    for i in range(0,4):
+      self.assertTrue(self.RmFromList(l, 'rmwep %d' % i))
+    # Expect interface down at start, up at end.
+    self.assertTrue(len(l) >= 7)
+    self.assertEqual(l[0], 'bss down')
+    self.assertEqual(l[1], 'down')
+    self.assertEqual(l[2], 'radio on')
+    self.assertEqual(l[3], 'ap 1')
+    self.assertEqual(l[4], 'infra 1')
+    self.assertEqual(l[-2], 'bss up')
+    self.assertEqual(l[-1], 'up')
+    return '\n'.join(l[5:-2])
+
   def testValidateExports(self):
     netdev.PROC_NET_DEV = 'testdata/brcmwifi/proc_net_dev'
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlempty'
@@ -96,18 +119,8 @@ class BrcmWifiTest(unittest.TestCase):
     bw.Channel = '11'
     output = out.read()
     out.close()
-    self.assertEqual(output,
-                     'bss down\nradio on\nap 1\ninfra 1\nchannel 11\nbss up\n')
-
-  def testOutputContiguousRanges(self):
-    self.assertEqual(brcmwifi._OutputContiguousRanges([1, 2, 3, 4, 5]), '1-5')
-    self.assertEqual(brcmwifi._OutputContiguousRanges([1, 2, 3, 5]), '1-3,5')
-    self.assertEqual(brcmwifi._OutputContiguousRanges([1, 2, 3, 5, 6, 7]),
-                     '1-3,5-7')
-    self.assertEqual(brcmwifi._OutputContiguousRanges([1, 2, 3, 5, 7, 8, 9]),
-                     '1-3,5,7-9')
-    self.assertEqual(brcmwifi._OutputContiguousRanges([1, 3, 5, 7, 9]),
-                     '1,3,5,7,9')
+    output = self.VerifyCommonWlCommands(output)
+    self.assertEqual(output, 'channel 11')
 
   def testPossibleChannels(self):
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlchannels'
@@ -149,8 +162,8 @@ class BrcmWifiTest(unittest.TestCase):
     bw.SSID = 'myssid'
     output = out.read()
     out.close()
-    self.assertEqual(output,
-                     'bss down\nradio on\nap 1\ninfra 1\nssid myssid\nbss up\n')
+    output = self.VerifyCommonWlCommands(output)
+    self.assertEqual(output, 'ssid myssid')
 
   def testBSSID(self):
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlbssid'
@@ -175,9 +188,8 @@ class BrcmWifiTest(unittest.TestCase):
     bw.BSSID = '00:99:aa:bb:cc:dd'
     output = out.read()
     out.close()
-    self.assertEqual(
-        output,
-        'bss down\nradio on\nap 1\ninfra 1\nbssid 00:99:aa:bb:cc:dd\nbss up\n')
+    output = self.VerifyCommonWlCommands(output)
+    self.assertEqual(output, 'bssid 00:99:aa:bb:cc:dd')
 
   def testRegulatoryDomain(self):
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlcountry.us'
@@ -204,8 +216,8 @@ class BrcmWifiTest(unittest.TestCase):
     bw.RegulatoryDomain = 'US'
     output = out.read()
     out.close()
-    self.assertEqual(output,
-                     'bss down\nradio on\nap 1\ninfra 1\ncountry US\nbss up\n')
+    output = self.VerifyCommonWlCommands(output)
+    self.assertEqual(output, 'country US')
 
   def testBasicRateSet(self):
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlrateset'
@@ -244,8 +256,8 @@ class BrcmWifiTest(unittest.TestCase):
     bw.TransmitPower = '77'
     output = out.read()
     out.close()
-    self.assertEqual(
-        output, 'bss down\nradio on\nap 1\ninfra 1\npwr_percent 77\nbss up\n')
+    output = self.VerifyCommonWlCommands(output)
+    self.assertEqual(output, 'pwr_percent 77')
 
   def testTransmitPowerSupported(self):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
@@ -274,14 +286,14 @@ class BrcmWifiTest(unittest.TestCase):
 
     bw.AutoRateFallBackEnabled = 'True'
     output = out.read()
-    self.assertEqual(
-        output, 'bss down\nradio on\nap 1\ninfra 1\ninterference 4\nbss up\n')
+    output = self.VerifyCommonWlCommands(output)
+    self.assertEqual(output, 'interference 4')
     out.truncate()
     bw.AutoRateFallBackEnabled = 'False'
     output = out.read()
+    output = self.VerifyCommonWlCommands(output)
     out.close()
-    self.assertEqual(
-        output, 'bss down\nradio on\nap 1\ninfra 1\ninterference 3\nbss up\n')
+    self.assertEqual(output, 'interference 3')
 
   def testValidateAutoRateFallBackEnabled(self):
     self.assertTrue(brcmwifi._ValidateAutoRateFallBackEnabled('True'))
@@ -313,14 +325,14 @@ class BrcmWifiTest(unittest.TestCase):
     out.truncate()
     bw.SSIDAdvertisementEnabled = 'True'
     output = out.read()
-    self.assertEqual(
-        output, 'bss down\nradio on\nap 1\ninfra 1\nclosed 0\nbss up\n')
+    output = self.VerifyCommonWlCommands(output)
+    self.assertEqual(output, 'closed 0')
     out.truncate()
     bw.SSIDAdvertisementEnabled = 'False'
     output = out.read()
+    output = self.VerifyCommonWlCommands(output)
     out.close()
-    self.assertEqual(
-        output, 'bss down\nradio on\nap 1\ninfra 1\nclosed 1\nbss up\n')
+    self.assertEqual(output, 'closed 1')
 
   def testRadioEnabled(self):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
@@ -344,12 +356,13 @@ class BrcmWifiTest(unittest.TestCase):
     out.truncate()
     bw.RadioEnabled = 'True'
     output = out.read()
-    self.assertEqual(output, 'bss down\nradio on\nap 1\ninfra 1\nbss up\n')
+    output = self.VerifyCommonWlCommands(output)
+    self.assertEqual(output, '')
     out.truncate()
     bw.RadioEnabled = 'False'
     output = out.read()
     out.close()
-    self.assertEqual(output, 'bss down\nradio off\n')
+    self.assertEqual(output, 'bss down\ndown\nradio off\n')
 
   def testNoEnable(self):
     (script, out) = self.MakeTestScript()
@@ -410,8 +423,8 @@ class BrcmWifiTest(unittest.TestCase):
     out.truncate()
     bw.BeaconType = 'None'
     output = out.read()
-    self.assertEqual(output,
-                     'bss down\nradio on\nap 1\ninfra 1\nwsec 0\nbss up\n')
+    output = self.VerifyCommonWlCommands(output)
+    self.assertEqual(output, 'wsec 0')
     out.truncate()
 
   def testStats(self):
