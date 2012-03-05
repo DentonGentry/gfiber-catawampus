@@ -26,6 +26,14 @@ class WifiTest(unittest.TestCase):
     self.assertEqual(wifi.ContiguousRanges([1, 2, 3, 5, 7, 8, 9]), '1-3,5,7-9')
     self.assertEqual(wifi.ContiguousRanges([1, 3, 5, 7, 9]), '1,3,5,7,9')
 
+  def testPBKDF2(self):
+    psk = wifi.PreSharedKey98()
+    # http://connect.microsoft.com/VisualStudio/feedback/details/95506/
+    psk.KeyPassphrase = 'ThisIsAPassword'
+    key = psk.GetKey('ThisIsASSID')
+    self.assertEqual(
+        key, '0dc0d6eb90555ed6419756b9a15ec3e3209b63df707dd508d14581f8982721af')
+
 
 if __name__ == '__main__':
   unittest.main()

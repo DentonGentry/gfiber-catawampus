@@ -9,6 +9,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import pbkdf2
 import tr.tr098_v1_4
 
 
@@ -44,7 +45,7 @@ def ContiguousRanges(seq):
   return ''.join(output)
 
 
-class PreSharedKey98(tr.tr098_v1_4.InternetGatewayDevice_v1_9.InternetGatewayDevice.LANDevice.WLANConfiguration.PreSharedKey):
+class PreSharedKey98(tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice.LANDevice.WLANConfiguration.PreSharedKey):
   def __init__(self):
     super(PreSharedKey98, self).__init__()
     self.key = None
@@ -74,36 +75,40 @@ class PreSharedKey98(tr.tr098_v1_4.InternetGatewayDevice_v1_9.InternetGatewayDev
     """Compute WPA2 key from a passphrase."""
     if self.passphrase is None:
       return None
-    return pbkdf2.pbkdf2_hex(self.passphrase, salt, iterations=4096, keylen=32)
+    return pbkdf2.pbkdf2_hex(self.passphrase, salt=salt,
+                             iterations=4096, keylen=32)
 
   def SetPreSharedKey(self, value):
     self.key = value
     self.key_pbkdf2 = None
 
-  def PreSharedKey(self):
+  def GetPreSharedKey(self):
     return self.key
 
-  property(PreSharedKey, SetPreSharedKey, None,
-           'WLANConfiguration.{i}.PreSharedKey.{i}.PreSharedKey')
+  PreSharedKey = property(
+      GetPreSharedKey, SetPreSharedKey, None,
+      'WLANConfiguration.{i}.PreSharedKey.{i}.PreSharedKey')
 
   def SetKeyPassphrase(self, value):
     self.passphrase = value
     self.key = None
 
-  def KeyPassphrase(self):
+  def GetKeyPassphrase(self):
     return self.passphrase
 
-  property(KeyPassphrase, SetKeyPassphrase, None,
-           'WLANConfiguration.{i}.PreSharedKey.{i}.KeyPassphrase')
+  KeyPassphrase = property(
+      GetKeyPassphrase, SetKeyPassphrase, None,
+      'WLANConfiguration.{i}.PreSharedKey.{i}.KeyPassphrase')
 
   def SetAssociatedDeviceMACAddress(self, value):
     self.assoc_mac_addr = value
 
-  def AssociatedDeviceMACAddress(self):
+  def GetAssociatedDeviceMACAddress(self):
     return self.assoc_mac_addr
 
-  property(AssociatedDeviceMACAddress, SetAssociatedDeviceMACAddress, None,
-           'WLANConfiguration.{i}.PreSharedKey.{i}.AssociatedDeviceMACAddress')
+  AssociatedDeviceMACAddress = property(
+      GetAssociatedDeviceMACAddress, SetAssociatedDeviceMACAddress, None,
+      'WLANConfiguration.{i}.PreSharedKey.{i}.AssociatedDeviceMACAddress')
 
 
 def main():
