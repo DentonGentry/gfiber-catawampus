@@ -20,7 +20,7 @@ import tr.core
 import tr.tr098_v1_4
 import tr.tr181_v2_2
 
-BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_9.InternetGatewayDevice
+BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
 BASE181DEVICE = tr.tr181_v2_2.Device_v2_2
 
 # Unit tests can override these with fake data

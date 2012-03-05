@@ -18,7 +18,7 @@ import tr.tr098_v1_4
 import tr.tr181_v2_2
 
 BASEMGMT181 = tr.tr181_v2_2.Device_v2_2.Device.ManagementServer
-BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_9.InternetGatewayDevice
+BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
 BASEMGMT98 = BASE98IGD.ManagementServer
 
 

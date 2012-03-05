@@ -25,7 +25,7 @@ import tr.tr181_v2_2 as tr181
 import gvsb
 
 
-BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_9.InternetGatewayDevice
+BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
 
 # tr-69 error codes
 INTERNAL_ERROR = 9002

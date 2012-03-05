@@ -17,7 +17,7 @@ import tr.tr181_v2_2
 
 
 BASE181 = tr.tr181_v2_2.Device_v2_2.Device
-BASE98 = tr.tr098_v1_4.InternetGatewayDevice_v1_9.InternetGatewayDevice
+BASE98 = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
 
 
 class MockTr181(BASE181):

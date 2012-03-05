@@ -21,7 +21,7 @@ import tr.tr181_v2_2 as tr181
 
 FAKECPEINSTANCE = None
 INTERNAL_ERROR = 9002
-BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_9.InternetGatewayDevice
+BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
 
 
 class PlatformConfig(platform_config.PlatformConfigMeta):
