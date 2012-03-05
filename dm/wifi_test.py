@@ -9,9 +9,6 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import os
-import stat
-import tempfile
 import unittest
 
 import google3
@@ -26,6 +23,10 @@ class WifiTest(unittest.TestCase):
     self.assertEqual(wifi.ContiguousRanges([1, 2, 3, 5, 7, 8, 9]), '1-3,5,7-9')
     self.assertEqual(wifi.ContiguousRanges([1, 3, 5, 7, 9]), '1,3,5,7,9')
 
+  def testPreSharedKeyValidate(self):
+    psk = wifi.PreSharedKey98()
+    psk.ValidateExports()
+
   def testPBKDF2(self):
     psk = wifi.PreSharedKey98()
     # http://connect.microsoft.com/VisualStudio/feedback/details/95506/
@@ -33,6 +34,10 @@ class WifiTest(unittest.TestCase):
     key = psk.GetKey('ThisIsASSID')
     self.assertEqual(
         key, '0dc0d6eb90555ed6419756b9a15ec3e3209b63df707dd508d14581f8982721af')
+
+  def testWEPKeyValidate(self):
+    wk = wifi.WEPKey98()
+    wk.ValidateExports()
 
 
 if __name__ == '__main__':

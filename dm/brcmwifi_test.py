@@ -50,21 +50,23 @@ class BrcmWifiTest(unittest.TestCase):
     except ValueError:
       return False
 
-  def VerifyCommonWlCommands(self, cmd):
+  def VerifyCommonWlCommands(self, cmd, rmwep=4, wsec=0, primary_key=1):
     # Verify the number of "rmwep #" commands, and remove them.
     l = [x for x in cmd.split('\n') if x]  # Suppress blank lines
-    for i in range(0,4):
+    for i in range(0, rmwep):
       self.assertTrue(self.RmFromList(l, 'rmwep %d' % i))
-    # Expect interface down at start, up at end.
-    self.assertTrue(len(l) >= 7)
-    self.assertEqual(l[0], 'bss down')
-    self.assertEqual(l[1], 'down')
-    self.assertEqual(l[2], 'radio on')
-    self.assertEqual(l[3], 'ap 1')
-    self.assertEqual(l[4], 'infra 1')
+    self.assertTrue(len(l) >= 10)
+    self.assertEqual(l[0], 'down')
+    self.assertEqual(l[1], 'up')
+    self.assertEqual(l[2], 'radio off')
+    self.assertEqual(l[3], 'bss down')
+    self.assertEqual(l[4], 'ap 1')
+    self.assertEqual(l[5], 'infra 1')
+    self.assertEqual(l[-4], 'wsec %d' % wsec)
+    self.assertEqual(l[-3], 'primary_key %d' % primary_key)
     self.assertEqual(l[-2], 'bss up')
-    self.assertEqual(l[-1], 'up')
-    return '\n'.join(l[5:-2])
+    self.assertEqual(l[-1], 'radio on')
+    return l[6:-4]
 
   def testValidateExports(self):
     netdev.PROC_NET_DEV = 'testdata/brcmwifi/proc_net_dev'
@@ -119,8 +121,8 @@ class BrcmWifiTest(unittest.TestCase):
     bw.Channel = '11'
     output = out.read()
     out.close()
-    output = self.VerifyCommonWlCommands(output)
-    self.assertEqual(output, 'channel 11')
+    outlist = self.VerifyCommonWlCommands(output)
+    self.assertTrue('channel 11' in outlist)
 
   def testPossibleChannels(self):
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlchannels'
@@ -162,8 +164,8 @@ class BrcmWifiTest(unittest.TestCase):
     bw.SSID = 'myssid'
     output = out.read()
     out.close()
-    output = self.VerifyCommonWlCommands(output)
-    self.assertEqual(output, 'ssid myssid')
+    outlist = self.VerifyCommonWlCommands(output)
+    self.assertTrue('ssid myssid' in outlist)
 
   def testBSSID(self):
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlbssid'
@@ -188,8 +190,8 @@ class BrcmWifiTest(unittest.TestCase):
     bw.BSSID = '00:99:aa:bb:cc:dd'
     output = out.read()
     out.close()
-    output = self.VerifyCommonWlCommands(output)
-    self.assertEqual(output, 'bssid 00:99:aa:bb:cc:dd')
+    outlist = self.VerifyCommonWlCommands(output)
+    self.assertTrue('bssid 00:99:aa:bb:cc:dd' in outlist)
 
   def testRegulatoryDomain(self):
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlcountry.us'
@@ -216,8 +218,8 @@ class BrcmWifiTest(unittest.TestCase):
     bw.RegulatoryDomain = 'US'
     output = out.read()
     out.close()
-    output = self.VerifyCommonWlCommands(output)
-    self.assertEqual(output, 'country US')
+    outlist = self.VerifyCommonWlCommands(output)
+    self.assertTrue('country US' in outlist)
 
   def testBasicRateSet(self):
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlrateset'
@@ -256,8 +258,8 @@ class BrcmWifiTest(unittest.TestCase):
     bw.TransmitPower = '77'
     output = out.read()
     out.close()
-    output = self.VerifyCommonWlCommands(output)
-    self.assertEqual(output, 'pwr_percent 77')
+    outlist = self.VerifyCommonWlCommands(output)
+    self.assertTrue('pwr_percent 77' in outlist)
 
   def testTransmitPowerSupported(self):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
@@ -286,14 +288,14 @@ class BrcmWifiTest(unittest.TestCase):
 
     bw.AutoRateFallBackEnabled = 'True'
     output = out.read()
-    output = self.VerifyCommonWlCommands(output)
-    self.assertEqual(output, 'interference 4')
+    outlist = self.VerifyCommonWlCommands(output)
+    self.assertTrue('interference 4' in outlist)
     out.truncate()
     bw.AutoRateFallBackEnabled = 'False'
     output = out.read()
-    output = self.VerifyCommonWlCommands(output)
+    outlist = self.VerifyCommonWlCommands(output)
     out.close()
-    self.assertEqual(output, 'interference 3')
+    self.assertTrue('interference 3' in outlist)
 
   def testValidateAutoRateFallBackEnabled(self):
     self.assertTrue(brcmwifi._ValidateAutoRateFallBackEnabled('True'))
@@ -325,14 +327,14 @@ class BrcmWifiTest(unittest.TestCase):
     out.truncate()
     bw.SSIDAdvertisementEnabled = 'True'
     output = out.read()
-    output = self.VerifyCommonWlCommands(output)
-    self.assertEqual(output, 'closed 0')
+    outlist = self.VerifyCommonWlCommands(output)
+    self.assertTrue('closed 0' in outlist)
     out.truncate()
     bw.SSIDAdvertisementEnabled = 'False'
     output = out.read()
-    output = self.VerifyCommonWlCommands(output)
+    outlist = self.VerifyCommonWlCommands(output)
     out.close()
-    self.assertEqual(output, 'closed 1')
+    self.assertTrue('closed 1' in outlist)
 
   def testRadioEnabled(self):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
@@ -356,13 +358,13 @@ class BrcmWifiTest(unittest.TestCase):
     out.truncate()
     bw.RadioEnabled = 'True'
     output = out.read()
-    output = self.VerifyCommonWlCommands(output)
-    self.assertEqual(output, '')
+    outlist = self.VerifyCommonWlCommands(output)
+    self.assertFalse(outlist)
     out.truncate()
     bw.RadioEnabled = 'False'
     output = out.read()
     out.close()
-    self.assertEqual(output, 'bss down\ndown\nradio off\n')
+    self.assertEqual(output, 'down\nup\nradio off\nbss down\n')
 
   def testNoEnable(self):
     (script, out) = self.MakeTestScript()
@@ -371,7 +373,7 @@ class BrcmWifiTest(unittest.TestCase):
     bw.Enable = 'False'
     output = out.read()
     out.close()
-    self.assertEqual(output, '')
+    self.assertEqual(output, 'down\n')
     self.assertFalse(bw.Enable)
 
   def testValidateEnable(self):
@@ -382,37 +384,47 @@ class BrcmWifiTest(unittest.TestCase):
     self.assertTrue(bw.ValidateEnable('1'))
     self.assertFalse(bw.ValidateEnable('foo'))
 
-  def testBeaconType(self):
+  def testEncryptionModes(self):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec0'
-    self.assertEqual(bw.BeaconType, 'None')
+    self.assertEqual(bw.IEEE11iEncryptionModes, 'X_CATAWAMPUS-ORG_None')
+    self.assertEqual(bw.WPAEncryptionModes, 'X_CATAWAMPUS-ORG_None')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec1'
-    self.assertEqual(bw.BeaconType, 'Basic')
+    self.assertEqual(bw.IEEE11iEncryptionModes, 'WEPEncryption')
+    self.assertEqual(bw.WPAEncryptionModes, 'WEPEncryption')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec2'
-    self.assertEqual(bw.BeaconType, 'WPA')
+    self.assertEqual(bw.IEEE11iEncryptionModes, 'TKIPEncryption')
+    self.assertEqual(bw.WPAEncryptionModes, 'TKIPEncryption')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec3'
-    self.assertEqual(bw.BeaconType, 'BasicandWPA')
+    self.assertEqual(bw.IEEE11iEncryptionModes, 'WEPandTKIPEncryption')
+    self.assertEqual(bw.WPAEncryptionModes, 'WEPandTKIPEncryption')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec4'
-    self.assertEqual(bw.BeaconType, '11i')
+    self.assertEqual(bw.IEEE11iEncryptionModes, 'AESEncryption')
+    self.assertEqual(bw.WPAEncryptionModes, 'AESEncryption')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec5'
-    self.assertEqual(bw.BeaconType, 'Basicand11i')
+    self.assertEqual(bw.IEEE11iEncryptionModes, 'WEPandAESEncryption')
+    self.assertEqual(bw.WPAEncryptionModes, 'WEPandAESEncryption')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec6'
-    self.assertEqual(bw.BeaconType, 'WPAand11i')
+    self.assertEqual(bw.IEEE11iEncryptionModes, 'TKIPandAESEncryption')
+    self.assertEqual(bw.WPAEncryptionModes, 'TKIPandAESEncryption')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec7'
-    self.assertEqual(bw.BeaconType, 'BasicandWPAand11i')
+    self.assertEqual(bw.IEEE11iEncryptionModes, 'WEPandTKIPandAESEncryption')
+    self.assertEqual(bw.WPAEncryptionModes, 'WEPandTKIPandAESEncryption')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec15'
-    self.assertEqual(bw.BeaconType, 'None')
+    self.assertEqual(bw.IEEE11iEncryptionModes, 'WEPandTKIPandAESEncryption')
+    self.assertEqual(bw.WPAEncryptionModes, 'WEPandTKIPandAESEncryption')
 
   def testValidateBeaconType(self):
-    self.assertTrue(brcmwifi._ValidateBeaconType('None'))
-    self.assertTrue(brcmwifi._ValidateBeaconType('Basic'))
-    self.assertTrue(brcmwifi._ValidateBeaconType('WPA'))
-    self.assertTrue(brcmwifi._ValidateBeaconType('BasicandWPA'))
-    self.assertTrue(brcmwifi._ValidateBeaconType('11i'))
-    self.assertTrue(brcmwifi._ValidateBeaconType('Basicand11i'))
-    self.assertTrue(brcmwifi._ValidateBeaconType('WPAand11i'))
-    self.assertTrue(brcmwifi._ValidateBeaconType('BasicandWPAand11i'))
-    self.assertFalse(brcmwifi._ValidateBeaconType('FooFi'))
+    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    self.assertTrue(bw.ValidateBeaconType('None'))
+    self.assertTrue(bw.ValidateBeaconType('Basic'))
+    self.assertTrue(bw.ValidateBeaconType('WPA'))
+    self.assertTrue(bw.ValidateBeaconType('BasicandWPA'))
+    self.assertTrue(bw.ValidateBeaconType('11i'))
+    self.assertTrue(bw.ValidateBeaconType('Basicand11i'))
+    self.assertTrue(bw.ValidateBeaconType('WPAand11i'))
+    self.assertTrue(bw.ValidateBeaconType('BasicandWPAand11i'))
+    self.assertFalse(bw.ValidateBeaconType('FooFi'))
 
   def testSetBeaconType(self):
     (script, out) = self.MakeTestScript()
@@ -420,11 +432,48 @@ class BrcmWifiTest(unittest.TestCase):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     bw.Enable = 'True'
     bw.RadioEnabled = 'True'
+    bw.WPAEncryptionModes = 'TKIPEncryption'  # wsec 2
+    bw.IEEE11iEncryptionModes = 'AESEncryption'  # wsec 4
     out.truncate()
     bw.BeaconType = 'None'
     output = out.read()
-    output = self.VerifyCommonWlCommands(output)
-    self.assertEqual(output, 'wsec 0')
+    outlist = self.VerifyCommonWlCommands(output, wsec=0)
+    self.assertFalse(outlist)
+    out.truncate()
+    bw.BeaconType = 'Basic'
+    output = out.read()
+    outlist = self.VerifyCommonWlCommands(output, wsec=1)
+    self.assertFalse(outlist)
+    out.truncate()
+    bw.BeaconType = 'WPA'
+    output = out.read()
+    outlist = self.VerifyCommonWlCommands(output, wsec=2)
+    self.assertFalse(outlist)
+    out.truncate()
+    bw.BeaconType = '11i'
+    output = out.read()
+    outlist = self.VerifyCommonWlCommands(output, wsec=4)
+    self.assertFalse(outlist)
+    out.truncate()
+    bw.BeaconType = 'BasicandWPA'
+    output = out.read()
+    outlist = self.VerifyCommonWlCommands(output, wsec=2)
+    self.assertFalse(outlist)
+    out.truncate()
+    bw.BeaconType = 'Basicand11i'
+    output = out.read()
+    outlist = self.VerifyCommonWlCommands(output, wsec=4)
+    self.assertFalse(outlist)
+    out.truncate()
+    bw.BeaconType = 'WPAand11i'
+    output = out.read()
+    outlist = self.VerifyCommonWlCommands(output, wsec=4)
+    self.assertFalse(outlist)
+    out.truncate()
+    bw.BeaconType = 'BasicandWPAand11i'
+    output = out.read()
+    outlist = self.VerifyCommonWlCommands(output, wsec=4)
+    self.assertFalse(outlist)
     out.truncate()
 
   def testStats(self):
@@ -467,6 +516,12 @@ class BrcmWifiTest(unittest.TestCase):
       self.assertEqual(ad.AssociatedDeviceAuthenticationState, auth[mac])
       seen.add(mac)
     self.assertEqual(len(seen), 3)
+
+  def testKeyPassphrase(self):
+    netdev.PROC_NET_DEV = 'testdata/brcmwifi/proc_net_dev'
+    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    bw.KeyPassphrase = 'testpassword'
+    self.assertEqual(bw.KeyPassphrase, bw.PreSharedKeyList[1].KeyPassphrase)
 
 
 if __name__ == '__main__':

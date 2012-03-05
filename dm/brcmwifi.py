@@ -19,18 +19,30 @@ card or your own.
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import collections
-import pbkdf2
 import re
 import subprocess
-import netdev
 import tr.core
 import tr.cwmpbool
 import tr.tr098_v1_4
+import netdev
 import wifi
 
-BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_9.InternetGatewayDevice
+BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
 BASE98WIFI = BASE98IGD.LANDevice.WLANConfiguration
 WL_EXE = '/usr/bin/wl'
+
+# Supported Encryption Modes
+EM_NONE = 0
+EM_WEP = 1
+EM_TKIP = 2
+EM_AES = 4
+EM_WSEC = 8  # Not enumerated in tr-98
+EM_FIPS = 0x80  # Not enumerated in tr-98
+EM_WAPI = 0x100  # Not enumerated in tr-98
+
+# Beacon Types
+BEACONS = frozenset(['None', 'Basic', 'WPA', '11i', 'BasicandWPA',
+                     'Basicand11i', 'WPAand11i', 'BasicandWPAand11i'])
 
 
 def IsInteger(value):
@@ -160,27 +172,6 @@ def _ValidateBasicDataTransmitRates(value):
   raise NotImplementedError()
 
 
-def _GetBeaconType(arg):
-  beacon = {'0': 'None', '1': 'Basic', '2': 'WPA', '3': 'BasicandWPA',
-            '4': '11i', '5': 'Basicand11i', '6': 'WPAand11i',
-            '7': 'BasicandWPAand11i'}
-  wl = subprocess.Popen([WL_EXE, 'wsec'], stdout=subprocess.PIPE)
-  out, _ = wl.communicate(None)
-  return beacon.get(out.strip(), 'None')
-
-
-def _SetBeaconType(value):
-  beacon = {'None': 0, 'Basic': 1, 'WPA': 2, 'BasicandWPA': 3, '11i': 4,
-            'Basicand11i': 5, 'WPAand11i': 6, 'BasicandWPAand11i': 7}
-  subprocess.check_call([WL_EXE, 'wsec', str(beacon[value])])
-
-
-def _ValidateBeaconType(value):
-  BEACONTYPES = frozenset(['None', 'Basic', 'WPA', 'BasicandWPA', '11i',
-                           'Basicand11i', 'WPAand11i', 'BasicandWPAand11i'])
-  return True if value in BEACONTYPES else False
-
-
 def _GetBSSID(arg):
   wl = subprocess.Popen([WL_EXE, 'bssid'], stdout=subprocess.PIPE)
   out, _ = wl.communicate(None)
@@ -204,6 +195,27 @@ def _ValidateBSSID(value):
   if bssid_re.search(value) is None:
     return False
   return True
+
+
+def _GetBssStatus(arg):
+  wl = subprocess.Popen([WL_EXE, 'bss'], stdout=subprocess.PIPE)
+  out, _ = wl.communicate(None)
+  lower = out.strip().lower()
+  if lower == 'up':
+    return 'Up'
+  elif lower == 'down':
+    return 'Disabled'
+  else:
+    return 'Error'
+
+
+def _SetBssStatus(enable):
+  status = 'up' if enable else 'down'
+  subprocess.check_call([WL_EXE, 'bss', status])
+
+
+def _ValidateBssStatus(value):
+  return tr.cwmpbool.valid(value)
 
 
 def _GetChannel(arg):
@@ -232,6 +244,58 @@ def _ValidateChannel(value):
   if iv in range(149, 169, 4):
     return True  # 5 GHz upper bands
   return False
+
+
+def _ValidateEnable(value):
+  return tr.cwmpbool.valid(value)
+
+
+def _EM_StringToBitmap(enum):
+  wsec = {'X_CATAWAMPUS-ORG_None': EM_NONE,
+          'None': EM_NONE,
+          'WEPEncryption': EM_WEP,
+          'TKIPEncryption': EM_TKIP,
+          'WEPandTKIPEncryption': EM_WEP | EM_TKIP,
+          'AESEncryption': EM_AES,
+          'WEPandAESEncryption': EM_WEP | EM_AES,
+          'TKIPandAESEncryption': EM_TKIP | EM_AES,
+          'WEPandTKIPandAESEncryption': EM_WEP | EM_TKIP | EM_AES}
+  return wsec.get(enum, EM_NONE)
+
+
+def _EM_BitmapToString(bitmap):
+  bmap = {EM_NONE: 'X_CATAWAMPUS-ORG_None',
+          EM_WEP: 'WEPEncryption',
+          EM_TKIP: 'TKIPEncryption',
+          EM_WEP | EM_TKIP: 'WEPandTKIPEncryption',
+          EM_AES: 'AESEncryption',
+          EM_WEP | EM_AES: 'WEPandAESEncryption',
+          EM_TKIP | EM_AES: 'TKIPandAESEncryption',
+          EM_WEP | EM_TKIP | EM_AES: 'WEPandTKIPandAESEncryption'}
+  return bmap.get(bitmap)
+
+
+def _GetEncryptionModes(arg):
+  wl = subprocess.Popen([WL_EXE, 'wsec'], stdout=subprocess.PIPE)
+  out, _ = wl.communicate(None)
+  try:
+    w = int(out.strip()) & 0x7
+    return _EM_BitmapToString(w)
+  except ValueError:
+    return 'X_CATAWAMPUS-ORG_None'
+
+
+def _SetEncryptionModes(value):
+  subprocess.check_call([WL_EXE, 'wsec', str(value)])
+
+
+def _ValidateEncryptionModes(value):
+  ENCRYPTTYPES = frozenset(['X_CATAWAMPUS-ORG_None', 'None', 'WEPEncryption',
+                            'TKIPEncryption', 'WEPandTKIPEncryption',
+                            'AESEncryption', 'WEPandAESEncryption',
+                            'TKIPandAESEncryption',
+                            'WEPandTKIPandAESEncryption'])
+  return True if value in ENCRYPTTYPES else False
 
 
 def _GetOperationalDataTransmitRates(arg):
@@ -263,17 +327,6 @@ def _GetPossibleChannels(arg):
     return wifi.ContiguousRanges(channels)
   else:
     return ''
-
-
-def _SetPreSharedKey(index, key, mac):
-  wl_cmd = [WL_EXE, 'addwep', str(index), key]
-  if mac is not None:
-    wl_cmd.append(mac)
-  subprocess.check_call(wl_cmd)
-
-
-def _ClrPreSharedKey(index):
-  subprocess.check_call([WL_EXE, 'rmwep', str(index)])
 
 
 def _GetRadioEnabled(arg):
@@ -321,6 +374,11 @@ def _ValidateRegulatoryDomain(value):
   return True if value in countries else False
 
 
+def _SetReset(do_reset):
+  status = 'down' if do_reset else 'up'
+  subprocess.check_call([WL_EXE, status])
+
+
 def _GetSSID(arg):
   """Return current Wifi SSID."""
   wl = subprocess.Popen([WL_EXE, 'ssid'], stdout=subprocess.PIPE)
@@ -362,28 +420,6 @@ def _ValidateSSIDAdvertisementEnabled(value):
   return tr.cwmpbool.valid(value)
 
 
-def _GetStatus(arg):
-  wl = subprocess.Popen([WL_EXE, 'bss'], stdout=subprocess.PIPE)
-  out, _ = wl.communicate(None)
-  lower = out.strip().lower()
-  if lower == 'up':
-    return 'Up'
-  elif lower == 'down':
-    return 'Disabled'
-  else:
-    return 'Error'
-
-
-def _SetStatus(enable):
-  status = 'up' if enable else 'down'
-  subprocess.check_call([WL_EXE, 'bss', status])
-  subprocess.check_call([WL_EXE, status])
-
-
-def _ValidateStatus(value):
-  return tr.cwmpbool.valid(value)
-
-
 def _GetTransmitPower(arg):
   wl = subprocess.Popen([WL_EXE, 'pwr_percent'], stdout=subprocess.PIPE)
   out, _ = wl.communicate(None)
@@ -410,41 +446,61 @@ def _GetTransmitPowerSupported(arg):
   return '1-100'
 
 
+def _SetWepKey(index, key, mac=None):
+  wl_cmd = [WL_EXE, 'addwep', str(index), key]
+  if mac is not None:
+    wl_cmd.append(mac)
+  subprocess.check_call(wl_cmd)
+
+
+def _ClrWepKey(index):
+  subprocess.check_call([WL_EXE, 'rmwep', str(index)])
+
+
+def _SetWepKeyIndex(index):
+  subprocess.check_call([WL_EXE, 'primary_key', str(index)])
+
+
 class BrcmWifiWlanConfiguration(BASE98WIFI):
   """An implementation of tr98 WLANConfiguration for Broadcom Wifi chipsets."""
 
   def __init__(self, ifname):
     BASE98WIFI.__init__(self)
     self._ifname = ifname
-    self.AuthenticationServiceMode = tr.core.TODO()
-    self.AutoChannelEnable = tr.core.TODO()
-    self.BasicAuthenticationMode = tr.core.TODO()
-    self.BasicEncryptionModes = tr.core.TODO()
-    self.BeaconAdvertisementEnabled = tr.core.TODO()
-    self.ChannelsInUse = tr.core.TODO()
-    self.IEEE11iAuthenticationMode = tr.core.TODO()
-    self.IEEE11iEncryptionModes = tr.core.TODO()
-    self.KeyPassphrase = tr.core.TODO()
-    self.LocationDescription = ''
-    self.MaxBitRate = tr.core.TODO()
-    self.PossibleDataTransmitRates = tr.core.TODO()
-    self.TotalIntegrityFailures = tr.core.TODO()
-    self.TotalPSKFailures = tr.core.TODO()
-    self.WEPEncryptionLevel = tr.core.TODO()
-    self.WEPKeyList = {}
-    self.WEPKeyIndex = tr.core.TODO()
-    self.WPAAuthenticationMode = tr.core.TODO()
-    self.WPAEncryptionModes = tr.core.TODO()
+
+    # Unimplemented, but not yet evaluated
+    self.Unexport('AutoChannelEnable')
+    self.Unexport('BeaconAdvertisementEnabled')
+    self.Unexport('ChannelsInUse')
+    self.Unexport('MaxBitRate')
+    self.Unexport('PossibleDataTransmitRates')
+    self.Unexport('TotalIntegrityFailures')
+    self.Unexport('TotalPSKFailures')
 
     self.AssociatedDeviceList = tr.core.AutoDict(
         'AssociatedDeviceList', iteritems=self.IterAssociations,
         getitem=self.GetAssociationByIndex)
 
     self.PreSharedKeyList = {}
-    for i in range(1,5):
-      # tr-98 mandates exactly 10 PreSharedKey objects. Unfortunately
-      # BRCM Wifi adaptors only supply 4.
+    for i in range(1, 5):
+      # tr-98 spec deviation: spec says 10 PreSharedKeys objects,
+      # BRCM only supports 4 keys.
       self.PreSharedKeyList[i] = wifi.PreSharedKey98()
+
+    self.WEPKeyList = {}
+    for i in range(1, 5):
+      self.WEPKeyList[i] = wifi.WEPKey98()
+
+    self.LocationDescription = ''
+
+    # We don't support WEP authentication w/o encryption.
+    self.Unexport('BasicEncryptionModes')
+
+    # No RADIUS support, could be added later.
+    self.Unexport('AuthenticationServiceMode')
+    self.Unexport('BasicAuthenticationMode')
+    self.Unexport('IEEE11iAuthenticationMode')
+    self.Unexport('WPAAuthenticationMode')
 
     # Local settings, currently unimplemented. Will require more
     # coordination with the underlying platform support.
@@ -453,8 +509,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     # MAC Access controls, currently unimplemented but could be supported.
     self.Unexport('MACAddressControlEnabled')
 
-    # Wifi Protected Setup, currently unimplemented and not recommended,
-    # but could be supported if really desired.
+    # Wifi Protected Setup, currently unimplemented and not recommended.
     self.Unexport(objects='WPS')
 
     # Wifi MultiMedia, currently unimplemented but could be supported.
@@ -473,16 +528,19 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   def _SetDefaults(self):
     self.p_auto_rate_fallback_enabled = None
     self.p_basic_data_transmit_rates = None
-    self.p_beacon_type = None
+    self.p_beacon_type = 'WPAand11i'
     self.p_bssid = None
     self.p_channel = None
     self.p_enable = False
+    self.p_ieee11i_encryption_modes = 'X_CATAWAMPUS-ORG_None'
     self.p_operational_data_transmit_rates = None
-    self.p_radio_enabled = None
+    self.p_radio_enabled = True
     self.p_regulatory_domain = None
     self.p_ssid = None
     self.p_ssid_advertisement_enabled = None
     self.p_transmit_power = None
+    self.p_wepkeyindex = 1
+    self.p_wpa_encryption_modes = 'X_CATAWAMPUS-ORG_None'
 
   @property
   def Name(self):
@@ -503,6 +561,10 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   @property
   def UAPSDSupported(self):
     return False
+
+  @property
+  def WEPEncryptionLevel(self):
+    return 'Disabled,40-bit,104-bit'
 
   @property
   def WMMSupported(self):
@@ -528,11 +590,17 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
       _GetBasicDataTransmitRates, SetBasicDataTransmitRates, None,
       'WLANConfiguration.BasicDataTransmitRates')
 
+  def GetBeaconType(self):
+    return self.p_beacon_type
+
   def SetBeaconType(self, value):
     self.p_beacon_type = value
     self._ConfigureBrcmWifi()
 
-  BeaconType = property(_GetBeaconType, SetBeaconType, None,
+  def ValidateBeaconType(self, value):
+    return True if value in BEACONS else False
+
+  BeaconType = property(GetBeaconType, SetBeaconType, None,
                         'WLANConfiguration.BeaconType')
 
   def SetBSSID(self, value):
@@ -555,9 +623,32 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     self._ConfigureBrcmWifi()
 
   def ValidateEnable(self, value):
-    return _ValidateStatus(value)
+    return _ValidateEnable(value)
 
   Enable = property(GetEnable, SetEnable, None, 'WLANConfiguration.Enable')
+
+  def SetIEEE11iEncryptionModes(self, value):
+    self.p_ieee11i_encryption_modes = value
+    self._ConfigureBrcmWifi()
+
+  IEEE11iEncryptionModes = property(
+      _GetEncryptionModes, SetIEEE11iEncryptionModes, None,
+      'WLANConfiguration.IEEE11iEncryptionModes')
+
+  def GetKeyPassphrase(self):
+    psk = self.PreSharedKeyList[1]
+    return psk.KeyPassphrase
+
+  def SetKeyPassphrase(self, value):
+    psk = self.PreSharedKeyList[1]
+    psk.KeyPassphrase = value
+    # TODO(dgentry) need to set WEPKeys, but this is fraught with peril.
+    # If KeyPassphrase is not exactly 5 or 13 bytes it must be padded.
+    # Apple uses different padding than Windows (and others).
+    # http://support.apple.com/kb/HT1344
+
+  KeyPassphrase = property(GetKeyPassphrase, SetKeyPassphrase, None,
+                           'WLANConfiguration.KeyPassphrase')
 
   def SetOperationalDataTransmitRates(self, value):
     self.p_operational_data_transmit_rates = value
@@ -600,7 +691,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
       _GetSSIDAdvertisementEnabled, SetSSIDAdvertisementEnabled, None,
       'WLANConfiguration.SSIDAdvertisementEnabled')
 
-  Status = property(_GetStatus, None, None, 'WLANConfiguration.Status')
+  Status = property(_GetBssStatus, None, None, 'WLANConfiguration.Status')
 
   def SetTransmitPower(self, value):
     self.p_transmit_power = value
@@ -613,6 +704,23 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
       _GetTransmitPowerSupported, None, None,
       'WLANConfiguration.TransmitPowerSupported')
 
+  def GetWEPKeyIndex(self):
+    return self.p_wepkeyindex
+
+  def SetWEPKeyIndex(self, value):
+    self.p_wepkeyindex = int(value)
+
+  WEPKeyIndex = property(GetWEPKeyIndex, SetWEPKeyIndex, None,
+                         'WLANConfiguration.WEPKeyIndex')
+
+  def SetWPAEncryptionModes(self, value):
+    self.p_wpa_encryption_modes = value
+    self._ConfigureBrcmWifi()
+
+  WPAEncryptionModes = property(
+      _GetEncryptionModes, SetWPAEncryptionModes, None,
+      'WLANConfiguration.WPAEncryptionModes')
+
   # TODO(dgentry) we shouldn't call this from every Set*. There should
   # be a callback once the entire SetParameterValues has been processed.
   def _ConfigureBrcmWifi(self):
@@ -622,22 +730,20 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     For example, some settings can only be changed while the radio is on.
     """
 
+    _SetReset(True)
     if not self.p_enable:
       return
-    _SetStatus(False)  # About to change the config
+    _SetReset(False)  # About to change the config
+    _SetRadioEnabled(False)
+    _SetBssStatus(False)
     if self.p_radio_enabled is False:
-      # p_radio_enabled defaults to True
-      _SetRadioEnabled(False)
       return
 
-    _SetRadioEnabled(True)
     _SetApMode()
     if self.p_auto_rate_fallback_enabled is not None:
       _SetAutoRateFallBackEnabled(self.p_auto_rate_fallback_enabled)
     if self.p_basic_data_transmit_rates is not None:
       _SetBasicDataTransmitRates(self.p_basic_data_transmit_rates)
-    if self.p_beacon_type is not None:
-      _SetBeaconType(self.p_beacon_type)
     if self.p_bssid is not None:
       _SetBSSID(self.p_bssid)
     if self.p_channel is not None:
@@ -653,13 +759,25 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
       _SetSSIDAdvertisementEnabled(self.p_ssid_advertisement_enabled)
     if self.p_transmit_power is not None:
       _SetTransmitPower(self.p_transmit_power)
-    for idx, psk in self.PreSharedKeyList.items():
-      key = psk.GetKey(self.p_ssid)
+
+    if self.p_beacon_type.find('11i') >= 0:
+      _SetEncryptionModes(_EM_StringToBitmap(self.p_ieee11i_encryption_modes))
+    elif self.p_beacon_type.find('WPA') >= 0:
+      _SetEncryptionModes(_EM_StringToBitmap(self.p_wpa_encryption_modes))
+    elif self.p_beacon_type.find('Basic') >= 0:
+      _SetEncryptionModes(EM_WEP)
+    else:
+      _SetEncryptionModes(EM_NONE)
+
+    for idx, wep in self.WEPKeyList.items():
+      key = wep.WEPKey
       if key is None:
-        _ClrPreSharedKey(idx-1)
+        _ClrWepKey(idx-1)
       else:
-        _SetPreSharedKey(idx-1, key, psk.AssociatedDeviceMACAddress)
-    _SetStatus(True)
+        _SetWepKey(idx-1, key)
+    _SetWepKeyIndex(self.p_wepkeyindex)
+    _SetBssStatus(True)
+    _SetRadioEnabled(True)
 
   def GetTotalBytesReceived(self):
     counters = _GetWlCounters()  # TODO(dgentry) cache for lifetime of session
