@@ -31,6 +31,9 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
     self.Alias = ifname
     self.upstream = upstream
     self._pynet = PYNETIFCONF(ifname)
+    self.AssociatedDeviceList = tr.core.AutoDict(
+        'AssociatedDeviceList', iteritems=self.IterAssociatedDevices,
+        getitem=self.GetAssociatedDeviceByIndex)
 
   def IntOrZero(self, val):
     try:
@@ -108,19 +111,154 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
     nodeid = self._MocaCtlGetField(self._MocaCtlShowStatus, 'nodeId')
     return self.IntOrZero(nodeid)
 
+  @property
+  def AssociatedDeviceNumberOfEntries(self):
+    return len(self.AssociatedDeviceList)
 
-class BrcmMocaInterfaceStatsLinux26(BASE181MOCA.Interface.Stats):
+  def _MocaCtlGetNodeIDs(self):
+    """Return a list of active MoCA Node IDs."""
+    mc = subprocess.Popen([MOCACTL, 'showtbl', '--nodestats'],
+                          stdout=subprocess.PIPE)
+    out, _ = mc.communicate(None)
+    node_re = re.compile('\ANode\s*: (\d+)')
+    nodes = set()
+    for line in out.splitlines():
+      node = node_re.search(line)
+      if node is not None:
+        nodes.add(int(node.group(1)))
+    return list(nodes)
+
+  def GetAssociatedDevice(self, nodeid):
+    """Get an AssociatedDevice object for the given NodeID."""
+    ad = BrcmMocaAssociatedDevice(nodeid)
+    if ad:
+      ad.ValidateExports()
+    return ad
+
+  def IterAssociatedDevices(self):
+    """Retrieves a list of all associated devices."""
+    mocanodes = self._MocaCtlGetNodeIDs()
+    for idx, nodeid in enumerate(mocanodes):
+      yield idx, self.GetAssociatedDevice(nodeid)
+
+  def GetAssociatedDeviceByIndex(self, index):
+    mocanodes = self._MocaCtlGetNodeIDs()
+    return self.GetAssociatedDevice(mocanodes[index])
+
+
+class BrcmMocaInterfaceStatsLinux26(netdev.NetdevStatsLinux26,
+                                    BASE181MOCA.Interface.Stats):
   """tr181 Device.MoCA.Interface.Stats for Broadcom chipsets."""
 
   def __init__(self, ifname):
+    netdev.NetdevStatsLinux26.__init__(self, ifname)
     BASE181MOCA.Interface.Stats.__init__(self)
-    self._netdev = netdev.NetdevStatsLinux26(ifname)
 
-  def __getattr__(self, name):
-    if hasattr(self._netdev, name):
-      return getattr(self._netdev, name)
-    else:
-      raise AttributeError
+
+class BrcmMocaAssociatedDevice(BASE181MOCA.Interface.AssociatedDevice):
+  """tr-181 Device.MoCA.Interface.AssociatedDevice for Broadcom chipsets."""
+
+  def __init__(self, nodeid):
+    BASE181MOCA.Interface.AssociatedDevice.__init__(self)
+    self.NodeID = nodeid
+    self.MACAddress = ''
+    self.PreferredNC = False
+    self.Unexport('HighestVersion')
+    self.PHYTxRate = 0
+    self.PHYRxRate = 0
+    self.TxPowerControlReduction = 0
+    self.RxPowerLevel = 0
+    self.TxBcastRate = 0
+    self.RxBcastPowerLevel = 0
+    self.TxPackets = 0
+    self.RxPackets = 0
+    self.RxErroredAndMissedPackets = 0
+    self.QAM256Capable = 0
+    self.PacketAggregationCapability = 0
+    self.RxSNR = 0
+    self.Unexport('Active')
+
+    self.ParseNodeStatus()
+    self.ParseNodeStats()
+
+  def _GetInt(self, arg):
+    try:
+      return int(arg)
+    except ValueError:
+      return 0
+
+  def _GetFloat(self, arg):
+    try:
+      return float(arg)
+    except ValueError:
+      return 0.0
+
+  def ParseNodeStatus(self):
+    """Run mocactl show --nodestatus for this node, parse the output."""
+    mac_re = re.compile(
+        '^MAC Address\s+: ((?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})')
+    pnc_re = re.compile('Preferred NC\s+: (\d+)')
+    ptx_re = re.compile('\ATxUc.+?(\d+[.]?\d*)\s+dBm.*?(\d+)\s+bps')
+    prx_re = re.compile('\ARxUc.+?(\d+[.]?\d*)\s+dBm.*?(\d+)\s+bps'
+                        '\s+(\d+[.]?\d*) dB')
+    rxb_re = re.compile('\ARxBc.+?(\d+[.]?\d*)\s+dBm.*?(\d+)\s+bps')
+    qam_re = re.compile('256 QAM capable\s+:\s+(\d+)')
+    agg_re = re.compile('Aggregated PDUs\s+:\s+(\d+)')
+    mc = subprocess.Popen([MOCACTL, 'show', '--nodestatus', str(self.NodeID)],
+                          stdout=subprocess.PIPE)
+    out, _ = mc.communicate(None)
+    for line in out.splitlines():
+      mac = mac_re.search(line)
+      if mac is not None:
+        self.MACAddress = mac.group(1)
+      pnc = pnc_re.search(line)
+      if pnc is not None:
+        self.PreferredNC = False if pnc.group(1) is '0' else True
+      ptx = ptx_re.search(line)
+      if ptx is not None:
+        self.PHYTxRate = self._GetInt(ptx.group(2)) / 1000000
+        self.TxPowerControlReduction = int(self._GetFloat(ptx.group(1)))
+      prx = prx_re.search(line)
+      if prx is not None:
+        self.PHYRxRate = self._GetInt(prx.group(2)) / 1000000
+        self.RxPowerLevel = int(self._GetFloat(prx.group(1)))
+        # TODO(dgentry) This cannot be right. SNR should be dB, not an integer.
+        self.RxSNR = int(self._GetFloat(prx.group(3)))
+      rxb = rxb_re.search(line)
+      if rxb is not None:
+        self.TxBcastRate = self._GetInt(rxb.group(2)) / 1000000
+        self.RxBcastPowerLevel = int(self._GetFloat(rxb.group(1)))
+      qam = qam_re.search(line)
+      if qam is not None:
+        self.QAM256Capable = False if qam.group(1) is '0' else True
+      agg = agg_re.search(line)
+      if agg is not None:
+        self.PacketAggregationCapability = self._GetInt(agg.group(1))
+
+  def ParseNodeStats(self):
+    """Run mocactl show --nodestats for this node, parse the output."""
+    tx_re = re.compile('Unicast Tx Pkts To Node\s+: (\d+)')
+    rx_re = re.compile('Unicast Rx Pkts From Node\s+: (\d+)')
+    e1_re = re.compile('Rx CodeWord ErrorAndUnCorrected\s+: (\d+)')
+    e2_re = re.compile('Rx NoSync Errors\s+: (\d+)')
+    mc = subprocess.Popen([MOCACTL, 'show', '--nodestats', str(self.NodeID)],
+                          stdout=subprocess.PIPE)
+    out, _ = mc.communicate(None)
+    rx_err = 0
+    for line in out.splitlines():
+      tx = tx_re.search(line)
+      if tx is not None:
+        self.TxPackets = self._GetInt(tx.group(1))
+      rx = rx_re.search(line)
+      if rx is not None:
+        self.RxPackets = self._GetInt(rx.group(1))
+      e1 = e1_re.search(line)
+      if e1 is not None:
+        rx_err += self._GetInt(e1.group(1))
+      e2 = e2_re.search(line)
+      if e2 is not None:
+        rx_err += self._GetInt(e2.group(1))
+    self.RxErroredAndMissedPackets = rx_err
 
 
 class BrcmMoca(BASE181MOCA):
