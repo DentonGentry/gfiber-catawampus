@@ -50,6 +50,21 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
     out, _ = mc.communicate(None)
     return out.splitlines()
 
+  # TODO(dgentry) need @sessioncache decorator
+  def _MocaCtlShowInitParms(self):
+    """Return output of mocactl show --initparms."""
+    mc = subprocess.Popen([MOCACTL, 'show', '--initparms'],
+                          stdout=subprocess.PIPE)
+    out, _ = mc.communicate(None)
+    return out.splitlines()
+
+  # TODO(dgentry) need @sessioncache decorator
+  def _MocaCtlShowConfig(self):
+    """Return output of mocactl show --config."""
+    mc = subprocess.Popen([MOCACTL, 'show', '--config'], stdout=subprocess.PIPE)
+    out, _ = mc.communicate(None)
+    return out.splitlines()
+
   def _MocaCtlGetField(self, outfcn, field):
     """Look for one field in a mocactl command.
 
@@ -86,38 +101,6 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
     return self.ifname
 
   @property
-  def LowerLayers(self):
-    # In theory this is writeable, but it is nonsensical to write to it.
-    return ''
-
-  @property
-  def Upstream(self):
-    return self.upstream
-
-  @property
-  def MACAddress(self):
-    return self._pynet.get_mac()
-
-  @property
-  def FirmwareVersion(self):
-    ver = self._MocaCtlGetField(self._MocaCtlShowStatus, 'SwVersion')
-    return ver if ver else '0'
-
-  @property
-  def NetworkCoordinator(self):
-    nodeid = self._MocaCtlGetField(self._MocaCtlShowStatus, 'ncNodeId')
-    return self.IntOrZero(nodeid)
-
-  @property
-  def NodeID(self):
-    nodeid = self._MocaCtlGetField(self._MocaCtlShowStatus, 'nodeId')
-    return self.IntOrZero(nodeid)
-
-  @property
-  def AssociatedDeviceNumberOfEntries(self):
-    return len(self.AssociatedDeviceList)
-
-  @property
   def LastChange(self):
     up = self._MocaCtlGetField(self._MocaCtlShowStatus, 'linkUpTime').split(':')
     secs = 0
@@ -137,6 +120,61 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
       elif t[-1] == 's':
         secs += num
     return secs
+
+  @property
+  def LowerLayers(self):
+    # In theory this is writeable, but it is nonsensical to write to it.
+    return ''
+
+  @property
+  def Upstream(self):
+    return self.upstream
+
+  @property
+  def MACAddress(self):
+    return self._pynet.get_mac()
+
+  @property
+  def FirmwareVersion(self):
+    ver = self._MocaCtlGetField(self._MocaCtlShowStatus, 'SwVersion')
+    return ver if ver else '0'
+
+  @property
+  def CurrentVersion(self):
+    ver = self._MocaCtlGetField(self._MocaCtlShowInitParms, 'Operating Version')
+    return ver if ver else ''
+
+  @property
+  def NetworkCoordinator(self):
+    nodeid = self._MocaCtlGetField(self._MocaCtlShowStatus, 'ncNodeId')
+    return self.IntOrZero(nodeid)
+
+  @property
+  def NodeID(self):
+    nodeid = self._MocaCtlGetField(self._MocaCtlShowStatus, 'nodeId')
+    return self.IntOrZero(nodeid)
+
+  @property
+  def PrivacyEnabled(self):
+    private = self._MocaCtlGetField(self._MocaCtlShowInitParms, 'Privacy')
+    return True if private == 'enabled' else False
+
+  @property
+  def QAM256Capable(self):
+    qam = self._MocaCtlGetField(self._MocaCtlShowInitParms, 'qam256Capability')
+    return True if qam == 'on' else False
+
+  @property
+  def PacketAggregationCapability(self):
+    # example: "maxPktAggr   : 10 pkts"
+    pkts = self._MocaCtlGetField(self._MocaCtlShowConfig, 'maxPktAggr')
+    if pkts:
+      return self.IntOrZero(pkts.split()[0])
+    return 0
+
+  @property
+  def AssociatedDeviceNumberOfEntries(self):
+    return len(self.AssociatedDeviceList)
 
   def _MocaCtlGetNodeIDs(self):
     """Return a list of active MoCA Node IDs."""

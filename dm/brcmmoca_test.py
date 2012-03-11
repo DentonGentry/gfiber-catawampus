@@ -78,14 +78,31 @@ class MocaTest(unittest.TestCase):
     MockPynet.v_is_up = False
     self.assertEqual(moca.Status, 'Down')
     self.assertEqual(moca.FirmwareVersion, '5.6.789')
+    self.assertEqual(moca.CurrentVersion, '1.1')
+    self.assertFalse(moca.PrivacyEnabled)
     self.assertEqual(moca.NetworkCoordinator, 1)
     self.assertEqual(moca.NodeID, 2)
+    self.assertTrue(moca.QAM256Capable)
+    self.assertEqual(moca.PacketAggregationCapability, 10)
+
+  def testMocaInterfaceAlt(self):
+    brcmmoca.PYNETIFCONF = MockPynet
+    brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl_alt'
+    moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=False)
+    self.assertEqual(moca.CurrentVersion, '2.0')
+    self.assertTrue(moca.PrivacyEnabled)
+    self.assertFalse(moca.QAM256Capable)
+    self.assertEqual(moca.PacketAggregationCapability, 7)
 
   def testMocaInterfaceMocaCtlFails(self):
     brcmmoca.PYNETIFCONF = MockPynet
     brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl_fail'
     moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=False)
     self.assertEqual(moca.FirmwareVersion, '0')
+    self.assertEqual(moca.CurrentVersion, '')
+    self.assertFalse(moca.PrivacyEnabled)
+    self.assertFalse(moca.QAM256Capable)
+    self.assertEqual(moca.PacketAggregationCapability, 0)
 
   def testLastChange(self):
     brcmmoca.PYNETIFCONF = MockPynet
