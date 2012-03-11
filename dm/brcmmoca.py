@@ -87,6 +87,11 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
     return None
 
   @property
+  def Enable(self):
+    # TODO(dgentry) Supposed to be read/write, but we don't disable yet.
+    return True
+
+  @property
   def Status(self):
     if not self._pynet.is_up():
       return 'Down'
@@ -139,10 +144,19 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
     ver = self._MocaCtlGetField(self._MocaCtlShowStatus, 'SwVersion')
     return ver if ver else '0'
 
+  def _RegToMoCA(self, regval):
+    moca = {'0x10': '1.0', '0x11': '1.1', '0x20': '2.0', '0x21': '2.1'}
+    return moca.get(regval, '0.0')
+
+  @property
+  def HighestVersion(self):
+    reg = self._MocaCtlGetField(self._MocaCtlShowStatus, 'self MoCA Version')
+    return self._RegToMoCA(reg)
+
   @property
   def CurrentVersion(self):
-    ver = self._MocaCtlGetField(self._MocaCtlShowInitParms, 'Operating Version')
-    return ver if ver else ''
+    reg = self._MocaCtlGetField(self._MocaCtlShowStatus, 'networkVersionNumber')
+    return self._RegToMoCA(reg)
 
   @property
   def NetworkCoordinator(self):
@@ -155,9 +169,29 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
     return self.IntOrZero(nodeid)
 
   @property
+  def BackupNC(self):
+    bnc = nodeid = self._MocaCtlGetField(self._MocaCtlShowStatus, 'backupNcId')
+    return bnc if bnc else ''
+
+  @property
   def PrivacyEnabled(self):
     private = self._MocaCtlGetField(self._MocaCtlShowInitParms, 'Privacy')
     return True if private == 'enabled' else False
+
+  @property
+  def CurrentOperFreq(self):
+    freq = self._MocaCtlGetField(self._MocaCtlShowStatus, 'rfChannel')
+    if freq:
+      return self.IntOrZero(freq.split()[0])
+    return 0
+
+  @property
+  def LastOperFreq(self):
+    last = self._MocaCtlGetField(self._MocaCtlShowInitParms,
+                                 'Nv Params - Last Oper Freq')
+    if last:
+      return self.IntOrZero(last.split()[0])
+    return 0
 
   @property
   def QAM256Capable(self):

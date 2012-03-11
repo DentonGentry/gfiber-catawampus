@@ -132,5 +132,41 @@ loopbackEn                  : 0
 =================================="
 fi
 
+if [ x"$1" = "xshow" ] && [ x"$2" = x"--status" ] ; then
+echo "           MoCA Status(General)
+==================================
+vendorId                  : 32          HwVersion                 : 0x12345678
+SwVersion                 : 5.6.789     self MoCA Version         : 0x10
+networkVersionNumber      : 0x20        qam256Support             : supported
+operStatus                : Enabled     linkStatus                : Down
+connectedNodes BitMask    : 0x0         nodeId                    : 2
+ncNodeId                  : 1
+upTime                    : 00h:30m:29s
+linkUpTime                : 1h:00m:01s  backupNcId                : 2
+rfChannel                 : 999 Mhz     bwStatus                  : 0x0
+NodesUsableBitMask        : 0x0         NetworkTabooMask          : 0x0
+NetworkTabooStart         : 16          txGcdPowerReduction       : 255
+pqosEgressNumFlows        : 0           Num of connectedNodes     : 0
+ledStatus                 : 2
+==================================
+           MoCA Status(Extended)
+==================================
+lastPmkExchange           : 00h:00m:00s
+lastPmkInterval           : 0 sec
+lastTekExchange           : 00h:00m:00s
+lastTekInterval           : 0 sec
+PMK Even Key              : 00:00:00:00:00:00:00:00 (ACTIVE)
+PMK Odd Key               : 00:00:00:00:00:00:00:00
+TEK Even Key              : 00:00:00:00:00:00:00:00 (ACTIVE)
+TEK Odd Key               : 00:00:00:00:00:00:00:00
+==================================
+           MoCA Status(Misc)
+==================================
+MAC GUID                  : 00:11:22:33:44:55
+Are we Network Controller : no
+Driver Up Time            : 00h:30m:33s
+Link Reset Count          : 0
+=================================="
+fi
 
 exit 0

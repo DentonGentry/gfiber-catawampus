@@ -10,7 +10,7 @@ Privacy                    : disabled
 Tx Pwr Control             : disabled
 Const Tx Mode              : Normal
 Continuous Rx Mode Attn    : 3 dBm
-Nv Params - Last Oper Freq : 999 Mhz
+Nv Params - Last Oper Freq : 899 Mhz
 Max Tx Power               : 3 dBm
 PasswordSize               : 17
 Password                   : 99999999999999999
@@ -141,7 +141,7 @@ operStatus                : Enabled     linkStatus                : Down
 connectedNodes BitMask    : 0x0         nodeId                    : 2
 ncNodeId                  : 1
 upTime                    : 00h:30m:29s
-linkUpTime                : 367571h:00m:01s     backupNcId                : N/A
+linkUpTime                : 1h:00m:01s  backupNcId                : 5
 rfChannel                 : 999 Mhz     bwStatus                  : 0x0
 NodesUsableBitMask        : 0x0         NetworkTabooMask          : 0x0
 NetworkTabooStart         : 16          txGcdPowerReduction       : 255
