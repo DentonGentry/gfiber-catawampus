@@ -63,6 +63,7 @@ class MocaTest(unittest.TestCase):
     brcmmoca.PYNETIFCONF = MockPynet
     brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl'
     moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=False)
+    #moca.ValidateExports()
     self.assertEqual(moca.Name, 'foo0')
     self.assertEqual(moca.LowerLayers, '')
     self.assertFalse(moca.Upstream)
@@ -85,6 +86,14 @@ class MocaTest(unittest.TestCase):
     brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl_fail'
     moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=False)
     self.assertEqual(moca.FirmwareVersion, '0')
+
+  def testLastChange(self):
+    brcmmoca.PYNETIFCONF = MockPynet
+    moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=False)
+    brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl_up1'
+    self.assertEqual(moca.LastChange, 6090)
+    brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl_up2'
+    self.assertEqual(moca.LastChange, 119728800)
 
   def testAssociatedDevice(self):
     brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl'

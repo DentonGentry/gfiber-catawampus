@@ -28,9 +28,11 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
   def __init__(self, ifname, upstream=False):
     BASE181MOCA.Interface.__init__(self)
     self.ifname = ifname
-    self.Alias = ifname
     self.upstream = upstream
     self._pynet = PYNETIFCONF(ifname)
+
+    self.Unexport('Alias')
+    self.Unexport('KeyPassphrase')
     self.AssociatedDeviceList = tr.core.AutoDict(
         'AssociatedDeviceList', iteritems=self.IterAssociatedDevices,
         getitem=self.GetAssociatedDeviceByIndex)
@@ -115,6 +117,27 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
   def AssociatedDeviceNumberOfEntries(self):
     return len(self.AssociatedDeviceList)
 
+  @property
+  def LastChange(self):
+    up = self._MocaCtlGetField(self._MocaCtlShowStatus, 'linkUpTime').split(':')
+    secs = 0
+    for t in up:
+      # linkUpTime ex: '23h:41m:30s'
+      num = self.IntOrZero(t[:-1])
+      if t[-1] == 'y':
+        secs += int(num * (365.25 * 24.0 * 60.0 * 60.0))
+      elif t[-1] == 'w':
+        secs += num * (7 * 24 * 60 * 60)
+      elif t[-1] == 'd':
+        secs += num * (24 * 60 * 60)
+      elif t[-1] == 'h':
+        secs += num * (60 * 60)
+      elif t[-1] == 'm':
+        secs += num * 60
+      elif t[-1] == 's':
+        secs += num
+    return secs
+
   def _MocaCtlGetNodeIDs(self):
     """Return a list of active MoCA Node IDs."""
     mc = subprocess.Popen([MOCACTL, 'showtbl', '--nodestats'],
@@ -181,13 +204,13 @@ class BrcmMocaAssociatedDevice(BASE181MOCA.Interface.AssociatedDevice):
     self.ParseNodeStatus()
     self.ParseNodeStats()
 
-  def _GetInt(self, arg):
+  def IntOrZero(self, arg):
     try:
       return int(arg)
     except ValueError:
       return 0
 
-  def _GetFloat(self, arg):
+  def FloatOrZero(self, arg):
     try:
       return float(arg)
     except ValueError:
@@ -216,24 +239,24 @@ class BrcmMocaAssociatedDevice(BASE181MOCA.Interface.AssociatedDevice):
         self.PreferredNC = False if pnc.group(1) is '0' else True
       ptx = ptx_re.search(line)
       if ptx is not None:
-        self.PHYTxRate = self._GetInt(ptx.group(2)) / 1000000
-        self.TxPowerControlReduction = int(self._GetFloat(ptx.group(1)))
+        self.PHYTxRate = self.IntOrZero(ptx.group(2)) / 1000000
+        self.TxPowerControlReduction = int(self.FloatOrZero(ptx.group(1)))
       prx = prx_re.search(line)
       if prx is not None:
-        self.PHYRxRate = self._GetInt(prx.group(2)) / 1000000
-        self.RxPowerLevel = int(self._GetFloat(prx.group(1)))
+        self.PHYRxRate = self.IntOrZero(prx.group(2)) / 1000000
+        self.RxPowerLevel = int(self.FloatOrZero(prx.group(1)))
         # TODO(dgentry) This cannot be right. SNR should be dB, not an integer.
-        self.RxSNR = int(self._GetFloat(prx.group(3)))
+        self.RxSNR = int(self.FloatOrZero(prx.group(3)))
       rxb = rxb_re.search(line)
       if rxb is not None:
-        self.TxBcastRate = self._GetInt(rxb.group(2)) / 1000000
-        self.RxBcastPowerLevel = int(self._GetFloat(rxb.group(1)))
+        self.TxBcastRate = self.IntOrZero(rxb.group(2)) / 1000000
+        self.RxBcastPowerLevel = int(self.FloatOrZero(rxb.group(1)))
       qam = qam_re.search(line)
       if qam is not None:
         self.QAM256Capable = False if qam.group(1) is '0' else True
       agg = agg_re.search(line)
       if agg is not None:
-        self.PacketAggregationCapability = self._GetInt(agg.group(1))
+        self.PacketAggregationCapability = self.IntOrZero(agg.group(1))
 
   def ParseNodeStats(self):
     """Run mocactl show --nodestats for this node, parse the output."""
@@ -248,16 +271,16 @@ class BrcmMocaAssociatedDevice(BASE181MOCA.Interface.AssociatedDevice):
     for line in out.splitlines():
       tx = tx_re.search(line)
       if tx is not None:
-        self.TxPackets = self._GetInt(tx.group(1))
+        self.TxPackets = self.IntOrZero(tx.group(1))
       rx = rx_re.search(line)
       if rx is not None:
-        self.RxPackets = self._GetInt(rx.group(1))
+        self.RxPackets = self.IntOrZero(rx.group(1))
       e1 = e1_re.search(line)
       if e1 is not None:
-        rx_err += self._GetInt(e1.group(1))
+        rx_err += self.IntOrZero(e1.group(1))
       e2 = e2_re.search(line)
       if e2 is not None:
-        rx_err += self._GetInt(e2.group(1))
+        rx_err += self.IntOrZero(e2.group(1))
     self.RxErroredAndMissedPackets = rx_err
 
 
