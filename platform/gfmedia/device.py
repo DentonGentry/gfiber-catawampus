@@ -13,6 +13,7 @@ import fcntl
 import os
 import subprocess
 import google3
+import dm.brcmmoca
 import dm.brcmwifi
 import dm.device_info
 import dm.storage
@@ -202,6 +203,18 @@ class Services181GFMedia(tr181.Device_v2_2.Device.Services):
         pass
 
 
+class Moca181GFMedia(tr181.Device_v2_2.Device.MoCA):
+  """Implementation of tr-181 Device.MoCA for GFMedia platforms."""
+
+  def __init__(self):
+    tr181.Device_v2_2.Device.MoCA.__init__(self)
+    self.InterfaceList = {'1': dm.brcmmoca.BrcmMocaInterface('eth1')}
+
+  @property
+  def InterfaceNumberOfEntries(self):
+    return len(self.InterfaceList)
+
+
 class DeviceGFMedia(tr181.Device_v2_2.Device):
   """tr-181 Device implementation for Google Fiber media platforms."""
 
@@ -222,7 +235,6 @@ class DeviceGFMedia(tr181.Device_v2_2.Device):
     self.Unexport(objects='IEEE8021x')
     self.Unexport(objects='IP')
     self.Unexport(objects='LANConfigSecurity')
-    self.Unexport(objects='MoCA')
     self.Unexport(objects='NAT')
     self.Unexport(objects='PPP')
     self.Unexport(objects='PTM')
@@ -236,6 +248,7 @@ class DeviceGFMedia(tr181.Device_v2_2.Device):
 
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
+    self.MoCA = Moca181GFMedia()
     self.Services = Services181GFMedia()
     self.InterfaceStackList = {}
     self.InterfaceStackNumberOfEntries = 0
