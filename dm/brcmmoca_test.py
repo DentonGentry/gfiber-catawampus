@@ -62,8 +62,9 @@ class MocaTest(unittest.TestCase):
   def testMocaInterface(self):
     brcmmoca.PYNETIFCONF = MockPynet
     brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl'
+    netdev.PROC_NET_DEV = 'testdata/brcmmoca/proc/net/dev'
     moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=False)
-    #moca.ValidateExports()
+    moca.ValidateExports()
     self.assertEqual(moca.Name, 'foo0')
     self.assertEqual(moca.LowerLayers, '')
     self.assertFalse(moca.Upstream)

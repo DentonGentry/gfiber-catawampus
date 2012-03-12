@@ -22,26 +22,55 @@ MOCACTL = '/bin/mocactl'
 PYNETIFCONF = pynetlinux.ifconfig.Interface
 
 
+def IntOrZero(arg):
+  try:
+    return int(arg)
+  except ValueError:
+    return 0
+
+def FloatOrZero(arg):
+  try:
+    return float(arg)
+  except ValueError:
+    return 0.0
+
+
 class BrcmMocaInterface(BASE181MOCA.Interface):
   """An implementation of tr181 Device.MoCA.Interface for Broadcom chipsets."""
 
   def __init__(self, ifname, upstream=False):
     BASE181MOCA.Interface.__init__(self)
-    self.ifname = ifname
+    self._ifname = ifname
     self.upstream = upstream
     self._pynet = PYNETIFCONF(ifname)
 
     self.Unexport('Alias')
+    self.Unexport('MaxBitRate')
+    self.Unexport('MaxIngressBW')
+    self.Unexport('MaxEgressBW')
+    self.Unexport('MaxNodes')
+    self.Unexport('PreferredNC')
+    self.Unexport('PrivacyEnabledSetting')
+    self.Unexport('FreqCapabilityMask')
+    self.Unexport('FreqCurrentMaskSetting')
+    self.Unexport('FreqCurrentMask')
     self.Unexport('KeyPassphrase')
+    self.Unexport('TxPowerLimit')
+    self.Unexport('PowerCntlPhyTarget')
+    self.Unexport('BeaconPowerLimit')
+    self.Unexport('NetworkTabooMask')
+    self.Unexport('NodeTabooMask')
+    self.Unexport('TxBcastRate')
+    self.Unexport('TxBcastPowerReduction')
+    self.Unexport(objects='QoS')
+
     self.AssociatedDeviceList = tr.core.AutoDict(
         'AssociatedDeviceList', iteritems=self.IterAssociatedDevices,
         getitem=self.GetAssociatedDeviceByIndex)
 
-  def IntOrZero(self, val):
-    try:
-      return int(val)
-    except (ValueError, TypeError):
-      return 0
+  @property  # TODO(dgentry) need @sessioncache decorator.
+  def Stats(self):
+    return BrcmMocaInterfaceStatsLinux26(self._ifname)
 
   # TODO(dgentry) need @sessioncache decorator
   def _MocaCtlShowStatus(self):
@@ -103,7 +132,7 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
 
   @property
   def Name(self):
-    return self.ifname
+    return self._ifname
 
   @property
   def LastChange(self):
@@ -111,7 +140,7 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
     secs = 0
     for t in up:
       # linkUpTime ex: '23h:41m:30s'
-      num = self.IntOrZero(t[:-1])
+      num = IntOrZero(t[:-1])
       if t[-1] == 'y':
         secs += int(num * (365.25 * 24.0 * 60.0 * 60.0))
       elif t[-1] == 'w':
@@ -161,12 +190,12 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
   @property
   def NetworkCoordinator(self):
     nodeid = self._MocaCtlGetField(self._MocaCtlShowStatus, 'ncNodeId')
-    return self.IntOrZero(nodeid)
+    return IntOrZero(nodeid)
 
   @property
   def NodeID(self):
     nodeid = self._MocaCtlGetField(self._MocaCtlShowStatus, 'nodeId')
-    return self.IntOrZero(nodeid)
+    return IntOrZero(nodeid)
 
   @property
   def BackupNC(self):
@@ -182,7 +211,7 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
   def CurrentOperFreq(self):
     freq = self._MocaCtlGetField(self._MocaCtlShowStatus, 'rfChannel')
     if freq:
-      return self.IntOrZero(freq.split()[0])
+      return IntOrZero(freq.split()[0])
     return 0
 
   @property
@@ -190,7 +219,7 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
     last = self._MocaCtlGetField(self._MocaCtlShowInitParms,
                                  'Nv Params - Last Oper Freq')
     if last:
-      return self.IntOrZero(last.split()[0])
+      return IntOrZero(last.split()[0])
     return 0
 
   @property
@@ -203,7 +232,7 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
     # example: "maxPktAggr   : 10 pkts"
     pkts = self._MocaCtlGetField(self._MocaCtlShowConfig, 'maxPktAggr')
     if pkts:
-      return self.IntOrZero(pkts.split()[0])
+      return IntOrZero(pkts.split()[0])
     return 0
 
   @property
@@ -276,18 +305,6 @@ class BrcmMocaAssociatedDevice(BASE181MOCA.Interface.AssociatedDevice):
     self.ParseNodeStatus()
     self.ParseNodeStats()
 
-  def IntOrZero(self, arg):
-    try:
-      return int(arg)
-    except ValueError:
-      return 0
-
-  def FloatOrZero(self, arg):
-    try:
-      return float(arg)
-    except ValueError:
-      return 0.0
-
   def ParseNodeStatus(self):
     """Run mocactl show --nodestatus for this node, parse the output."""
     mac_re = re.compile(
@@ -311,24 +328,24 @@ class BrcmMocaAssociatedDevice(BASE181MOCA.Interface.AssociatedDevice):
         self.PreferredNC = False if pnc.group(1) is '0' else True
       ptx = ptx_re.search(line)
       if ptx is not None:
-        self.PHYTxRate = self.IntOrZero(ptx.group(2)) / 1000000
-        self.TxPowerControlReduction = int(self.FloatOrZero(ptx.group(1)))
+        self.PHYTxRate = IntOrZero(ptx.group(2)) / 1000000
+        self.TxPowerControlReduction = int(FloatOrZero(ptx.group(1)))
       prx = prx_re.search(line)
       if prx is not None:
-        self.PHYRxRate = self.IntOrZero(prx.group(2)) / 1000000
-        self.RxPowerLevel = int(self.FloatOrZero(prx.group(1)))
+        self.PHYRxRate = IntOrZero(prx.group(2)) / 1000000
+        self.RxPowerLevel = int(FloatOrZero(prx.group(1)))
         # TODO(dgentry) This cannot be right. SNR should be dB, not an integer.
-        self.RxSNR = int(self.FloatOrZero(prx.group(3)))
+        self.RxSNR = int(FloatOrZero(prx.group(3)))
       rxb = rxb_re.search(line)
       if rxb is not None:
-        self.TxBcastRate = self.IntOrZero(rxb.group(2)) / 1000000
-        self.RxBcastPowerLevel = int(self.FloatOrZero(rxb.group(1)))
+        self.TxBcastRate = IntOrZero(rxb.group(2)) / 1000000
+        self.RxBcastPowerLevel = int(FloatOrZero(rxb.group(1)))
       qam = qam_re.search(line)
       if qam is not None:
         self.QAM256Capable = False if qam.group(1) is '0' else True
       agg = agg_re.search(line)
       if agg is not None:
-        self.PacketAggregationCapability = self.IntOrZero(agg.group(1))
+        self.PacketAggregationCapability = IntOrZero(agg.group(1))
 
   def ParseNodeStats(self):
     """Run mocactl show --nodestats for this node, parse the output."""
@@ -343,16 +360,16 @@ class BrcmMocaAssociatedDevice(BASE181MOCA.Interface.AssociatedDevice):
     for line in out.splitlines():
       tx = tx_re.search(line)
       if tx is not None:
-        self.TxPackets = self.IntOrZero(tx.group(1))
+        self.TxPackets = IntOrZero(tx.group(1))
       rx = rx_re.search(line)
       if rx is not None:
-        self.RxPackets = self.IntOrZero(rx.group(1))
+        self.RxPackets = IntOrZero(rx.group(1))
       e1 = e1_re.search(line)
       if e1 is not None:
-        rx_err += self.IntOrZero(e1.group(1))
+        rx_err += IntOrZero(e1.group(1))
       e2 = e2_re.search(line)
       if e2 is not None:
-        rx_err += self.IntOrZero(e2.group(1))
+        rx_err += IntOrZero(e2.group(1))
     self.RxErroredAndMissedPackets = rx_err
 
 
