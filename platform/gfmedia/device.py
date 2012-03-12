@@ -253,7 +253,7 @@ class LANDeviceGFMedia(BASE98IGD.LANDevice):
     self.LANEthernetInterfaceNumberOfEntries = 0
     self.LANUSBInterfaceNumberOfEntries = 0
     wifi = dm.brcmwifi.BrcmWifiWlanConfiguration('eth2')
-    self.WLANConfigurationList = {'0': wifi}
+    self.WLANConfigurationList = {'1': wifi}
 
   @property
   def LANWLANConfigurationNumberOfEntries(self):
@@ -269,7 +269,7 @@ class InternetGatewayDeviceGFMedia(BASE98IGD):
     self.Unexport(objects='DownloadDiagnostics')
     self.Unexport(objects='IPPingDiagnostics')
     self.Unexport(objects='LANConfigSecurity')
-    self.LANDeviceList = {'0': LANDeviceGFMedia()}
+    self.LANDeviceList = {'1': LANDeviceGFMedia()}
     self.Unexport(objects='LANInterfaces')
     self.Unexport(objects='Layer2Bridging')
     self.Unexport(objects='Layer3Forwarding')
