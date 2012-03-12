@@ -5,7 +5,7 @@
 #pylint: disable-msg=C6409
 #pylint: disable-msg=W0404
 #
-"""Implement the inner handling for tr-98/181 ManagementServer."""
+"""Implement the X_GOOGLE-COM_GVSB vendor data model."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
