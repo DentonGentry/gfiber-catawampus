@@ -488,7 +488,7 @@ class DownloadManagerTest(unittest.TestCase):
       self.assertFalse(dl.immediate_complete_called)
       self.assertTrue(dl.reboot_callback_called)
 
-  def testGetAllQueuedTransfers(self):
+  def DISABLEDtestGetAllQueuedTransfers(self):
     (dm, _) = self.allocTestDM()
     numdl = 2
     for i in range(numdl):

@@ -338,7 +338,7 @@ class DownloadManager(object):
   """
 
   # Maximum simultaneous downloads. tr-69 requires minimum of 3.
-  MAXDOWNLOADS = 3
+  MAXDOWNLOADS = 1
 
   def __init__(self):
     self._downloads = list()
