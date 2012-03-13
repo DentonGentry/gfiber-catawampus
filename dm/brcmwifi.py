@@ -53,9 +53,18 @@ def IsInteger(value):
   return True
 
 
-def _GetWlCounters():
-  wl = subprocess.Popen([WL_EXE, 'counters'], stdout=subprocess.PIPE)
+def _SubprocessCall(cmd):
+  subprocess.check_call(cmd)
+
+
+def _SubprocessWithOutput(cmd):
+  wl = subprocess.Popen(cmd, stdout=subprocess.PIPE)
   out, _ = wl.communicate(None)
+  return out
+
+
+def _GetWlCounters():
+  out = _SubprocessWithOutput([WL_EXE, 'counters'])
 
   # match three different types of stat output:
   # rxuflo: 1 2 3 4 5 6
@@ -83,14 +92,13 @@ def _GetWlCounters():
 
 def _SetApMode():
   """Put device into AP mode."""
-  subprocess.check_call([WL_EXE, 'ap', '1'])
-  subprocess.check_call([WL_EXE, 'infra', '1'])
+  _SubprocessCall([WL_EXE, 'ap', '1'])
+  _SubprocessCall([WL_EXE, 'infra', '1'])
 
 
 def _GetAssociatedDevices():
   """Return a list of MAC addresses of associated STAs."""
-  wl = subprocess.Popen([WL_EXE, 'assoclist'], stdout=subprocess.PIPE)
-  out, _ = wl.communicate(None)
+  out = _SubprocessWithOutput([WL_EXE, 'assoclist'])
   stamac_re = re.compile('((?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})')
   stations = list()
   for line in out.splitlines():
@@ -116,9 +124,7 @@ def _GetAssociatedDevice(mac):
   ad.AssociatedDeviceMACAddress = mac
   ad.AssociatedDeviceAuthenticationState = False
   ad.LastDataTransmitRate = '0'
-  wl = subprocess.Popen([WL_EXE, 'sta_info', mac.upper()],
-                        stdout=subprocess.PIPE)
-  out, _ = wl.communicate(None)
+  out = _SubprocessWithOutput([WL_EXE, 'sta_info', mac.upper()])
   tx_re = re.compile('rate of last tx pkt: (\d+) kbps')
   for line in out.splitlines():
     if line.find('AUTHENTICATED') >= 0:
@@ -135,8 +141,7 @@ def _GetAssociatedDevice(mac):
 
 def _GetAutoRateFallBackEnabled(arg):
   """Return WLANConfiguration.AutoRateFallBackEnabled as a boolean."""
-  wl = subprocess.Popen([WL_EXE, 'interference'], stdout=subprocess.PIPE)
-  out, _ = wl.communicate(None)
+  out = _SubprocessWithOutput([WL_EXE, 'interference'])
   mode_re = re.compile('\(mode (\d)\)')
   result = mode_re.search(out)
   mode = -1
@@ -148,7 +153,7 @@ def _GetAutoRateFallBackEnabled(arg):
 def _SetAutoRateFallBackEnabled(value):
   """Set WLANConfiguration.AutoRateFallBackEnabled, expects a boolean."""
   interference = 4 if value else 3
-  subprocess.check_call([WL_EXE, 'interference', str(interference)])
+  _SubprocessCall([WL_EXE, 'interference', str(interference)])
 
 
 def _ValidateAutoRateFallBackEnabled(value):
@@ -156,8 +161,7 @@ def _ValidateAutoRateFallBackEnabled(value):
 
 
 def _GetBasicDataTransmitRates(arg):
-  wl = subprocess.Popen([WL_EXE, 'rateset'], stdout=subprocess.PIPE)
-  out, _ = wl.communicate(None)
+  out = _SubprocessWithOutput([WL_EXE, 'rateset'])
   basic_re = re.compile('([0123456789]+(?:\.[0123456789]+)?)\(b\)')
   return ','.join(basic_re.findall(out))
 
@@ -173,8 +177,7 @@ def _ValidateBasicDataTransmitRates(value):
 
 
 def _GetBSSID(arg):
-  wl = subprocess.Popen([WL_EXE, 'bssid'], stdout=subprocess.PIPE)
-  out, _ = wl.communicate(None)
+  out = _SubprocessWithOutput([WL_EXE, 'bssid'])
   bssid_re = re.compile('((?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})')
   for line in out.splitlines():
     bssid = bssid_re.match(line)
@@ -184,7 +187,7 @@ def _GetBSSID(arg):
 
 
 def _SetBSSID(value):
-  subprocess.check_call([WL_EXE, 'bssid', value])
+  _SubprocessCall([WL_EXE, 'bssid', value])
 
 
 def _ValidateBSSID(value):
@@ -198,8 +201,7 @@ def _ValidateBSSID(value):
 
 
 def _GetBssStatus(arg):
-  wl = subprocess.Popen([WL_EXE, 'bss'], stdout=subprocess.PIPE)
-  out, _ = wl.communicate(None)
+  out = _SubprocessWithOutput([WL_EXE, 'bss'])
   lower = out.strip().lower()
   if lower == 'up':
     return 'Up'
@@ -211,7 +213,7 @@ def _GetBssStatus(arg):
 
 def _SetBssStatus(enable):
   status = 'up' if enable else 'down'
-  subprocess.check_call([WL_EXE, 'bss', status])
+  _SubprocessCall([WL_EXE, 'bss', status])
 
 
 def _ValidateBssStatus(value):
@@ -219,8 +221,7 @@ def _ValidateBssStatus(value):
 
 
 def _GetChannel(arg):
-  wl = subprocess.Popen([WL_EXE, 'channel'], stdout=subprocess.PIPE)
-  out, _ = wl.communicate(None)
+  out = _SubprocessWithOutput([WL_EXE, 'channel'])
   chan_re = re.compile('current mac channel(?:\s+)(\d+)')
   for line in out.splitlines():
     mr = chan_re.match(line)
@@ -230,7 +231,7 @@ def _GetChannel(arg):
 
 
 def _SetChannel(value):
-  subprocess.check_call([WL_EXE, 'channel', value])
+  _SubprocessCall([WL_EXE, 'channel', value])
 
 
 def _ValidateChannel(value):
@@ -276,8 +277,7 @@ def _EM_BitmapToString(bitmap):
 
 
 def _GetEncryptionModes(arg):
-  wl = subprocess.Popen([WL_EXE, 'wsec'], stdout=subprocess.PIPE)
-  out, _ = wl.communicate(None)
+  out = _SubprocessWithOutput([WL_EXE, 'wsec'])
   try:
     w = int(out.strip()) & 0x7
     return _EM_BitmapToString(w)
@@ -286,7 +286,7 @@ def _GetEncryptionModes(arg):
 
 
 def _SetEncryptionModes(value):
-  subprocess.check_call([WL_EXE, 'wsec', str(value)])
+  _SubprocessCall([WL_EXE, 'wsec', str(value)])
 
 
 def _ValidateEncryptionModes(value):
@@ -299,8 +299,7 @@ def _ValidateEncryptionModes(value):
 
 
 def _GetOperationalDataTransmitRates(arg):
-  wl = subprocess.Popen([WL_EXE, 'rateset'], stdout=subprocess.PIPE)
-  out, _ = wl.communicate(None)
+  out = _SubprocessWithOutput([WL_EXE, 'rateset'])
   oper_re = re.compile('([0123456789]+(?:\.[0123456789]+)?)')
   if out:
     line1 = out.splitlines()[0]
@@ -320,8 +319,7 @@ def _ValidateOperationalDataTransmitRates(value):
 
 
 def _GetPossibleChannels(arg):
-  wl = subprocess.Popen([WL_EXE, 'channels'], stdout=subprocess.PIPE)
-  out, _ = wl.communicate(None)
+  out = _SubprocessWithOutput([WL_EXE, 'channels'])
   if out:
     channels = [int(x) for x in out.split()]
     return wifi.ContiguousRanges(channels)
@@ -330,8 +328,7 @@ def _GetPossibleChannels(arg):
 
 
 def _GetRadioEnabled(arg):
-  wl = subprocess.Popen([WL_EXE, 'radio'], stdout=subprocess.PIPE)
-  out, _ = wl.communicate(None)
+  out = _SubprocessWithOutput([WL_EXE, 'radio'])
   # This may look backwards, but I assure you it is correct. If the
   # radio is off, 'wl radio' returns 0x0001.
   try:
@@ -342,7 +339,7 @@ def _GetRadioEnabled(arg):
 
 def _SetRadioEnabled(value):
   radio = 'on' if value else 'off'
-  subprocess.check_call([WL_EXE, 'radio', radio])
+  _SubprocessCall([WL_EXE, 'radio', radio])
 
 
 def _ValidateRadioEnabled(value):
@@ -350,8 +347,7 @@ def _ValidateRadioEnabled(value):
 
 
 def _GetRegulatoryDomain(arg):
-  wl = subprocess.Popen([WL_EXE, 'country'], stdout=subprocess.PIPE)
-  out, _ = wl.communicate(None)
+  out = _SubprocessWithOutput([WL_EXE, 'country'])
   fields = out.split()
   if fields:
     return fields[0]
@@ -360,12 +356,11 @@ def _GetRegulatoryDomain(arg):
 
 
 def _SetRegulatoryDomain(value):
-  subprocess.check_call([WL_EXE, 'country', value])
+  _SubprocessCall([WL_EXE, 'country', value])
 
 
 def _ValidateRegulatoryDomain(value):
-  wl = subprocess.Popen([WL_EXE, 'country', 'list'], stdout=subprocess.PIPE)
-  out, _ = wl.communicate(None)
+  out = _SubprocessWithOutput([WL_EXE, 'country', 'list'])
   countries = set()
   for line in out.splitlines():
     fields = line.split(' ')
@@ -376,13 +371,12 @@ def _ValidateRegulatoryDomain(value):
 
 def _SetReset(do_reset):
   status = 'down' if do_reset else 'up'
-  subprocess.check_call([WL_EXE, status])
+  _SubprocessCall([WL_EXE, status])
 
 
 def _GetSSID(arg):
   """Return current Wifi SSID."""
-  wl = subprocess.Popen([WL_EXE, 'ssid'], stdout=subprocess.PIPE)
-  out, _ = wl.communicate(None)
+  out = _SubprocessWithOutput([WL_EXE, 'ssid'])
   ssid_re = re.compile('Current SSID: "(.*)"')
   for line in out.splitlines():
     ssid = ssid_re.match(line)
@@ -392,28 +386,23 @@ def _GetSSID(arg):
 
 
 def _SetSSID(value):
-  subprocess.check_call([WL_EXE, 'ssid', value])
+  _SubprocessCall([WL_EXE, 'ssid', value])
 
 
 def _ValidateSSID(value):
-  invalid = set(['?', '"', '$', '\\', '[', ']', '+'])
-  for i in invalid:
-    if i in value:
-      return False
-  if value[0] == '!' or value[0] == '#' or value[0] == ';':
+  if len(value) > 32:
     return False
   return True
 
 
 def _GetSSIDAdvertisementEnabled(arg):
-  wl = subprocess.Popen([WL_EXE, 'closed'], stdout=subprocess.PIPE)
-  out, _ = wl.communicate(None)
+  out = _SubprocessWithOutput([WL_EXE, 'closed'])
   return True if out.strip() == '0' else False
 
 
 def _SetSSIDAdvertisementEnabled(value):
   closed = '0' if value else '1'
-  subprocess.check_call([WL_EXE, 'closed', closed])
+  _SubprocessCall([WL_EXE, 'closed', closed])
 
 
 def _ValidateSSIDAdvertisementEnabled(value):
@@ -421,13 +410,12 @@ def _ValidateSSIDAdvertisementEnabled(value):
 
 
 def _GetTransmitPower(arg):
-  wl = subprocess.Popen([WL_EXE, 'pwr_percent'], stdout=subprocess.PIPE)
-  out, _ = wl.communicate(None)
+  out = _SubprocessWithOutput([WL_EXE, 'pwr_percent'])
   return out.strip()
 
 
 def _SetTransmitPower(value):
-  subprocess.check_call([WL_EXE, 'pwr_percent', value])
+  _SubprocessCall([WL_EXE, 'pwr_percent', value])
 
 
 def _ValidateTransmitPower(value):
@@ -450,15 +438,23 @@ def _SetWepKey(index, key, mac=None):
   wl_cmd = [WL_EXE, 'addwep', str(index), key]
   if mac is not None:
     wl_cmd.append(mac)
-  subprocess.check_call(wl_cmd)
+  _SubprocessCall(wl_cmd)
+  print(wl_cmd)
 
 
 def _ClrWepKey(index):
-  subprocess.check_call([WL_EXE, 'rmwep', str(index)])
+  _SubprocessCall([WL_EXE, 'rmwep', str(index)])
 
 
 def _SetWepKeyIndex(index):
-  subprocess.check_call([WL_EXE, 'primary_key', str(index)])
+  # We do not use check_call here because primary_key fails if no WEP
+  # keys have been configured, but we keep the code simple to always set it.
+  subprocess.call([WL_EXE, 'primary_key', str(index)])
+
+
+def _SetWepStatus(enable):
+  status = 'on' if enable else 'off'
+  subprocess.call([WL_EXE, 'wepstatus', status])
 
 
 class BrcmWifiWlanConfiguration(BASE98WIFI):
@@ -493,9 +489,6 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
 
     self.LocationDescription = ''
 
-    # We don't support WEP authentication w/o encryption.
-    self.Unexport('BasicEncryptionModes')
-
     # No RADIUS support, could be added later.
     self.Unexport('AuthenticationServiceMode')
     self.Unexport('BasicAuthenticationMode')
@@ -528,6 +521,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   def _SetDefaults(self):
     self.p_auto_rate_fallback_enabled = None
     self.p_basic_data_transmit_rates = None
+    self.p_basic_encryption_modes = 'WEPEncryption'
     self.p_beacon_type = 'WPAand11i'
     self.p_bssid = None
     self.p_channel = None
@@ -589,6 +583,20 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   BasicDataTransmitRates = property(
       _GetBasicDataTransmitRates, SetBasicDataTransmitRates, None,
       'WLANConfiguration.BasicDataTransmitRates')
+
+  def GetBasicEncryptionModes(self):
+    return self.p_basic_encryption_modes
+
+  def SetBasicEncryptionModes(self, value):
+    self.p_basic_encryption_modes = value
+
+  def ValidateBasicEncryptionModes(self, value):
+    CRYPTO = ['None', 'WEPEncryption']
+    return True if value in CRYPTO else False
+
+  BasicEncryptionModes = property(GetBasicEncryptionModes,
+                                  SetBasicEncryptionModes, None,
+                                  'WLANConfiguration.BasicEncryptionModes')
 
   def GetBeaconType(self):
     return self.p_beacon_type
@@ -733,12 +741,13 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     _SetReset(True)
     if not self.p_enable:
       return
-    _SetReset(False)  # About to change the config
     _SetRadioEnabled(False)
     _SetBssStatus(False)
     if self.p_radio_enabled is False:
       return
 
+    _SetRadioEnabled(True)
+    _SetReset(False)
     _SetApMode()
     if self.p_auto_rate_fallback_enabled is not None:
       _SetAutoRateFallBackEnabled(self.p_auto_rate_fallback_enabled)
@@ -761,13 +770,19 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
       _SetTransmitPower(self.p_transmit_power)
 
     if self.p_beacon_type.find('11i') >= 0:
-      _SetEncryptionModes(_EM_StringToBitmap(self.p_ieee11i_encryption_modes))
+      crypto = _EM_StringToBitmap(self.p_ieee11i_encryption_modes)
     elif self.p_beacon_type.find('WPA') >= 0:
-      _SetEncryptionModes(_EM_StringToBitmap(self.p_wpa_encryption_modes))
+      crypto = _EM_StringToBitmap(self.p_wpa_encryption_modes)
     elif self.p_beacon_type.find('Basic') >= 0:
-      _SetEncryptionModes(EM_WEP)
+      crypto = _EM_StringToBitmap(self.p_basic_encryption_modes)
     else:
-      _SetEncryptionModes(EM_NONE)
+      crypto = EM_NONE
+    _SetEncryptionModes(crypto)
+
+    if self.p_beacon_type.find('Basic') >= 0:
+      _SetWepStatus(True)
+    else:
+      _SetWepStatus(False)
 
     for idx, wep in self.WEPKeyList.items():
       key = wep.WEPKey
@@ -776,8 +791,9 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
       else:
         _SetWepKey(idx-1, key)
     _SetWepKeyIndex(self.p_wepkeyindex)
-    _SetBssStatus(True)
-    _SetRadioEnabled(True)
+    if self.p_ssid:
+      # bss can only be turned on if SSID is set.
+      _SetBssStatus(True)
 
   def GetTotalBytesReceived(self):
     counters = _GetWlCounters()  # TODO(dgentry) cache for lifetime of session
