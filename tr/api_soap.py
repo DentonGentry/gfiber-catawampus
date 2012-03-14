@@ -136,7 +136,7 @@ class SoapHandler(object):
       try:
         responder = self._GetResponder(method)
         result = responder(xml, req)
-      except KeyError, e:
+      except KeyError as e:
         result = soap.SimpleFault(
             xml, cpefault=soap.CpeFault.INVALID_PARAM_NAME,
             faultstring='No such parameter: %s' % e.args[0])
@@ -146,12 +146,18 @@ class SoapHandler(object):
             faultstring=str(e))
       except NotImplementedError:
         cpefault = soap.CpeFault.METHOD_NOT_SUPPORTED
-        faultstring = 'Unsupported RPC method: {0}'.format(method)
+        faultstring = 'Unsupported RPC method: %s' % method
         result = soap.SimpleFault(xml, cpefault, faultstring)
       except ParameterNameError as e:
         result = soap.SimpleFault(
             xml, cpefault=soap.CpeFault.INVALID_PARAM_NAME,
             faultstring=str(e))
+      except api.ParameterTypeError as e:
+        result = soap.SetParameterValuesFault(
+            xml, [(e.parameter, soap.CpeFault.INVALID_PARAM_TYPE, str(e))])
+      except api.ParameterValueError as e:
+        result = soap.SetParameterValuesFault(
+            xml, [(e.parameter, soap.CpeFault.INVALID_PARAM_VALUE, str(e))])
     if result is not None:
       return xml
     else:
@@ -221,11 +227,9 @@ class CPE(SoapHandler):
     return xml
 
   def SetParameterValues(self, xml, req):
-    # TODO(dgentry) Need to handle exceptions and respond with an array of
-    # SetParameterValuesFaults, not just the generic cwmp:Fault in SoapHandler
+    names = [(str(p[0]), str(p[1])) for p in req.ParameterList]
+    code = self.impl.SetParameterValues(names, req.ParameterKey)
     with xml['cwmp:SetParameterValuesResponse']:
-      names = [(str(p[0]), str(p[1])) for p in req.ParameterList]
-      code = self.impl.SetParameterValues(names, req.ParameterKey)
       xml.Status(str(int(code)))
     return xml
 

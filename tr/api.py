@@ -17,6 +17,20 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 import download
 
 
+class ParameterTypeError(TypeError):
+  """Raised when a SetParameterValue has the wrong SOAP type."""
+  def __init__(self, parameter, msg):
+    TypeError.__init__(self, msg)
+    self.parameter = parameter
+
+
+class ParameterValueError(ValueError):
+  """Raised when a SetParameterValue has an invalid value."""
+  def __init__(self, parameter, msg):
+    ValueError.__init__(self, msg)
+    self.parameter = parameter
+
+
 class TR069Service(object):
   """Represents a TR-069 SOAP RPC service."""
 
@@ -127,7 +141,12 @@ class CPE(TR069Service):
     # TODO(apenwarr): implement *atomic* setting of multiple values
     # TODO(apenwarr): implement correct handling of invalid parameter names
     for name, value in parameter_list:
-      self._SetParameterValue(name, value)
+      try:
+        self._SetParameterValue(name, value)
+      except TypeError as e:
+        raise ParameterTypeError(parameter=name, msg=str(e))
+      except ValueError as e:
+        raise ParameterValueError(parameter=name, msg=str(e))
     self._SetParameterKey(parameter_key)
     return 0  # all values changed successfully
 
