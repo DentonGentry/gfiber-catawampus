@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ x"$1" = "xcountry" ] && [ x"$2" = "xlist" ]; then
+if [ x"$3" = "xcountry" ] && [ x"$4" = "xlist" ]; then
 echo "Supported countries: country code and long name
 AF      AFGHANISTAN
 AL      ALBANIA
