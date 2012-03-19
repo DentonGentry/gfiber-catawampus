@@ -19,6 +19,7 @@ card or your own.
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import collections
+import copy
 import re
 import subprocess
 import time
@@ -30,7 +31,6 @@ import wifi
 
 BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
 BASE98WIFI = BASE98IGD.LANDevice.WLANConfiguration
-WL_EXE = '/usr/bin/wl'
 
 # Supported Encryption Modes
 EM_NONE = 0
@@ -40,6 +40,10 @@ EM_AES = 4
 EM_WSEC = 8  # Not enumerated in tr-98
 EM_FIPS = 0x80  # Not enumerated in tr-98
 EM_WAPI = 0x100  # Not enumerated in tr-98
+
+# Unit tests can override these.
+WL_EXE = '/usr/bin/wl'
+WL_SLEEP = 3  # Broadcom recommendation for 3 second sleep before final join.
 
 # Parameter enumerations
 BEACONS = frozenset(['None', 'Basic', 'WPA', '11i', 'BasicandWPA',
@@ -56,6 +60,11 @@ def IsInteger(value):
   except:  #pylint: disable-msg=W0702
     return False
   return True
+
+
+class WifiConfig(object):
+  """A dumb data object to store config settings."""
+  pass
 
 
 class Wl(object):
@@ -467,26 +476,42 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     self.Unexport('PeerBSSID')
     self.Unexport('DistanceFromRoot')
 
-    self._SetDefaults()
+    self.config = self._GetDefaultSettings()
+    self.old_config = None
 
-  def _SetDefaults(self):
-    self.p_auto_rate_fallback_enabled = None
-    self.p_basic_authentication_mode = 'None'
-    self.p_basic_encryption_modes = 'WEPEncryption'
-    self.p_beacon_type = 'WPAand11i'
-    self.p_bssid = None
-    self.p_channel = None
-    self.p_enable = False
-    self.p_ieee11i_authentication_mode = None
-    self.p_ieee11i_encryption_modes = 'X_CATAWAMPUS-ORG_None'
-    self.p_radio_enabled = True
-    self.p_regulatory_domain = None
-    self.p_ssid = None
-    self.p_ssid_advertisement_enabled = None
-    self.p_transmit_power = None
-    self.p_wepkeyindex = 1
-    self.p_wpa_authentication_mode = None
-    self.p_wpa_encryption_modes = 'X_CATAWAMPUS-ORG_None'
+  def _GetDefaultSettings(self):
+    obj = WifiConfig()
+    obj.p_auto_rate_fallback_enabled = None
+    obj.p_basic_authentication_mode = 'None'
+    obj.p_basic_encryption_modes = 'WEPEncryption'
+    obj.p_beacon_type = 'WPAand11i'
+    obj.p_bssid = None
+    obj.p_channel = None
+    obj.p_enable = False
+    obj.p_ieee11i_authentication_mode = None
+    obj.p_ieee11i_encryption_modes = 'X_CATAWAMPUS-ORG_None'
+    obj.p_radio_enabled = True
+    obj.p_regulatory_domain = None
+    obj.p_ssid = None
+    obj.p_ssid_advertisement_enabled = None
+    obj.p_transmit_power = None
+    obj.p_wepkeyindex = 1
+    obj.p_wpa_authentication_mode = None
+    obj.p_wpa_encryption_modes = 'X_CATAWAMPUS-ORG_None'
+    return obj
+
+  def StartTransaction(self):
+    config = self.config
+    self.config = copy.copy(config)
+    self.old_config = config
+
+  def AbandonTransaction(self):
+    self.config = self.old_config
+    self.old_config = None
+
+  def CommitTransaction(self):
+    self.old_config = None
+    self._ConfigureBrcmWifi()
 
   @property
   def Name(self):
@@ -524,20 +549,19 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     return self.wl.GetAutoRateFallBackEnabled()
 
   def SetAutoRateFallBackEnabled(self, value):
-    self.p_auto_rate_fallback_enabled = tr.cwmpbool.parse(value)
-    self._ConfigureBrcmWifi()
+    self.config.p_auto_rate_fallback_enabled = tr.cwmpbool.parse(value)
 
   AutoRateFallBackEnabled = property(
       GetAutoRateFallBackEnabled, SetAutoRateFallBackEnabled, None,
       'WLANConfiguration.AutoRateFallBackEnabled')
 
   def GetBasicAuthenticationMode(self, value):
-    return self.p_basic_authentication_mode
+    return self.config.p_basic_authentication_mode
 
   def SetBasicAuthenticationMode(self, value):
     if not value in BASICAUTHMODES:
       raise ValueError('Unsupported BasicAuthenticationMode %s' % value)
-    self.p_basic_authentication_mode = value
+    self.config.p_basic_authentication_mode = value
 
   BasicAuthenticationMode = property(
       GetBasicAuthenticationMode, SetBasicAuthenticationMode, None,
@@ -554,25 +578,24 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
       'WLANConfiguration.BasicDataTransmitRates')
 
   def GetBasicEncryptionModes(self):
-    return self.p_basic_encryption_modes
+    return self.config.p_basic_encryption_modes
 
   def SetBasicEncryptionModes(self, value):
     if value not in BASICENCRYPTIONS:
       raise ValueError('Unsupported BasicEncryptionMode: %s' % value)
-    self.p_basic_encryption_modes = value
+    self.config.p_basic_encryption_modes = value
 
   BasicEncryptionModes = property(GetBasicEncryptionModes,
                                   SetBasicEncryptionModes, None,
                                   'WLANConfiguration.BasicEncryptionModes')
 
   def GetBeaconType(self):
-    return self.p_beacon_type
+    return self.config.p_beacon_type
 
   def SetBeaconType(self, value):
     if value not in BEACONS:
       raise ValueError('Unsupported BeaconType: %s' % value)
-    self.p_beacon_type = value
-    self._ConfigureBrcmWifi()
+    self.config.p_beacon_type = value
 
   BeaconType = property(GetBeaconType, SetBeaconType, None,
                         'WLANConfiguration.BeaconType')
@@ -583,8 +606,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   def SetBSSID(self, value):
     if not self.wl.ValidateBSSID(value):
       raise ValueError('Invalid BSSID: %s' % value)
-    self.p_bssid = value
-    self._ConfigureBrcmWifi()
+    self.config.p_bssid = value
 
   BSSID = property(GetBSSID, SetBSSID, None, 'WLANConfiguration.BSSID')
 
@@ -594,17 +616,15 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   def SetChannel(self, value):
     if not self.wl.ValidateChannel(value):
       raise ValueError('Invalid Channel: %s' % value)
-    self.p_channel = value
-    self._ConfigureBrcmWifi()
+    self.config.p_channel = value
 
   Channel = property(GetChannel, SetChannel, None, 'WLANConfiguration.Channel')
 
   def GetEnable(self):
-    return self.p_enable
+    return self.config.p_enable
 
   def SetEnable(self, value):
-    self.p_enable = tr.cwmpbool.parse(value)
-    self._ConfigureBrcmWifi()
+    self.config.p_enable = tr.cwmpbool.parse(value)
 
   Enable = property(GetEnable, SetEnable, None, 'WLANConfiguration.Enable')
 
@@ -622,7 +642,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   def SetIEEE11iAuthenticationMode(self, value):
     if not value in WPAAUTHMODES:
       raise ValueError('Unsupported IEEE11iAuthenticationMode %s' % value)
-    self.p_wpa_authentication_mode = value
+    self.config.p_wpa_authentication_mode = value
 
   IEEE11iAuthenticationMode = property(
       GetIEEE11iAuthenticationMode, SetIEEE11iAuthenticationMode,
@@ -634,8 +654,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   def SetIEEE11iEncryptionModes(self, value):
     if not self.wl.ValidateEncryptionModes(value):
       raise ValueError('Invalid IEEE11iEncryptionMode: %s' % value)
-    self.p_ieee11i_encryption_modes = value
-    self._ConfigureBrcmWifi()
+    self.config.p_ieee11i_encryption_modes = value
 
   IEEE11iEncryptionModes = property(
       GetIEEE11iEncryptionModes, SetIEEE11iEncryptionModes, None,
@@ -675,8 +694,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     return self.wl.GetRadioEnabled()
 
   def SetRadioEnabled(self, value):
-    self.p_radio_enabled = tr.cwmpbool.parse(value)
-    self._ConfigureBrcmWifi()
+    self.config.p_radio_enabled = tr.cwmpbool.parse(value)
 
   RadioEnabled = property(GetRadioEnabled, SetRadioEnabled, None,
                           'WLANConfiguration.RadioEnabled')
@@ -687,8 +705,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   def SetRegulatoryDomain(self, value):
     if not self.wl.ValidateRegulatoryDomain(value):
       raise ValueError('Unknown RegulatoryDomain: %s' % value)
-    self.p_regulatory_domain = value
-    self._ConfigureBrcmWifi()
+    self.config.p_regulatory_domain = value
 
   RegulatoryDomain = property(GetRegulatoryDomain, SetRegulatoryDomain, None,
                               'WLANConfiguration.RegulatoryDomain')
@@ -699,8 +716,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   def SetSSID(self, value):
     if not self.wl.ValidateSSID(value):
       raise ValueError('Invalid SSID: %s' % value)
-    self.p_ssid = value
-    self._ConfigureBrcmWifi()
+    self.config.p_ssid = value
 
   SSID = property(GetSSID, SetSSID, None, 'WLANConfiguration.SSID')
 
@@ -708,8 +724,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     return self.wl.GetSSIDAdvertisementEnabled()
 
   def SetSSIDAdvertisementEnabled(self, value):
-    self.p_ssid_advertisement_enabled = tr.cwmpbool.parse(value)
-    self._ConfigureBrcmWifi()
+    self.config.p_ssid_advertisement_enabled = tr.cwmpbool.parse(value)
 
   SSIDAdvertisementEnabled = property(
       GetSSIDAdvertisementEnabled, SetSSIDAdvertisementEnabled, None,
@@ -726,8 +741,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   def SetTransmitPower(self, value):
     if not self.wl.ValidateTransmitPower(value):
       raise ValueError('Invalid TransmitPower: %s' % value)
-    self.p_transmit_power = value
-    self._ConfigureBrcmWifi()
+    self.config.p_transmit_power = value
 
   TransmitPower = property(GetTransmitPower, SetTransmitPower, None,
                            'WLANConfiguration.TransmitPower')
@@ -739,10 +753,10 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
                                     'WLANConfiguration.TransmitPowerSupported')
 
   def GetWEPKeyIndex(self):
-    return self.p_wepkeyindex
+    return self.config.p_wepkeyindex
 
   def SetWEPKeyIndex(self, value):
-    self.p_wepkeyindex = int(value)
+    self.config.p_wepkeyindex = int(value)
 
   WEPKeyIndex = property(GetWEPKeyIndex, SetWEPKeyIndex, None,
                          'WLANConfiguration.WEPKeyIndex')
@@ -759,7 +773,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   def SetWPAAuthenticationMode(self, value):
     if not value in WPAAUTHMODES:
       raise ValueError('Unsupported WPAAuthenticationMode %s' % value)
-    self.p_wpa_authentication_mode = value
+    self.config.p_wpa_authentication_mode = value
 
   WPAAuthenticationMode = property(
       GetWPAAuthenticationMode, SetWPAAuthenticationMode,
@@ -771,62 +785,66 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   def SetWPAEncryptionModes(self, value):
     if not self.wl.ValidateEncryptionModes(value):
       raise ValueError('Invalid WPAEncryptionMode: %s' % value)
-    self.p_wpa_encryption_modes = value
-    self._ConfigureBrcmWifi()
+    self.config.p_wpa_encryption_modes = value
 
   WPAEncryptionModes = property(GetEncryptionModes, SetWPAEncryptionModes, None,
                                 'WLANConfiguration.WPAEncryptionModes')
 
-  # TODO(dgentry) we shouldn't call this from every Set*. There should
-  # be a callback once the entire SetParameterValues has been processed.
   def _ConfigureBrcmWifi(self):
     """Issue commands to the wifi device to configure it.
 
     The Wifi driver is somewhat picky about the order of the commands.
     For example, some settings can only be changed while the radio is on.
+    Make sure any changes made in this routine work in a real system, unit
+    tests do not (and realistically, cannot) model all behaviors of the
+    real wl utility.
     """
 
-    if not self.p_enable:
+    if not self.config.p_enable:
       return
     self.wl.SetBssStatus(False)
-    if self.p_radio_enabled is False:
+    if self.config.p_radio_enabled is False:
       self.wl.SetRadioEnabled(False)
       return
 
     self.wl.SetApMode()
     self.wl.SetRadioEnabled(True)
-    if self.p_auto_rate_fallback_enabled is not None:
-      self.wl.SetAutoRateFallBackEnabled(self.p_auto_rate_fallback_enabled)
-    if self.p_bssid is not None:
-      self.wl.SetBSSID(self.p_bssid)
-    if self.p_channel is not None:
-      self.wl.SetChannel(self.p_channel)
-    if self.p_regulatory_domain is not None:
-      self.wl.SetRegulatoryDomain(self.p_regulatory_domain)
-    if self.p_ssid is not None:
-      self.wl.SetSSID(self.p_ssid)
-    if self.p_ssid_advertisement_enabled is not None:
-      self.wl.SetSSIDAdvertisementEnabled(self.p_ssid_advertisement_enabled)
-    if self.p_transmit_power is not None:
-      self.wl.SetTransmitPower(self.p_transmit_power)
+    if self.config.p_auto_rate_fallback_enabled is not None:
+      self.wl.SetAutoRateFallBackEnabled(
+          self.config.p_auto_rate_fallback_enabled)
+    if self.config.p_bssid is not None:
+      self.wl.SetBSSID(self.config.p_bssid)
+    if self.config.p_channel is not None:
+      self.wl.SetChannel(self.config.p_channel)
+    if self.config.p_regulatory_domain is not None:
+      self.wl.SetRegulatoryDomain(self.config.p_regulatory_domain)
+    if self.config.p_ssid is not None:
+      self.wl.SetSSID(self.config.p_ssid)
+    if self.config.p_ssid_advertisement_enabled is not None:
+      self.wl.SetSSIDAdvertisementEnabled(
+          self.config.p_ssid_advertisement_enabled)
+    if self.config.p_transmit_power is not None:
+      self.wl.SetTransmitPower(self.config.p_transmit_power)
 
-    if self.p_beacon_type.find('11i') >= 0:
-      crypto = self.wl.EM_StringToBitmap(self.p_ieee11i_encryption_modes)
-    elif self.p_beacon_type.find('WPA') >= 0:
-      crypto = self.wl.EM_StringToBitmap(self.p_wpa_encryption_modes)
-    elif self.p_beacon_type.find('Basic') >= 0:
-      crypto = self.wl.EM_StringToBitmap(self.p_basic_encryption_modes)
+    if self.config.p_beacon_type.find('11i') >= 0:
+      crypto = self.wl.EM_StringToBitmap(self.config.p_ieee11i_encryption_modes)
+    elif self.config.p_beacon_type.find('WPA') >= 0:
+      crypto = self.wl.EM_StringToBitmap(self.config.p_wpa_encryption_modes)
+    elif self.config.p_beacon_type.find('Basic') >= 0:
+      crypto = self.wl.EM_StringToBitmap(self.config.p_basic_encryption_modes)
     else:
       crypto = EM_NONE
     self.wl.SetEncryptionModes(crypto)
 
     self.wl.SetWpaAuth(0)
     sup_wpa = False
-    if self.p_wpa_authentication_mode or self.p_ieee11i_authentication_mode:
+    if self.config.p_wpa_authentication_mode:
+      sup_wpa = True
+    if self.config.p_ieee11i_authentication_mode:
       sup_wpa = True
     self.wl.SetSupWpa(sup_wpa)
 
-    if self.p_beacon_type.find('Basic') >= 0:
+    if self.config.p_beacon_type.find('Basic') >= 0:
       self.wl.SetWepStatus(True)
     else:
       self.wl.SetWepStatus(False)
@@ -837,23 +855,23 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
         self.wl.ClrWepKey(idx-1)
       else:
         self.wl.SetWepKey(idx-1, key)
-    self.wl.SetWepKeyIndex(self.p_wepkeyindex)
+    self.wl.SetWepKeyIndex(self.config.p_wepkeyindex)
 
     for idx, psk in self.PreSharedKeyList.items():
-      key = psk.GetKey(self.p_ssid)
+      key = psk.GetKey(self.config.p_ssid)
       if key:
         self.wl.SetPMK()
 
     self.wl.SetReset(False)
 
-    time.sleep(1)
+    time.sleep(WL_SLEEP)
 
     amode = 'open'
-    if self.p_ieee11i_authentication_mode == 'PSKAuthentication':
+    if self.config.p_ieee11i_authentication_mode == 'PSKAuthentication':
       amode = 'wpa2psk'
-    elif self.p_wpa_authentication_mode == 'PSKAuthentication':
+    elif self.config.p_wpa_authentication_mode == 'PSKAuthentication':
       amode = 'wpapsk'
-    elif self.p_basic_authentication_mode == 'SharedAuthentication':
+    elif self.config.p_basic_authentication_mode == 'SharedAuthentication':
       amode = 'openshared'
     self.wl.SetJoin(amode)
 

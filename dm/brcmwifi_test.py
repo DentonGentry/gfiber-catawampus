@@ -23,6 +23,7 @@ class BrcmWifiTest(unittest.TestCase):
   def setUp(self):
     self.old_WL_EXE = brcmwifi.WL_EXE
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlempty'
+    brcmwifi.WL_SLEEP = 0
     self.old_PROC_NET_DEV = netdev.PROC_NET_DEV
     self.files_to_remove = list()
 
@@ -111,10 +112,11 @@ class BrcmWifiTest(unittest.TestCase):
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    bw.StartTransaction()
     bw.Enable = 'True'
     bw.RadioEnabled = 'True'
-    out.truncate()
     bw.Channel = '11'
+    bw.CommitTransaction()
     output = out.read()
     out.close()
     outlist = self.VerifyCommonWlCommands(output)
@@ -147,10 +149,12 @@ class BrcmWifiTest(unittest.TestCase):
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    bw.StartTransaction()
     bw.Enable = 'True'
     bw.RadioEnabled = 'True'
     out.truncate()
     bw.SSID = 'myssid'
+    bw.CommitTransaction()
     output = out.read()
     out.close()
     outlist = self.VerifyCommonWlCommands(output)
@@ -180,10 +184,12 @@ class BrcmWifiTest(unittest.TestCase):
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    bw.StartTransaction()
     bw.Enable = 'True'
     bw.RadioEnabled = 'True'
     out.truncate()
     bw.BSSID = '00:99:aa:bb:cc:dd'
+    bw.CommitTransaction()
     output = out.read()
     out.close()
     outlist = self.VerifyCommonWlCommands(output)
@@ -206,12 +212,14 @@ class BrcmWifiTest(unittest.TestCase):
   def testSetRegulatoryDomain(self):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlcountrylist'
+    bw.StartTransaction()
     bw.RegulatoryDomain = 'US'
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
     bw.Enable = 'True'
     out.truncate()
     bw.RadioEnabled = 'True'
+    bw.CommitTransaction()
     output = out.read()
     out.close()
     outlist = self.VerifyCommonWlCommands(output)
@@ -247,10 +255,12 @@ class BrcmWifiTest(unittest.TestCase):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
+    bw.StartTransaction()
     bw.Enable = 'True'
     bw.RadioEnabled = 'True'
     out.truncate()
     bw.TransmitPower = '77'
+    bw.CommitTransaction()
     output = out.read()
     out.close()
     outlist = self.VerifyCommonWlCommands(output)
@@ -278,17 +288,21 @@ class BrcmWifiTest(unittest.TestCase):
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    bw.StartTransaction()
     bw.Enable = 'True'
     bw.RadioEnabled = 'True'
     out.truncate()
 
     bw.AutoRateFallBackEnabled = 'True'
+    bw.CommitTransaction()
     output = out.read()
     outlist = self.VerifyCommonWlCommands(output)
     self.assertTrue(self.RmFromList(outlist, 'interference 4'))
     self.assertFalse(outlist)
     out.truncate()
+    bw.StartTransaction()
     bw.AutoRateFallBackEnabled = 'False'
+    bw.CommitTransaction()
     output = out.read()
     outlist = self.VerifyCommonWlCommands(output)
     out.close()
@@ -304,18 +318,22 @@ class BrcmWifiTest(unittest.TestCase):
 
   def testSetSSIDAdvertisementEnabled(self):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    bw.StartTransaction()
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
     bw.Enable = 'True'
     bw.RadioEnabled = 'True'
     out.truncate()
     bw.SSIDAdvertisementEnabled = 'True'
+    bw.CommitTransaction()
     output = out.read()
     outlist = self.VerifyCommonWlCommands(output)
     self.assertTrue(self.RmFromList(outlist, 'closed 0'))
     self.assertFalse(outlist)
     out.truncate()
+    bw.StartTransaction()
     bw.SSIDAdvertisementEnabled = 'False'
+    bw.CommitTransaction()
     output = out.read()
     outlist = self.VerifyCommonWlCommands(output)
     out.close()
@@ -333,14 +351,18 @@ class BrcmWifiTest(unittest.TestCase):
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    bw.StartTransaction()
     bw.Enable = 'True'
     out.truncate()
     bw.RadioEnabled = 'True'
+    bw.CommitTransaction()
     output = out.read()
     outlist = self.VerifyCommonWlCommands(output)
     self.assertFalse(outlist)
     out.truncate()
+    bw.StartTransaction()
     bw.RadioEnabled = 'False'
+    bw.CommitTransaction()
     output = out.read()
     out.close()
     self.assertEqual(output, '-i wifi0 bss down\n-i wifi0 radio off\n')
@@ -410,47 +432,62 @@ class BrcmWifiTest(unittest.TestCase):
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    bw.StartTransaction()
     bw.Enable = 'True'
     bw.RadioEnabled = 'True'
     bw.WPAEncryptionModes = 'TKIPEncryption'  # wsec 2
     bw.IEEE11iEncryptionModes = 'AESEncryption'  # wsec 4
-    out.truncate()
     bw.BeaconType = 'None'
+    bw.CommitTransaction()
     output = out.read()
     outlist = self.VerifyCommonWlCommands(output, wsec=0)
     self.assertFalse(outlist)
     out.truncate()
+    bw.StartTransaction()
     bw.BeaconType = 'Basic'
+    bw.CommitTransaction()
     output = out.read()
     outlist = self.VerifyCommonWlCommands(output, wsec=1, wepstatus='on')
     self.assertFalse(outlist)
     out.truncate()
+    bw.StartTransaction()
     bw.BeaconType = 'WPA'
+    bw.CommitTransaction()
     output = out.read()
     outlist = self.VerifyCommonWlCommands(output, wsec=2)
     self.assertFalse(outlist)
     out.truncate()
+    bw.StartTransaction()
     bw.BeaconType = '11i'
+    bw.CommitTransaction()
     output = out.read()
     outlist = self.VerifyCommonWlCommands(output, wsec=4)
     self.assertFalse(outlist)
     out.truncate()
+    bw.StartTransaction()
     bw.BeaconType = 'BasicandWPA'
+    bw.CommitTransaction()
     output = out.read()
     outlist = self.VerifyCommonWlCommands(output, wsec=2, wepstatus='on')
     self.assertFalse(outlist)
     out.truncate()
+    bw.StartTransaction()
     bw.BeaconType = 'Basicand11i'
+    bw.CommitTransaction()
     output = out.read()
     outlist = self.VerifyCommonWlCommands(output, wsec=4, wepstatus='on')
     self.assertFalse(outlist)
     out.truncate()
+    bw.StartTransaction()
     bw.BeaconType = 'WPAand11i'
+    bw.CommitTransaction()
     output = out.read()
     outlist = self.VerifyCommonWlCommands(output, wsec=4)
     self.assertFalse(outlist)
     out.truncate()
+    bw.StartTransaction()
     bw.BeaconType = 'BasicandWPAand11i'
+    bw.CommitTransaction()
     output = out.read()
     outlist = self.VerifyCommonWlCommands(output, wsec=4, wepstatus='on')
     self.assertFalse(outlist)
