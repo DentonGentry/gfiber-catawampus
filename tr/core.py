@@ -130,6 +130,7 @@ class Exporter(object):
     self.export_params = set()
     self.export_objects = set()
     self.export_object_lists = set()
+    self.dirty = False  # object has pending SetParameters to be committed.
     if defaults:
       for (key, value) in defaults.iteritems():
         setattr(self, key, value)
@@ -305,13 +306,19 @@ class Exporter(object):
     Args:
       name: the parameter name to set (parameters only, not objects or lists).
       value: the value to set it to.
+    Returns:
+      the object modified
     Raises:
       KeyError: if the name is not an exported parameter.
     """
     parent, subname = self.FindExport(name)
     if subname not in parent.export_params:
       raise KeyError(name)
+    if not parent.dirty:
+      parent.StartTransaction()
+      parent.dirty = True
     setattr(parent, subname, value)
+    return parent
 
   def _AddExportObject(self, name, idx):
     objlist = self._GetExport(self, name)
@@ -417,6 +424,25 @@ class Exporter(object):
       return obj._ListExports(recursive=recursive)
     else:
       return self._ListExportsFromDict(obj, recursive=recursive)
+
+  def StartTransaction(self):
+    """Prepare for a series of Set operations, to be applied atomically.
+
+    After StartTransaction the object will receive zero or more set operations
+    to its exported parameters. Each Set should check its arguments as best it
+    can, and raise ValueError or TypeError if there is a problem.
+
+    The transaction will conclude with either an AbandonTransaction or
+    CommitTransaction."""
+    pass
+
+  def AbandonTransaction(self):
+    """Discard a pending transaction; do not apply the changes to the system."""
+    pass
+
+  def CommitTransaction(self):
+    """Apply a pending modification to the system."""
+    pass
 
 
 class TODO(Exporter):
