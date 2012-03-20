@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ x"$1" = "xcounters" ] ; then
+if [ x"$3" = "xcounters" ] ; then
   echo "txframe 1 txbyte 2 txretrans 3 txerror 4 rxframe 5 rxbyte 6 rxerror 7"
   echo "txprshort 8 txdmawar 9 txnobuf 10 txnoassoc 11 txchit 12 txcmiss 13"
   echo "reset 14 txserr 15 txphyerr 16 txphycrs 17 txfail 18 tbtt 19"

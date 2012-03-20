@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ x"$1" = "xchannel" ] ; then
+if [ x"$3" = "xchannel" ] ; then
   echo "# wl channel"
   echo "No scan in progress."
   echo "current mac channel     1"

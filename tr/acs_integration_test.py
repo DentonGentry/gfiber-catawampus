@@ -35,7 +35,13 @@ class TestDeviceModelRoot(core.Exporter):
     params.append('RaiseIndexError')
     params.append('RaiseTypeError')
     params.append('RaiseValueError')
+    params.append('BooleanParameter')
     self.Export(params=params, objects=objects)
+    self.boolean_parameter = True
+    self.boolean_parameter_set = False
+    self.start_transaction_called = False
+    self.commit_transaction_called = False
+    self.abandon_transaction_called = False
 
   @property
   def RaiseIndexError(self):
@@ -62,6 +68,25 @@ class TestDeviceModelRoot(core.Exporter):
 
   RaiseValueError = property(GetRaiseValueError, SetRaiseValueError, None,
                              'RaiseValueError')
+
+  def GetBooleanParameter(self):
+    return self.boolean_parameter
+
+  def SetBooleanParameter(self, value):
+    self.boolean_parameter = value
+    self.boolean_parameter_set = True
+
+  BooleanParameter = property(GetBooleanParameter, SetBooleanParameter, None,
+                              'BooleanParameter')
+
+  def StartTransaction(self):
+    self.start_transaction_called = True
+
+  def CommitTransaction(self):
+    self.commit_transaction_called = True
+
+  def AbandonTransaction(self):
+    self.abandon_transaction_called = True
 
 
 class MockDownloadManager(object):
@@ -405,11 +430,10 @@ class GetParamsRpcTest(unittest.TestCase):
     responseXml = cpe.cpe_soap.Handle(soapxml)
 
     root = ET.fromstring(str(responseXml))
-    name = root.find(
+    names = root.findall(
         SOAPNS + 'Body/' + CWMPNS +
         'GetParameterNamesResponse/ParameterList/ParameterInfoStruct/Name')
-    self.assertTrue(name is not None)
-    self.assertEqual(name.text, 'Foo')
+    self.assertEqual(len(names), 5)
 
     # We don't do a string compare of the XML output, that is too fragile
     # as a test. We parse the XML and look for expected values. Nonetheless
@@ -572,31 +596,26 @@ class GetParamsRpcTest(unittest.TestCase):
     self.assertTrue(detail)
     self.assertEqual(detail.find('FaultCode').text, '9003')
 
-  def testSetParameterTypeFault(self):
+  def testSetParameterValues(self):
     cpe = self.getCpe()
-    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:SetParameterValues><ParameterList><ns2:ParameterValueStruct xmlns:ns2="urn:dslforum-org:cwmp-1-2"><Name>RaiseTypeError</Name><Value xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:boolean">true</Value></ns2:ParameterValueStruct></ParameterList><ParameterKey>myParamKey</ParameterKey></cwmp:SetParameterValues></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:SetParameterValues><ParameterList><ns2:ParameterValueStruct xmlns:ns2="urn:dslforum-org:cwmp-1-2"><Name>BooleanParameter</Name><Value xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:boolean">true</Value></ns2:ParameterValueStruct></ParameterList><ParameterKey>myParamKey</ParameterKey></cwmp:SetParameterValues></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(soapxml)
     root = ET.fromstring(str(responseXml))
-    self.assertFalse(root.find(CWMPNS + 'SetParameterValuesResponse'))
-    fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
-    self.assertTrue(fault)
-    self.assertEqual(fault.find('faultcode').text, 'Client')
-    self.assertEqual(fault.find('faultstring').text, 'CWMP fault')
-    detail = fault.find('detail/' + CWMPNS + 'Fault')
-    self.assertTrue(detail)
-    self.assertEqual(detail.find('FaultCode').text, '9003')
-    self.assertEqual(detail.find('FaultString').text, 'Invalid arguments')
-    setfault = detail.find('SetParameterValuesFault')
-    self.assertEqual(setfault.find('ParameterName').text, 'RaiseTypeError')
-    self.assertEqual(setfault.find('FaultCode').text, '9006')
-    self.assertTrue(setfault.find('FaultString').text)
+    resp = root.find(SOAPNS + 'Body/' + CWMPNS + 'SetParameterValuesResponse')
+    self.assertTrue(resp)
+    status = resp.find('Status')
+    self.assertEqual(status.text, '0')
+    self.assertTrue(cpe.cpe.root.start_transaction_called)
+    self.assertTrue(cpe.cpe.root.commit_transaction_called)
+    self.assertFalse(cpe.cpe.root.abandon_transaction_called)
 
-  def testSetParameterValueFault(self):
+  def testSetParameterFault(self):
     cpe = self.getCpe()
-    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:SetParameterValues><ParameterList><ns2:ParameterValueStruct xmlns:ns2="urn:dslforum-org:cwmp-1-2"><Name>RaiseValueError</Name><Value xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:boolean">true</Value></ns2:ParameterValueStruct></ParameterList><ParameterKey>myParamKey</ParameterKey></cwmp:SetParameterValues></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:SetParameterValues><ParameterList><ns2:ParameterValueStruct xmlns:ns2="urn:dslforum-org:cwmp-1-2"><Name>RaiseTypeError</Name><Value xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:boolean">true</Value></ns2:ParameterValueStruct><ns2:ParameterValueStruct xmlns:ns2="urn:dslforum-org:cwmp-1-2"><Name>RaiseValueError</Name><Value xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:boolean">true</Value></ns2:ParameterValueStruct></ParameterList><ParameterKey>myParamKey</ParameterKey></cwmp:SetParameterValues></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(soapxml)
     root = ET.fromstring(str(responseXml))
-    self.assertFalse(root.find(CWMPNS + 'SetParameterValuesResponse'))
+    self.assertFalse(root.find(SOAPNS + 'Body/' +
+                               CWMPNS + 'SetParameterValuesResponse'))
     fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
     self.assertTrue(fault)
     self.assertEqual(fault.find('faultcode').text, 'Client')
@@ -605,10 +624,14 @@ class GetParamsRpcTest(unittest.TestCase):
     self.assertTrue(detail)
     self.assertEqual(detail.find('FaultCode').text, '9003')
     self.assertEqual(detail.find('FaultString').text, 'Invalid arguments')
-    setfault = detail.find('SetParameterValuesFault')
-    self.assertEqual(setfault.find('ParameterName').text, 'RaiseValueError')
-    self.assertEqual(setfault.find('FaultCode').text, '9007')
-    self.assertTrue(setfault.find('FaultString').text)
+    setfaults = detail.findall('SetParameterValuesFault')
+    self.assertEqual(len(setfaults), 2)
+    self.assertEqual(setfaults[0].find('ParameterName').text, 'RaiseTypeError')
+    self.assertEqual(setfaults[0].find('FaultCode').text, '9006')
+    self.assertTrue(setfaults[0].find('FaultString').text)
+    self.assertEqual(setfaults[1].find('ParameterName').text, 'RaiseValueError')
+    self.assertEqual(setfaults[1].find('FaultCode').text, '9007')
+    self.assertTrue(setfaults[1].find('FaultString').text)
 
   def testGetRPCMethods(self):
     cpe = self.getCpe()

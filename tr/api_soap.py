@@ -126,6 +126,24 @@ class SoapHandler(object):
   def __init__(self, impl):
     self.impl = impl
 
+  def _ExceptionListToFaultList(self, errors):
+    """Generate a list of Soap Faults for SetParameterValues.
+
+    Turn a list of api.Parameter{Type,Value}Exception objects returned
+    from api.SetParameterValues into a list suitable for
+    soap.SetParameterValuesFault.
+    """
+    faults = []
+    for error in errors:
+      if isinstance(error, api.ParameterTypeError):
+        code = soap.CpeFault.INVALID_PARAM_TYPE
+      elif isinstance(error, api.ParameterValueError):
+        code = soap.CpeFault.INVALID_PARAM_VALUE
+      else:
+        code = soap.CpeFault.INTERNAL_ERROR
+      faults.append((error.parameter, code, str(error)))
+    return faults
+
   def Handle(self, body):
     body = str(body)
     obj = soap.Parse(body)
@@ -158,6 +176,10 @@ class SoapHandler(object):
       except api.ParameterValueError as e:
         result = soap.SetParameterValuesFault(
             xml, [(e.parameter, soap.CpeFault.INVALID_PARAM_VALUE, str(e))])
+      except api.SetParameterErrors as e:
+        faults = self._ExceptionListToFaultList(e.error_list)
+        result = soap.SetParameterValuesFault(xml, faults)
+
     if result is not None:
       return xml
     else:

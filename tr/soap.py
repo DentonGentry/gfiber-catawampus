@@ -135,11 +135,6 @@ def SimpleFault(xml, cpefault, faultstring):
     return xml
 
 
-def FaultFromSoapException(xml, e):
-  with Fault(xml, e.cpefault, e.faultstring) as xml:
-    return xml
-
-
 def _StripNamespace(tagname):
   return re.sub(r'^\{.*\}', '', tagname)
 

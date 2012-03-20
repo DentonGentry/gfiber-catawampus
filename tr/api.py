@@ -17,8 +17,14 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 import download
 
 
+class SetParameterErrors(Exception):
+  def __init__(self, error_list, msg):
+    Exception.__init__(self, msg)
+    self.error_list = error_list
+
+
 class ParameterTypeError(TypeError):
-  """Raised when a SetParameterValue has the wrong SOAP type."""
+  """Raised when a SetParameterValue has the wrong type."""
   def __init__(self, parameter, msg):
     TypeError.__init__(self, msg)
     self.parameter = parameter
@@ -133,22 +139,53 @@ class CPE(TR069Service):
     """Given a parameter (which can include an object), set its value."""
     if name == 'ParameterKey':
       self._SetParameterKey(value)
+      return None
     else:
-      self.root.SetExportParam(name, value)
+      return self.root.SetExportParam(name, value)
+
+  def _ConcludeTransaction(self, objects, do_commit):
+    """Commit or abandon  all pending writes.
+
+    SetParameterValues is an atomic transaction, all parameters are set or
+    none of them are. We set obj.dirty and call obj.StartTransaction on
+    every object written to. Now we walk back through the dirtied objects
+    and call CommitTransaction() if do_commit=True, else call
+    AbandonTransaction() if do_commit=False.
+    """
+    # TODO(dgentry) At some point there will be interdependencies between
+    #   objects. We'll need to develop a means to express those dependencies
+    #   and walk the dirty objects in a specific order.
+    for obj in objects:
+      assert(obj.dirty)
+      obj.dirty = False
+      if do_commit:
+        obj.CommitTransaction()
+      else:
+        obj.AbandonTransaction()
+    return 0  # all values changed successfully
 
   def SetParameterValues(self, parameter_list, parameter_key):
     """Sets parameters on some objects."""
-    # TODO(apenwarr): implement *atomic* setting of multiple values
-    # TODO(apenwarr): implement correct handling of invalid parameter names
+    dirty = set()
+    error_list = []
     for name, value in parameter_list:
+      obj = None
       try:
-        self._SetParameterValue(name, value)
+        obj = self._SetParameterValue(name, value)
       except TypeError as e:
-        raise ParameterTypeError(parameter=name, msg=str(e))
+        error_list.append(ParameterTypeError(parameter=name, msg=str(e)))
       except ValueError as e:
-        raise ParameterValueError(parameter=name, msg=str(e))
-    self._SetParameterKey(parameter_key)
-    return 0  # all values changed successfully
+        error_list.append(ParameterValueError(parameter=name, msg=str(e)))
+
+      if obj:
+        dirty.add(obj)
+    if error_list:
+      self._ConcludeTransaction(objects=dirty, do_commit=False)
+      raise SetParameterErrors(error_list=error_list,
+                               msg='Transaction Errors: %d' % len(error_list))
+    else:
+      self._SetParameterKey(parameter_key)
+      return self._ConcludeTransaction(dirty, True)
 
   def _GetParameterValue(self, name):
     """Given a parameter (which can include an object), return its value."""

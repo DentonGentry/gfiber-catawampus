@@ -1,12 +1,12 @@
 #!/bin/sh
 
-if [ x"$1" = "xassoclist" ] ; then
+if [ x"$3" = "xassoclist" ] ; then
   echo "assoclist A0:B0:C0:00:00:01"
   echo "assoclist A0:B0:C0:00:00:02"
   echo "assoclist A0:B0:C0:00:00:03"
 fi
 
-if [ x"$1" = "xsta_info" ] && [ x"$2" = x"A0:B0:C0:00:00:01" ] ; then
+if [ x"$3" = "xsta_info" ] && [ x"$4" = x"A0:B0:C0:00:00:01" ] ; then
 echo "STA A0:B0:C0:00:00:01:"
 echo "   rateset [ 1 2 5.5 6 9 11 12 18 24 36 48 54 ]"
 echo "   idle 1 seconds"
@@ -23,7 +23,7 @@ echo "   rx decrypt succeeds: 5"
 echo "   rx decrypt failures: 6"
 fi
 
-if [ x"$1" = "xsta_info" ] && [ x"$2" = x"A0:B0:C0:00:00:02" ] ; then
+if [ x"$3" = "xsta_info" ] && [ x"$4" = x"A0:B0:C0:00:00:02" ] ; then
 echo "STA A0:B0:C0:00:00:02:"
 echo "   rateset [ 1 2 5.5 6 9 11 12 18 24 36 48 ]"
 echo "   idle 2 seconds"
@@ -40,7 +40,7 @@ echo "   rx decrypt succeeds: 11"
 echo "   rx decrypt failures: 12"
 fi
 
-if [ x"$1" = "xsta_info" ] && [ x"$2" = x"A0:B0:C0:00:00:03" ] ; then
+if [ x"$3" = "xsta_info" ] && [ x"$4" = x"A0:B0:C0:00:00:03" ] ; then
 echo "STA A0:B0:C0:00:00:03:"
 echo "   rateset [ 1 2 5.5 6 9 11 12 18 24 36 ]"
 echo "   idle 3 seconds"
