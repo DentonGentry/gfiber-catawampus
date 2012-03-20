@@ -52,24 +52,22 @@ class BrcmWifiTest(unittest.TestCase):
     except ValueError:
       return False
 
-  def VerifyCommonWlCommands(self, cmd, rmwep=4, wsec=0, primary_key=1,
+  def VerifyCommonWlCommands(self, cmd, rmwep=0, wsec=0, primary_key=1,
                              wepstatus='off', sup_wpa=0, amode='open'):
     # Verify the number of "rmwep #" commands, and remove them.
     l = [x for x in cmd.split('\n') if x]  # Suppress blank lines
-    for i in range(0, rmwep):
+    for i in range(rmwep, 4):
       self.assertTrue(self.RmFromList(l, 'rmwep %d' % i))
     self.assertTrue(self.RmFromList(l, 'wsec %d' % wsec))
     self.assertTrue(self.RmFromList(l, 'sup_wpa %d' % sup_wpa))
     self.assertTrue(self.RmFromList(l, 'wpa_auth 0'))
     self.assertTrue(self.RmFromList(l, 'primary_key %d' % primary_key))
     self.assertTrue(self.RmFromList(l, 'wepstatus %s' % wepstatus))
-    self.assertTrue(len(l) >= 5)
-    self.assertEqual(l[0], '-i wifi0 bss down')
-    self.assertEqual(l[1], '-i wifi0 ap 1')
+    self.assertTrue(len(l) >= 3)
+    self.assertEqual(l[0], '-i wifi0 ap 1')
+    self.assertEqual(l[1], '-i wifi0 bss down')
     self.assertEqual(l[2], '-i wifi0 radio on')
-    self.assertEqual(l[-2], '-i wifi0 up')
-    self.assertEqual(l[-1], '-i wifi0 join imode bss amode %s' % amode)
-    return l[3:-2]
+    return l[3:]
 
   def testValidateExports(self):
     netdev.PROC_NET_DEV = 'testdata/brcmwifi/proc_net_dev'
@@ -365,7 +363,8 @@ class BrcmWifiTest(unittest.TestCase):
     bw.CommitTransaction()
     output = out.read()
     out.close()
-    self.assertEqual(output, '-i wifi0 bss down\n-i wifi0 radio off\n')
+    self.assertEqual(output,
+                     '-i wifi0 ap 1\n-i wifi0 bss down\n-i wifi0 radio off\n')
 
   def testNoEnable(self):
     (script, out) = self.MakeTestScript()
@@ -492,6 +491,38 @@ class BrcmWifiTest(unittest.TestCase):
     outlist = self.VerifyCommonWlCommands(output, wsec=4, wepstatus='on')
     self.assertFalse(outlist)
     out.truncate()
+
+  def testWepKey(self):
+    (script, out) = self.MakeTestScript()
+    brcmwifi.WL_EXE = script.name
+    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    bw.StartTransaction()
+    bw.Enable = 'True'
+    bw.WEPKeyList[1].WEPKey = 'password1'
+    bw.WEPKeyList[2].WEPKey = 'password2'
+    bw.WEPKeyList[3].WEPKey = 'password3'
+    bw.WEPKeyList[4].WEPKey = 'password4'
+    bw.CommitTransaction()
+    output = out.read()
+    outlist = self.VerifyCommonWlCommands(output, rmwep=4, wsec=0)
+    self.assertTrue(self.RmFromList(outlist, 'addwep 0 password1'))
+    self.assertTrue(self.RmFromList(outlist, 'addwep 1 password2'))
+    self.assertTrue(self.RmFromList(outlist, 'addwep 2 password3'))
+    self.assertTrue(self.RmFromList(outlist, 'addwep 3 password4'))
+    self.assertFalse(outlist)
+
+  def testPreSharedKey(self):
+    (script, out) = self.MakeTestScript()
+    brcmwifi.WL_EXE = script.name
+    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    bw.StartTransaction()
+    bw.Enable = 'True'
+    bw.PreSharedKeyList[1].PreSharedKey = 'password1'
+    bw.CommitTransaction()
+    output = out.read()
+    outlist = self.VerifyCommonWlCommands(output, rmwep=0, wsec=0)
+    self.assertTrue(self.RmFromList(outlist, 'set_pmk password1'))
+    self.assertFalse(outlist)
 
   def testStats(self):
     netdev.PROC_NET_DEV = 'testdata/brcmwifi/proc_net_dev'

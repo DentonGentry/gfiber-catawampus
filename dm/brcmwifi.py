@@ -281,8 +281,9 @@ class Wl(object):
                               'WEPandTKIPandAESEncryption'])
     return True if value in ENCRYPTTYPES else False
 
-  def SetJoin(self, amode):
-    self._SubprocessCall(['join', 'imode', 'bss', 'amode', str(amode)])
+  def SetJoin(self, ssid, amode):
+    self._SubprocessCall(['join', str(ssid), 'imode', 'bss',
+                          'amode', str(amode)])
 
   def GetOperationalDataTransmitRates(self):
     out = self._SubprocessWithOutput(['rateset'])
@@ -351,8 +352,11 @@ class Wl(object):
         return ssid.group(1)
     return ''
 
-  def SetSSID(self, value):
-    self._SubprocessCall(['ssid', value])
+  def SetSSID(self, value, cfgnum=None):
+    if cfgnum is not None:
+      self._SubprocessCall(['ssid', '-C', str(cfgnum), value])
+    else:
+      self._SubprocessCall(['ssid', value])
 
   def ValidateSSID(self, value):
     if len(value) > 32:
@@ -395,9 +399,8 @@ class Wl(object):
   def SetWepKey(self, index, key, mac=None):
     wl_cmd = ['addwep', str(index), key]
     if mac is not None:
-      wl_cmd.append(mac)
+      wl_cmd.append(str(mac))
     self._SubprocessCall(wl_cmd)
-    print(wl_cmd)
 
   def ClrWepKey(self, index):
     self._SubprocessCall(['rmwep', str(index)])
@@ -802,12 +805,12 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
 
     if not self.config.p_enable:
       return
+    self.wl.SetApMode()
     self.wl.SetBssStatus(False)
     if self.config.p_radio_enabled is False:
       self.wl.SetRadioEnabled(False)
       return
 
-    self.wl.SetApMode()
     self.wl.SetRadioEnabled(True)
     if self.config.p_auto_rate_fallback_enabled is not None:
       self.wl.SetAutoRateFallBackEnabled(
@@ -818,8 +821,6 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
       self.wl.SetChannel(self.config.p_channel)
     if self.config.p_regulatory_domain is not None:
       self.wl.SetRegulatoryDomain(self.config.p_regulatory_domain)
-    if self.config.p_ssid is not None:
-      self.wl.SetSSID(self.config.p_ssid)
     if self.config.p_ssid_advertisement_enabled is not None:
       self.wl.SetSSIDAdvertisementEnabled(
           self.config.p_ssid_advertisement_enabled)
@@ -836,7 +837,6 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
       crypto = EM_NONE
     self.wl.SetEncryptionModes(crypto)
 
-    self.wl.SetWpaAuth(0)
     sup_wpa = False
     if self.config.p_wpa_authentication_mode:
       sup_wpa = True
@@ -860,20 +860,18 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     for idx, psk in self.PreSharedKeyList.items():
       key = psk.GetKey(self.config.p_ssid)
       if key:
-        self.wl.SetPMK()
+        self.wl.SetPMK(key)
 
-    self.wl.SetReset(False)
-
-    time.sleep(WL_SLEEP)
-
-    amode = 'open'
+    amode = 0
     if self.config.p_ieee11i_authentication_mode == 'PSKAuthentication':
-      amode = 'wpa2psk'
-    elif self.config.p_wpa_authentication_mode == 'PSKAuthentication':
-      amode = 'wpapsk'
-    elif self.config.p_basic_authentication_mode == 'SharedAuthentication':
-      amode = 'openshared'
-    self.wl.SetJoin(amode)
+      amode |= 128
+    if self.config.p_wpa_authentication_mode == 'PSKAuthentication':
+      amode |= 4
+    self.wl.SetWpaAuth(amode)
+
+    if self.config.p_ssid is not None:
+      time.sleep(WL_SLEEP)
+      self.wl.SetSSID(self.config.p_ssid)
 
   def GetTotalBytesReceived(self):
     # TODO(dgentry) cache for lifetime of session
