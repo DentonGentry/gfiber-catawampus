@@ -23,12 +23,11 @@ have crept in over time.
 import htmlentitydefs
 import re
 import sys
-import xml.sax.saxutils
 import urllib
 
 # Python3 compatibility:  On python2.5, introduce the bytes alias from 2.6
 try: bytes
-except: bytes = str
+except Exception: bytes = str
 
 try:
     from urlparse import parse_qs  # Python 2.6+
@@ -42,7 +41,7 @@ try:
     assert hasattr(json, "loads") and hasattr(json, "dumps")
     _json_decode = json.loads
     _json_encode = json.dumps
-except:
+except Exception:
     try:
         import simplejson
         _json_decode = lambda s: simplejson.loads(_unicode(s))
@@ -61,9 +60,12 @@ except:
             _json_encode = _json_decode
 
 
+_XHTML_ESCAPE_RE = re.compile('[&<>"]')
+_XHTML_ESCAPE_DICT = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}
 def xhtml_escape(value):
     """Escapes a string so it is valid within XML or XHTML."""
-    return xml.sax.saxutils.escape(to_basestring(value), {'"': "&quot;"})
+    return _XHTML_ESCAPE_RE.sub(lambda match: _XHTML_ESCAPE_DICT[match.group(0)],
+                                to_basestring(value))
 
 
 def xhtml_unescape(value):
@@ -79,7 +81,7 @@ def json_encode(value):
     # the javscript.  Some json libraries do this escaping by default,
     # although python's standard library does not, so we do it here.
     # http://stackoverflow.com/questions/1580647/json-why-are-forward-slashes-escaped
-    return _json_encode(value).replace("</", "<\\/")
+    return _json_encode(recursive_unicode(value)).replace("</", "<\\/")
 
 
 def json_decode(value):
