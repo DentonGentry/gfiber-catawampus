@@ -40,6 +40,7 @@ install:
 		$(DSTDIR)/tr/vendor/bup/lib/bup $(DSTDIR)/tr/vendor/pynetlinux \
 		$(DSTDIR)/tr/vendor/tornado $(DSTDIR)/tr/vendor/tornado/tornado \
 		$(DSTDIR)/tr/vendor/tornado/platform \
+		$(DSTDIR)/tr/vendor/pbkdf2 \
 		$(DSTDIR)/platform $(DSTDIR)/platform/gfmedia \
 		$(DSTDIR)/platform/fakecpe $(DSTDIR)/dm
 	$(INSTALL) -D -m 0644 *.py $(DSTDIR)
@@ -60,6 +61,7 @@ install:
 	$(INSTALL) -D -m 0644 tr/vendor/tornado/tornado/*.crt $(DSTDIR)/tr/vendor/tornado/tornado
 	$(INSTALL) -D -m 0644 tr/vendor/tornado/tornado/platform/*.py $(DSTDIR)/tr/vendor/tornado/tornado/platform
 	$(INSTALL) -D -m 0644 tr/vendor/xmlwitch.py $(DSTDIR)/tr/vendor
+	$(INSTALL) -D -m 0644 tr/vendor/pbkdf2/* $(DSTDIR)/tr/vendor/pbkdf2
 	python -mcompileall $(DSTDIR)
 
 # Subdir rules
