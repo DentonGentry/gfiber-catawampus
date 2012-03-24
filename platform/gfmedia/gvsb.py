@@ -12,13 +12,14 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import google3
 import tr.x_gvsb_1_0
 
+# Unit tests can override these.
+GVSBSERVERFILE = '/tmp/gvsbhost'
+GVSBCHANNELFILE = '/tmp/gvsbchannel'
+GVSBKICKFILE = '/tmp/gvsbkick'
+
 
 class Gvsb(tr.x_gvsb_1_0.X_GOOGLE_COM_GVSB_v1_1):
   """Implementation of x-gvsb.xml."""
-
-  GVSBSERVERFILE = '/tmp/gvsbhost'
-  GVSBCHANNELFILE = '/tmp/gvsbchannel'
-  GVSBKICKFILE = '/tmp/gvsbkick'
 
   def __init__(self):
     super(Gvsb, self).__init__()
@@ -28,6 +29,9 @@ class Gvsb(tr.x_gvsb_1_0.X_GOOGLE_COM_GVSB_v1_1):
     self._written_gvsbserver = None
     self._written_gvsb_channel_lineup = None
     self._written_gvsb_kick = None
+    self.WriteFile(GVSBSERVERFILE, '')
+    self.WriteFile(GVSBCHANNELFILE, '')
+    self.WriteFile(GVSBKICKFILE, '')
 
   def GetGvsbServer(self):
     return self._gvsbserver
@@ -83,13 +87,13 @@ class Gvsb(tr.x_gvsb_1_0.X_GOOGLE_COM_GVSB_v1_1):
 
   def ConfigureGvsb(self):
     if self._gvsbserver != self._written_gvsbserver:
-      if self.WriteFile(self.GVSBSERVERFILE, str(self._gvsbserver)):
+      if self.WriteFile(GVSBSERVERFILE, str(self._gvsbserver)):
         self._written_gvsbserver = self._gvsbserver
     if self._gvsb_channel_lineup != self._written_gvsb_channel_lineup:
-      if self.WriteFile(self.GVSBCHANNELFILE, str(self._gvsb_channel_lineup)):
+      if self.WriteFile(GVSBCHANNELFILE, str(self._gvsb_channel_lineup)):
         self._written_gvsb_channel_lineup = self._gvsb_channel_lineup
     if self._gvsb_kick != self._written_gvsb_kick:
-      if self.WriteFile(self.GVSBKICKFILE, self._gvsb_kick):
+      if self.WriteFile(GVSBKICKFILE, self._gvsb_kick):
         self._written_gvsb_kick = self._gvsb_kick
 
 
