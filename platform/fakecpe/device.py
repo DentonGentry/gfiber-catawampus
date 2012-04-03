@@ -12,6 +12,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import os
 import google3
 import dm.device_info
+import dm.igd_time
 import dm.storage
 import platform_config
 import tornado.ioloop
@@ -178,13 +179,14 @@ class InternetGatewayDeviceFakeCPE(BASE98IGD):
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
     self.Unexport(objects='QueueManagement')
     self.Unexport(objects='Services')
-    self.Unexport(objects='Time')
     self.Unexport(objects='TraceRouteDiagnostics')
     self.Unexport(objects='UploadDiagnostics')
     self.Unexport(objects='UserInterface')
     self.Unexport(lists='WANDevice')
 
     self.DeviceInfo = dm.device_info.DeviceInfo98Linux26(device_id)
+    tzfile = '/tmp/catawampus.%s/TZ' % FakeCPEInstance()
+    self.Time = dm.igd_time.TimeTZ(tzfile=tzfile)
 
   @property
   def LANDeviceNumberOfEntries(self):
