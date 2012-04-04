@@ -16,6 +16,7 @@ import google3
 import dm.brcmmoca
 import dm.brcmwifi
 import dm.device_info
+import dm.igd_time
 import dm.storage
 import platform_config
 import tornado.ioloop
@@ -289,13 +290,13 @@ class InternetGatewayDeviceGFMedia(BASE98IGD):
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
     self.Unexport(objects='QueueManagement')
     self.Unexport(objects='Services')
-    self.Unexport(objects='Time')
     self.Unexport(objects='TraceRouteDiagnostics')
     self.Unexport(objects='UploadDiagnostics')
     self.Unexport(objects='UserInterface')
     self.Unexport(lists='WANDevice')
 
     self.DeviceInfo = dm.device_info.DeviceInfo98Linux26(device_id)
+    self.Time = dm.igd_time.TimeTZ()
 
   @property
   def LANDeviceNumberOfEntries(self):
