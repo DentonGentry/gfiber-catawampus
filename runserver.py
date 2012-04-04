@@ -62,7 +62,6 @@ def main():
 
   tornado.httpclient.AsyncHTTPClient.configure(
       'tornado.curl_httpclient.CurlAsyncHTTPClient')
-  tornado.autoreload.start()
   loop = tr.mainloop.MainLoop()
   root = dm_root.DeviceModelRoot(loop, opt.platform)
   if opt.rcmd_port:
