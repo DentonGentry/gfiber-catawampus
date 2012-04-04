@@ -43,7 +43,6 @@ class TimeTZ(BASE98IGD.Time):
     self.Unexport('DaylightSavingsStart')
     self.Unexport('DaylightSavingsUsed')
     self.Unexport('LocalTimeZone')
-    self.Unexport('LocalTimeZoneName')
     self.Unexport('NTPServer1')
     self.Unexport('NTPServer2')
     self.Unexport('NTPServer3')
