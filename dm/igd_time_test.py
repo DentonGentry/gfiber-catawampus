@@ -59,6 +59,24 @@ class IgdTimeTest(unittest.TestCase):
     t.CommitTransaction()
     self.assertEqual(outfile.read().strip(), expected)
 
+  def testUCLibcIsReallyReallyReallyPickyAboutWhitespace(self):
+    # uClibC will only accept a TZ file with exactly one newline at the end.
+    tzwrite = 'PST8PDT,M3.2.0/2,M11.1.0/2'
+
+    outfile = self.MakeTestScript()
+    t = igd_time.TimeTZ(tzfile=outfile.name)
+    t.StartTransaction()
+    t.LocalTimeZoneName = tzwrite + '\n\n\n\n\n'
+    t.CommitTransaction()
+    self.assertEqual(outfile.read(), tzwrite + '\n')
+
+    outfile = self.MakeTestScript()
+    t = igd_time.TimeTZ(tzfile=outfile.name)
+    t.StartTransaction()
+    t.LocalTimeZoneName = tzwrite
+    t.CommitTransaction()
+    self.assertEqual(outfile.read(), tzwrite + '\n')
+
   def testAbandonTransaction(self):
     outfile = self.MakeTestScript()
     t = igd_time.TimeTZ(tzfile=outfile.name)

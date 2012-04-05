@@ -66,7 +66,9 @@ class TimeTZ(BASE98IGD.Time):
     self.old_config = None
     if self.config.TZ is not None:
       f = open(self.tzfile, 'w')
-      f.write(str(self.config.TZ))
+      # uClibc is picky about whitespace: exactly one newline, no more, no less.
+      tz = str(self.config.TZ).strip() + '\n'
+      f.write(tz)
       f.close()
 
   def GetEnable(self):
