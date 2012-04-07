@@ -126,6 +126,13 @@ class HttpTest(tornado.testing.AsyncTestCase):
     self.assertTrue(ctime is not None)
     self.assertTrue(cwmpdate.valid(ctime.text))
 
+  def testLookupDevIP6(self):
+    http.PROC_IF_INET6 = 'testdata/http/if_inet6'
+    cpe_machine = self.getCpe()
+    self.assertEqual(cpe_machine.LookupDevIP6('eth0'),
+                     '11:2233:4455:6677:8899:aabb:ccdd:eeff')
+    self.assertEqual(cpe_machine.LookupDevIP6('foo0'), 0)
+
   def testRetryCount(self):
     time.time = self.advanceTime
     cpe_machine = self.getCpe()

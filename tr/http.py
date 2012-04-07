@@ -9,6 +9,7 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import binascii
 import collections
 import random
 import socket
@@ -23,6 +24,8 @@ import api_soap
 import cpe_management_server
 import cwmp_session
 import soap
+
+PROC_IF_INET6 = '/proc/net/if_inet6'
 
 
 # SPEC3 = TR-069_Amendment-3.pdf
@@ -72,8 +75,10 @@ class CPEStateMachine(object):
     acs_url_file: A file which will contain the ACS URL. This file can
       change during operation, and must be periodically re-read.
     ping_path: URL path for the ACS Ping function
+    ping_ip6dev: ifname to use for the CPE Ping address.
   """
-  def __init__(self, ip, cpe, listenport, acs_url_file, ping_path, ioloop=None):
+  def __init__(self, ip, cpe, listenport, acs_url_file, ping_path,
+               ping_ip6dev=None, ioloop=None):
     self.cpe = cpe
     self.cpe_soap = api_soap.CPE(self.cpe)
     self.encode = api_soap.Encode()
@@ -87,6 +92,7 @@ class CPEStateMachine(object):
     self.start_session_timeout = None  # timer for CWMPRetryInterval
     self.session = None
     self.my_configured_ip = ip
+    self.ping_ip6dev = ping_ip6dev
     self.cpe_management_server = cpe_management_server.CpeManagementServer(
         acs_url_file=acs_url_file, port=listenport, ping_path=ping_path,
         get_parameter_key=cpe.getParameterKey,
@@ -104,9 +110,25 @@ class CPEStateMachine(object):
     self.response_queue.append(str(req))
     self.Run()
 
+  def LookupDevIP6(self, name):
+    """Returns the global IPv6 address for the named interface."""
+    with open(PROC_IF_INET6, 'r') as f:
+      for line in f:
+        fields = line.split()
+        if len(fields) < 6:
+          continue
+        scope = int(fields[3].strip())
+        dev = fields[5].strip()
+        if dev == name and scope == 0:
+          bin_ip = binascii.unhexlify(fields[0])
+          return socket.inet_ntop(socket.AF_INET6, bin_ip)
+    return 0
+
   def _GetLocalAddr(self):
     if self.my_configured_ip is not None:
       return self.my_configured_ip
+    if self.ping_ip6dev is not None:
+      return self.LookupDevIP6(self.ping_ip6dev)
     acs_url = self.cpe_management_server.URL
     if not acs_url:
       return 0
@@ -327,12 +349,13 @@ class CPEStateMachine(object):
 
 
 def Listen(ip, port, ping_path, acs, acs_url_file, cpe, cpe_listener,
-           ioloop=None):
+           ping_ip6dev=None, ioloop=None):
   if not ping_path:
     ping_path = '/ping/%x' % random.getrandbits(120)
   while ping_path.startswith('/'):
     ping_path = ping_path[1:]
-  cpe_machine = CPEStateMachine(ip, cpe, port, acs_url_file, ping_path, ioloop)
+  cpe_machine = CPEStateMachine(ip, cpe, port, acs_url_file, ping_path,
+                                ping_ip6dev, ioloop)
   cpe.setCallbacks(cpe_machine.SendTransferComplete,
                    cpe_machine.TransferCompleteReceived,
                    cpe_machine.InformResponseReceived)
