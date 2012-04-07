@@ -40,6 +40,7 @@ no-cpe        Don't run a CPE (and thus never connect to ACS)
 cpe-listener  Let CPE listen for http requests (not TR-069 compliant)
 platform=     Activate the platform-specific device tree (see platform/ dir)
 close-stdio   Close stdout after listeners are running; exit when stdin closes
+ping_ip6dev=  Use the IPv6 address from dev for the CPE Ping address
 """
 
 
@@ -95,8 +96,11 @@ def main():
       pc = root.get_platform_config()
       cpe.download_manager.SetDirectories(config_dir=pc.ConfigDir(),
                                           download_dir=pc.DownloadDir())
-      cpe_machine = tr.http.Listen(opt.ip, opt.port, opt.ping_path, acs,
-                                   acs_url_file, cpe, opt.cpe_listener)
+      cpe_machine = tr.http.Listen(ip=opt.ip, port=opt.port,
+                                   ping_path=opt.ping_path, acs=acs,
+                                   acs_url_file=acs_url_file, cpe=cpe,
+                                   cpe_listener=opt.cpe_listener,
+                                   ping_ip6dev=opt.ping_ip6dev)
       root.add_management_server(cpe_machine.GetManagementServer())
       cpe_machine.Startup()
 
