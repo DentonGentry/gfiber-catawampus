@@ -456,7 +456,6 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
 
     # No RADIUS support, could be added later.
     self.Unexport('AuthenticationServiceMode')
-    self.Unexport('BasicAuthenticationMode')
 
     # Local settings, currently unimplemented. Will require more
     # coordination with the underlying platform support.
@@ -558,7 +557,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
       GetAutoRateFallBackEnabled, SetAutoRateFallBackEnabled, None,
       'WLANConfiguration.AutoRateFallBackEnabled')
 
-  def GetBasicAuthenticationMode(self, value):
+  def GetBasicAuthenticationMode(self):
     return self.config.p_basic_authentication_mode
 
   def SetBasicAuthenticationMode(self, value):
@@ -569,7 +568,6 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   BasicAuthenticationMode = property(
       GetBasicAuthenticationMode, SetBasicAuthenticationMode, None,
       'WLANConfiguration.BasicAuthenticationMode')
-
 
   def GetBasicDataTransmitRates(self):
     return self.wl.GetBasicDataTransmitRates()
@@ -844,7 +842,8 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
       sup_wpa = True
     self.wl.SetSupWpa(sup_wpa)
 
-    if self.config.p_beacon_type.find('Basic') >= 0:
+    if (self.config.p_beacon_type.find('Basic') >= 0 and
+        self.config.p_basic_authentication_mode == 'SharedAuthentication'):
       self.wl.SetWepStatus(True)
     else:
       self.wl.SetWepStatus(False)

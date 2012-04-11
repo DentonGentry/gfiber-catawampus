@@ -423,9 +423,15 @@ class BrcmWifiTest(unittest.TestCase):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     self.assertRaises(ValueError, bw.SetBeaconType, 'FooFi')
 
-  def testInvalidBasicEncryptionMode(self):
+  def testAuthenticationMode(self):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
-    self.assertRaises(ValueError, bw.SetBasicEncryptionModes, 'NoSuchCrypto')
+    self.assertRaises(ValueError, bw.SetBasicAuthenticationMode, 'Invalid')
+    bw.BasicAuthenticationMode = 'None'
+    bw.BasicAuthenticationMode = 'SharedAuthentication'
+    self.assertRaises(ValueError, bw.SetIEEE11iAuthenticationMode, 'Invalid')
+    bw.IEEE11iAuthenticationMode = 'PSKAuthentication'
+    self.assertRaises(ValueError, bw.SetWPAAuthenticationMode, 'Invalid')
+    bw.WPAAuthenticationMode = 'PSKAuthentication'
 
   def testSetBeaconType(self):
     (script, out) = self.MakeTestScript()
@@ -434,6 +440,7 @@ class BrcmWifiTest(unittest.TestCase):
     bw.StartTransaction()
     bw.Enable = 'True'
     bw.RadioEnabled = 'True'
+    bw.BasicEncryptionModes = 'None' # wsec 0
     bw.WPAEncryptionModes = 'TKIPEncryption'  # wsec 2
     bw.IEEE11iEncryptionModes = 'AESEncryption'  # wsec 4
     bw.BeaconType = 'None'
@@ -442,13 +449,34 @@ class BrcmWifiTest(unittest.TestCase):
     outlist = self.VerifyCommonWlCommands(output, wsec=0)
     self.assertFalse(outlist)
     out.truncate()
+
     bw.StartTransaction()
+    bw.BeaconType = 'Basic'
+    bw.CommitTransaction()
+    output = out.read()
+    outlist = self.VerifyCommonWlCommands(output, wsec=0)
+    self.assertFalse(outlist)
+    out.truncate()
+
+    bw.StartTransaction()
+    bw.BasicEncryptionModes = 'WEPEncryption' # wsec 1
+    bw.BeaconType = 'Basic'
+    bw.CommitTransaction()
+    output = out.read()
+    outlist = self.VerifyCommonWlCommands(output, wsec=1)
+    self.assertFalse(outlist)
+    out.truncate()
+
+    bw.StartTransaction()
+    bw.BasicAuthenticationMode = 'SharedAuthentication'
+    bw.BasicEncryptionModes = 'WEPEncryption' # wsec 1
     bw.BeaconType = 'Basic'
     bw.CommitTransaction()
     output = out.read()
     outlist = self.VerifyCommonWlCommands(output, wsec=1, wepstatus='on')
     self.assertFalse(outlist)
     out.truncate()
+
     bw.StartTransaction()
     bw.BeaconType = 'WPA'
     bw.CommitTransaction()
@@ -456,6 +484,7 @@ class BrcmWifiTest(unittest.TestCase):
     outlist = self.VerifyCommonWlCommands(output, wsec=2)
     self.assertFalse(outlist)
     out.truncate()
+
     bw.StartTransaction()
     bw.BeaconType = '11i'
     bw.CommitTransaction()
@@ -463,6 +492,7 @@ class BrcmWifiTest(unittest.TestCase):
     outlist = self.VerifyCommonWlCommands(output, wsec=4)
     self.assertFalse(outlist)
     out.truncate()
+
     bw.StartTransaction()
     bw.BeaconType = 'BasicandWPA'
     bw.CommitTransaction()
@@ -470,6 +500,7 @@ class BrcmWifiTest(unittest.TestCase):
     outlist = self.VerifyCommonWlCommands(output, wsec=2, wepstatus='on')
     self.assertFalse(outlist)
     out.truncate()
+
     bw.StartTransaction()
     bw.BeaconType = 'Basicand11i'
     bw.CommitTransaction()
@@ -477,6 +508,7 @@ class BrcmWifiTest(unittest.TestCase):
     outlist = self.VerifyCommonWlCommands(output, wsec=4, wepstatus='on')
     self.assertFalse(outlist)
     out.truncate()
+
     bw.StartTransaction()
     bw.BeaconType = 'WPAand11i'
     bw.CommitTransaction()
@@ -484,6 +516,7 @@ class BrcmWifiTest(unittest.TestCase):
     outlist = self.VerifyCommonWlCommands(output, wsec=4)
     self.assertFalse(outlist)
     out.truncate()
+
     bw.StartTransaction()
     bw.BeaconType = 'BasicandWPAand11i'
     bw.CommitTransaction()
