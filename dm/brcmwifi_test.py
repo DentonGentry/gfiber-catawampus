@@ -53,14 +53,14 @@ class BrcmWifiTest(unittest.TestCase):
       return False
 
   def VerifyCommonWlCommands(self, cmd, rmwep=0, wsec=0, primary_key=1,
-                             sup_wpa=0, amode='open'):
+                             wpa_auth=0, sup_wpa=0, amode='open'):
     # Verify the number of "rmwep #" commands, and remove them.
     l = [x for x in cmd.split('\n') if x]  # Suppress blank lines
     for i in range(rmwep, 4):
       self.assertTrue(self.RmFromList(l, 'rmwep %d' % i))
     self.assertTrue(self.RmFromList(l, 'wsec %d' % wsec))
     self.assertTrue(self.RmFromList(l, 'sup_wpa %d' % sup_wpa))
-    self.assertTrue(self.RmFromList(l, 'wpa_auth 0'))
+    self.assertTrue(self.RmFromList(l, 'wpa_auth %d' % wpa_auth))
     self.assertTrue(self.RmFromList(l, 'primary_key %d' % primary_key))
     self.assertTrue(len(l) >= 3)
     self.assertEqual(l[0], '-i wifi0 ap 1')
@@ -521,6 +521,35 @@ class BrcmWifiTest(unittest.TestCase):
     bw.CommitTransaction()
     output = out.read()
     outlist = self.VerifyCommonWlCommands(output, wsec=4)
+    self.assertFalse(outlist)
+    out.truncate()
+
+  def testAuthenticationModes(self):
+    (script, out) = self.MakeTestScript()
+    brcmwifi.WL_EXE = script.name
+    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    bw.StartTransaction()
+    bw.Enable = 'True'
+    bw.RadioEnabled = 'True'
+    bw.CommitTransaction()
+    output = out.read()
+    outlist = self.VerifyCommonWlCommands(output, wpa_auth=0)
+    self.assertFalse(outlist)
+    out.truncate()
+
+    bw.StartTransaction()
+    bw.IEEE11iAuthenticationMode = 'PSKAuthentication'
+    bw.CommitTransaction()
+    output = out.read()
+    outlist = self.VerifyCommonWlCommands(output, sup_wpa=1, wpa_auth=128)
+    self.assertFalse(outlist)
+    out.truncate()
+
+    bw.StartTransaction()
+    bw.WPAAuthenticationMode = 'PSKAuthentication'
+    bw.CommitTransaction()
+    output = out.read()
+    outlist = self.VerifyCommonWlCommands(output, sup_wpa=1, wpa_auth=132)
     self.assertFalse(outlist)
     out.truncate()
 

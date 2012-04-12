@@ -643,7 +643,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   def SetIEEE11iAuthenticationMode(self, value):
     if not value in WPAAUTHMODES:
       raise ValueError('Unsupported IEEE11iAuthenticationMode %s' % value)
-    self.config.p_wpa_authentication_mode = value
+    self.config.p_ieee11i_authentication_mode = value
 
   IEEE11iAuthenticationMode = property(
       GetIEEE11iAuthenticationMode, SetIEEE11iAuthenticationMode,
