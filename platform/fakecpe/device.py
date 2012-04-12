@@ -77,7 +77,7 @@ class DeviceIdFakeCPE(dm.device_info.DeviceIdMeta):
 
   @property
   def ManufacturerOUI(self):
-    return '001a11'
+    return '001A11'
 
   @property
   def ModelName(self):
