@@ -842,12 +842,6 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
       sup_wpa = True
     self.wl.SetSupWpa(sup_wpa)
 
-    if (self.config.p_beacon_type.find('Basic') >= 0 and
-        self.config.p_basic_authentication_mode == 'SharedAuthentication'):
-      self.wl.SetWepStatus(True)
-    else:
-      self.wl.SetWepStatus(False)
-
     for idx, wep in self.WEPKeyList.items():
       key = wep.WEPKey
       if key is None:

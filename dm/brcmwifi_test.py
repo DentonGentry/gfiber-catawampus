@@ -53,7 +53,7 @@ class BrcmWifiTest(unittest.TestCase):
       return False
 
   def VerifyCommonWlCommands(self, cmd, rmwep=0, wsec=0, primary_key=1,
-                             wepstatus='off', sup_wpa=0, amode='open'):
+                             sup_wpa=0, amode='open'):
     # Verify the number of "rmwep #" commands, and remove them.
     l = [x for x in cmd.split('\n') if x]  # Suppress blank lines
     for i in range(rmwep, 4):
@@ -62,7 +62,6 @@ class BrcmWifiTest(unittest.TestCase):
     self.assertTrue(self.RmFromList(l, 'sup_wpa %d' % sup_wpa))
     self.assertTrue(self.RmFromList(l, 'wpa_auth 0'))
     self.assertTrue(self.RmFromList(l, 'primary_key %d' % primary_key))
-    self.assertTrue(self.RmFromList(l, 'wepstatus %s' % wepstatus))
     self.assertTrue(len(l) >= 3)
     self.assertEqual(l[0], '-i wifi0 ap 1')
     self.assertEqual(l[1], '-i wifi0 bss down')
@@ -473,7 +472,7 @@ class BrcmWifiTest(unittest.TestCase):
     bw.BeaconType = 'Basic'
     bw.CommitTransaction()
     output = out.read()
-    outlist = self.VerifyCommonWlCommands(output, wsec=1, wepstatus='on')
+    outlist = self.VerifyCommonWlCommands(output, wsec=1)
     self.assertFalse(outlist)
     out.truncate()
 
@@ -497,7 +496,7 @@ class BrcmWifiTest(unittest.TestCase):
     bw.BeaconType = 'BasicandWPA'
     bw.CommitTransaction()
     output = out.read()
-    outlist = self.VerifyCommonWlCommands(output, wsec=2, wepstatus='on')
+    outlist = self.VerifyCommonWlCommands(output, wsec=2)
     self.assertFalse(outlist)
     out.truncate()
 
@@ -505,7 +504,7 @@ class BrcmWifiTest(unittest.TestCase):
     bw.BeaconType = 'Basicand11i'
     bw.CommitTransaction()
     output = out.read()
-    outlist = self.VerifyCommonWlCommands(output, wsec=4, wepstatus='on')
+    outlist = self.VerifyCommonWlCommands(output, wsec=4)
     self.assertFalse(outlist)
     out.truncate()
 
@@ -521,7 +520,7 @@ class BrcmWifiTest(unittest.TestCase):
     bw.BeaconType = 'BasicandWPAand11i'
     bw.CommitTransaction()
     output = out.read()
-    outlist = self.VerifyCommonWlCommands(output, wsec=4, wepstatus='on')
+    outlist = self.VerifyCommonWlCommands(output, wsec=4)
     self.assertFalse(outlist)
     out.truncate()
 
