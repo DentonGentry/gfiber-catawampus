@@ -13,7 +13,6 @@ import collections
 import unittest
 
 import google3
-import tr.cwmpbool
 import storage
 
 
@@ -46,6 +45,7 @@ class StorageTest(unittest.TestCase):
     self.old_PROC_MOUNTS = storage.PROC_MOUNTS
     self.old_SMARTCTL = storage.SMARTCTL
     self.old_SYS_BLOCK = storage.SYS_BLOCK
+    storage.SMARTCTL = 'testdata/storage/smartctl'
 
   def tearDown(self):
     storage.PROC_FILESYSTEMS = self.old_PROC_FILESYSTEMS
@@ -119,14 +119,13 @@ class StorageTest(unittest.TestCase):
     self.assertEqual(pm.Name, 'sdb')
 
   def testPhysicalMediumFields(self):
-    storage.SMARTCTL = 'testdata/storage/smartctl'
     storage.SYS_BLOCK = 'testdata/storage/sys/block'
     pm = storage.PhysicalMediumDiskLinux26('sda')
     self.assertEqual(pm.Vendor, 'vendor_name')
     self.assertEqual(pm.Model, 'model_name')
     self.assertEqual(pm.SerialNumber, 'serial_number')
     self.assertEqual(pm.FirmwareVersion, 'firmware_version')
-    self.assertTrue(tr.cwmpbool.parse(pm.SMARTCapable))
+    self.assertTrue(pm.SMARTCapable)
     self.assertEqual(pm.Health, 'OK')
     self.assertFalse(pm.Removable)
 
@@ -134,7 +133,7 @@ class StorageTest(unittest.TestCase):
     storage.SMARTCTL = 'testdata/storage/smartctl_disabled'
     storage.SYS_BLOCK = 'testdata/storage/sys/block'
     pm = storage.PhysicalMediumDiskLinux26('sda')
-    self.assertFalse(tr.cwmpbool.parse(pm.SMARTCapable))
+    self.assertFalse(pm.SMARTCapable)
 
   def testHealthFailing(self):
     storage.SMARTCTL = 'testdata/storage/smartctl_healthfail'
