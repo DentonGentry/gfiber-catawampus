@@ -23,6 +23,14 @@ SOAPNS = '{http://schemas.xmlsoap.org/soap/envelope/}'
 CWMPNS = '{urn:dslforum-org:cwmp-1-2}'
 
 
+class TestDeviceModelObject(core.Exporter):
+  def __init__(self):
+    core.Exporter.__init__(self)
+    self.Foo = 'bar'
+    params = ['Foo']
+    objects = []
+    self.Export(params=params, objects=objects)
+
 class TestDeviceModelRoot(core.Exporter):
   """A class to hold the device models."""
 
@@ -36,6 +44,8 @@ class TestDeviceModelRoot(core.Exporter):
     params.append('RaiseTypeError')
     params.append('RaiseValueError')
     params.append('BooleanParameter')
+    self.SubObject = TestDeviceModelObject()
+    objects.append('SubObject')
     self.Export(params=params, objects=objects)
     self.boolean_parameter = True
     self.boolean_parameter_set = False
@@ -433,7 +443,7 @@ class GetParamsRpcTest(unittest.TestCase):
     names = root.findall(
         SOAPNS + 'Body/' + CWMPNS +
         'GetParameterNamesResponse/ParameterList/ParameterInfoStruct/Name')
-    self.assertEqual(len(names), 5)
+    self.assertEqual(len(names), 6)
 
     # We don't do a string compare of the XML output, that is too fragile
     # as a test. We parse the XML and look for expected values. Nonetheless
@@ -498,6 +508,24 @@ class GetParamsRpcTest(unittest.TestCase):
           </soap:Fault>
         </soap:Body>
       </soap:Envelope>"""
+
+  def testGetBadParamValueFullPath(self):
+    cpe = self.getCpe()
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterValues><ParameterNames soapenc:arrayType="{urn:dslforum-org:cwmp-1-2}string[1]"><ns3:string xmlns="urn:dslforum-org:cwmp-1-2" xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" xmlns:ns3="urn:dslforum-org:cwmp-1-2">SubObject.NopeNotHere</ns3:string></ParameterNames></cwmp:GetParameterValues></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+
+    root = ET.fromstring(str(responseXml))
+    name = root.find(SOAPNS + 'Body/' + CWMPNS + 'GetParameterValuesResponse')
+    self.assertTrue(name is None)
+    fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
+    self.assertTrue(fault)
+    self.assertEqual(fault.find('faultcode').text, 'Client')
+    self.assertEqual(fault.find('faultstring').text, 'CWMP fault')
+    detail = fault.find('detail/' + CWMPNS + 'Fault')
+    self.assertTrue(detail)
+    self.assertEqual(detail.find('FaultCode').text, '9005')
+    self.assertTrue(
+        detail.find('FaultString').text.find('SubObject.NopeNotHere'))
 
   def testGetBadParamName(self):
     cpe = self.getCpe()

@@ -65,7 +65,7 @@ class AutoDict(object):
     return self.__getitem(key)
 
   def __setitem__(self, key, value):
-    return self.__setitem(key)
+    return self.__setitem(key, value)
 
   def __delitem__(self, key):
     return self.__delitem(key)
@@ -298,7 +298,11 @@ class Exporter(object):
       An Exporter instance or a parameter value.
     """
     parent, subname = self.FindExport(name)
-    return self._GetExport(parent, subname)  #pylint: disable-msg=W0212
+    try:
+      return self._GetExport(parent, subname)  #pylint: disable-msg=W0212
+    except KeyError:
+      # re-raise the KeyError with the full name, not just the subname.
+      raise KeyError(name)
 
   def SetExportParam(self, name, value):
     """Set the value of a parameter of this object.
