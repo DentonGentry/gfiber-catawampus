@@ -5,6 +5,7 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import datetime
 import time
 
 import google3
@@ -13,6 +14,21 @@ import core
 import cwmpbool
 import cwmpdate
 import soap
+
+
+def Soapify(value):
+  if hasattr(value, 'xsitype'):
+    return (value.xsitype, str(value))
+  elif isinstance(value, bool):
+    return ('xsd:boolean', cwmpbool.format(value))
+  elif isinstance(value, int):
+    return ('xsd:unsignedInt', str(value))
+  elif isinstance(value, float):
+    return ('xsd:double', str(value))
+  elif isinstance(value, datetime.datetime):
+    return ('xsd:dateTime', cwmpdate.format(value))
+  else:
+    return ('xsd:string', str(value))
 
 
 class Encode(object):
@@ -60,7 +76,8 @@ class Encode(object):
           for name, value in parameter_list:
             with xml.ParameterValueStruct:
               xml.Name(name)
-              xml.Value(str(value), xsi__type="xsd:string")
+              soapyvalue = Soapify(value)
+              xml.Value(soapyvalue[1], xsi__type=soapyvalue[0])
     return xml
 
   def GetParameterNames(self, parameter_path, next_level_only):
@@ -245,7 +262,8 @@ class CPE(SoapHandler):
         for name, value in values:
           with xml.ParameterValueStruct:
             xml.Name(name)
-            xml.Value(str(value), xsi__type="xsd:string")
+            soapyvalue = Soapify(value)
+            xml.Value(soapyvalue[1], xsi__type=soapyvalue[0])
     return xml
 
   def SetParameterValues(self, xml, req):

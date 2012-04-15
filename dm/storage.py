@@ -14,7 +14,6 @@ import os
 import re
 import subprocess
 import tr.core
-import tr.cwmpbool
 import tr.tr140_v1_1
 
 BASESTORAGE = tr.tr140_v1_1.StorageService_v1_1.StorageService
@@ -203,10 +202,7 @@ class PhysicalMediumDiskLinux26(BASESTORAGE.PhysicalMedium):
   @property
   def SMARTCapable(self):
     capable = self._GetFieldFromSmartctl('SMART support is: Enab', default=None)
-    if capable:
-      return tr.cwmpbool.format(True)
-    else:
-      return tr.cwmpbool.format(False)
+    return True if capable else False
 
   @property
   def Health(self):
