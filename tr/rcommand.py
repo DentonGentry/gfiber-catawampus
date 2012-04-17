@@ -134,7 +134,7 @@ def main():
   root.Export(params=['Test'], lists=['Sub'])
 
   loop.ListenInet6(('', 12999), MakeRemoteCommandStreamer(root))
-  loop.ListenUnix('/tmp/mainloop.sock', MakeRemoteCommandStreamer(root))
+  loop.ListenUnix('/tmp/cwmpd.sock', MakeRemoteCommandStreamer(root))
   loop.Start()
 
 

@@ -4,7 +4,7 @@
 # TR-069 has mandatory attribute names that don't comply with policy
 #pylint: disable-msg=C6409
 #
-"""Command-line client for rcommand.py."""
+"""Command-line client for tr/rcommand.py."""
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
@@ -17,18 +17,18 @@ import traceback
 import google3
 import bup.options
 import bup.shquote
-import mainloop
-import quotedblock
+import tr.mainloop
+import tr.quotedblock
 
 
 optspec = """
-rclient.py [options]
+cwmp [options]
 --
-u,unix-path=  Unix socket to listen on [/tmp/mainloop.sock]
+u,unix-path=  Unix socket server is listening on [/tmp/cwmpd.sock]
 """
 
 
-HISTORY_FILE = os.path.expanduser('~/.rclient_history')
+HISTORY_FILE = os.path.expanduser('~/.cwmp_history')
 
 
 def Log(s, *args):
@@ -81,7 +81,7 @@ class Client(object):
     self.result = None
     self._last_res = None
     self.cwd = '/'
-    self.quotedblock = quotedblock.QuotedBlockProtocol(
+    self.quotedblock = tr.quotedblock.QuotedBlockProtocol(
         HandleFatal(self.GotBlock))
     self._StartConnect()
 
@@ -198,7 +198,7 @@ def main():
     readline.read_history_file(HISTORY_FILE)
   client = None
   try:  #pylint: disable-msg=C6405
-    loop = mainloop.MainLoop()
+    loop = tr.mainloop.MainLoop()
     client = Client(loop, opt.unix_path)
     loop.Start()
 

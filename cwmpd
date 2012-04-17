@@ -26,10 +26,10 @@ import tr.rcommand
 
 
 optspec = """
-runserver.py [options]
+cwmpd [options]
 --
 r,rcmd-port=  TCP port to listen for rcommands on; 0 to disable [12999]
-u,unix-path=  Unix socket to listen on [/tmp/mainloop.sock]
+u,unix-path=  Unix socket to listen on [/tmp/cwmpd.sock]
 i,ip=         IP address to report to ACS. (default=finds interface IP address)
 p,port=       TCP port to listen for TR-069 on [7547]
 ping-path=    Force CPE ping listener to this URL path (default=random)
