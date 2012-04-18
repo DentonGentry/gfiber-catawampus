@@ -97,7 +97,7 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
 
   @property
   def ManufacturerOUI(self):
-    return 'f88fca'
+    return 'F88FCA'
 
   @property
   def ModelName(self):

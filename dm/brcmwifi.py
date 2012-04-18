@@ -456,7 +456,6 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
 
     # No RADIUS support, could be added later.
     self.Unexport('AuthenticationServiceMode')
-    self.Unexport('BasicAuthenticationMode')
 
     # Local settings, currently unimplemented. Will require more
     # coordination with the underlying platform support.
@@ -558,7 +557,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
       GetAutoRateFallBackEnabled, SetAutoRateFallBackEnabled, None,
       'WLANConfiguration.AutoRateFallBackEnabled')
 
-  def GetBasicAuthenticationMode(self, value):
+  def GetBasicAuthenticationMode(self):
     return self.config.p_basic_authentication_mode
 
   def SetBasicAuthenticationMode(self, value):
@@ -569,7 +568,6 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   BasicAuthenticationMode = property(
       GetBasicAuthenticationMode, SetBasicAuthenticationMode, None,
       'WLANConfiguration.BasicAuthenticationMode')
-
 
   def GetBasicDataTransmitRates(self):
     return self.wl.GetBasicDataTransmitRates()
@@ -645,7 +643,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   def SetIEEE11iAuthenticationMode(self, value):
     if not value in WPAAUTHMODES:
       raise ValueError('Unsupported IEEE11iAuthenticationMode %s' % value)
-    self.config.p_wpa_authentication_mode = value
+    self.config.p_ieee11i_authentication_mode = value
 
   IEEE11iAuthenticationMode = property(
       GetIEEE11iAuthenticationMode, SetIEEE11iAuthenticationMode,
@@ -843,11 +841,6 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     if self.config.p_ieee11i_authentication_mode:
       sup_wpa = True
     self.wl.SetSupWpa(sup_wpa)
-
-    if self.config.p_beacon_type.find('Basic') >= 0:
-      self.wl.SetWepStatus(True)
-    else:
-      self.wl.SetWepStatus(False)
 
     for idx, wep in self.WEPKeyList.items():
       key = wep.WEPKey
