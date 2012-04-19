@@ -11,6 +11,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import fcntl
 import os
+import re
 import subprocess
 import google3
 import dm.brcmmoca
@@ -37,6 +38,7 @@ CONFIGDIR = '/config/tr69'
 DOWNLOADDIR = '/rw/tr69'
 GINSTALL = '/bin/ginstall.py'
 HNVRAM = '/usr/bin/hnvram'
+PROC_CPUINFO = '/proc/cpuinfo'
 REBOOT = '/bin/tr69_reboot'
 REPOMANIFEST = '/etc/repo-buildroot-manifest'
 VERSIONFILE = '/etc/version'
@@ -116,7 +118,14 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
 
   @property
   def HardwareVersion(self):
-    return '0'  # TODO(dgentry) implement
+    cpu = '?'
+    with open(PROC_CPUINFO, 'r') as f:
+      sys_re = re.compile('system type\s+: (\S+) STB platform')
+      for line in f:
+        stype = sys_re.search(line)
+        if stype is not None:
+          cpu = stype.group(1)
+    return cpu
 
   @property
   def AdditionalHardwareVersion(self):

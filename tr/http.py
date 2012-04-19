@@ -56,7 +56,7 @@ class Handler(tornado.web.RequestHandler):
     self.soap_handler = soap_handler
 
   def get(self):
-    self.write("This is the cpe/acs handler.  It only takes POST requests.")
+    self.write('This is the cpe/acs handler.  It only takes POST requests.')
 
   def post(self):
     print 'TR-069 server: request received:\n%s' % self.request.body
@@ -76,9 +76,10 @@ class CPEStateMachine(object):
       change during operation, and must be periodically re-read.
     ping_path: URL path for the ACS Ping function
     ping_ip6dev: ifname to use for the CPE Ping address.
+    fetch_args: kwargs to pass to HTTPClient.fetch
   """
   def __init__(self, ip, cpe, listenport, acs_url_file, ping_path,
-               ping_ip6dev=None, ioloop=None):
+               ping_ip6dev=None, fetch_args=dict(), ioloop=None):
     self.cpe = cpe
     self.cpe_soap = api_soap.CPE(self.cpe)
     self.encode = api_soap.Encode()
@@ -93,6 +94,7 @@ class CPEStateMachine(object):
     self.session = None
     self.my_configured_ip = ip
     self.ping_ip6dev = ping_ip6dev
+    self.fetch_args = fetch_args
     self.cpe_management_server = cpe_management_server.CpeManagementServer(
         acs_url_file=acs_url_file, port=listenport, ping_path=ping_path,
         get_parameter_key=cpe.getParameterKey,
@@ -233,20 +235,20 @@ class CPEStateMachine(object):
 
     headers = {}
     if self.session.cookies:
-      headers['Cookie'] = ";".join(self.session.cookies)
+      headers['Cookie'] = ';'.join(self.session.cookies)
     if self.outstanding:
       headers['Content-Type'] = 'text/xml; charset="utf-8"'
       headers['SOAPAction'] = ''
     else:
       # Empty message
       self.session.state_update(cpe_to_acs_empty=True)
-    print("CPE POST (at {0!s}):\n{1!s}\n{2!s}".format(
+    print('CPE POST (at {0!s}):\n{1!s}\n{2!s}'.format(
         time.ctime(), headers, self.outstanding))
     req = tornado.httpclient.HTTPRequest(
-        url=self.session.acs_url, method="POST", headers=headers,
+        url=self.session.acs_url, method='POST', headers=headers,
         body=self.outstanding, follow_redirects=True, max_redirects=5,
         request_timeout=30.0, use_gzip=True, allow_ipv6=True,
-        user_agent="catawampus-tr69")
+        **self.fetch_args)
     self.session.http.fetch(req, self.GotResponse)
 
   def GotResponse(self, response):
@@ -256,7 +258,7 @@ class CPEStateMachine(object):
       print 'Session terminated, ignoring ACS message.'
       return
     if not response.error:
-      cookies = response.headers.get_list("Set-Cookie")
+      cookies = response.headers.get_list('Set-Cookie')
       if cookies:
         self.session.cookies = cookies
       print response.body
@@ -349,13 +351,15 @@ class CPEStateMachine(object):
 
 
 def Listen(ip, port, ping_path, acs, acs_url_file, cpe, cpe_listener,
-           ping_ip6dev=None, ioloop=None):
+           ping_ip6dev=None, fetch_args=dict(), ioloop=None):
   if not ping_path:
     ping_path = '/ping/%x' % random.getrandbits(120)
   while ping_path.startswith('/'):
     ping_path = ping_path[1:]
-  cpe_machine = CPEStateMachine(ip, cpe, port, acs_url_file, ping_path,
-                                ping_ip6dev, ioloop)
+  cpe_machine = CPEStateMachine(ip=ip, cpe=cpe, listenport=port,
+                                acs_url_file=acs_url_file, ping_path=ping_path,
+                                ping_ip6dev=ping_ip6dev, fetch_args=fetch_args,
+                                ioloop=ioloop)
   cpe.setCallbacks(cpe_machine.SendTransferComplete,
                    cpe_machine.TransferCompleteReceived,
                    cpe_machine.InformResponseReceived)

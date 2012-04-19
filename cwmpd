@@ -41,6 +41,9 @@ cpe-listener  Let CPE listen for http requests (not TR-069 compliant)
 platform=     Activate the platform-specific device tree (see platform/ dir)
 close-stdio   Close stdout after listeners are running; exit when stdin closes
 ping_ip6dev=  Use the IPv6 address from dev for the CPE Ping address
+ca-certs=     SSL ca_certificates.crt file to use
+client-cert=  SSL client certificate to use
+client-key=   SSL client private key to use
 """
 
 
@@ -93,6 +96,15 @@ def main():
       acs_url_file = _WriteAcsFile('')
 
     if cpe:
+      # Arguments to pass to Tornado HTTPClient.fetch
+      fetch_args = {'user_agent': 'catawampus-tr69'}
+      if opt.ca_certs:
+        fetch_args['ca_certs'] = opt.ca_certs
+        fetch_args['validate_cert'] = True
+      if opt.client_cert and opt.client_key:
+        fetch_args['client_cert'] = opt.client_cert
+        fetch_args['client_key'] = opt.client_key
+
       pc = root.get_platform_config()
       cpe.download_manager.SetDirectories(config_dir=pc.ConfigDir(),
                                           download_dir=pc.DownloadDir())
@@ -100,7 +112,8 @@ def main():
                                    ping_path=opt.ping_path, acs=acs,
                                    acs_url_file=acs_url_file, cpe=cpe,
                                    cpe_listener=opt.cpe_listener,
-                                   ping_ip6dev=opt.ping_ip6dev)
+                                   ping_ip6dev=opt.ping_ip6dev,
+                                   fetch_args=fetch_args)
       root.add_management_server(cpe_machine.GetManagementServer())
       cpe_machine.Startup()
 
