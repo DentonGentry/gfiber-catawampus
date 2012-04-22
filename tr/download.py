@@ -32,10 +32,6 @@ class Installer(object):
   expected to implement their own Install object, and set
   tr.download.INSTALLER = their object.
   """
-
-  def __init__(self, filename):
-    self.filename = filename
-
   def install(self, file_type, target_filename, callback):
     INTERNAL_ERROR = 9002
     self.callback(faultcode=INTERNAL_ERROR,

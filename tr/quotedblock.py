@@ -132,7 +132,7 @@ class QuotedBlockStreamer(object):
 
   Example:
       loop = mainloop.MainLoop()
-      loop.ListenUnix('/tmp/mainloop.sock', QuotedBlockStreamer)
+      loop.ListenUnix('/tmp/cwmpd.sock', QuotedBlockStreamer)
       loop.Start()
   """
 
@@ -157,7 +157,7 @@ class QuotedBlockStreamer(object):
 def main():
   loop = mainloop.MainLoop()
   loop.ListenInet6(('', 12999), QuotedBlockStreamer)
-  loop.ListenUnix('/tmp/mainloop.sock', QuotedBlockStreamer)
+  loop.ListenUnix('/tmp/cwmpd.sock', QuotedBlockStreamer)
   print 'hello'
   loop.Start()
 

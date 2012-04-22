@@ -5,7 +5,7 @@
 # unittest requires method names starting in 'test'
 #pylint: disable-msg=C6409
 
-"""Unit tests for runserver.py."""
+"""Unit tests for cwmpd."""
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
@@ -16,15 +16,15 @@ import google3
 
 
 class RunserverTest(unittest.TestCase):
-  """Tests for runserver.py and tr/rclient.py."""
+  """Tests for cwmpd and cwmp."""
 
   def _DoTest(self, args):
     print
     print 'Testing with args=%r' % args
-    sockname = '/tmp/runserver_test.sock.%d' % os.getpid()
+    sockname = '/tmp/cwmpd_test.sock.%d' % os.getpid()
     if os.path.exists(sockname):
       os.unlink(sockname)
-    server = subprocess.Popen(['./runserver.py',
+    server = subprocess.Popen(['./cwmpd',
                                '--rcmd-port', '0',
                                '--unix-path', sockname,
                                '--close-stdio'] + args,
@@ -33,7 +33,7 @@ class RunserverTest(unittest.TestCase):
       print 'waiting for server to start...'
       while server.stdout.read():
         pass
-      client = subprocess.Popen(['tr/rclient.py',
+      client = subprocess.Popen(['./cwmp',
                                  '--unix-path', sockname],
                                 stdin=subprocess.PIPE)
       client.stdin.close()

@@ -11,6 +11,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import fcntl
 import os
+import re
 import subprocess
 import google3
 import dm.brcmmoca
@@ -37,6 +38,7 @@ CONFIGDIR = '/config/tr69'
 DOWNLOADDIR = '/rw/tr69'
 GINSTALL = '/bin/ginstall.py'
 HNVRAM = '/usr/bin/hnvram'
+PROC_CPUINFO = '/proc/cpuinfo'
 REBOOT = '/bin/tr69_reboot'
 REPOMANIFEST = '/etc/repo-buildroot-manifest'
 VERSIONFILE = '/etc/version'
@@ -116,7 +118,14 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
 
   @property
   def HardwareVersion(self):
-    return '0'  # TODO(dgentry) implement
+    cpu = '?'
+    with open(PROC_CPUINFO, 'r') as f:
+      sys_re = re.compile('system type\s+: (\S+) STB platform')
+      for line in f:
+        stype = sys_re.search(line)
+        if stype is not None:
+          cpu = stype.group(1)
+    return cpu
 
   @property
   def AdditionalHardwareVersion(self):
@@ -143,6 +152,7 @@ class InstallerGFMedia(tr.download.Installer):
   """Installer class used by tr/download.py."""
 
   def __init__(self, filename, ioloop=None):
+    tr.download.Installer.__init__(self)
     self.filename = filename
     self._install_cb = None
     self._ioloop = ioloop or tornado.ioloop.IOLoop.instance()
@@ -158,6 +168,7 @@ class InstallerGFMedia(tr.download.Installer):
                           'Unsupported file_type {0}'.format(ftype[0]))
       return False
     self._install_cb = callback
+
     cmd = [GINSTALL, '--tar={0}'.format(self.filename), '--partition=other']
     devnull = open('/dev/null', 'w')
     try:
@@ -166,9 +177,11 @@ class InstallerGFMedia(tr.download.Installer):
     except OSError:
       self._call_callback(INTERNAL_ERROR, 'Unable to start installer process')
       return False
+
     fd = self._ginstall.stdout.fileno()
     fcntl.fcntl(fd, fcntl.F_SETFL, os.O_NONBLOCK)
     self._ioloop.add_handler(fd, self.on_stdout, self._ioloop.READ)
+    return True
 
   def reboot(self):
     cmd = [REBOOT]

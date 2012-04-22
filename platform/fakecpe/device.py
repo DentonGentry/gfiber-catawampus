@@ -10,6 +10,7 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import os
+import sys
 import google3
 import dm.device_info
 import dm.igd_time
@@ -55,10 +56,12 @@ class InstallerFakeCPE(tr.download.Installer):
                           'Unsupported file_type {0}'.format(type[0]))
       return False
     self._install_cb = callback
+    os.rename(self.filename, 'download.tgz')
+    self._call_callback(0, '')
+    return True
 
   def reboot(self):
-    #TODO(dgentry): Need to exit, and automatically restart
-    pass
+    sys.exit(32)
 
 
 def FakeCPEInstance():
@@ -101,7 +104,11 @@ class DeviceIdFakeCPE(dm.device_info.DeviceIdMeta):
 
   @property
   def SoftwareVersion(self):
-    return '1'  #TODO(dgentry): need Download to be able to upgrade us
+    try:
+      with open('platform/fakecpe/version', 'r') as f:
+        return f.readline().strip()
+    except IOError:
+      return 'unknown_version'
 
   @property
   def AdditionalSoftwareVersion(self):

@@ -25,6 +25,7 @@ class DeviceGFMediaTest(tornado.testing.AsyncTestCase):
     self.old_CONFIGDIR = device.CONFIGDIR
     self.old_GINSTALL = device.GINSTALL
     self.old_HNVRAM = device.HNVRAM
+    self.old_PROC_CPUINFO = device.PROC_CPUINFO
     self.old_REBOOT = device.REBOOT
     self.old_REPOMANIFEST = device.REPOMANIFEST
     self.old_VERSIONFILE = device.VERSIONFILE
@@ -37,6 +38,7 @@ class DeviceGFMediaTest(tornado.testing.AsyncTestCase):
     device.CONFIGDIR = self.old_CONFIGDIR
     device.GINSTALL = self.old_GINSTALL
     device.HNVRAM = self.old_HNVRAM
+    device.PROC_CPUINFO = self.old_PROC_CPUINFO
     device.REBOOT = self.old_REBOOT
     device.REPOMANIFEST = self.old_REPOMANIFEST
     device.VERSIONFILE = self.old_VERSIONFILE
@@ -72,6 +74,11 @@ class DeviceGFMediaTest(tornado.testing.AsyncTestCase):
     device.REPOMANIFEST = 'testdata/device/repomanifest'
     self.assertEqual(did.AdditionalSoftwareVersion,
                      'platform 1111111111111111111111111111111111111111')
+
+  def testGetHardwareVersion(self):
+    device.PROC_CPUINFO = 'testdata/proc_cpuinfo'
+    did = device.DeviceIdGFMedia()
+    self.assertEqual(did.HardwareVersion, 'BCM7425B2')
 
   def install_callback(self, faultcode, faultstring, must_reboot):
     self.install_cb_called = True
