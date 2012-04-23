@@ -101,9 +101,9 @@ def main():
       if opt.ca_certs:
         fetch_args['ca_certs'] = opt.ca_certs
         fetch_args['validate_cert'] = True
-      if opt.client_cert and opt.client_key:
-        fetch_args['client_cert'] = opt.client_cert
-        fetch_args['client_key'] = opt.client_key
+      #if opt.client_cert and opt.client_key:
+      #  fetch_args['client_cert'] = opt.client_cert
+      #  fetch_args['client_key'] = opt.client_key
 
       pc = root.get_platform_config()
       cpe.download_manager.SetDirectories(config_dir=pc.ConfigDir(),
