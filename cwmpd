@@ -98,9 +98,9 @@ def main():
     if cpe:
       # Arguments to pass to Tornado HTTPClient.fetch
       fetch_args = {'user_agent': 'catawampus-tr69'}
-      if opt.ca_certs:
-        fetch_args['ca_certs'] = opt.ca_certs
-        fetch_args['validate_cert'] = True
+      #if opt.ca_certs:
+      #  fetch_args['ca_certs'] = opt.ca_certs
+      #  fetch_args['validate_cert'] = True
       #if opt.client_cert and opt.client_key:
       #  fetch_args['client_cert'] = opt.client_cert
       #  fetch_args['client_key'] = opt.client_key
