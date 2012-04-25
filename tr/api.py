@@ -205,7 +205,7 @@ class CPE(TR069Service):
     result = []
     for param in parameter_names:
       if param.endswith('.'):
-        paramlist = self.root.ListExports(param[:-1], True)
+        paramlist = self.root.ListExports(param[:-1], False)
         for p in paramlist:
           parameter_names.append(param + p)
       else:
