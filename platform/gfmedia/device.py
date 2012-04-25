@@ -20,6 +20,7 @@ import dm.device_info
 import dm.igd_time
 import dm.storage
 import platform_config
+import pynetlinux
 import tornado.ioloop
 import tr.core
 import tr.download
@@ -29,6 +30,7 @@ import gvsb
 
 
 BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
+PYNETIFCONF = pynetlinux.ifconfig.Interface
 
 # tr-69 error codes
 INTERNAL_ERROR = 9002
@@ -275,8 +277,17 @@ class LANDeviceGFMedia(BASE98IGD.LANDevice):
     self.Unexport(lists='LANUSBInterfaceConfig')
     self.LANEthernetInterfaceNumberOfEntries = 0
     self.LANUSBInterfaceNumberOfEntries = 0
-    wifi = dm.brcmwifi.BrcmWifiWlanConfiguration('eth2')
-    self.WLANConfigurationList = {'1': wifi}
+    self.WLANConfigurationList = {}
+    if self._has_wifi():
+      wifi = dm.brcmwifi.BrcmWifiWlanConfiguration('eth2')
+      self.WLANConfigurationList = {'1': wifi}
+
+  def _has_wifi(self):
+    try:
+      PYNETIFCONF("eth2").get_index()
+      return True
+    except IOError:
+      return False
 
   @property
   def LANWLANConfigurationNumberOfEntries(self):
