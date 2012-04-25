@@ -242,8 +242,11 @@ class CPEStateMachine(object):
     else:
       # Empty message
       self.session.state_update(cpe_to_acs_empty=True)
-    print('CPE POST (at {0!s}):\n{1!s}\n{2!s}'.format(
-        time.ctime(), headers, self.outstanding))
+    print('CPE POST (at {0!s}):\n'
+          'ACS URL: {1!r}\n'
+          '{2!s}\n'
+          '{3!s}'.format(time.ctime(), self.session.acs_url,
+                         headers, self.outstanding))
     req = tornado.httpclient.HTTPRequest(
         url=self.session.acs_url, method='POST', headers=headers,
         body=self.outstanding, follow_redirects=True, max_redirects=5,
