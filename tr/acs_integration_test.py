@@ -120,6 +120,7 @@ class MockDownloadManager(object):
     self.cancel_raise = False
     self.queue = list()
     self.queue_num = 1
+    self.reboot_called = False
 
   def NewDownload(self, command_key=None, file_type=None, url=None,
                   username=None, password=None, file_size=0,
@@ -163,6 +164,10 @@ class MockDownloadManager(object):
     self.cancel_command_key = command_key
     if self.cancel_raise:
       raise core.CancelNotPermitted('Refused')
+
+  def Reboot(self, command_key):
+    self.reboot_called = True
+    self.reboot_command_key = command_key
 
 
 class TransferRpcTest(unittest.TestCase):
@@ -398,6 +403,17 @@ class TransferRpcTest(unittest.TestCase):
           </soap:Fault>
         </soap:Body>
       </soap:Envelope>"""
+
+  def testReboot(self):
+    cpe = self.getCpe()
+    dm = cpe.cpe.download_manager
+    downloadXml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:Reboot><CommandKey>CommandKey</CommandKey></cwmp:Reboot></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
+    responseXml = cpe.cpe_soap.Handle(downloadXml)
+    self.assertTrue(dm.reboot_called)
+    self.assertEqual(dm.reboot_command_key, 'CommandKey')
+    root = ET.fromstring(str(responseXml))
+    rbresp = root.find(SOAPNS + 'Body/' + CWMPNS + 'RebootResponse')
+    self.assertTrue(rbresp is not None)
 
 
 class GetParamsRpcTest(unittest.TestCase):

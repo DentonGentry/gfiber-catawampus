@@ -255,7 +255,7 @@ class CPE(TR069Service):
 
   def Reboot(self, command_key):
     """Reboot the CPE."""
-    raise NotImplementedError()
+    self.download_manager.Reboot(command_key)
 
   def GetQueuedTransfers(self):
     """Retrieve a list of queued file transfers (downloads and uploads)."""

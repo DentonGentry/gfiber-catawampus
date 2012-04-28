@@ -353,6 +353,11 @@ class CPE(SoapHandler):
     xml['cwmp:CancelTransferResponse'](None)
     return xml
 
+  def Reboot(self, xml, req):
+    self.impl.Reboot(req.CommandKey)
+    xml['cwmp:RebootResponse'](None)
+    return xml
+
 
 def main():
   class FakeDeviceInfo(object):
