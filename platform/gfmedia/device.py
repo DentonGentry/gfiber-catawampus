@@ -17,6 +17,7 @@ import google3
 import dm.brcmmoca
 import dm.brcmwifi
 import dm.device_info
+import dm.ethernet
 import dm.igd_time
 import dm.storage
 import platform_config
@@ -219,6 +220,28 @@ class Services181GFMedia(tr181.Device_v2_2.Device.Services):
         pass
 
 
+class Ethernet181GFMedia(tr181.Device_v2_2.Device.Ethernet):
+  """Implementation of tr-181 Device.Ethernet for GFMedia platforms."""
+
+  def __init__(self):
+    tr181.Device_v2_2.Device.Ethernet.__init__(self)
+    self.InterfaceList = {'1': dm.ethernet.EthernetInterfaceLinux26('eth0')}
+    self.VLANTerminationList = {}
+    self.LinkList = {}
+
+  @property
+  def InterfaceNumberOfEntries(self):
+    return len(self.InterfaceList)
+
+  @property
+  def VLANTerminationNumberOfEntries(self):
+    return len(self.VLANTerminationList)
+
+  @property
+  def LinkNumberOfEntries(self):
+    return len(self.LinkList)
+
+
 class Moca181GFMedia(tr181.Device_v2_2.Device.MoCA):
   """Implementation of tr-181 Device.MoCA for GFMedia platforms."""
 
@@ -243,7 +266,6 @@ class DeviceGFMedia(tr181.Device_v2_2.Device):
     self.Unexport(objects='DHCPv4')
     self.Unexport(objects='DNS')
     self.Unexport(objects='DSL')
-    self.Unexport(objects='Ethernet')
     self.Unexport(objects='GatewayInfo')
     self.Unexport(objects='HPNA')
     self.Unexport(objects='HomePlug')
@@ -263,6 +285,7 @@ class DeviceGFMedia(tr181.Device_v2_2.Device):
     self.Unexport(objects='WiFi')
 
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
+    self.Ethernet = Ethernet181GFMedia()
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
     self.MoCA = Moca181GFMedia()
     self.Services = Services181GFMedia()

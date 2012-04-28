@@ -15,6 +15,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import pynetlinux
 import tr.core
+import tr.cwmpdate
 import tr.tr181_v2_2
 import netdev
 
@@ -22,46 +23,53 @@ BASEETHERNET = tr.tr181_v2_2.Device_v2_2.Device.Ethernet
 PYNETIFCONF = pynetlinux.ifconfig.Interface
 
 
-class EthernetInterfaceStatsLinux26(BASEETHERNET.Interface.Stats):
-  def __init__(self, ifname):
-    BASEETHERNET.Interface.Stats.__init__(self)
-    self._netdev = netdev.NetdevStatsLinux26(ifname)
+class EthernetInterfaceStatsLinux26(netdev.NetdevStatsLinux26,
+                                    BASEETHERNET.Interface.Stats):
+  """tr181 Ethernet.Interface.{i}.Stats implementation for Linux eth#."""
 
-  def __getattr__(self, name):
-    if hasattr(self._netdev, name):
-      return getattr(self._netdev, name)
-    else:
-      raise AttributeError
+  def __init__(self, ifname):
+    netdev.NetdevStatsLinux26.__init__(self, ifname)
+    BASEETHERNET.Interface.Stats.__init__(self)
 
 
 class EthernetInterfaceLinux26(BASEETHERNET.Interface):
   """Handling for a Linux 2.6-style device like eth0/eth1/etc.
 
   Constructor arguments:
-    state - an InterfaceState object for this interface, holding
-      configuration state.
-    ifstats - a constructor for an EthernetInterfaceStats object
+    ifname: netdev name, like 'eth0'
   """
 
-  def __init__(self, state, ifstats=None):
+  def __init__(self, ifname, upstream=False):
     BASEETHERNET.Interface.__init__(self)
-    self._pynet = PYNETIFCONF(state.ifname)
-    if not ifstats:
-      ifstats = EthernetInterfaceStatsLinux26(state.ifname)
-    self._ethernet_state = state
-    self.Alias = state.ifname
-    self.DuplexMode = 'Auto'
-    self.Enable = True
-    self.LastChange = 0  # TODO(dgentry) figure out date format
-    self.LowerLayers = None  # Ethernet.Interface is L1, nothing below it.
-    self.MaxBitRate = -1
-    self.Name = state.ifname
-    self.Stats = ifstats
-    self.Upstream = state.upstream
+    self._pynet = PYNETIFCONF(ifname)
+    self._ifname = ifname
+    self.Alias = ifname
+    self.Name = ifname
+    self.Upstream = upstream
+
+  @property
+  def DuplexMode(self):
+    return 'Auto'
+
+  @property
+  def Enable(self):
+    return True
+
+  @property
+  def LastChange(self):
+    return tr.cwmpdate.format(0)
+
+  @property
+  def LowerLayers(self):
+    return ''
 
   @property
   def MACAddress(self):
     return self._pynet.get_mac()
+
+  @property
+  def MaxBitRate(self):
+    return -1
 
   @property
   def Status(self):
@@ -73,52 +81,9 @@ class EthernetInterfaceLinux26(BASEETHERNET.Interface):
     else:
       return 'Dormant'
 
-
-class EthernetState(object):
-  def __init__(self, ifname, upstream, iftype):
-    self.ifname = ifname
-    self.upstream = upstream
-    self.iftype = iftype
-
-
-class Ethernet(BASEETHERNET):
-  """Implementation of tr-181 Ethernet objects for Linux netdevs."""
-
-  def __init__(self):
-    BASEETHERNET.__init__(self)
-    self.InterfaceList = tr.core.AutoDict(
-        'InterfaceList', iteritems=self.IterInterfaces,
-        getitem=self.GetInterface)
-    self._Interfaces = {}
-    self._NextInterface = 0
-    self.LinkList = {}
-    self.VLANTerminationList = {}
-
   @property
-  def InterfaceNumberOfEntries(self):
-    return len(self.InterfaceList)
-
-  @property
-  def LinkNumberOfEntries(self):
-    return len(self.LinkList)
-
-  @property
-  def VLANTerminationNumberOfEntries(self):
-    return len(self.VLANTerminationList)
-
-  def AddInterface(self, ifname, upstream, iftype):
-    state = EthernetState(ifname, upstream, iftype)
-    self._Interfaces[self._NextInterface] = state
-    self._NextInterface += 1
-
-  def GetInterface(self, ifnum):
-    state = self._Interfaces[ifnum]
-    return state.iftype(state)
-
-  def IterInterfaces(self):
-    for ifnum in sorted(self._Interfaces):
-      interface = self.GetInterface(ifnum)
-      yield ifnum, interface
+  def Stats(self):
+    return EthernetInterfaceStatsLinux26(self._ifname)
 
 
 def main():
