@@ -65,54 +65,46 @@ class EthernetTest(unittest.TestCase):
     self.assertEqual(eth.Alias, ifname)
     self.assertEqual(eth.DuplexMode, 'Auto')
     self.assertEqual(eth.Enable, True)
-    self.assertEqual(eth.LastChange, 0)
-    self.assertEqual(eth.LowerLayers, None)
+    self.assertEqual(eth.LastChange, '0001-01-01T00:00:00Z')
+    self.assertFalse(eth.LowerLayers)
     self.assertEqual(eth.MACAddress, mac)
     self.assertEqual(eth.MaxBitRate, -1)
     self.assertEqual(eth.Name, ifname)
     self.assertEqual(eth.Upstream, upstream)
 
-  def testInterfaceGood(self):
-    ifstats = MockIfStats()
+  def testValidateExports(self):
     ethernet.PYNETIFCONF = MockPynet
-    ifname = 'foo0'
-    upstream = False
-
-    ethroot = ethernet.Ethernet()
-    ethroot.AddInterface(ifname, upstream, ethernet.EthernetInterfaceLinux26)
-    state = ethernet.EthernetState(ifname, upstream,
-                                   ethernet.EthernetInterfaceLinux26)
-    mac = MockPynet.v_mac
-    eth = ethernet.EthernetInterfaceLinux26(state, ifstats)
-    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, mac)
-
-    eth = ethernet.EthernetInterfaceLinux26(state, ifstats)
-    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, mac)
-
-    MockPynet.v_is_up = False
-    eth = ethernet.EthernetInterfaceLinux26(state, ifstats)
-    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, mac)
-
-    MockPynet.v_duplex = False
-    eth = ethernet.EthernetInterfaceLinux26(state, ifstats)
-    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, mac)
-
-    MockPynet.v_auto = False
-    eth = ethernet.EthernetInterfaceLinux26(state, ifstats)
-    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, mac)
-
-    MockPynet.v_link_up = False
-    eth = ethernet.EthernetInterfaceLinux26(state, ifstats)
-    self._CheckEthernetInterfaceParameters(ifname, upstream, eth, mac)
-
+    netdev.PROC_NET_DEV = 'testdata/ethernet/net_dev'
+    eth = ethernet.EthernetInterfaceLinux26('foo0')
     eth.ValidateExports()
 
-  def testAddInterface(self):
-    ethroot = ethernet.Ethernet()
-    ethroot.AddInterface('foo0', False, MockEthernetInterface)
-    ethroot.AddInterface('foo1', False, MockEthernetInterface)
-    ethroot.ValidateExports()
-    self.assertEqual(len(ethroot.InterfaceList), 2)
+  def testInterfaceGood(self):
+    ethernet.PYNETIFCONF = MockPynet
+    netdev.PROC_NET_DEV = 'testdata/ethernet/net_dev'
+    upstream = False
+
+    mac = MockPynet.v_mac
+    eth = ethernet.EthernetInterfaceLinux26('foo0')
+    self._CheckEthernetInterfaceParameters('foo0', upstream, eth, mac)
+
+    eth = ethernet.EthernetInterfaceLinux26('foo0')
+    self._CheckEthernetInterfaceParameters('foo0', upstream, eth, mac)
+
+    MockPynet.v_is_up = False
+    eth = ethernet.EthernetInterfaceLinux26('foo0')
+    self._CheckEthernetInterfaceParameters('foo0', upstream, eth, mac)
+
+    MockPynet.v_duplex = False
+    eth = ethernet.EthernetInterfaceLinux26('foo0')
+    self._CheckEthernetInterfaceParameters('foo0', upstream, eth, mac)
+
+    MockPynet.v_auto = False
+    eth = ethernet.EthernetInterfaceLinux26('foo0')
+    self._CheckEthernetInterfaceParameters('foo0', upstream, eth, mac)
+
+    MockPynet.v_link_up = False
+    eth = ethernet.EthernetInterfaceLinux26('foo0')
+    self._CheckEthernetInterfaceParameters('foo0', upstream, eth, mac)
 
 
 class MockPynet(object):
@@ -134,40 +126,6 @@ class MockPynet(object):
 
   def get_link_info(self):
     return (self.v_speed, self.v_duplex, self.v_auto, self.v_link_up)
-
-
-class MockIfStats(BASEETHERNET.Interface.Stats):
-  BroadcastPacketsReceived = None
-  BroadcastPacketsSent = None
-  BytesReceived = None
-  BytesSent = None
-  DiscardPacketsReceived = None
-  DiscardPacketsSent = None
-  ErrorsReceived = None
-  ErrorsSent = None
-  MulticastPacketsReceived = None
-  MulticastPacketsSent = None
-  PacketsReceived = None
-  PacketsSent = None
-  UnicastPacketsReceived = None
-  UnicastPacketsSent = None
-  UnknownProtoPacketsReceived = None
-
-
-class MockEthernetInterface(BASEETHERNET.Interface):
-  def __init__(self, state):
-    BASEETHERNET.Interface.__init__(self)
-    self.Alias = state.ifname
-    self.DuplexMode = 'Auto'
-    self.Enable = True
-    self.LastChange = 0
-    self.LowerLayers = None
-    self.MACAddress = '00:11:22:33:44:55'
-    self.MaxBitRate = -1
-    self.Name = state.ifname
-    self.Stats = MockIfStats()
-    self.Status = 'Up'
-    self.Upstream = state.upstream
 
 
 if __name__ == '__main__':

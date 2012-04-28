@@ -478,7 +478,7 @@ class DownloadManagerTest(unittest.TestCase):
               'target_filename': 'TestFilename',
               'delay_seconds': 30}
       persistobj.PersistentObject(objdir=dm.config_dir,
-                                  rootname=download.ROOTNAME,
+                                  rootname=download.DNLDROOTNAME,
                                   filename=None, **args)
     dm.RestoreDownloads()
     self.assertEqual(len(mock_downloads), numdl)
@@ -488,9 +488,37 @@ class DownloadManagerTest(unittest.TestCase):
       self.assertFalse(dl.immediate_complete_called)
       self.assertTrue(dl.reboot_callback_called)
 
-  def DISABLEDtestGetAllQueuedTransfers(self):
+  def testRestoreNoCommandKey(self):
     (dm, _) = self.allocTestDM()
-    numdl = 2
+    args = {'delay_seconds': 30}
+    persistobj.PersistentObject(objdir=dm.config_dir,
+                                rootname=download.DNLDROOTNAME,
+                                filename=None, **args)
+    dm.RestoreDownloads()
+    self.assertEqual(len(mock_downloads), 0)
+
+  def testRestoreReboots(self):
+    (dm, _) = self.allocTestDM()
+    expected = set()
+    numrb = 3
+    for i in range(numrb):
+      key = u'TestCommandKey' + str(i)
+      args = {'command_key': key}
+      persistobj.PersistentObject(objdir=dm.config_dir,
+                                  rootname=download.BOOTROOTNAME,
+                                  filename=None, **args)
+      expected.add(('M Reboot', key))
+    # Plus an invalid object
+    args = {'foo': 'bar'}
+    persistobj.PersistentObject(objdir=dm.config_dir,
+                                rootname=download.BOOTROOTNAME,
+                                filename=None, **args)
+    reboots = set(dm.RestoreReboots())
+    self.assertEqual(reboots, expected)
+
+  def testGetAllQueuedTransfers(self):
+    (dm, _) = self.allocTestDM()
+    numdl = 1
     for i in range(numdl):
       args = {'command_key': 'TestCommandKey' + str(i),
               'file_type': 'TestFileType',

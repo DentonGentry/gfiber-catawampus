@@ -22,7 +22,8 @@ import persistobj
 
 
 # Persistent object storage filename
-ROOTNAME = 'tr69_dnld'
+DNLDROOTNAME = 'tr69_dnld'
+BOOTROOTNAME = 'tr69_boot'
 
 
 class Installer(object):
@@ -162,7 +163,6 @@ class Download(object):
     if wait_start_time > now:
       wait_start_time = now
 
-    # I dislike when APIs require NTP-related bugs in my code.
     self.wait_handle = self.ioloop.add_timeout(wait_start_time + delay_seconds,
                                                self.timer_callback)
 
@@ -336,7 +336,8 @@ class DownloadManager(object):
   # Maximum simultaneous downloads. tr-69 requires minimum of 3.
   MAXDOWNLOADS = 1
 
-  def __init__(self):
+  def __init__(self, ioloop=None):
+    self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self._downloads = list()
     self._pending_complete = list()
     self.config_dir = '/tmp/'
@@ -385,7 +386,7 @@ class DownloadManager(object):
                   target_filename=target_filename,
                   delay_seconds=delay_seconds,
                   event_code='M Download')
-    pobj = persistobj.PersistentObject(objdir=self.config_dir, rootname=ROOTNAME,
+    pobj = persistobj.PersistentObject(objdir=self.config_dir, rootname=DNLDROOTNAME,
                                        filename=None, **kwargs)
     dl = DOWNLOADOBJ(stateobj=pobj,
                      transfer_complete_cb=self.TransferCompleteCallback,
@@ -404,10 +405,11 @@ class DownloadManager(object):
 
   def RestoreDownloads(self):
     pobjs = persistobj.GetPersistentObjects(objdir=self.config_dir,
-                                            rootname=ROOTNAME)
+                                            rootname=DNLDROOTNAME)
     for pobj in pobjs:
       if not hasattr(pobj, 'command_key'):
-        # TODO(dgentry) Log error
+        print 'Download Object %s has no command_key' % pobj.filename
+        pobj.Delete()
         continue
       dl = DOWNLOADOBJ(stateobj=pobj,
                        transfer_complete_cb=self.TransferCompleteCallback,
@@ -449,6 +451,29 @@ class DownloadManager(object):
       if dl.CommandKey() == command_key:
         raise core.CancelNotPermitted(
             'Installed, awaiting TransferCompleteResponse')
+
+  def _DelayedReboot(self):
+    installer = INSTALLER('')
+    installer.reboot()
+
+  def RestoreReboots(self):
+    pobjs = persistobj.GetPersistentObjects(objdir=self.config_dir,
+                                            rootname=BOOTROOTNAME)
+    reboots = []
+    for pobj in pobjs:
+      if hasattr(pobj, 'command_key'):
+        reboots.append(('M Reboot', pobj.command_key))
+      else:
+        print 'Reboot object %s has no command_key' % pobj.filename
+      pobj.Delete()
+    return reboots
+
+  def Reboot(self, command_key):
+    """Reboot the system."""
+    kwargs = dict(command_key=command_key)
+    pobj = persistobj.PersistentObject(objdir=self.config_dir, rootname=BOOTROOTNAME,
+                                       filename=None, **kwargs)
+    self.ioloop.add_callback(self._DelayedReboot)
 
   def _DoubleCheckDirectory(self, directory):
     """Make sure a directory exists."""
