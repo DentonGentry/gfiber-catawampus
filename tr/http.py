@@ -350,7 +350,7 @@ class CPEStateMachine(object):
   def Startup(self):
     rb = self.cpe.download_manager.RestoreReboots()
     if rb:
-      self.event_queue.append(rb)
+      self.event_queue.extend(rb)
     # TODO(dgentry) Check whether we have a config, send '1 BOOT' instead
     self._NewSession('0 BOOTSTRAP')
     # This will call SendTransferComplete, so we have to already be in a session.
