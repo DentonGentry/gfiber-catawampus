@@ -251,7 +251,7 @@ class Exporter(object):
 
   def _GetExportName(self, parent, name):
     if name in parent.export_object_lists:
-      return name + 'List'
+      return name.replace('-', '_') + 'List'
     else:
       # Vendor models contain a dash in the domain name.
       return name.replace('-', '_')
@@ -488,14 +488,17 @@ def _DumpSchema(root, out, path):
   if isinstance(root, type):
     root = root()
   for i in root.export_params:
-    out.append('.'.join(path + [i]))
+    name = i.replace('-', '_')
+    out.append('.'.join(path + [name]))
   for i in root.export_objects:
-    out.append('.'.join(path + [i, '']))
-    _DumpSchema(getattr(root, i), out, path + [i])
+    name = i.replace('-', '_')
+    out.append('.'.join(path + [name, '']))
+    _DumpSchema(getattr(root, name), out, path + [name])
   for i in root.export_object_lists:
-    out.append('.'.join(path + [i, '']))
-    out.append('.'.join(path + [i, '{i}']))
-    _DumpSchema(getattr(root, i), out, path + [i, '{i}'])
+    name = i.replace('-', '_')
+    out.append('.'.join(path + [name, '']))
+    out.append('.'.join(path + [name, '{i}']))
+    _DumpSchema(getattr(root, name), out, path + [name, '{i}'])
 
 
 def DumpSchema(root):

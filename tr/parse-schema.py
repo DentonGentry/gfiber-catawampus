@@ -152,7 +152,8 @@ class Object(object):
       # Only happens for toplevel Model objects
       parent_class_name = parent_class_name[:-1]
     fullname_with_seq = re.sub(r'-{i}', '.{i}', '.'.join(self.prefix[:-1]))
-    pre.append('class %s(%s):' % (self.name, parent_class_name))
+    classname = self.name.translate(string.maketrans('-', '_'))
+    pre.append('class %s(%s):' % (classname, parent_class_name))
     classpath = '%s.%s' % (self.model.name, fullname_with_seq)
     if classpath.endswith('.'):
       classpath = classpath[:-1]

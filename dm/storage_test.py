@@ -19,6 +19,7 @@ import storage
 statvfsstruct = collections.namedtuple(
     'statvfs', ('f_bsize f_frsize f_blocks f_bfree f_bavail f_files f_ffree '
                 'f_favail f_flag f_namemax'))
+test_mtdpath = ''
 
 
 def OsStatVfs(rootpath):
@@ -38,20 +39,30 @@ def OsStatVfs(rootpath):
   return teststatvfs[rootpath]
 
 
+def GetMtdStats(mtdpath):
+  global test_mtdpath
+  test_mtdpath = mtdpath
+  return storage.MtdEccStats(corrected=10, failed=20, badblocks=30, bbtblocks=40)
+
+
 class StorageTest(unittest.TestCase):
   def setUp(self):
     storage.STATVFS = OsStatVfs
+    storage.GETMTDSTATS = GetMtdStats
     self.old_PROC_FILESYSTEMS = storage.PROC_FILESYSTEMS
     self.old_PROC_MOUNTS = storage.PROC_MOUNTS
     self.old_SMARTCTL = storage.SMARTCTL
     self.old_SYS_BLOCK = storage.SYS_BLOCK
+    self.old_SYS_UBI = storage.SYS_UBI
     storage.SMARTCTL = 'testdata/storage/smartctl'
+    storage.SYS_UBI = 'testdata/storage/sys/class'
 
   def tearDown(self):
     storage.PROC_FILESYSTEMS = self.old_PROC_FILESYSTEMS
     storage.PROC_MOUNTS = self.old_PROC_MOUNTS
     storage.SMARTCTL = self.old_SMARTCTL
     storage.SYS_BLOCK = self.old_SYS_BLOCK
+    storage.SYS_UBI = self.old_SYS_UBI
 
   def testValidateExports(self):
     storage.PROC_FILESYSTEMS = 'testdata/storage/proc.filesystems'
@@ -81,9 +92,9 @@ class StorageTest(unittest.TestCase):
     service = storage.StorageServiceLinux26()
     volumes = service.LogicalVolumeList
     self.assertEqual(len(volumes), 3)
-    expectedFs = {'/': 'X_GOOGLE-COM_squashfs',
-                  '/foo': 'X_GOOGLE-COM_ubifs',
-                  '/tmp': 'X_GOOGLE-COM_tmpfs'}
+    expectedFs = {'/': 'X_CATAWAMPUS-ORG_squashfs',
+                  '/foo': 'X_CATAWAMPUS-ORG_ubifs',
+                  '/tmp': 'X_CATAWAMPUS-ORG_tmpfs'}
     for vol in volumes.values():
       t = OsStatVfs(vol.Name)
       self.assertEqual(vol.Status, 'Online')
@@ -109,8 +120,8 @@ class StorageTest(unittest.TestCase):
     storage.PROC_FILESYSTEMS = 'testdata/storage/proc.filesystems'
     cap = storage.CapabilitiesNoneLinux26()
     self.assertEqual(cap.SupportedFileSystemTypes,
-                     'ext2,ext3,ext4,FAT32,X_GOOGLE-COM_iso9660,'
-                     'X_GOOGLE-COM_squashfs,X_GOOGLE-COM_udf')
+                     'ext2,ext3,ext4,FAT32,X_CATAWAMPUS-ORG_iso9660,'
+                     'X_CATAWAMPUS-ORG_squashfs,X_CATAWAMPUS-ORG_udf')
 
   def testPhysicalMediumName(self):
     pm = storage.PhysicalMediumDiskLinux26('sda')
@@ -171,6 +182,31 @@ class StorageTest(unittest.TestCase):
     self.assertFalse(pm.HotSwappable)
     storage.SYS_BLOCK = 'testdata/storage/sys/blockRemovable'
     self.assertTrue(pm.HotSwappable)
+
+  def testFlashMedium(self):
+    fm = storage.FlashMediumUbiLinux26('ubi2')
+    fm.ValidateExports()
+    self.assertEqual(fm.BadEraseBlocks, 4)
+    self.assertEqual(fm.CorrectedErrors, 10)
+    self.assertEqual(fm.EraseBlockSize, 1040384)
+    self.assertEqual(fm.IOSize, 4096)
+    self.assertEqual(fm.MaxEraseCount, 3)
+    self.assertEqual(fm.Name, 'ubi2')
+    self.assertEqual(fm.ReservedEraseBlocks, 10)
+    self.assertEqual(fm.TotalEraseBlocks, 508)
+    self.assertEqual(fm.UncorrectedErrors, 20)
+
+  def testFlashSubVolume(self):
+    sv = storage.FlashSubVolUbiLinux26('ubi2_0')
+    sv.ValidateExports()
+    self.assertEqual(sv.DataBytes, 388063232)
+    self.assertEqual(sv.Name, 'subvol0')
+    self.assertEqual(sv.Status, 'OK')
+    sv = storage.FlashSubVolUbiLinux26('ubi2_1')
+    sv.ValidateExports()
+    self.assertEqual(sv.DataBytes, 59301888)
+    self.assertEqual(sv.Name, 'subvol1')
+    self.assertEqual(sv.Status, 'Corrupted')
 
 
 if __name__ == '__main__':
