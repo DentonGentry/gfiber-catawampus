@@ -10,21 +10,57 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 
+import ctypes
+import fcntl
 import os
+import os.path
 import re
 import subprocess
 import tr.core
 import tr.tr140_v1_1
+import tr.x_catawampus_storage_1_0
 
-BASESTORAGE = tr.tr140_v1_1.StorageService_v1_1.StorageService
+
+BASESTORAGE = tr.x_catawampus_storage_1_0.X_CATAWAMPUS_ORG_Storage_v1_0.StorageService
+
+
+class MtdEccStats(ctypes.Structure):
+  """<mtd/mtd-abi.h> struct mtd_ecc_stats."""
+
+  _fields_ = [('corrected', ctypes.c_uint32),
+              ('failed', ctypes.c_uint32),
+              ('badblocks', ctypes.c_uint32),
+              ('bbtblocks', ctypes.c_uint32)]
+
+
+def _GetMtdStats(mtddev):
+  """Return the MtdEccStats for the given mtd device.
+
+  Arguments:
+    mtddev: the string path to the device, ex: '/dev/mtd14'
+  Raises:
+    IOError: if the ioctl fails.
+  Returns:
+    an MtdEccStats.
+  """
+
+  ECCGETSTATS = 0x40104d12  # ECCGETSTATS _IOR('M', 18, struct mtd_ecc_stats)
+  with open(mtddev, 'r') as f:
+    ecc = MtdEccStats()
+    if fcntl.ioctl(f, ECCGETSTATS, ctypes.addressof(ecc)) != 0:
+      raise IOError('ECCGETSTATS failed')
+    return ecc
+
 
 # Unit tests can override these
+GETMTDSTATS = _GetMtdStats
 PROC_FILESYSTEMS = '/proc/filesystems'
 PROC_MOUNTS = '/proc/mounts'
 SLASHDEV = '/dev/'
 SMARTCTL = '/usr/sbin/smartctl'
 STATVFS = os.statvfs
 SYS_BLOCK = '/sys/block/'
+SYS_UBI = '/sys/class/ubi/'
 
 
 def _FsType(fstype):
@@ -34,7 +70,7 @@ def _FsType(fstype):
   if fstype in supported:
     return supported[fstype]
   else:
-    return 'X_GOOGLE-COM_' + fstype
+    return 'X_CATAWAMPUS-ORG_' + fstype
 
 
 def _IsSillyFilesystem(fstype):
@@ -44,6 +80,34 @@ def _IsSillyFilesystem(fstype):
   return fstype in SILLY
 
 
+def _GetFieldFromOutput(prefix, output, default=''):
+  """Search output for line of the form 'Foo: Bar', return 'Bar'."""
+  field_re = re.compile(prefix + '\s*(\S+)')
+  for line in output.splitlines():
+    result = field_re.search(line)
+    if result is not None:
+      return result.group(1).strip()
+  return default
+
+
+def _ReadOneLine(filename, default):
+  """Read one line from a file. Return default if anything fails."""
+  try:
+    f = open(filename, 'r')
+    return f.readline().strip()
+  except IOError:
+    return default
+
+
+def IntFromFile(filename):
+  """Read one line from a file and return an int, or zero if an error occurs."""
+  try:
+    buf = _ReadOneLine(filename, '0')
+    return int(buf)
+  except ValueError:
+    return 0
+
+
 class LogicalVolumeLinux26(BASESTORAGE.LogicalVolume):
   """Implementation of tr-140 StorageService.LogicalVolume for Linux FS."""
 
@@ -51,6 +115,7 @@ class LogicalVolumeLinux26(BASESTORAGE.LogicalVolume):
     BASESTORAGE.LogicalVolume.__init__(self)
     self.rootpath = rootpath
     self.fstype = fstype
+    self.Unexport('Alias')
     self.Unexport('Encrypted')
     self.Unexport('ThresholdLimit')
     self.Unexport('ThresholdReached')
@@ -108,7 +173,11 @@ class PhysicalMediumDiskLinux26(BASESTORAGE.PhysicalMedium):
     BASESTORAGE.PhysicalMedium.__init__(self)
     self.dev = dev
     self.name = dev
-
+    self.Unexport('Alias')
+    # TODO(dgentry) read SMART attribute for PowerOnHours
+    self.Unexport('Uptime')
+    # TODO(dgentry) What does 'Standby' or 'Offline' mean?
+    self.Unexport('Status')
     if conn_type is None:
       # transport is really, really hard to infer programatically.
       # If platform code doesn't provide it, don't try to guess.
@@ -119,20 +188,6 @@ class PhysicalMediumDiskLinux26(BASESTORAGE.PhysicalMedium):
       assert conn_type[0:1] == 'X_' or conn_type in self.CONNECTION_TYPES
     self.conn_type = conn_type
 
-    # TODO(dgentry) read SMART attribute for PowerOnHours
-    self.Unexport('Uptime')
-
-    # TODO(dgentry) What does 'Standby' or 'Offline' mean?
-    self.Unexport('Status')
-
-  def _ReadOneLine(self, filename, default):
-    """Read one line from a file. Return default if anything fails."""
-    try:
-      f = open(filename, 'r')
-      return f.readline().strip()
-    except IOError:
-      return default
-
   # TODO(dgentry) need @sessioncache decorator
   def _GetSmartctlOutput(self):
     """Return smartctl info and health output."""
@@ -141,16 +196,6 @@ class PhysicalMediumDiskLinux26(BASESTORAGE.PhysicalMedium):
                              stdout=subprocess.PIPE)
     out, _ = smart.communicate(None)
     return out
-
-  def _GetFieldFromSmartctl(self, prefix, default=''):
-    """Search smartctl output for line of the form 'Foo: Bar', return 'Bar'."""
-    field_re = re.compile(prefix + '\s*(\S+)')
-    out = self._GetSmartctlOutput().splitlines()
-    for line in out:
-      result = field_re.search(line)
-      if result is not None:
-        return result.group(1).strip()
-    return default
 
   def GetName(self):
     return self.name
@@ -163,22 +208,26 @@ class PhysicalMediumDiskLinux26(BASESTORAGE.PhysicalMedium):
   @property
   def Vendor(self):
     filename = SYS_BLOCK + '/' + self.dev + '/device/vendor'
-    vendor = self._ReadOneLine(filename=filename, default='')
+    vendor = _ReadOneLine(filename=filename, default='')
     # /sys/block/?da/device/vendor is often 'ATA'. Not useful.
     return '' if vendor == 'ATA' else vendor
 
   @property
   def Model(self):
     filename = SYS_BLOCK + '/' + self.dev + '/device/model'
-    return self._ReadOneLine(filename=filename, default='')
+    return _ReadOneLine(filename=filename, default='')
 
   @property
   def SerialNumber(self):
-    return self._GetFieldFromSmartctl('Serial Number:')
+    return _GetFieldFromOutput(prefix='Serial Number:',
+                               output=self._GetSmartctlOutput(),
+                               default='')
 
   @property
   def FirmwareVersion(self):
-    return self._GetFieldFromSmartctl('Firmware Version:')
+    return _GetFieldFromOutput(prefix='Firmware Version:',
+                               output=self._GetSmartctlOutput(),
+                               default='')
 
   @property
   def ConnectionType(self):
@@ -192,7 +241,7 @@ class PhysicalMediumDiskLinux26(BASESTORAGE.PhysicalMedium):
   def Capacity(self):
     """Return capacity in Megabytes."""
     filename = SYS_BLOCK + '/' + self.dev + '/size'
-    size = self._ReadOneLine(filename=filename, default='0')
+    size = _ReadOneLine(filename=filename, default='0')
     try:
       # TODO(dgentry) Do 4k sector drives populate size in 512 byte blocks?
       return int(size) * 512 / 1048576
@@ -201,13 +250,17 @@ class PhysicalMediumDiskLinux26(BASESTORAGE.PhysicalMedium):
 
   @property
   def SMARTCapable(self):
-    capable = self._GetFieldFromSmartctl('SMART support is: Enab', default=None)
+    capable = _GetFieldFromOutput(prefix='SMART support is: Enab',
+                                  output=self._GetSmartctlOutput(),
+                                  default=None)
     return True if capable else False
 
   @property
   def Health(self):
-    health = self._GetFieldFromSmartctl(
-        'SMART overall-health self-assessment test result:')
+    health = _GetFieldFromOutput(
+        prefix='SMART overall-health self-assessment test result:',
+        output=self._GetSmartctlOutput(),
+        default='')
     if health == 'PASSED':
       return 'OK'
     elif health.find('FAIL') >= 0:
@@ -218,8 +271,91 @@ class PhysicalMediumDiskLinux26(BASESTORAGE.PhysicalMedium):
   @property
   def HotSwappable(self):
     filename = SYS_BLOCK + '/' + self.dev + '/removable'
-    removable = self._ReadOneLine(filename=filename, default='0').strip()
+    removable = _ReadOneLine(filename=filename, default='0').strip()
     return False if removable == '0' else True
+
+
+class FlashSubVolUbiLinux26(BASESTORAGE.X_CATAWAMPUS_ORG_FlashMedia.SubVolume):
+  """Catawampus Storage Flash SubVolume implementation for UBI volumes."""
+
+  def __init__(self, ubivol):
+    BASESTORAGE.X_CATAWAMPUS_ORG_FlashMedia.SubVolume.__init__(self)
+    self.ubivol = ubivol
+
+  @property
+  def DataBytes(self):
+    return IntFromFile(os.path.join(SYS_UBI, self.ubivol, 'data_bytes'))
+
+  @property
+  def Name(self):
+    return _ReadOneLine(os.path.join(SYS_UBI, self.ubivol, 'name'), self.ubivol)
+
+  @property
+  def Status(self):
+    corr = IntFromFile(os.path.join(SYS_UBI, self.ubivol, 'corrupted'))
+    return 'OK' if corr == 0 else 'Corrupted'
+
+
+class FlashMediumUbiLinux26(BASESTORAGE.X_CATAWAMPUS_ORG_FlashMedia):
+  """Catawampus Storage FlashMedium implementation for UBI volumes."""
+
+  def __init__(self, ubiname):
+    BASESTORAGE.X_CATAWAMPUS_ORG_FlashMedia.__init__(self)
+    self.ubiname = ubiname
+    self.SubVolumeList = {}
+    num = 0
+    for i in range(128):
+      subvolname = ubiname + '_' + str(i)
+      try:
+        if os.stat(os.path.join(SYS_UBI, self.ubiname, subvolname)):
+          self.SubVolumeList[str(num)] = FlashSubVolUbiLinux26(subvolname)
+          num += 1
+      except OSError:
+        pass
+
+  @property
+  def BadEraseBlocks(self):
+    return IntFromFile(os.path.join(SYS_UBI, self.ubiname, 'bad_peb_count'))
+
+  @property
+  def CorrectedErrors(self):
+    mtdnum = IntFromFile(os.path.join(SYS_UBI, self.ubiname, 'mtd_num'))
+    ecc = GETMTDSTATS(os.path.join(SLASHDEV, 'mtd' + str(mtdnum)))
+    return ecc.corrected
+
+  @property
+  def EraseBlockSize(self):
+    return IntFromFile(os.path.join(SYS_UBI, self.ubiname, 'eraseblock_size'))
+
+  @property
+  def IOSize(self):
+    return IntFromFile(os.path.join(SYS_UBI, self.ubiname, 'min_io_size'))
+
+  @property
+  def MaxEraseCount(self):
+    return IntFromFile(os.path.join(SYS_UBI, self.ubiname, 'max_ec'))
+
+  @property
+  def SubVolumeNumberOfEntries(self):
+    return len(self.SubVolumeList)
+
+  @property
+  def Name(self):
+    return self.ubiname
+
+  @property
+  def ReservedEraseBlocks(self):
+    return IntFromFile(os.path.join(SYS_UBI, self.ubiname, 'reserved_for_bad'))
+
+  @property
+  def TotalEraseBlocks(self):
+    return IntFromFile(os.path.join(SYS_UBI, self.ubiname, 'total_eraseblocks'))
+
+  @property
+  def UncorrectedErrors(self):
+    mtdnum = IntFromFile(os.path.join(SYS_UBI, self.ubiname, 'mtd_num'))
+    ecc = GETMTDSTATS(os.path.join(SLASHDEV, 'mtd' + str(mtdnum)))
+    return ecc.failed
 
 
 class CapabilitiesNoneLinux26(BASESTORAGE.Capabilities):
@@ -293,6 +429,7 @@ class StorageServiceLinux26(BASESTORAGE):
   def __init__(self):
     BASESTORAGE.__init__(self)
     self.Capabilities = CapabilitiesNoneLinux26()
+    self.Unexport('Alias')
     self.Unexport(objects='NetInfo')
     self.Unexport(objects='NetworkServer')
     self.Unexport(objects='FTPServer')
@@ -306,6 +443,7 @@ class StorageServiceLinux26(BASESTORAGE):
         getitem=self.GetLogicalVolumeByIndex)
     self.UserAccountList = {}
     self.UserGroupList = {}
+    self.X_CATAWAMPUS_ORG_FlashMediaList = {}
 
   @property
   def Enable(self):
@@ -331,6 +469,10 @@ class StorageServiceLinux26(BASESTORAGE):
   @property
   def UserGroupNumberOfEntries(self):
     return len(self.UserGroupList)
+
+  @property
+  def X_CATAWAMPUS_ORG_FlashMediaNumberOfEntries(self):
+    return len(self.X_CATAWAMPUS_ORG_FlashMediaList)
 
   def _ParseProcMounts(self):
     """Return list of (mount point, filesystem type) tuples."""

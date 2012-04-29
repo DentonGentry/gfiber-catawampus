@@ -211,11 +211,24 @@ class Services181GFMedia(tr181.Device_v2_2.Device.Services):
     self.Export(objects=['StorageServices'])
     self.StorageServices = dm.storage.StorageServiceLinux26()
 
+    num = 0
     for drive in ['sda', 'sdb', 'sdc', 'sdd']:
       try:
         if os.stat('/sys/block/' + drive):
           phys = dm.storage.PhysicalMediumDiskLinux26(drive, 'SATA/300')
-          self.StorageServices.PhysicalMediumList['0'] = phys
+          self.StorageServices.PhysicalMediumList[str(num)] = phys
+          num = num + 1
+      except OSError:
+        pass
+
+    num = 0
+    for i in range(32):
+      ubiname = 'ubi' + str(i)
+      try:
+        if os.stat('/sys/class/ubi/' + ubiname):
+          ubi = dm.storage.FlashMediumUbiLinux26(ubiname)
+          self.StorageServices.X_CATAWAMPUS_ORG_FlashMediaList[str(num)] = ubi
+          num = num + 1
       except OSError:
         pass
 

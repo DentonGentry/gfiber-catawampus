@@ -86,8 +86,7 @@ class CPEStateMachine(object):
     self.outstanding = None
     self.response_queue = []
     self.request_queue = []
-    self.event_queue = []
-    self.inform_reason = None
+    self.event_queue = collections.deque()
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self.retry_count = 0  # for Inform.RetryCount
     self.start_session_timeout = None  # timer for CWMPRetryInterval
@@ -159,7 +158,7 @@ class CPEStateMachine(object):
       my_ip = self._GetLocalAddr()
       self.session.my_ip = my_ip
       self.cpe_management_server.my_ip = my_ip
-    events = [(self.inform_reason, None)]
+    events = []
     for ev in self.event_queue:
       events.append(ev)
     parameter_list = []
@@ -186,8 +185,11 @@ class CPEStateMachine(object):
 
   def SendTransferComplete(self, command_key, faultcode, faultstring,
                            starttime, endtime, event_code):
-    # TODO(dgentry) need to initiate a session reason '7 TRANSFER COMPLETE'
-    self.event_queue.append((event_code, command_key))
+    if not self.session:
+      tc = ('7 TRANSFER COMPLETE', None)
+      if tc not in self.event_queue:
+        self.event_queue.appendleft(tc)
+      self.event_queue.append((event_code, command_key))
     cmpl = self.encode.TransferComplete(command_key, faultcode, faultstring,
                                         starttime, endtime)
     self.Send(cmpl)
@@ -221,7 +223,6 @@ class CPEStateMachine(object):
         self._NewPingSession()
       self.session = None
       self.retry_count = 0  # Successful close
-      self.inform_reason = None
       return
 
     if self.outstanding is not None:
@@ -312,7 +313,7 @@ class CPEStateMachine(object):
   def _NewSession(self, reason):
     if not self.session:
       self._CancelSessionRetries()
-      self.inform_reason = reason
+      self.event_queue.appendleft((reason, None))
       self.session = cwmp_session.CwmpSession(
           acs_url=self.cpe_management_server.URL, ioloop=self.ioloop)
       self.Run()
@@ -331,21 +332,28 @@ class CPEStateMachine(object):
     self._NewPingSession()
     return 204  # No Content
 
+  def _RemoveFromDequeue(self, dq, rmset):
+    """Return a new deque which removes events in rmset."""
+    newdq = collections.deque()
+    for event in dq:
+      (reason, command_key) = event
+      if reason.lower() not in rmset:
+        newdq.append(event)
+    return newdq
+
   def TransferCompleteReceived(self):
     """Called when the ACS sends a TransferCompleteResponse."""
-    xfer_reasons = frozenset(['m download', 'm scheduledownload', 'm upload'])
-    for ev in self.event_queue:
-      (reason, command_key) = ev
-      if reason.lower() in xfer_reasons:
-        self.event_queue.remove(ev)
+    reasons = frozenset(['7 transfer complete', 'm download',
+                         'm scheduledownload', 'm upload'])
+    self.event_queue = self._RemoveFromDequeue(self.event_queue, reasons)
 
   def InformResponseReceived(self):
     """Called when the ACS sends an InformResponse."""
-    inform_reasons = frozenset(['m reboot', 'm scheduleinform'])
-    for ev in self.event_queue:
-      (reason, command_key) = ev
-      if reason.lower() in inform_reasons:
-        self.event_queue.remove(ev)
+    reasons = frozenset(['0 bootstrap', '1 boot', '2 periodic',
+                         '3 scheduled', '4 value change',
+                         '6 connection request', '8 diagnostics complete',
+                         'm reboot', 'm scheduleinform'])
+    self.event_queue = self._RemoveFromDequeue(self.event_queue, reasons)
 
   def Startup(self):
     rb = self.cpe.download_manager.RestoreReboots()
