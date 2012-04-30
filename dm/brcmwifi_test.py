@@ -632,6 +632,28 @@ class BrcmWifiTest(unittest.TestCase):
     bw.KeyPassphrase = 'testpassword'
     self.assertEqual(bw.KeyPassphrase, bw.PreSharedKeyList[1].KeyPassphrase)
 
+  def testAutoChannel(self):
+    (script, out) = self.MakeTestScript()
+    brcmwifi.WL_AUTOCHAN_SLEEP = 0  # Skips sleep
+    brcmwifi.WL_EXE = script.name
+    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    bw.StartTransaction()
+    bw.Enable = 'True'
+    bw.RadioEnabled = 'True'
+    bw.AutoChannelEnable = 'True'
+    out.truncate()
+    bw.CommitTransaction()
+    output = out.read()
+    out.close()
+    outlist = self.VerifyCommonWlCommands(output)
+    self.assertTrue(self.RmFromList(outlist, 'up'))
+    self.assertTrue(self.RmFromList(outlist, 'ssid'))
+    self.assertTrue(self.RmFromList(outlist, 'spect 0'))
+    self.assertTrue(self.RmFromList(outlist, 'mpc 0'))
+    self.assertTrue(self.RmFromList(outlist, 'ap 1'))
+    self.assertTrue(self.RmFromList(outlist, 'autochannel 1'))
+    self.assertTrue(self.RmFromList(outlist, 'autochannel 2'))
+    outlist = self.VerifyCommonWlCommands(output)
 
 if __name__ == '__main__':
   unittest.main()

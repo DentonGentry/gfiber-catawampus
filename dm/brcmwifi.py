@@ -44,6 +44,8 @@ EM_WAPI = 0x100  # Not enumerated in tr-98
 # Unit tests can override these.
 WL_EXE = '/usr/bin/wl'
 WL_SLEEP = 3  # Broadcom recommendation for 3 second sleep before final join.
+# Broadcom recommendation for delay while scanning for a channel
+WL_AUTOCHAN_SLEEP = 5
 
 # Parameter enumerations
 BEACONS = frozenset(['None', 'Basic', 'WPA', '11i', 'BasicandWPA',
@@ -114,6 +116,23 @@ class Wl(object):
       elif p3 is not None:
         sdict[p3.group(1).lower()] = '0'
     return sdict
+
+  def DoAutoChannelSelect(self):
+    """Run the AP through an auto channel selection."""
+    # Make sure the interface is up, and ssid is the empty string.
+    self._SubprocessCall(['up'])
+    self._SubprocessCall(['ssid', ''])
+    self._SubprocessCall(['spect', '0'])
+    self._SubprocessCall(['mpc', '0'])
+    self._SubprocessCall(['ap', '1'])
+    # This starts a scan, and we give it some time to complete.
+    # TODO(jnewlin): Chat with broadcom about how long we need/should
+    # wait before setting the autoscanned channel.
+    output = self._SubprocessWithOutput(['autochannel', '1'])
+    time.sleep(WL_AUTOCHAN_SLEEP)
+    # This programs the channel with the best channel found during the
+    # scan.
+    output = self._SubprocessWithOutput(['autochannel', '2'])
 
   def SetApMode(self):
     """Put device into AP mode."""
@@ -430,7 +449,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     self.wl = Wl(ifname)
 
     # Unimplemented, but not yet evaluated
-    self.Unexport('AutoChannelEnable')
+#    self.Unexport('AutoChannelEnable')
     self.Unexport('BeaconAdvertisementEnabled')
     self.Unexport('ChannelsInUse')
     self.Unexport('MaxBitRate')
@@ -483,6 +502,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
 
   def _GetDefaultSettings(self):
     obj = WifiConfig()
+    obj.p_auto_channel_enable = False
     obj.p_auto_rate_fallback_enabled = None
     obj.p_basic_authentication_mode = 'None'
     obj.p_basic_encryption_modes = 'WEPEncryption'
@@ -711,6 +731,15 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   RegulatoryDomain = property(GetRegulatoryDomain, SetRegulatoryDomain, None,
                               'WLANConfiguration.RegulatoryDomain')
 
+  def GetAutoChannelEnable(self):
+    return self.config.p_auto_channel_enable
+
+  def SetAutoChannelEnable(self, value):
+    self.config.p_auto_channel_enable = value
+
+  AutoChannelEnable = property(GetAutoChannelEnable, SetAutoChannelEnable,
+                               None, 'WLANConfiguration.AutoChannelEnable')
+
   def GetSSID(self):
     return self.wl.GetSSID()
 
@@ -810,6 +839,9 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
       return
 
     self.wl.SetRadioEnabled(True)
+    if self.config.p_auto_channel_enable:
+      self.wl.DoAutoChannelSelect()
+
     if self.config.p_auto_rate_fallback_enabled is not None:
       self.wl.SetAutoRateFallBackEnabled(
           self.config.p_auto_rate_fallback_enabled)
