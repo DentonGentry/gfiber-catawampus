@@ -122,6 +122,7 @@ class Wl(object):
     # Make sure the interface is up, and ssid is the empty string.
     self._SubprocessCall(['up'])
     self._SubprocessCall(['ssid', ''])
+    time.sleep(WL_SLEEP)
     self._SubprocessCall(['spect', '0'])
     self._SubprocessCall(['mpc', '0'])
     self._SubprocessCall(['ap', '1'])
