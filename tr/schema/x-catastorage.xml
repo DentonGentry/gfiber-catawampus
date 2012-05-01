@@ -117,5 +117,17 @@
         </syntax>
       </parameter>
     </object>
+
+    <!-- extends LogicalVolume with a ReadOnly parameter -->
+    <object base="StorageService.{i}.LogicalVolume.{i}." access="readWrite" minEntries="0" maxEntries="unbounded" numEntriesParameter="LogicalVolumeNumberOfEntries" enableParameter="Enable">
+      <parameter name="X_CATAWAMPUS-ORG_ReadOnly" access="readOnly" activeNotify="canDeny" dmr:previousParameter="Enable">
+        <description>If true, this LogicalVolume is configured such that it can not be written to.</description>
+        <syntax>
+          <boolean/>
+          <default type="object" value="false"/>
+        </syntax>
+      </parameter>
+    </object>
+
   </model>
 </dm:document>
