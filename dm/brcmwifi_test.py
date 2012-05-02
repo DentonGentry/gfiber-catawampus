@@ -646,13 +646,15 @@ class BrcmWifiTest(unittest.TestCase):
     output = out.read()
     out.close()
     outlist = self.VerifyCommonWlCommands(output)
-    self.assertTrue(self.RmFromList(outlist, 'up'))
-    self.assertTrue(self.RmFromList(outlist, 'ssid'))
     self.assertTrue(self.RmFromList(outlist, 'spect 0'))
     self.assertTrue(self.RmFromList(outlist, 'mpc 0'))
-    self.assertTrue(self.RmFromList(outlist, 'ap 1'))
+    self.assertTrue(self.RmFromList(outlist, 'up'))
+    self.assertTrue(self.RmFromList(outlist, 'ssid'))
     self.assertTrue(self.RmFromList(outlist, 'autochannel 1'))
     self.assertTrue(self.RmFromList(outlist, 'autochannel 2'))
+    self.assertTrue(self.RmFromList(outlist, 'down'))
+    self.assertTrue(self.RmFromList(outlist, 'mpc 1'))
+    self.assertTrue(self.RmFromList(outlist, 'spect 1'))
     outlist = self.VerifyCommonWlCommands(output)
 
 if __name__ == '__main__':

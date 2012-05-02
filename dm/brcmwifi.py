@@ -120,20 +120,23 @@ class Wl(object):
   def DoAutoChannelSelect(self):
     """Run the AP through an auto channel selection."""
     # Make sure the interface is up, and ssid is the empty string.
+    self._SubprocessCall(['spect', '0'])
+    self._SubprocessCall(['mpc', '0'])
     self._SubprocessCall(['up'])
     self._SubprocessCall(['ssid', ''])
     time.sleep(WL_SLEEP)
-    self._SubprocessCall(['spect', '0'])
-    self._SubprocessCall(['mpc', '0'])
-    self._SubprocessCall(['ap', '1'])
     # This starts a scan, and we give it some time to complete.
     # TODO(jnewlin): Chat with broadcom about how long we need/should
     # wait before setting the autoscanned channel.
-    output = self._SubprocessWithOutput(['autochannel', '1'])
+    self._SubprocessCall(['autochannel', '1'])
     time.sleep(WL_AUTOCHAN_SLEEP)
     # This programs the channel with the best channel found during the
     # scan.
-    output = self._SubprocessWithOutput(['autochannel', '2'])
+    self._SubprocessCall(['autochannel', '2'])
+    # Reset spect and mpc setting and bring the interface back down.
+    self._SubprocessCall(['down'])
+    self._SubprocessCall(['mpc', '1'])
+    self._SubprocessCall(['spect', '1'])
 
   def SetApMode(self):
     """Put device into AP mode."""
@@ -450,7 +453,6 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     self.wl = Wl(ifname)
 
     # Unimplemented, but not yet evaluated
-#    self.Unexport('AutoChannelEnable')
     self.Unexport('BeaconAdvertisementEnabled')
     self.Unexport('ChannelsInUse')
     self.Unexport('MaxBitRate')
@@ -736,7 +738,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     return self.config.p_auto_channel_enable
 
   def SetAutoChannelEnable(self, value):
-    self.config.p_auto_channel_enable = value
+    self.config.p_auto_channel_enable = tr.cwmpbool.parse(value)
 
   AutoChannelEnable = property(GetAutoChannelEnable, SetAutoChannelEnable,
                                None, 'WLANConfiguration.AutoChannelEnable')
