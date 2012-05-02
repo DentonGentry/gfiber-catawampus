@@ -24,6 +24,7 @@ class BrcmWifiTest(unittest.TestCase):
     self.old_WL_EXE = brcmwifi.WL_EXE
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlempty'
     brcmwifi.WL_SLEEP = 0
+    brcmwifi.WL_AUTOCHAN_SLEEP = 0
     self.old_PROC_NET_DEV = netdev.PROC_NET_DEV
     self.files_to_remove = list()
 
@@ -634,7 +635,6 @@ class BrcmWifiTest(unittest.TestCase):
 
   def testAutoChannel(self):
     (script, out) = self.MakeTestScript()
-    brcmwifi.WL_AUTOCHAN_SLEEP = 0  # Skips sleep
     brcmwifi.WL_EXE = script.name
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     bw.StartTransaction()
