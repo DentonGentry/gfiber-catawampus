@@ -133,10 +133,12 @@ class Wl(object):
     # This programs the channel with the best channel found during the
     # scan.
     self._SubprocessCall(['autochannel', '2'])
-    # Reset spect and mpc setting and bring the interface back down.
+    # Bring the interface back down and reset spect and mpc settings.
+    # spect can't be changed for 0 -> 1 unless the interface is down.
     self._SubprocessCall(['down'])
-    self._SubprocessCall(['mpc', '1'])
+    time.sleep(WL_SLEEP)
     self._SubprocessCall(['spect', '1'])
+    self._SubprocessCall(['mpc', '1'])
 
   def SetApMode(self):
     """Put device into AP mode."""
@@ -340,6 +342,11 @@ class Wl(object):
   def SetRadioEnabled(self, value):
     radio = 'on' if value else 'off'
     self._SubprocessCall(['radio', radio])
+    if value:
+      # Some commands don't work immediately after toggling the radio.
+      # Could probably poll this until the value goes to 0x004, but
+      # sleeping works.
+      time.sleep(WL_SLEEP)
 
   def GetRegulatoryDomain(self):
     out = self._SubprocessWithOutput(['country'])
@@ -376,6 +383,7 @@ class Wl(object):
     return ''
 
   def SetSSID(self, value, cfgnum=None):
+    self._SubprocessCall(['up'])
     if cfgnum is not None:
       self._SubprocessCall(['ssid', '-C', str(cfgnum), value])
     else:
@@ -834,7 +842,9 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     """
 
     if not self.config.p_enable:
+      self.wl.SetRadioEnabled(False)
       return
+
     self.wl.SetApMode()
     self.wl.SetBssStatus(False)
     if self.config.p_radio_enabled is False:
@@ -860,30 +870,20 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     if self.config.p_transmit_power is not None:
       self.wl.SetTransmitPower(self.config.p_transmit_power)
 
+    # sup_wpa should only be set WPA/WPA2 modes, not for Basic.
+    sup_wpa = False
     if self.config.p_beacon_type.find('11i') >= 0:
       crypto = self.wl.EM_StringToBitmap(self.config.p_ieee11i_encryption_modes)
+      sup_wpa = True
     elif self.config.p_beacon_type.find('WPA') >= 0:
       crypto = self.wl.EM_StringToBitmap(self.config.p_wpa_encryption_modes)
+      sup_wpa = True
     elif self.config.p_beacon_type.find('Basic') >= 0:
       crypto = self.wl.EM_StringToBitmap(self.config.p_basic_encryption_modes)
     else:
       crypto = EM_NONE
     self.wl.SetEncryptionModes(crypto)
-
-    sup_wpa = False
-    if self.config.p_wpa_authentication_mode:
-      sup_wpa = True
-    if self.config.p_ieee11i_authentication_mode:
-      sup_wpa = True
     self.wl.SetSupWpa(sup_wpa)
-
-    for idx, wep in self.WEPKeyList.items():
-      key = wep.WEPKey
-      if key is None:
-        self.wl.ClrWepKey(idx-1)
-      else:
-        self.wl.SetWepKey(idx-1, key)
-    self.wl.SetWepKeyIndex(self.config.p_wepkeyindex)
 
     for idx, psk in self.PreSharedKeyList.items():
       key = psk.GetKey(self.config.p_ssid)
@@ -891,15 +891,28 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
         self.wl.SetPMK(key)
 
     amode = 0
-    if self.config.p_ieee11i_authentication_mode == 'PSKAuthentication':
-      amode |= 128
-    if self.config.p_wpa_authentication_mode == 'PSKAuthentication':
-      amode |= 4
+    # Only set the WPA mode if crypto is one of the WPA modes. This
+    # setting is not compatible with WEP or no encryption.
+    if crypto != EM_NONE and crypto != EM_WEP:
+      if self.config.p_ieee11i_authentication_mode == 'PSKAuthentication':
+        amode = 128
+      elif self.config.p_wpa_authentication_mode == 'PSKAuthentication':
+        amode = 4
     self.wl.SetWpaAuth(amode)
 
     if self.config.p_ssid is not None:
       time.sleep(WL_SLEEP)
       self.wl.SetSSID(self.config.p_ssid)
+
+    # Setting WEP key has to come after setting SSID. (Doesn't make sense
+    # to me, it just doesn't work if you do it before setting SSID.)
+    for idx, wep in self.WEPKeyList.items():
+      key = wep.WEPKey
+      if key is None:
+        self.wl.ClrWepKey(idx-1)
+      else:
+        self.wl.SetWepKey(idx-1, key)
+    self.wl.SetWepKeyIndex(self.config.p_wepkeyindex)
 
   def GetTotalBytesReceived(self):
     # TODO(dgentry) cache for lifetime of session
