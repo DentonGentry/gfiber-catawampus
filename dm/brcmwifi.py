@@ -45,7 +45,7 @@ EM_WAPI = 0x100  # Not enumerated in tr-98
 WL_EXE = '/usr/bin/wl'
 WL_SLEEP = 3  # Broadcom recommendation for 3 second sleep before final join.
 # Broadcom recommendation for delay while scanning for a channel
-WL_AUTOCHAN_SLEEP = 5
+WL_AUTOCHAN_SLEEP = 2
 
 # Parameter enumerations
 BEACONS = frozenset(['None', 'Basic', 'WPA', '11i', 'BasicandWPA',
@@ -120,6 +120,7 @@ class Wl(object):
   def DoAutoChannelSelect(self):
     """Run the AP through an auto channel selection."""
     # Make sure the interface is up, and ssid is the empty string.
+    self._SubprocessCall(['down'])
     self._SubprocessCall(['spect', '0'])
     self._SubprocessCall(['mpc', '0'])
     self._SubprocessCall(['up'])
@@ -136,7 +137,6 @@ class Wl(object):
     # Bring the interface back down and reset spect and mpc settings.
     # spect can't be changed for 0 -> 1 unless the interface is down.
     self._SubprocessCall(['down'])
-    time.sleep(WL_SLEEP)
     self._SubprocessCall(['spect', '1'])
     self._SubprocessCall(['mpc', '1'])
 
@@ -342,11 +342,6 @@ class Wl(object):
   def SetRadioEnabled(self, value):
     radio = 'on' if value else 'off'
     self._SubprocessCall(['radio', radio])
-    if value:
-      # Some commands don't work immediately after toggling the radio.
-      # Could probably poll this until the value goes to 0x004, but
-      # sleeping works.
-      time.sleep(WL_SLEEP)
 
   def GetRegulatoryDomain(self):
     out = self._SubprocessWithOutput(['country'])
@@ -841,20 +836,15 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     real wl utility.
     """
 
-    if not self.config.p_enable:
-      self.wl.SetRadioEnabled(False)
-      return
-
-    self.wl.SetApMode()
-    self.wl.SetBssStatus(False)
-    if self.config.p_radio_enabled is False:
+    if not self.config.p_enable or not self.config.p_radio_enabled:
       self.wl.SetRadioEnabled(False)
       return
 
     self.wl.SetRadioEnabled(True)
+    self.wl.SetApMode()
     if self.config.p_auto_channel_enable:
       self.wl.DoAutoChannelSelect()
-
+    self.wl.SetBssStatus(False)
     if self.config.p_auto_rate_fallback_enabled is not None:
       self.wl.SetAutoRateFallBackEnabled(
           self.config.p_auto_rate_fallback_enabled)
