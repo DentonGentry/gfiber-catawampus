@@ -35,7 +35,7 @@ def OsStatVfs(rootpath):
       f_files=9000, f_ffree=5000, f_favail=4000, f_flag=0, f_namemax=256)
   teststatvfs['/foo'] = statvfsstruct(
       f_bsize=2048, f_frsize=256, f_blocks=8192, f_bfree=5017, f_bavail=3766,
-      f_files=6000, f_ffree=4000, f_favail=3000, f_flag=0, f_namemax=256)
+      f_files=6000, f_ffree=4000, f_favail=3000, f_flag=0x0001, f_namemax=256)
   return teststatvfs[rootpath]
 
 
@@ -87,6 +87,13 @@ class StorageTest(unittest.TestCase):
     used = (teststatvfs.f_blocks - teststatvfs.f_bavail) * teststatvfs.f_bsize
     self.assertEqual(stor.UsedSpace, used)
 
+  def testLogicalVolumeThresholdReached(self):
+    stor = storage.LogicalVolumeLinux26('/fakepath', 'fstype')
+    stor.ThresholdLimit = 1
+    self.assertFalse(stor.ThresholdReached)
+    stor.ThresholdLimit = 4
+    self.assertTrue(stor.ThresholdReached)
+
   def testLogicalVolumeList(self):
     storage.PROC_MOUNTS = 'testdata/storage/proc.mounts'
     service = storage.StorageServiceLinux26()
@@ -95,6 +102,7 @@ class StorageTest(unittest.TestCase):
     expectedFs = {'/': 'X_CATAWAMPUS-ORG_squashfs',
                   '/foo': 'X_CATAWAMPUS-ORG_ubifs',
                   '/tmp': 'X_CATAWAMPUS-ORG_tmpfs'}
+    expectedRo = {'/': False, '/foo': True, '/tmp': False}
     for vol in volumes.values():
       t = OsStatVfs(vol.Name)
       self.assertEqual(vol.Status, 'Online')
@@ -102,6 +110,7 @@ class StorageTest(unittest.TestCase):
       self.assertEqual(vol.FileSystem, expectedFs[vol.Name])
       self.assertEqual(vol.Capacity, t.f_bsize * t.f_blocks)
       self.assertEqual(vol.UsedSpace, t.f_bsize * (t.f_blocks - t.f_bavail))
+      self.assertEqual(vol.X_CATAWAMPUS_ORG_ReadOnly, expectedRo[vol.Name])
 
   def testCapabilitiesNone(self):
     storage.PROC_FILESYSTEMS = 'testdata/storage/proc.filesystems'

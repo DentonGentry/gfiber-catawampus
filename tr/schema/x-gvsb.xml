@@ -36,6 +36,22 @@
         </string>
       </syntax>
     </parameter>
+    <parameter name="EpgPrimary" access="readWrite">
+      <description>Multicast IP address and port of the primary EPG feed. For example, "224.254.1.1:5000"</description>
+      <syntax>
+        <string>
+          <size maxLength="128"/>
+        </string>
+      </syntax>
+    </parameter>
+    <parameter name="EpgSecondary" access="readWrite">
+      <description>Multicast IP address and port of the secondary EPG feed. For example, "224.254.1.2:5000"</description>
+      <syntax>
+        <string>
+          <size maxLength="128"/>
+        </string>
+      </syntax>
+    </parameter>
 
   </model>
 </dm:document>

@@ -117,11 +117,10 @@ class LogicalVolumeLinux26(BASESTORAGE.LogicalVolume):
     self.fstype = fstype
     self.Unexport('Alias')
     self.Unexport('Encrypted')
-    self.Unexport('ThresholdLimit')
     self.Unexport('ThresholdReached')
     self.Unexport('PhysicalReference')
-
     self.FolderList = {}
+    self.ThresholdLimit = 0
 
   @property
   def Name(self):
@@ -149,10 +148,23 @@ class LogicalVolumeLinux26(BASESTORAGE.LogicalVolume):
     return vfs.f_blocks * vfs.f_bsize
 
   @property
+  def ThresholdReached(self):
+    vfs = self._GetStatVfs()
+    require = self.ThresholdLimit * 1024 * 1024
+    avail = vfs.f_bavail * vfs.f_bsize
+    return True if avail < require else False
+
+  @property
   def UsedSpace(self):
     vfs = self._GetStatVfs()
     b_used = vfs.f_blocks - vfs.f_bavail
     return b_used * vfs.f_bsize
+
+  @property
+  def X_CATAWAMPUS_ORG_ReadOnly(self):
+    ST_RDONLY = 0x0001
+    vfs = self._GetStatVfs()
+    return True if vfs.f_flag & ST_RDONLY else False
 
   @property
   def FolderNumberOfEntries(self):
