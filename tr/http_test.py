@@ -9,6 +9,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import mox
 import os
 import shutil
 import tempfile
@@ -161,6 +162,44 @@ class HttpTest(tornado.testing.AsyncTestCase):
     retry = root.find(SOAPNS + 'Body/' + CWMPNS + 'Inform/RetryCount')
     self.assertTrue(retry is not None)
     self.assertEqual(retry.text, '1')
+
+  def testNewPingSession(self):
+    cpe_machine = self.getCpe()
+    cpe_machine.previous_ping_time = 0
+
+    # Create mocks of ioloop, and stubout the time function.
+    m = mox.Mox()
+    ioloop_mock = m.CreateMock(tornado.ioloop.IOLoop)
+    m.StubOutWithMock(cpe_machine, "_NewSession")
+    m.StubOutWithMock(time, "time")
+    
+    # First call to _NewSession should get the time and trigger a new session
+    time.time().AndReturn(1000)
+    cpe_machine._NewSession(mox.IsA(str))
+
+    # Second call to _NewSession should queue a session
+    time.time().AndReturn(1001)
+    ioloop_mock.add_timeout(mox.IsA(int), mox.IgnoreArg()).AndReturn(1)
+
+    # Third call should get the time and then not do anything
+    # since a session is queued.
+    time.time().AndReturn(1001)
+
+    # And the call to _NewTimeoutSession should call through to
+    # NewPingSession, and start a new session
+    time.time().AndReturn(1000 + cpe_machine.rate_limit_seconds)
+    ioloop_mock.add_timeout(mox.IsA(int), mox.IgnoreArg()).AndReturn(2)
+    cpe_machine.ioloop = ioloop_mock
+    m.ReplayAll()
+
+    # Real test starts here.
+    cpe_machine._NewPingSession()
+    cpe_machine._NewPingSession()
+    cpe_machine._NewPingSession()
+    cpe_machine._NewTimeoutPingSession()
+    
+    # Verify everything was called correctly.
+    m.VerifyAll()
 
 
 if __name__ == '__main__':
