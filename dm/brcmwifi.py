@@ -516,7 +516,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     obj.p_bssid = None
     obj.p_channel = None
     obj.p_enable = False
-    obj.p_ieee11i_authentication_mode = None
+    obj.p_ieee11i_authentication_mode = 'PSKAuthentication'
     obj.p_ieee11i_encryption_modes = 'X_CATAWAMPUS-ORG_None'
     obj.p_radio_enabled = True
     obj.p_regulatory_domain = None
@@ -524,7 +524,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     obj.p_ssid_advertisement_enabled = None
     obj.p_transmit_power = None
     obj.p_wepkeyindex = 1
-    obj.p_wpa_authentication_mode = None
+    obj.p_wpa_authentication_mode = 'PSKAuthentication'
     obj.p_wpa_encryption_modes = 'X_CATAWAMPUS-ORG_None'
     return obj
 
@@ -862,11 +862,16 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
 
     # sup_wpa should only be set WPA/WPA2 modes, not for Basic.
     sup_wpa = False
+    amode = 0
     if self.config.p_beacon_type.find('11i') >= 0:
       crypto = self.wl.EM_StringToBitmap(self.config.p_ieee11i_encryption_modes)
+      if crypto != EM_NONE:
+        amode = 128
       sup_wpa = True
     elif self.config.p_beacon_type.find('WPA') >= 0:
       crypto = self.wl.EM_StringToBitmap(self.config.p_wpa_encryption_modes)
+      if crypto != EM_NONE:
+        amode = 4
       sup_wpa = True
     elif self.config.p_beacon_type.find('Basic') >= 0:
       crypto = self.wl.EM_StringToBitmap(self.config.p_basic_encryption_modes)
@@ -874,21 +879,12 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
       crypto = EM_NONE
     self.wl.SetEncryptionModes(crypto)
     self.wl.SetSupWpa(sup_wpa)
+    self.wl.SetWpaAuth(amode)
 
     for idx, psk in self.PreSharedKeyList.items():
       key = psk.GetKey(self.config.p_ssid)
       if key:
         self.wl.SetPMK(key)
-
-    amode = 0
-    # Only set the WPA mode if crypto is one of the WPA modes. This
-    # setting is not compatible with WEP or no encryption.
-    if crypto != EM_NONE and crypto != EM_WEP:
-      if self.config.p_ieee11i_authentication_mode == 'PSKAuthentication':
-        amode = 128
-      elif self.config.p_wpa_authentication_mode == 'PSKAuthentication':
-        amode = 4
-    self.wl.SetWpaAuth(amode)
 
     if self.config.p_ssid is not None:
       time.sleep(WL_SLEEP)
