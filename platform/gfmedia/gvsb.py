@@ -106,9 +106,8 @@ class Gvsb(tr.x_gvsb_1_0.X_GOOGLE_COM_GVSB_v1_1):
 
   def WriteFile(self, filename, content):
     try:
-      f = open(filename, 'w')
-      f.write(content)
-      f.close()
+      with open(filename, 'w') as f:
+        f.write(content)
       return True
     except IOError:
       return False
