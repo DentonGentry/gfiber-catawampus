@@ -41,8 +41,13 @@ class CpeManagementServer(object):
 
     self.CWMPRetryMinimumWaitInterval = 5
     self.CWMPRetryIntervalMultiplier = 2000
-    self.ConnectionRequestPassword = '{0}'.format(hex(random.getrandbits(60)))
-    self.ConnectionRequestUsername = '{0}'.format(hex(random.getrandbits(60)))
+    # The default password is trivial. In the initial Inform exchange
+    # the ACS generally sets ConnectionRequest{Username,Password}
+    # to values which only it knows. If something goes wrong, we want
+    # the password to be well known so the ACS can wake us up and
+    # try again.
+    self.ConnectionRequestPassword = 'cwmp'
+    self.ConnectionRequestUsername = 'catawampus'
     self.DefaultActiveNotificationThrottle = 0
     self.EnableCWMP = True
     self.Password = ''

@@ -16,6 +16,7 @@ import socket
 import time
 import urllib
 
+from curtain import digest
 import tornado.httpclient
 import tornado.ioloop
 import tornado.web
@@ -39,16 +40,30 @@ def SplitUrl(url):
   return Url(method, host, int(port or 0), path)
 
 
-class PingHandler(tornado.web.RequestHandler):
-  # TODO $SPEC3 3.2.2 "The CPE MUST use HTTP digest authentication"
-  #   see https://github.com/bkjones/curtain for Tornado digest auth mixin
+class PingHandler(digest.DigestAuthMixin, tornado.web.RequestHandler):
+  """Handles accesses to the ConnectionRequestURL.
+
+  Args:
+    callback: the function to call when theURL is accessed.
+    cpe_ms: the cpe_management_server object, from which to retrieve
+      username and password.
+  """
   # TODO $SPEC3 3.2.2 "The CPE SHOULD restrict the number of Connection
   #   Requests it accepts during a given period of time..."
-  def initialize(self, callback):
+  def initialize(self, callback, cpe_ms):
     self.callback = callback
+    self.cpe_ms = cpe_ms
+
+  def getcredentials(self, username):
+    credentials = {'auth_username': self.cpe_ms.ConnectionRequestUsername,
+                   'auth_password': self.cpe_ms.ConnectionRequestPassword}
+    if username == credentials['auth_username']:
+      return credentials
 
   def get(self):
-    self.set_status(self.callback())
+    # Digest authentication handler
+    if self.get_authenticated_user(self.getcredentials, 'Authusers'):
+      return self.set_status(self.callback())
 
 
 class Handler(tornado.web.RequestHandler):
@@ -171,6 +186,10 @@ class CPEStateMachine(object):
       parameter_list += [
           ('InternetGatewayDevice.ManagementServer.ConnectionRequestURL',
            ms.ConnectionRequestURL),
+          ('InternetGatewayDevice.ManagementServer.ConnectionRequestUsername',
+           ms.ConnectionRequestUsername),
+          ('InternetGatewayDevice.ManagementServer.ConnectionRequestPassword',
+           ms.ConnectionRequestPassword),
           ('InternetGatewayDevice.ManagementServer.ParameterKey',
            ms.ParameterKey),
           ('InternetGatewayDevice.DeviceInfo.HardwareVersion',
@@ -414,7 +433,8 @@ def Listen(ip, port, ping_path, acs, acs_url_file, cpe, cpe_listener,
     print 'TR-069 CPE at http://*:%d/cpe' % port
   if ping_path:
     handlers.append(('/' + ping_path, PingHandler,
-                     dict(callback=cpe_machine.PingReceived)))
+                     dict(cpe_ms=cpe_machine.cpe_management_server,
+                          callback=cpe_machine.PingReceived)))
     print 'TR-069 callback at http://*:%d/%s' % (port, ping_path)
   webapp = tornado.web.Application(handlers)
   webapp.listen(port)

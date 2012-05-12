@@ -92,7 +92,7 @@ class HttpTest(tornado.testing.AsyncTestCase):
     acsfile.write('http://example.com/cwmp')
     acsfile.close()
     cpe_machine = http.Listen(ip=None, port=0,
-                              ping_path='/ping/acs_integration_test',
+                              ping_path='/ping/http_test',
                               acs=None, acs_url_file=acsfile.name,
                               cpe=cpe, cpe_listener=False, ioloop=self.io_loop)
     return cpe_machine
@@ -200,6 +200,29 @@ class HttpTest(tornado.testing.AsyncTestCase):
     
     # Verify everything was called correctly.
     m.VerifyAll()
+
+
+class TestManagementServer(object):
+  ConnectionRequestUsername = 'username'
+  ConnectionRequestPassword = 'password'
+
+
+class PingTest(tornado.testing.AsyncHTTPTestCase):
+  def ping_callback(self):
+    self.ping_calledback = True
+
+  def get_app(self):
+    return tornado.web.Application(
+        [('/', http.PingHandler, dict(cpe_ms=TestManagementServer(),
+                                      callback=self.ping_callback))])
+
+  def test_ping(self):
+    self.ping_calledback = False
+    self.http_client.fetch(self.get_url('/'), self.stop)
+    response = self.wait()
+    self.assertEqual(response.error.code, 401)
+    self.assertFalse(self.ping_calledback)
+    self.assertTrue(response.body.find('qop'))
 
 
 if __name__ == '__main__':
