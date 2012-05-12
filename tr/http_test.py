@@ -266,5 +266,28 @@ class PingTest(tornado.testing.AsyncHTTPTestCase):
     self.assertTrue(response.body.find('qop'))
 
 
+class TestManagementServer(object):
+  ConnectionRequestUsername = 'username'
+  ConnectionRequestPassword = 'password'
+
+
+class PingTest(tornado.testing.AsyncHTTPTestCase):
+  def ping_callback(self):
+    self.ping_calledback = True
+
+  def get_app(self):
+    return tornado.web.Application(
+        [('/', http.PingHandler, dict(cpe_ms=TestManagementServer(),
+                                      callback=self.ping_callback))])
+
+  def test_ping(self):
+    self.ping_calledback = False
+    self.http_client.fetch(self.get_url('/'), self.stop)
+    response = self.wait()
+    self.assertEqual(response.error.code, 401)
+    self.assertFalse(self.ping_calledback)
+    self.assertTrue(response.body.find('qop'))
+
+
 if __name__ == '__main__':
   unittest.main()
