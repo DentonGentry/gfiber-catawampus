@@ -22,6 +22,7 @@ import dm.igd_time
 import dm.storage
 import platform_config
 import pynetlinux
+import stbservice
 import tornado.ioloop
 import tr.core
 import tr.download
@@ -210,9 +211,18 @@ class Services181GFMedia(tr181.Device_v2_2.Device.Services):
     tr181.Device_v2_2.Device.Services.__init__(self)
     self.Export(objects=['StorageServices'])
     self.StorageServices = dm.storage.StorageServiceLinux26()
+    self._AddStorageDevices()
+    self.Export(lists=['STBService'])
+    self.Export(['STBServiceNumberOfEntries'])
+    self.STBServiceList = {'1': stbservice.STBService()}
 
+  @property
+  def STBServiceNumberOfEntries(self):
+    return len(self.STBServiceList)
+
+  def _AddStorageDevices(self):
     num = 0
-    for drive in ['sda', 'sdb', 'sdc', 'sdd']:
+    for drive in ['sda', 'sdb', 'sdc', 'sdd', 'sde', 'sdf']:
       try:
         if os.stat('/sys/block/' + drive):
           phys = dm.storage.PhysicalMediumDiskLinux26(drive, 'SATA/300')
