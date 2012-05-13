@@ -16,10 +16,12 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import pynetlinux
 import tr.core
 import tr.cwmpdate
-import tr.tr181_v2_2
+import tr.tr181_v2_4
+import tr.x_catawampus_tr181_2_0
 import netdev
 
-BASEETHERNET = tr.tr181_v2_2.Device_v2_2.Device.Ethernet
+BASEETHERNET = tr.tr181_v2_4.Device_v2_4.Device.Ethernet
+CATAWAMPUSETHERNET = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device.Ethernet
 PYNETIFCONF = pynetlinux.ifconfig.Interface
 
 
@@ -32,7 +34,7 @@ class EthernetInterfaceStatsLinux26(netdev.NetdevStatsLinux26,
     BASEETHERNET.Interface.Stats.__init__(self)
 
 
-class EthernetInterfaceLinux26(BASEETHERNET.Interface):
+class EthernetInterfaceLinux26(CATAWAMPUSETHERNET.Interface):
   """Handling for a Linux 2.6-style device like eth0/eth1/etc.
 
   Constructor arguments:
@@ -40,10 +42,10 @@ class EthernetInterfaceLinux26(BASEETHERNET.Interface):
   """
 
   def __init__(self, ifname, upstream=False):
-    BASEETHERNET.Interface.__init__(self)
+    super(EthernetInterfaceLinux26, self).__init__()
     self._pynet = PYNETIFCONF(ifname)
     self._ifname = ifname
-    self.Alias = ifname
+    self.Unexport('Alias')
     self.Name = ifname
     self.Upstream = upstream
 
@@ -84,6 +86,16 @@ class EthernetInterfaceLinux26(BASEETHERNET.Interface):
   @property
   def Stats(self):
     return EthernetInterfaceStatsLinux26(self._ifname)
+
+  @property
+  def X_CATAWAMPUS_ORG_ActualBitRate(self):
+    (speed, duplex, auto, link_up) = self._pynet.get_link_info()
+    return speed
+
+  @property
+  def X_CATAWAMPUS_ORG_ActualDuplexMode(self):
+    (speed, duplex, auto, link_up) = self._pynet.get_link_info()
+    return 'Full' if duplex else 'Half'
 
 
 def main():
