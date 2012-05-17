@@ -309,6 +309,17 @@ class CPE(SoapHandler):
       xml.Status(str(int(code)))
     return xml
 
+  def SetParameterAttributes(self, xml, req):
+    # ParameterList will be an array of NodeWrapper's, and each NodeWrapper
+    # will have a list of values, for example:
+    # (Name, InternetGatewayDevice.PeriodicStatistics.SampleSet.0.Status)
+    # (Notification, true)
+    # (NotificationChange, true)
+    for param in req.ParameterList:
+      self.impl.SetParameterAttributes(param)
+    xml['cwmp:SetParameterAttributesResponse'](None)
+    return xml
+
   def Download(self, xml, req):
     try:
       username = req.Username

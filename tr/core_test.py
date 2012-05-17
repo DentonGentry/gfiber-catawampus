@@ -47,6 +47,10 @@ class TestObject(core.Exporter):
 
 
 class CoreTest(unittest.TestCase):
+  def setUp(self):
+    # Reset the global gcount
+    TestObject.SubObj.gcount = [0]
+
   def testCore(self):
     o = TestObject()
     self.assertTrue(o)
@@ -84,6 +88,20 @@ class CoreTest(unittest.TestCase):
                      [(0, 2), (2, 4), ('fred', 99)])
     print core.Dump(o)
     o.ValidateExports()
+
+  def testCanonicalName(self):
+    o = TestObject()
+    self.assertTrue(o)
+    o.ValidateExports()
+    name = o.GetCanonicalName(o.SubObj)
+    self.assertEqual('SubObj', name)
+
+    (idx1, obj1) = o.AddExportObject('Counter')
+    (idx2, obj2) = o.AddExportObject('Counter')
+    (idx3, obj3) = o.AddExportObject('Counter')
+    name = o.GetCanonicalName(obj3)
+    self.assertEqual('Counter.2', name)
+
 
 
 if __name__ == '__main__':

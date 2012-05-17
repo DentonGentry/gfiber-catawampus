@@ -67,3 +67,23 @@ class DeviceModelRoot(tr.core.Exporter):
       ms98.ManagementServer = dm.management_server.ManagementServer98(mgmt)
     except (AttributeError, KeyError):
       pass  # no tr-98 for this platform
+
+  def configure_tr157(self, cpe):
+    """Adds the cpe and root objects to the tr157 periodic stat object."""
+    BASE157PS_IGD = 'InternetGatewayDevice.PeriodicStatistics'
+    tr157_object = None
+    try:
+      tr157_object = self.GetExport(BASE157PS_IGD)
+      tr157_object.SetCpe(cpe)
+      tr157_object.SetRoot(self)
+    except (AttributeError, KeyError):
+      pass # no tr-157 object on the InternetGatewayDevice.
+
+    # Check on the Device object.
+    BASE157PS_DEV = 'Device.PeriodicStatistics'
+    try:
+      tr157_object = self.GetExport(BASE157PS_DEV)
+      tr157_object.SetCpe(cpe)
+      tr157_object.SetRoot(self)
+    except (AttributeError, KeyError):
+      pass # no tr-157 object found on the Device object.

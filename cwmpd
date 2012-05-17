@@ -127,6 +127,7 @@ def main():
                                    ping_ip6dev=opt.ping_ip6dev,
                                    fetch_args=fetch_args)
       root.add_management_server(cpe_machine.GetManagementServer())
+      root.configure_tr157(cpe_machine)
       cpe_machine.Startup()
 
     if opt.close_stdio:

@@ -232,9 +232,17 @@ class CPE(TR069Service):
     """Get the names of parameters or objects (possibly recursively)."""
     return self.root.ListExports(parameter_path, not next_level_only)
 
+  def _SetParameterAttribute(self, param, attr, attr_value):
+    """Set an attribute of a parameter."""
+    (param, unused_param_name) = self._SplitParameterName(param)
+    self.root.SetExportAttr(param, attr, attr_value)
+
   def SetParameterAttributes(self, parameter_list):
     """Set attributes (access control, notifications) on some parameters."""
-    raise NotImplementedError()
+    param_name = parameter_list['Name']
+    for attr, attr_value in parameter_list.iteritems():
+      if attr != 'Name':
+        self._SetParameterAttribute(param_name, attr, attr_value)
 
   def GetParameterAttributes(self, parameter_names):
     """Get attributes (access control, notifications) on some parameters."""
@@ -250,8 +258,9 @@ class CPE(TR069Service):
 
   def DeleteObject(self, object_name, parameter_key):
     """Delete an object and its sub-objects/parameters."""
+    assert object_name.endswith('.')
     path = object_name.split('.')
-    self.root.DeleteExportObject('.'.join(path[:-1]), path[-1])
+    self.root.DeleteExportObject('.'.join(path[:-2]), path[-2])
     self._SetParameterKey(parameter_key)
     return 0  # successfully deleted
 

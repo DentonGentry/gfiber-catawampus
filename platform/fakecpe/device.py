@@ -25,6 +25,7 @@ import sys
 import google3
 import dm.device_info
 import dm.igd_time
+import dm.periodic_statistics
 import dm.storage
 import platform_config
 import tornado.ioloop
@@ -144,7 +145,7 @@ class ServicesFakeCPE(tr181.Device_v2_2.Device.Services):
 class DeviceFakeCPE(tr181.Device_v2_2.Device):
   """Device implementation for a simulated CPE device."""
 
-  def __init__(self, device_id):
+  def __init__(self, device_id, periodic_stats):
     super(DeviceFakeCPE, self).__init__()
     self.Unexport(objects='ATM')
     self.Unexport(objects='Bridging')
@@ -180,9 +181,12 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
     self.InterfaceStackNumberOfEntries = 0
     self.InterfaceStackList = {}
 
+    self.Export(objects=['PeriodicStatistics'])
+    self.PeriodicStatistics = periodic_stats
+
 
 class InternetGatewayDeviceFakeCPE(BASE98IGD):
-  def __init__(self, device_id):
+  def __init__(self, device_id, periodic_stats):
     BASE98IGD.__init__(self)
     self.Unexport(objects='CaptivePortal')
     self.Unexport(objects='DeviceConfig')
@@ -205,6 +209,8 @@ class InternetGatewayDeviceFakeCPE(BASE98IGD):
     self.DeviceInfo = dm.device_info.DeviceInfo98Linux26(device_id)
     tzfile = '/tmp/catawampus.%s/TZ' % FakeCPEInstance()
     self.Time = dm.igd_time.TimeTZ(tzfile=tzfile)
+    self.Export(objects=['PeriodicStatistics'])
+    self.PeriodicStatistics = periodic_stats
 
   @property
   def LANDeviceNumberOfEntries(self):
@@ -219,18 +225,21 @@ def PlatformInit(name, device_model_root):
   tr.download.INSTALLER = InstallerFakeCPE
   params = list()
   objects = list()
+  periodic_stats = dm.periodic_statistics.PeriodicStatistics()
   devid = DeviceIdFakeCPE()
-  device_model_root.Device = DeviceFakeCPE(devid)
+  device_model_root.Device = DeviceFakeCPE(devid, periodic_stats)
   objects.append('Device')
-  device_model_root.InternetGatewayDevice = InternetGatewayDeviceFakeCPE(devid)
+  device_model_root.InternetGatewayDevice = InternetGatewayDeviceFakeCPE(
+      devid, periodic_stats)
   objects.append('InternetGatewayDevice')
   return (params, objects)
 
 
 def main():
+  periodic_stats = dm.periodic_statistics.PeriodicStatistics()
   devid = DeviceIdFakeCPE()
-  device = DeviceFakeCPE(devid)
-  igd = InternetGatewayDeviceFakeCPE(devid)
+  device = DeviceFakeCPE(devid, periodic_stats)
+  igd = InternetGatewayDeviceFakeCPE(devid, periodic_stats)
   tr.core.Dump(device)
   tr.core.Dump(igd)
   device.ValidateExports()

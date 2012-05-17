@@ -191,6 +191,38 @@ class Exporter(object):
     if lists:
       self.export_object_lists.remove(lists)
 
+  def GetCanonicalName(self, obj_to_find):
+    """Generate a canonical name for an object.
+
+    Walk through the tree and generate the canonical name for an
+    object.  The tree walk starts with this object.
+
+    Args:
+      obj: The object to generate the canonical for.
+
+    Returns:
+      The canonical path to the object.
+    """
+    for name in self.export_objects:
+      exp_obj = self._GetExport(self, name)
+      if exp_obj == obj_to_find:
+        return name
+      tmp_path = exp_obj.GetCanonicalName(obj_to_find)
+      if tmp_path:
+        return name + '.' + tmp_path
+
+    for name in self.export_object_lists:
+      objlist = self._GetExport(self, name)
+      if objlist == obj_to_find:
+        return name
+      for (idx, child_obj) in objlist.iteritems():
+        if child_obj == obj_to_find:
+          return name + '.' + str(idx)
+        tmp_path = child_obj.GetCanonicalName(obj_to_find)
+        if tmp_path:
+          return name + '.' + str(idx) + '.' + tmp_path
+    return None
+
   def ValidateExports(self, path=None):
     """Trace through this object's exports to make no attributes are missing.
 
@@ -335,6 +367,22 @@ class Exporter(object):
       parent.dirty = True
     setattr(parent, subname, value)
     return parent
+
+  def SetExportAttr(self, param, attr, value):
+    """Set the attribute of a given parameter.
+
+    Args:
+      param: the parameter whose attribute is going to be set.
+      attr: the attribute to set on the parameter.
+      value: the value of the attribute being set.
+    Returns:
+      the object whose attribute was modified.
+    Raises:
+      KeyError: if the param is not exported.
+    """
+    obj = self.GetExport(param)
+    obj.SetAttribute(attr, value)
+    return obj
 
   def _AddExportObject(self, name, idx):
     objlist = self._GetExport(self, name)

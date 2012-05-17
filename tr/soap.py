@@ -187,6 +187,9 @@ class NodeWrapper(object):
   def __getitem__(self, key):
     return self._Get(key)
 
+  def iteritems(self):
+    return self._dict.iteritems()
+
   def __str__(self):
     out = []
     for key, value in self._list:

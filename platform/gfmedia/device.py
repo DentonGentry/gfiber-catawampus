@@ -30,6 +30,7 @@ import dm.brcmwifi
 import dm.device_info
 import dm.ethernet
 import dm.igd_time
+import dm.periodic_statistics
 import dm.storage
 import gfibertv
 import platform_config
@@ -292,7 +293,7 @@ class Moca181GFMedia(tr181.Device_v2_2.Device.MoCA):
 class DeviceGFMedia(tr181.Device_v2_2.Device):
   """tr-181 Device implementation for Google Fiber media platforms."""
 
-  def __init__(self, device_id):
+  def __init__(self, device_id, periodic_stats):
     tr181.Device_v2_2.Device.__init__(self)
     self.Unexport(objects='ATM')
     self.Unexport(objects='Bridging')
@@ -326,6 +327,8 @@ class DeviceGFMedia(tr181.Device_v2_2.Device):
     self.Services = Services181GFMedia()
     self.InterfaceStackList = {}
     self.InterfaceStackNumberOfEntries = 0
+    self.Export(objects=['PeriodicStatistics'])
+    self.PeriodicStatistics = periodic_stats
 
 
 class LANDeviceGFMedia(BASE98IGD.LANDevice):
@@ -357,7 +360,7 @@ class LANDeviceGFMedia(BASE98IGD.LANDevice):
 
 
 class InternetGatewayDeviceGFMedia(BASE98IGD):
-  def __init__(self, device_id):
+  def __init__(self, device_id, periodic_stats):
     BASE98IGD.__init__(self)
     self.Unexport(objects='CaptivePortal')
     self.Unexport(objects='DeviceConfig')
@@ -379,6 +382,8 @@ class InternetGatewayDeviceGFMedia(BASE98IGD):
 
     self.DeviceInfo = dm.device_info.DeviceInfo98Linux26(device_id)
     self.Time = dm.igd_time.TimeTZ()
+    self.Export(objects=['PeriodicStatistics'])
+    self.PeriodicStatistics = periodic_stats
 
   @property
   def LANDeviceNumberOfEntries(self):
@@ -394,8 +399,10 @@ def PlatformInit(name, device_model_root):
   params = []
   objects = []
   dev_id = DeviceIdGFMedia()
-  device_model_root.Device = DeviceGFMedia(dev_id)
-  device_model_root.InternetGatewayDevice = InternetGatewayDeviceGFMedia(dev_id)
+  periodic_stats = dm.periodic_statistics.PeriodicStatistics()
+  device_model_root.Device = DeviceGFMedia(dev_id, periodic_stats)
+  device_model_root.InternetGatewayDevice = InternetGatewayDeviceGFMedia(
+      dev_id, periodic_stats)
   device_model_root.X_GOOGLE_COM_GVSB = gvsb.Gvsb()
   objects.append('Device')
   objects.append('InternetGatewayDevice')
@@ -405,7 +412,8 @@ def PlatformInit(name, device_model_root):
 
 def main():
   dev_id = DeviceIdGFMedia()
-  root = DeviceGFMedia(dev_id)
+  periodic_stats = dm.periodic_statistics.PeriodicStatistics()
+  root = DeviceGFMedia(dev_id, periodic_stats)
   root.ValidateExports()
   tr.core.Dump(root)
 

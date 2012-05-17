@@ -124,6 +124,7 @@ class CPEStateMachine(object):
     self.rate_limit_seconds = 60
     self.previous_ping_time = 0
     self.ping_timeout_pending = None
+    self._changed_parameters = set()
     self.cpe_management_server = cpe_management_server.CpeManagementServer(
         acs_url_file=acs_url_file, port=listenport, ping_path=ping_path,
         get_parameter_key=cpe.getParameterKey,
@@ -210,6 +211,11 @@ class CPEStateMachine(object):
            di.SoftwareVersion),
           ('InternetGatewayDevice.DeviceInfo.SpecVersion', di.SpecVersion),
       ]
+      # NOTE(jnewlin): Changed parameters can be set to be sent either
+      # explicitly with a value change event, or to be sent with the
+      # periodic inform.  So it's not a bug if there is no value change
+      # event in the event queue.
+      parameter_list += self._changed_parameters
     except (AttributeError, KeyError):
       pass
     req = self.encode.Inform(root=self.cpe.root, events=events,
@@ -390,6 +396,29 @@ class CPEStateMachine(object):
     if not (reason, None) in self.event_queue:
       self._NewSession(reason)
 
+  def SetNotificationParameters(self, parameters):
+    """Set the list of parameters that have changed.
+
+    The list of parameters that have triggered and should be sent either
+    with the next periodic inform, or the next active active value change
+    session.
+
+    Args:
+      parameters: An array of the parameters that have changed, these
+      need to be sent to the ACS in the parameter list.
+    """
+    for param in parameters:
+      self._changed_parameters.add(param)
+
+  def NewValueChangeSession(self):
+    """Start a new session to the ACS for the parameters that have changed.
+    """
+    reason = '4 VALUE CHANGE'
+    # merge these parameters into the list of parameters that maybe
+    # have changed
+    if self._changed_parameters and not (reason, None) in self.event_queue:
+      self._NewSession(reason)
+
   def PingReceived(self):
     self._NewPingSession()
     return 204  # No Content
@@ -416,6 +445,7 @@ class CPEStateMachine(object):
                          '6 connection request', '8 diagnostics complete',
                          'm reboot', 'm scheduleinform'])
     self.event_queue = self._RemoveFromDequeue(self.event_queue, reasons)
+    self._changed_parameters.clear()
 
   def Startup(self):
     rb = self.cpe.download_manager.RestoreReboots()
