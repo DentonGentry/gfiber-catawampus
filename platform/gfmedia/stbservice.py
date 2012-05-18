@@ -18,7 +18,9 @@ import tr.tr135_v1_2
 
 BASE135STB = tr.tr135_v1_2.STBService_v1_2.STBService
 IGMPREGEX = re.compile('^\s+(\S+)\s+\d\s+\d:[0-9A-Fa-f]+\s+\d')
+IGMP6REGEX = re.compile('^\d\s+\S+\s+([0-9A-Fa-f]{32})\s+\d\s+[0-9A-Fa-f]+\s+\d')
 PROCNETIGMP = '/proc/net/igmp'
+PROCNETIGMP6 = '/proc/net/igmp6'
 
 
 class STBService(BASE135STB):
@@ -144,6 +146,15 @@ class STBIGMP(BASE135STB.Components.FrontEnd.IP.IGMP):
           igmp = result.group(1).strip()
           igmps.add(socket.inet_ntop(
               socket.AF_INET, struct.pack('<L', int(igmp, 16))))
+    with open(PROCNETIGMP6, 'r') as f:
+      for line in f:
+        result = IGMP6REGEX.match(line)
+        if result is not None:
+          igmp = result.group(1).strip()
+          ip6 = ':'.join([igmp[0:4], igmp[4:8], igmp[8:12], igmp[12:16],
+                          igmp[16:20], igmp[20:24], igmp[24:28], igmp[28:]])
+          igmps.add(socket.inet_ntop(socket.AF_INET6,
+                                     socket.inet_pton(socket.AF_INET6, ip6)))
     return list(igmps)
 
   def GetClientGroup(self, ipaddr):
