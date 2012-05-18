@@ -17,7 +17,7 @@ import tr.tr135_v1_2
 
 
 BASE135STB = tr.tr135_v1_2.STBService_v1_2.STBService
-IGMPREGEX = re.compile('^\s+(\S+)\s+\d\s+\d:\d+\s+\d')
+IGMPREGEX = re.compile('^\s+(\S+)\s+\d\s+\d:[0-9A-Fa-f]+\s+\d')
 PROCNETIGMP = '/proc/net/igmp'
 
 
