@@ -7,6 +7,7 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import datetime
 import time
+import traceback
 
 import google3
 import api
@@ -196,6 +197,10 @@ class SoapHandler(object):
       except api.SetParameterErrors as e:
         faults = self._ExceptionListToFaultList(e.error_list)
         result = soap.SetParameterValuesFault(xml, faults)
+      except:
+        result = soap.SimpleFault(
+            xml, cpefault=soap.CpeFault.INTERNAL_ERROR,
+            faultstring=traceback.format_exc())
 
     if result is not None:
       return xml
