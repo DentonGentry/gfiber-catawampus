@@ -45,6 +45,7 @@ class TestDeviceModelRoot(core.Exporter):
     params.append('RaiseIndexError')
     params.append('RaiseTypeError')
     params.append('RaiseValueError')
+    params.append('RaiseSystemError')
     params.append('BooleanParameter')
     params.append('IntegerParameter')
     params.append('FloatParameter')
@@ -89,6 +90,17 @@ class TestDeviceModelRoot(core.Exporter):
 
   RaiseValueError = property(GetRaiseValueError, SetRaiseValueError, None,
                              'RaiseValueError')
+
+  def GetRaiseSystemError(self):
+    """A parameter which, when accessed, will raise a SystemError."""
+    print 'GetRaiseSystemError'
+    raise SystemError('RaiseSystemError Parameter')
+
+  def SetRaiseSystemError(self, value):
+    raise SystemError('RaiseSystemError Parameter')
+
+  RaiseSystemError = property(GetRaiseSystemError, SetRaiseSystemError, None,
+                              'RaiseSystemError')
 
   def GetBooleanParameter(self):
     return self.boolean_parameter
@@ -486,7 +498,7 @@ class GetParamsRpcTest(unittest.TestCase):
     names = root.findall(
         SOAPNS + 'Body/' + CWMPNS +
         'GetParameterNamesResponse/ParameterList/ParameterInfoStruct/Name')
-    self.assertEqual(len(names), 10)
+    self.assertEqual(len(names), 11)
 
     # We don't do a string compare of the XML output, that is too fragile
     # as a test. We parse the XML and look for expected values. Nonetheless
@@ -733,6 +745,24 @@ class GetParamsRpcTest(unittest.TestCase):
                 'SetParameterAttributes', 'SetParameterValues', 'SetVouchers',
                 'Upload']
     self.assertEqual(rpcnames, expected)
+
+  def testInternalError(self):
+    cpe = self.getCpe()
+    # RaiseSystemError simulates an unexpected problem which should
+    # turn into a SOAP:Fault INTERNAL_ERROR
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterValues><ParameterNames soapenc:arrayType="{urn:dslforum-org:cwmp-1-2}string[1]"><ns3:string xmlns="urn:dslforum-org:cwmp-1-2" xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" xmlns:ns3="urn:dslforum-org:cwmp-1-2">RaiseSystemError</ns3:string></ParameterNames></cwmp:GetParameterValues></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+    root = ET.fromstring(str(responseXml))
+    self.assertFalse(root.find(SOAPNS + 'Body/' +
+                               CWMPNS + 'GetParameterValuesResponse'))
+    fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
+    self.assertTrue(fault)
+    self.assertEqual(fault.find('faultcode').text, 'Server')
+    self.assertEqual(fault.find('faultstring').text, 'CWMP fault')
+    detail = fault.find('detail/' + CWMPNS + 'Fault')
+    self.assertTrue(detail)
+    self.assertEqual(detail.find('FaultCode').text, '9002')
+    self.assertTrue(detail.find('FaultString').text)
 
 
 if __name__ == '__main__':

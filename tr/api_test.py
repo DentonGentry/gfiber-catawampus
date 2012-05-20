@@ -30,32 +30,36 @@ class TestObject(core.Exporter):
     self.Thingy = Word
 
 
+class TestSimpleRoot(core.Exporter):
+  def __init__(self):
+    core.Exporter.__init__(self)
+    self.Export(params=['SomeParam'])
+    self.SomeParam = 'SomeParamValue'
+
+
 class ApiTest(unittest.TestCase):
-  def testApi(self):
+  def testObject(self):
     root = core.Exporter()
     root.Export(objects=['Test'])
     root.Test = TestObject()
     root.ValidateExports()
-    acs = api.ACS()
     cpe = api.CPE(root)
-    print acs.GetRPCMethods()
-    print cpe.GetRPCMethods()
     #pylint: disable-msg=W0612
     (idx, status) = cpe.AddObject('Test.Thingy.', 0)
     name = 'Test.Thingy.%d' % int(idx)
     #pylint: disable-msg=E1103
-    print root.GetExport(name).word
     cpe.SetParameterValues([('%s.word' % name, 'word1')], 0)
-    print root.GetExport(name).word
-    try:
-      cpe.SetParameterValues([('%s.not_exist' % name, 'word1')], 0)
-    except KeyError:
-      self.assertTrue('Got a KeyError - good.')
-    else:
-      self.assertTrue(0)
+    self.assertEqual(root.GetExport(name).word, 'word1')
+    self.assertRaises(KeyError, cpe.SetParameterValues,
+                      [('%s.not_exist' % name, 'word1')], 0)
     result = cpe.GetParameterValues(['%s.word' % name])
-    print repr(result)
     self.assertEqual(result, [('%s.word' % name, 'word1')])
+
+  def testGetParameterValuesEmpty(self):
+    cpe = api.CPE(TestSimpleRoot())
+    result = cpe.GetParameterValues([''])
+    self.assertTrue(result)
+    self.assertEqual(result[0], ('SomeParam', 'SomeParamValue'))
 
 
 if __name__ == '__main__':
