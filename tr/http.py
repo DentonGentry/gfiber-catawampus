@@ -370,7 +370,13 @@ class CPEStateMachine(object):
         current_time + callback_time, self._NewTimeoutPingSession)
 
   def NewPeriodicSession(self):
-    self._NewSession('2 PERIODIC')
+    # If the ACS stops responding for some period of time, it's possible
+    # that we'll already have a periodic inform queued up.
+    # In this case, don't start the new inform, wait for the session
+    # retry.  The retry has a maximum timer of periodic session.
+    reason = '2 PERIODIC'
+    if not (reason, None) in self.event_queue:
+      self._NewSession(reason)
 
   def PingReceived(self):
     self._NewPingSession()

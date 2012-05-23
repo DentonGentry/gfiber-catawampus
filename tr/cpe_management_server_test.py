@@ -137,6 +137,7 @@ class CpeManagementServerTest(unittest.TestCase):
     """Test $SPEC3 Table3 timings."""
 
     cpe_ms = ms.CpeManagementServer(acs_url_file=None, port=5, ping_path='/')
+    cpe_ms._PeriodicInformInterval = 100000
     for _ in range(1000):
       self.assertEqual(cpe_ms.SessionRetryWait(0), 0)
       self.assertTrue(5 <= cpe_ms.SessionRetryWait(1) <= 10)
@@ -165,6 +166,13 @@ class CpeManagementServerTest(unittest.TestCase):
       self.assertTrue(15258 <= cpe_ms.SessionRetryWait(9) <= 38146)
       self.assertTrue(38146 <= cpe_ms.SessionRetryWait(10) <= 95367)
       self.assertTrue(38146 <= cpe_ms.SessionRetryWait(99) <= 95367)
+    # Check that the time never exceeds the periodic inform time.
+    cpe_ms._PeriodicInformInterval = 30
+    for _ in range(1000):
+      self.assertEqual(cpe_ms.SessionRetryWait(0), 0)
+      self.assertTrue(10 <= cpe_ms.SessionRetryWait(1) <= 25)
+      self.assertTrue(12 <= cpe_ms.SessionRetryWait(2) <= 30)
+      self.assertTrue(12 <= cpe_ms.SessionRetryWait(3) <= 30)
 
 
 if __name__ == '__main__':

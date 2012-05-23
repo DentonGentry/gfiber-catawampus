@@ -172,7 +172,7 @@ class HttpTest(tornado.testing.AsyncTestCase):
     ioloop_mock = m.CreateMock(tornado.ioloop.IOLoop)
     m.StubOutWithMock(cpe_machine, "_NewSession")
     m.StubOutWithMock(time, "time")
-    
+
     # First call to _NewSession should get the time and trigger a new session
     time.time().AndReturn(1000)
     cpe_machine._NewSession(mox.IsA(str))
@@ -197,9 +197,39 @@ class HttpTest(tornado.testing.AsyncTestCase):
     cpe_machine._NewPingSession()
     cpe_machine._NewPingSession()
     cpe_machine._NewTimeoutPingSession()
-    
+
     # Verify everything was called correctly.
     m.VerifyAll()
+
+  def testNewPeriodicSession(self):
+    """Tests that _NewSession is called if the event queue is empty"""
+    cpe_machine = self.getCpe()
+
+    # Create mocks of ioloop, and stubout the time function.
+    m = mox.Mox()
+    m.StubOutWithMock(cpe_machine, "_NewSession")
+    cpe_machine._NewSession('2 PERIODIC')
+    m.ReplayAll()
+
+    cpe_machine.NewPeriodicSession()
+    m.VerifyAll()
+
+
+  def testNewPeriodicSessionPending(self):
+    """Tests that no new periodic session starts if there is one pending."""
+    cpe_machine = self.getCpe()
+
+    # Create mocks of ioloop, and stubout the time function.
+    m = mox.Mox()
+    m.StubOutWithMock(cpe_machine, "Run")
+    cpe_machine.Run()
+    m.ReplayAll()
+
+    self.assertFalse(('2 PERIODIC', None) in cpe_machine.event_queue)
+    cpe_machine.NewPeriodicSession()
+    self.assertTrue(('2 PERIODIC', None) in cpe_machine.event_queue)
+    cpe_machine.NewPeriodicSession()
+    m.ReplayAll()
 
 
 class TestManagementServer(object):

@@ -187,13 +187,18 @@ class CpeManagementServer(object):
     """
     if retry_count == 0:
       return 0
+    periodic_interval = self._PeriodicInformInterval
+    if self._PeriodicInformInterval <= 0:
+      periodic_interval = 30
     c = 10 if retry_count >= 10 else retry_count
     m = float(self.CWMPRetryMinimumWaitInterval)
     k = float(self.CWMPRetryIntervalMultiplier) / 1000.0
-    start = math.floor(m * math.pow(k, c-1))
-    stop = math.floor(m * math.pow(k, c))
+    start = m * math.pow(k, c-1)
+    stop = start * k
+    # pin start/stop to have a maximum value of PerdiodInfomInterval
+    start = int(min(start, periodic_interval/k))
+    stop = int(min(stop, periodic_interval))
     return random.randrange(start, stop)
-
 
 def main():
   pass
