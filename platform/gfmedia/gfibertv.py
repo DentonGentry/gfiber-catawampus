@@ -29,6 +29,13 @@ import tr.x_gfibertv_1_0
 BASETV = tr.x_gfibertv_1_0.X_GOOGLE_COM_GFIBERTV_v1_0.X_GOOGLE_COM_GFIBERTV
 
 
+class GFiberTv(BASETV):
+  """Implementation of x-gfibertv.xml."""
+  def __init__(self, mailbox_url):
+    super(GFiberTv, self).__init__()
+    self.Mailbox = GFiberTvMailbox(mailbox_url)
+
+
 class GFiberTvMailbox(BASETV.Mailbox):
   """Implementation of x-gfibertv.xml."""
 

@@ -96,10 +96,10 @@ class TvXmlRpcTest(unittest.TestCase):
     self.server_thread.join()
 
   def testValidate(self):
-    tvrpc = gfibertv.GFiberTvMailbox('http://localhost:%d' % srv_port)
-    tvrpc.Node = 'Node1'
-    tvrpc.Name = 'Prop1'
-    tvrpc.ValidateExports()
+    tv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
+    tv.Mailbox.Node = 'Node1'
+    tv.Mailbox.Name = 'Prop1'
+    tv.ValidateExports()
 
   def testGetProperties(self):
     tvrpc = gfibertv.GFiberTvMailbox('http://localhost:%d' % srv_port)

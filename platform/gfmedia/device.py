@@ -31,6 +31,7 @@ import dm.device_info
 import dm.ethernet
 import dm.igd_time
 import dm.storage
+import gfibertv
 import platform_config
 import pynetlinux
 import stbservice
@@ -144,11 +145,11 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
 
   @property
   def AdditionalHardwareVersion(self):
-    return '0'  # TODO(dgentry) implement
+    return self._GetNvramParam('GPN', default='')
 
   @property
   def SoftwareVersion(self):
-    return self._GetOneLine(VERSIONFILE, '0.0.0')
+    return self._GetOneLine(VERSIONFILE, '0')
 
   @property
   def AdditionalSoftwareVersion(self):
@@ -396,9 +397,12 @@ def PlatformInit(name, device_model_root):
   device_model_root.Device = DeviceGFMedia(dev_id)
   device_model_root.InternetGatewayDevice = InternetGatewayDeviceGFMedia(dev_id)
   device_model_root.X_GOOGLE_COM_GVSB = gvsb.Gvsb()
+  tvrpc = gfibertv.GFiberTv('http://localhost:51834/xmlrpc')
+  device_model_root.X_GOOGLE_COM_GFIBERTV = gfibertv.GFiberTv(tvrpc)
   objects.append('Device')
   objects.append('InternetGatewayDevice')
   objects.append('X_GOOGLE-COM_GVSB')
+  objects.append('X_GOOGLE-COM_GFIBERTV')
   return (params, objects)
 
 
