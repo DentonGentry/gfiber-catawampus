@@ -9,8 +9,6 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import imp
-import sys
 import google3
 import dm.catawampus
 import dm.management_server
@@ -19,14 +17,7 @@ import traceroute
 
 
 def _RecursiveImport(name):
-  split = name.split('.')
-  last = split.pop()
-  if split:
-    path = _RecursiveImport('.'.join(split)).__path__
-  else:
-    path = sys.path
-  fileobj, path, description = imp.find_module(last, path)
-  return imp.load_module(name, fileobj, path, description)
+  return __import__(name, fromlist=[''])
 
 
 class DeviceModelRoot(tr.core.Exporter):
