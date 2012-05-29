@@ -5,10 +5,21 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import os.path
 import re
 import string
 import sys
 import xml.etree.ElementTree
+
+import google3
+import bup.options
+
+
+optspec = """
+parse-schema.py [-d dir] files...
+--
+d,output-dir= Directory to write files to
+"""
 
 DEFAULT_BASE_CLASS = 'core.Exporter'
 
@@ -360,7 +371,13 @@ class Spec(object):
 
 
 def main():
-  for filename in sys.argv[1:]:
+  o = bup.options.Options(optspec)
+  (opt, unused_flags, extra) = o.parse(sys.argv[1:])
+
+  output_dir = opt.output_dir or '.'
+  Log('Output directory for generated files is %s' % output_dir)
+
+  for filename in extra:
     ParseFile(filename)
   ResolveImports()
   Log('Finished parsing and importing.')
@@ -391,7 +408,7 @@ def main():
   for specname, spec in sorted(specs.items()):
     pyspec = SpecNameForPython(specname)
     assert pyspec.startswith('tr') or pyspec.startswith('x_')
-    outf = open('%s.py' % pyspec, 'w')
+    outf = open(os.path.join(output_dir, '%s.py' % pyspec), 'w')
     outf.write('#!/usr/bin/python\n'
                '# Copyright 2011 Google Inc. All Rights Reserved.\n'
                '#\n'
