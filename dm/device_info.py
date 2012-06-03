@@ -38,6 +38,7 @@ BASE181DEVICE = tr.tr181_v2_2.Device_v2_2
 PROC_MEMINFO = '/proc/meminfo'
 PROC_NET_DEV = '/proc/net/dev'
 PROC_UPTIME = '/proc/uptime'
+PROC_STAT = '/proc/stat'
 SLASH_PROC = '/proc'
 
 
@@ -100,11 +101,7 @@ class DeviceIdMeta(object):
 
 def _GetUptime():
   """Return a string of the number of integer seconds since boot."""
-  try:
-    uptime = float(open(PROC_UPTIME).read().split()[0])
-  except IOError:
-    # TODO(dgentry) - LOG the exception, but return zeros by default
-    uptime = 0.0
+  uptime = float(open(PROC_UPTIME).read().split()[0])
   return str(int(uptime))
 
 
@@ -118,11 +115,9 @@ class DeviceInfo181Linux26(BASE181DEVICE.DeviceInfo):
     self._device_id = device_id
     self.MemoryStatus = MemoryStatusLinux26()
     self.ProcessStatus = ProcessStatusLinux26()
-    self.ProvisioningCode = None  # TODO(apenwarr): fill me
-    self.FirstUseDate = None  # TODO(apenwarr): fill me
-    self.NetworkProperties = self.NetworkProperties()
-    self.NetworkProperties.MaxTCPWindowSize = 0,   # TODO(apenwarr): fill me
-    self.NetworkProperties.TCPImplementation = ''  # TODO(apenwarr): fill me
+    self.Unexport('ProvisioningCode')
+    self.Unexport('FirstUseDate')
+    self.Unexport(objects='NetworkProperties')
     self.TemperatureStatus = self.TemperatureStatus()
     self.TemperatureStatus.TemperatureSensorNumberOfEntries = 0
     self.TemperatureStatus.TemperatureSensorList = {}
@@ -185,8 +180,7 @@ class MemoryStatusLinux26(BASE181DEVICE.DeviceInfo.MemoryStatus):
     """
     totalmem = 0
     freemem = 0
-    try:
-      pfile = open(PROC_MEMINFO)
+    with open(PROC_MEMINFO) as pfile:
       for line in pfile:
         fields = line.split()
         name = fields[0]
@@ -195,9 +189,6 @@ class MemoryStatusLinux26(BASE181DEVICE.DeviceInfo.MemoryStatus):
           totalmem = int(value)
         elif name == 'MemFree:':
           freemem = int(value)
-    except IOError:
-      # TODO(dgentry): LOG the exception, but return zeros by default
-      pass
     return (totalmem, freemem)
 
 
@@ -253,9 +244,34 @@ class ProcessStatusLinux26(BASE181DEVICE.DeviceInfo.ProcessStatus):
   def _ProcFileName(self, pid):
     return '%s/%s/stat' % (SLASH_PROC, pid)
 
+  def _ParseProcStat(self):
+    """Compute CPU utilization using /proc/stat.
+
+    Returns:
+      CPU usage as a percentage.
+    """
+    with open(PROC_STAT) as f:
+      for line in f:
+        fields = line.split()
+        if fields[0] == 'cpu':
+          user = float(fields[1])
+          nice = float(fields[2])
+          syst = float(fields[3])
+          idle = float(fields[4])
+          iowt = float(fields[5])
+          irq  = float(fields[6])
+          sirq = float(fields[7])
+          total = user + nice + syst + idle + iowt + irq + sirq
+          if total:
+            used = (total - idle) / total
+          else:
+            used = 0.0
+          return int(used * 100.0)
+    return 0
+
   @property
   def CPUUsage(self):
-    return 0   # TODO(apenwarr): figure out what this should do
+    return self._ParseProcStat()
 
   @property
   def ProcessNumberOfEntries(self):
@@ -264,10 +280,10 @@ class ProcessStatusLinux26(BASE181DEVICE.DeviceInfo.ProcessStatus):
   def GetProcess(self, pid):
     """Get a self.Process() object for the given pid."""
     try:
-      f = open(self._ProcFileName(pid))
+      with open(self._ProcFileName(pid)) as f:
+        fields = f.read().split()
     except IOError:
       raise KeyError(pid)
-    fields = f.read().split()
     p = self.Process(PID=fields[self._PID],
                      Command=self._RemoveParens(fields[self._COMM]),
                      Size=fields[self._RSS],

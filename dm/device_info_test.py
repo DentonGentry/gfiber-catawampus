@@ -91,11 +91,6 @@ class DeviceInfoTest(unittest.TestCase):
     di = device_info.DeviceInfo181Linux26(TestDeviceId())
     self.assertEqual(di.UpTime, '123')
 
-  def testUptimeFailure(self):
-    device_info.PROC_UPTIME = '/please_do_not_create_this_file'
-    di = device_info.DeviceInfo181Linux26(TestDeviceId())
-    self.assertEqual(di.UpTime, '0')
-
   def testDeviceId(self):
     did = TestDeviceId()
     di = device_info.DeviceInfo181Linux26(did)
@@ -118,12 +113,6 @@ class DeviceInfoTest(unittest.TestCase):
     self.assertEqual(mi.Total, 123456)
     self.assertEqual(mi.Free, 654321)
 
-  def testMemoryStatusNonexistant(self):
-    device_info.PROC_MEMINFO = '/please_do_not_create_this_file'
-    mi = device_info.MemoryStatusLinux26()
-    self.assertEqual(mi.Total, 0)
-    self.assertEqual(mi.Free, 0)
-
   def testMemoryStatusTotal(self):
     device_info.PROC_MEMINFO = 'testdata/device_info/meminfo_total'
     mi = device_info.MemoryStatusLinux26()
@@ -135,6 +124,13 @@ class DeviceInfoTest(unittest.TestCase):
     mi = device_info.MemoryStatusLinux26()
     self.assertEqual(mi.Total, 0)
     self.assertEqual(mi.Free, 654321)
+
+  def testCPUUsage(self):
+    device_info.PROC_STAT = 'testdata/device_info/cpu/stat'
+    ps = device_info.ProcessStatusLinux26()
+    self.assertEqual(ps.CPUUsage, 10)
+    device_info.PROC_STAT = 'testdata/device_info/cpu/stat0'
+    self.assertEqual(ps.CPUUsage, 0)
 
   def testProcessStatusReal(self):
     ps = device_info.ProcessStatusLinux26()
