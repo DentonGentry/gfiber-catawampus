@@ -28,6 +28,7 @@ import abc
 import glob
 import os
 import tr.core
+import tornado.ioloop
 import tr.tr098_v1_4
 import tr.tr181_v2_2
 
@@ -35,6 +36,7 @@ BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
 BASE181DEVICE = tr.tr181_v2_2.Device_v2_2
 
 # Unit tests can override these with fake data
+PERIODICCALL = tornado.ioloop.PeriodicCallback
 PROC_MEMINFO = '/proc/meminfo'
 PROC_NET_DEV = '/proc/net/dev'
 PROC_UPTIME = '/proc/uptime'
@@ -109,12 +111,13 @@ def _GetUptime():
 class DeviceInfo181Linux26(BASE181DEVICE.DeviceInfo):
   """Implements tr-181 DeviceInfo for Linux 2.6 and similar systems."""
 
-  def __init__(self, device_id):
+  def __init__(self, device_id, ioloop=None):
     BASE181DEVICE.DeviceInfo.__init__(self)
     assert isinstance(device_id, DeviceIdMeta)
+    self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self._device_id = device_id
     self.MemoryStatus = MemoryStatusLinux26()
-    self.ProcessStatus = ProcessStatusLinux26()
+    self.ProcessStatus = ProcessStatusLinux26(ioloop=ioloop)
     self.Unexport('ProvisioningCode')
     self.Unexport('FirstUseDate')
     self.Unexport(objects='NetworkProperties')
@@ -206,10 +209,16 @@ class ProcessStatusLinux26(BASE181DEVICE.DeviceInfo.ProcessStatus):
   _PRIO = 17
   _RSS = 23
 
-  def __init__(self):
+  def __init__(self, ioloop=None):
     BASE181DEVICE.DeviceInfo.ProcessStatus.__init__(self)
     tick = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
-    self._msec_per_jiffy = 1000 / tick
+    self._msec_per_jiffy = 1000.0 / tick
+    self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
+    self.scheduler = PERIODICCALL(self.CpuUsageTimer, 300, io_loop=self.ioloop)
+    self.scheduler.start()
+    self.cpu_usage = 0.0
+    self.cpu_used = 0
+    self.cpu_total = 0
     self.ProcessList = tr.core.AutoDict('ProcessList',
                                         iteritems=self.IterProcesses,
                                         getitem=self.GetProcess)
@@ -236,7 +245,7 @@ class ProcessStatusLinux26(BASE181DEVICE.DeviceInfo.ProcessStatus):
   def _JiffiesToMsec(self, utime, stime):
     ticks = int(utime) + int(stime)
     msecs = ticks * self._msec_per_jiffy
-    return str(msecs)
+    return str(int(msecs))
 
   def _RemoveParens(self, command):
     return command[1:-1]
@@ -248,7 +257,9 @@ class ProcessStatusLinux26(BASE181DEVICE.DeviceInfo.ProcessStatus):
     """Compute CPU utilization using /proc/stat.
 
     Returns:
-      CPU usage as a percentage.
+      (used, total)
+      used: number of jiffies where CPU was active
+      total: total number of jiffies including idle
     """
     with open(PROC_STAT) as f:
       for line in f:
@@ -262,16 +273,25 @@ class ProcessStatusLinux26(BASE181DEVICE.DeviceInfo.ProcessStatus):
           irq  = float(fields[6])
           sirq = float(fields[7])
           total = user + nice + syst + idle + iowt + irq + sirq
-          if total:
-            used = (total - idle) / total
-          else:
-            used = 0.0
-          return int(used * 100.0)
-    return 0
+          used = total - idle
+          return (used, total)
+    return (0, 0)
+
+  def CpuUsageTimer(self):
+    """Called periodically to compute CPU utilization since last call."""
+    (new_used, new_total) = self._ParseProcStat()
+    total = new_total - self.cpu_total
+    used = new_used - self.cpu_used
+    if total == 0:
+      self.cpu_usage = 0.0
+    else:
+      self.cpu_usage = (used / total) * 100.0
+    self.cpu_total = new_total
+    self.cpu_used = new_used
 
   @property
   def CPUUsage(self):
-    return self._ParseProcStat()
+    return int(self.cpu_usage)
 
   @property
   def ProcessNumberOfEntries(self):

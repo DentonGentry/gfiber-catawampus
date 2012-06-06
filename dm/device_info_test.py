@@ -26,6 +26,7 @@ import unittest
 import google3
 import tr.core
 import device_info
+import tornado.testing
 
 
 class TestDeviceId(device_info.DeviceIdMeta):
@@ -63,20 +64,42 @@ class TestDeviceId(device_info.DeviceIdMeta):
     return 'ModemFirmwareVersion'
 
 
-class DeviceInfoTest(unittest.TestCase):
+fake_periodics = []
+class FakePeriodicCallback(object):
+  def __init__(self, callback, callback_time, io_loop=None):
+    self.callback = callback
+    self.callback_time = callback_time
+    self.io_loop = io_loop
+    self.start_called = False
+    self.stop_called = False
+    fake_periodics.append(self)
+
+  def start(self):
+    self.start_called = True
+
+  def stop(self):
+    self.stop_called = True
+
+
+class DeviceInfoTest(tornado.testing.AsyncTestCase):
   """Tests for device_info.py."""
 
   def setUp(self):
+    super(DeviceInfoTest, self).setUp()
     self.old_PROC_MEMINFO = device_info.PROC_MEMINFO
     self.old_PROC_NET_DEV = device_info.PROC_NET_DEV
     self.old_PROC_UPTIME = device_info.PROC_UPTIME
     self.old_SLASH_PROC = device_info.SLASH_PROC
+    self.old_PERIODICCALL = device_info.PERIODICCALL
+    device_info.PERIODICCALL = FakePeriodicCallback
 
   def tearDown(self):
+    super(DeviceInfoTest, self).tearDown()
     device_info.PROC_MEMINFO = self.old_PROC_MEMINFO
     device_info.PROC_NET_DEV = self.old_PROC_NET_DEV
     device_info.PROC_UPTIME = self.old_PROC_UPTIME
     device_info.SLASH_PROC = self.old_SLASH_PROC
+    device_info.PERIODICCALL = self.old_PERIODICCALL
 
   def testValidate181(self):
     di = device_info.DeviceInfo181Linux26(TestDeviceId())
@@ -126,14 +149,20 @@ class DeviceInfoTest(unittest.TestCase):
     self.assertEqual(mi.Free, 654321)
 
   def testCPUUsage(self):
-    device_info.PROC_STAT = 'testdata/device_info/cpu/stat'
-    ps = device_info.ProcessStatusLinux26()
-    self.assertEqual(ps.CPUUsage, 10)
+    ps = device_info.ProcessStatusLinux26(self.io_loop)
+    self.assertEqual(len(fake_periodics), 1)
+    self.assertTrue(fake_periodics[0].start_called)
     device_info.PROC_STAT = 'testdata/device_info/cpu/stat0'
     self.assertEqual(ps.CPUUsage, 0)
+    fake_periodics[0].callback()  # simulate periodic timer
+    self.assertEqual(ps.CPUUsage, 0)
+    device_info.PROC_STAT = 'testdata/device_info/cpu/stat'
+    fake_periodics[0].callback()  # simulate periodic timer
+    self.assertEqual(ps.CPUUsage, 10)
+    del fake_periodics[0]
 
   def testProcessStatusReal(self):
-    ps = device_info.ProcessStatusLinux26()
+    ps = device_info.ProcessStatusLinux26(self.io_loop)
     # This fetches the processes running on the unit test machine. We can't
     # make many assertions about this, just that there should be some processes
     # running.
@@ -164,7 +193,7 @@ class DeviceInfoTest(unittest.TestCase):
                        State='Uninterruptible')
         }
     device_info.SLASH_PROC = 'testdata/device_info/processes'
-    ps = device_info.ProcessStatusLinux26()
+    ps = device_info.ProcessStatusLinux26(self.io_loop)
     processes = ps.ProcessList
     self.assertEqual(len(processes), 6)
     for p in processes.values():
