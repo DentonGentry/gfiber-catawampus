@@ -404,9 +404,12 @@ def PlatformInit(name, device_model_root):
   device_model_root.InternetGatewayDevice = InternetGatewayDeviceGFMedia(
       dev_id, periodic_stats)
   device_model_root.X_GOOGLE_COM_GVSB = gvsb.Gvsb()
+  tvrpc = gfibertv.GFiberTv('http://localhost:51834/xmlrpc')
+  device_model_root.X_GOOGLE_COM_GFIBERTV = tvrpc
   objects.append('Device')
   objects.append('InternetGatewayDevice')
   objects.append('X_GOOGLE-COM_GVSB')
+  objects.append('X_GOOGLE-COM_GFIBERTV')
   return (params, objects)
 
 
