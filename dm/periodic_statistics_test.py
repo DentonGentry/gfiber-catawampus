@@ -11,6 +11,7 @@ __author__ = 'jnewlin@google.com (John Newlin)'
 
 import datetime
 import mox
+import time
 import unittest
 
 import google3
@@ -129,10 +130,20 @@ class SampleSetTest(unittest.TestCase):
   def testCollectSample(self):
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
     self.ps.SampleSetList['0'] = sample_set
+    start1_time = time.time()
     sample_set.CollectSample()
-    self.assertEqual(1, sample_set._samples_collected)
-    self.assertEqual('0', sample_set._sample_seconds[0])
-    self.assertEqual('0', sample_set.SampleSeconds)
+    end1_time = time.time()
+    self.assertEqual(1, len(sample_set._sample_seconds))
+    self.assertTrue(start1_time <= sample_set._sample_seconds[0])
+    self.assertTrue(end1_time >= sample_set._sample_seconds[0])
+    start1_time = time.time()
+    sample_set.CollectSample()
+    end2_time = time.time()
+    self.assertEqual(2, len(sample_set._sample_seconds))
+    self.assertTrue(
+        sample_set._sample_seconds[0] < sample_set._sample_seconds[1])
+    self.assertEqual(sample_set.SampleSeconds, '0,0')
+
 
   def testSampleTrigger(self):
     mock_ioloop = self.m.CreateMock(tornado.ioloop.IOLoop)
@@ -171,16 +182,20 @@ class SampleSetTest(unittest.TestCase):
     self.assertFalse(sample_set.FinishedSampling())
 
   def testSampleSeconds(self):
+    # Insert some phone values into sample_seconds
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
-    sample_set._sample_seconds = ['1', '2', '3']
-    self.assertEqual('1,2,3', sample_set.SampleSeconds)
-    sample_set._sample_seconds = ['1']
-    self.assertEqual('1', sample_set.SampleSeconds)
     sample_set._sample_seconds = []
     self.assertEqual('', sample_set.SampleSeconds)
+    sample_set._sample_seconds.append(10.2)
+    self.assertEqual('0', sample_set.SampleSeconds)
+    sample_set._sample_seconds.append(11.8)
+    self.assertEqual('0,2', sample_set.SampleSeconds)
+    sample_set._sample_seconds.append(13.2)
+    self.assertEqual(sample_set.SampleSeconds, '0,2,1')
 
   def testPassiveNotify(self):
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
+    self.m.StubOutWithMock(sample_set, 'ClearSamplingData')
     PARAMETER = periodic_statistics.PeriodicStatistics.SampleSet.Parameter
     mock_cpe = self.m.CreateMock(tr.http.CPEStateMachine)
     mock_root = self.m.CreateMock(tr.core.Exporter)
@@ -188,6 +203,7 @@ class SampleSetTest(unittest.TestCase):
     mock_param2 = self.m.CreateMock(PARAMETER)
     mock_param1.Reference = 'Fake.Param.One'
     mock_param2.Reference = 'Fake.Param.Two'
+    sample_set.ClearSamplingData()
     mock_param1.CollectSample().AndReturn(100)
     mock_param2.CollectSample().AndReturn(200)
     obj_name = 'Device.PeriodicStatistics.SampleSet.0'
@@ -211,6 +227,7 @@ class SampleSetTest(unittest.TestCase):
 
   def testActiveNotify(self):
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
+    self.m.StubOutWithMock(sample_set, 'ClearSamplingData')
     PARAMETER = periodic_statistics.PeriodicStatistics.SampleSet.Parameter
     mock_cpe = self.m.CreateMock(tr.http.CPEStateMachine)
     mock_root = self.m.CreateMock(tr.core.Exporter)
@@ -222,6 +239,7 @@ class SampleSetTest(unittest.TestCase):
     mock_param2.CollectSample().AndReturn(200)
     obj_name = 'Device.PeriodicStatistics.SampleSet.0'
     param_name = obj_name + '.Status'
+    sample_set.ClearSamplingData()
     mock_root.GetCanonicalName(sample_set).AndReturn(obj_name)
     mock_cpe.SetNotificationParameters([(param_name, 'Disabled')])
     mock_cpe.NewValueChangeSession()
@@ -238,6 +256,30 @@ class SampleSetTest(unittest.TestCase):
     sample_set.Enable = 'True'
     sample_set._attributes['Notification'] = 2
     sample_set.CollectSample()
+
+  def testClearSamplingData(self):
+    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
+    param1 = periodic_statistics.PeriodicStatistics.SampleSet.Parameter()
+    param2 = periodic_statistics.PeriodicStatistics.SampleSet.Parameter()
+    sample_set.ClearSamplingData()
+    sample_set.ParameterList['0'] = param1
+    sample_set.ParameterList['1'] = param2
+    self.assertEqual(2, len(sample_set._parameter_list))
+    sample_set.ClearSamplingData()
+    # put in some fake data
+    sample_set._sample_seconds = [1, 2, 3]
+    sample_set._fetch_samples = 10
+    sample_set._report_samples = 10
+    param1._values = ['1', '2', '3']
+    param1._sample_seconds = [5, 6, 7]
+    param2._values = ['5', '6', '7']
+    param2._sample_seconds = [8, 9, 10]
+    sample_set.ClearSamplingData()
+    self.assertEqual(0, len(sample_set._sample_seconds))
+    self.assertEqual(0, len(param1._sample_seconds))
+    self.assertEqual(0, len(param2._sample_seconds))
+    self.assertEqual(0, len(param1._values))
+    self.assertEqual(0, len(param2._values))
 
 
 if __name__ == '__main__':

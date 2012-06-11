@@ -30,6 +30,22 @@ import tr.tr157_v1_3
 # version of the schema.
 BASE157PS = tr.tr157_v1_3.InternetGatewayDevice_v1_7.PeriodicStatistics
 
+CALC_MODES = frozenset(
+    ['Latest', 'Minimum', 'Maximum', 'Average'])
+SAMPLE_MODES = frozenset(['Current', 'Change'])
+
+
+def _MakeSampleSeconds(sample_seconds):
+  """Helper to convert an array of time values to a tr157 string."""
+  if not len(sample_seconds):
+    return ''
+  # Create a new array that is just array[n] - array[n-1]
+  # and then round to nearest, convert to int, and then to a string.
+  deltas = map(lambda x,y: y-x, sample_seconds[:-1], sample_seconds[1:])
+  deltas = [str(int(round(x))) for x in deltas]
+  deltas.insert(0, '0')
+  return ','.join(deltas)
+
 
 class PeriodicStatistics(BASE157PS):
   """An implementation of tr157 PeriodicStatistics sampling."""
@@ -112,25 +128,22 @@ class PeriodicStatistics(BASE157PS):
           'ParameterList', iteritems=self.IterParameters,
           getitem=self.GetParameter, setitem=self.SetParameter,
           delitem=self.DelParameter)
-      self._parameter_list = dict()
       self.Unexport('ForceSample')
       self.Name = ''
       self.ParameterNumberOfEntries = 0
-      self.ReportEndTime = 0
-      self.ReportStartTime = 0
       self.TimeReference = 0
+      self._parameter_list = dict()
       self._sample_seconds = []
       self._attributes = dict()
       self._cpe = None
       self._root = None
-      self._sampler = None
       self._enable = False
-      self._samples_collected = 0
       self._pending_timeout = None
       self._fetch_samples = 0
       self._report_samples = 0
       self._sample_interval = 0
-      self._previous_sample_time = 0
+      self._report_start_time = 0
+      self._report_end_time = 0
 
     def IterParameters(self):
       return self._parameter_list.iteritems()
@@ -145,6 +158,14 @@ class PeriodicStatistics(BASE157PS):
 
     def DelParameter(self, key):
       del self._parameter_list[key]
+
+    @property
+    def ReportStartTime(self):
+      return tr.cwmpdate.format(self._report_start_time)
+
+    @property
+    def ReportEndTime(self):
+      return tr.cwmpdate.format(self._report_end_time)
 
     @property
     def Status(self):
@@ -180,6 +201,7 @@ class PeriodicStatistics(BASE157PS):
       if v < 1:
         raise ValueError('SampleInterval must be >= 1')
       self._sample_interval = v
+      self.ClearSamplingData()
       self.UpdateSampling()
 
     def RemoveTimeout(self):
@@ -200,6 +222,18 @@ class PeriodicStatistics(BASE157PS):
       """Disables the sampling, and if a sample is pending, cancels it."""
       self.RemoveTimeout()
 
+    def ClearSamplingData(self):
+      """Clears out any old sampling data.
+
+      Clears any old sampled data, so that a new sampling run can
+      begin.  Also clears all Parameter objects.
+      """
+      self._sample_seconds = []
+      self._report_start_time = 0
+      self._report_end_time = 0
+      for param in self._parameter_list.itervalues():
+        param.ClearSamplingData()
+
     def UpdateSampling(self):
       """This is called whenever some member is changed.
 
@@ -214,7 +248,7 @@ class PeriodicStatistics(BASE157PS):
 
     def FinishedSampling(self):
       """Returns True if we are done sample for this set."""
-      if not self._enable or self._samples_collected >= self.ReportSamples:
+      if not self._enable or len(self._sample_seconds) >= self.ReportSamples:
         return True
       return False
 
@@ -237,16 +271,11 @@ class PeriodicStatistics(BASE157PS):
       if not self._root or not self._cpe:
         return
 
-      self._samples_collected += 1
       current_time = time.time()
-      # TODO(jnewlin): Verify that this is just a raw seconds value
-      # and does not need to be formatted with tr.cwmpdate.
-      if not self._previous_sample_time:
-        self._sample_seconds.append('0')
-      else:
-        self._sample_seconds.append(
-            str(int(current_time) - self._previous_sample_time))
-      self._previous_sample_time = current_time
+      if len(self._sample_seconds) == 0:
+        self._report_start_time = current_time
+      self._report_end_time = current_time
+      self._sample_seconds.append(current_time)
 
       for key in self._parameter_list:
         self._parameter_list[key].CollectSample()
@@ -254,7 +283,7 @@ class PeriodicStatistics(BASE157PS):
       if not self.FinishedSampling():
         self.SetSampleTrigger()
 
-      if self._samples_collected == self.FetchSamples:
+      if len(self._sample_seconds) == self.FetchSamples:
         if self.PassiveNotification() or self.ActiveNotification():
           param_name = self._root.GetCanonicalName(self)
           param_name += '.Status'
@@ -288,12 +317,14 @@ class PeriodicStatistics(BASE157PS):
     @Enable.setter
     def Enable(self, value):
       self._enable = tr.cwmpbool.parse(value)
+      if self._enable:
+        self.ClearSamplingData()
       self.UpdateSampling()
 
     @property
     def SampleSeconds(self):
       """A comma separarted string of unsigned integers."""
-      return ','.join(self._sample_seconds)
+      return _MakeSampleSeconds(self._sample_seconds)
 
     def SetAttribute(self, attr, value):
       """Sets an attribute on this object.  Currently can be anything.
@@ -323,9 +354,6 @@ class PeriodicStatistics(BASE157PS):
         BASE157PS.SampleSet.Parameter.__init__(self)
         self._parent = None
         self._root = None
-        self._allowed_calc_modes = frozenset(
-            ['Latest', 'Minimum', 'Maximum', 'Average'])
-        self._allowed_sample_modes = frozenset(['Current', 'Change'])
         self.Enable = False
         self.HighThreshold = 0
         self.LowThreshold = 0
@@ -343,7 +371,7 @@ class PeriodicStatistics(BASE157PS):
 
       @CalculationMode.setter
       def CalculationMode(self, value):
-        if not value in self._allowed_calc_modes:
+        if not value in CALC_MODES:
           raise ValueError('Bad value sent for CalculationMode.')
         self._calculation_mode = value
 
@@ -357,13 +385,14 @@ class PeriodicStatistics(BASE157PS):
 
       @SampleMode.setter
       def SampleMode(self, value):
-        if value not in self._allowed_sample_modes:
+        if value not in SAMPLE_MODES:
           raise ValueError('Bad value set for SampleMode: ' + str(value))
         self._sample_mode = value
 
       @property
       def SampleSeconds(self):
-        return ','.join(self._sample_seconds)
+        """Convert the stored time values to a SampleSeconds string."""
+        return _MakeSampleSeconds(self._sample_seconds)
 
       @property
       def SuspectData(self):
@@ -386,12 +415,17 @@ class PeriodicStatistics(BASE157PS):
         if not self.Enable:
           return
         try:
-          # TODO(jnewlin): Update _sample_seconds, and _suspect_data.
+          # TODO(jnewlin): Update _suspect_data.
           current_value = self._root.GetExport(self.Reference)
           self._values.append(str(current_value))
+          self._sample_seconds.append(time.time())
         except (KeyError, AttributeError):
           pass
 
+      def ClearSamplingData(self):
+        """Throw away any sampled data."""
+        self._values = []
+        self._sample_seconds = []
 
 def main():
   pass
