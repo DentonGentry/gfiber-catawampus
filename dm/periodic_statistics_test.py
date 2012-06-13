@@ -209,7 +209,7 @@ class SampleSetTest(unittest.TestCase):
     obj_name = 'Device.PeriodicStatistics.SampleSet.0'
     param_name = obj_name + '.Status'
     mock_root.GetCanonicalName(sample_set).AndReturn(obj_name)
-    mock_cpe.SetNotificationParameters([(param_name, 'Disabled')])
+    mock_cpe.SetNotificationParameters([(param_name, 'Trigger')])
     self.m.ReplayAll()
 
     self.assertEqual({}, sample_set._parameter_list)
@@ -241,7 +241,7 @@ class SampleSetTest(unittest.TestCase):
     param_name = obj_name + '.Status'
     sample_set.ClearSamplingData()
     mock_root.GetCanonicalName(sample_set).AndReturn(obj_name)
-    mock_cpe.SetNotificationParameters([(param_name, 'Disabled')])
+    mock_cpe.SetNotificationParameters([(param_name, 'Trigger')])
     mock_cpe.NewValueChangeSession()
     self.m.ReplayAll()
 
@@ -280,6 +280,39 @@ class SampleSetTest(unittest.TestCase):
     self.assertEqual(0, len(param2._sample_seconds))
     self.assertEqual(0, len(param1._values))
     self.assertEqual(0, len(param2._values))
+
+  def testCalcTimeToNext(self):
+    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
+    sample_set._sample_interval = 60
+    self.assertEqual(60, sample_set.CalcTimeToNextSample())
+    sample_set.TimeReference = '2012-06-1T1:00:00.0Z'
+    sample_set._sample_interval = 15  # Every 15 seconds.
+
+    # Check time to sample if current time is 5 seconds after the timeref.
+    current_time = time.mktime((2012, 6, 1, 1, 0, 5, -1, -1, -1))
+    time_till_sample = sample_set.CalcTimeToNextSample(current_time)
+    self.assertEqual(10, time_till_sample)
+
+    # Check time to sample if current time is 16 seconds after the timeref.
+    current_time = time.mktime((2012, 6, 1, 1, 0, 16, -1, -1, -1))
+    time_till_sample = sample_set.CalcTimeToNextSample(current_time)
+    self.assertEqual(14, time_till_sample)
+
+    # Check time to sample if current time is 1 hour after the timeref
+    current_time = time.mktime((2012, 6, 1, 2, 0, 5, -1, -1, -1))
+    time_till_sample = sample_set.CalcTimeToNextSample(current_time)
+    self.assertEqual(10, time_till_sample)
+
+    # Check time to sample if current time is 1 day after the timeref
+    current_time = time.mktime((2012, 6, 2, 1, 0, 0, -1, -1, -1))
+    time_till_sample = sample_set.CalcTimeToNextSample(current_time)
+    self.assertEqual(15, time_till_sample)
+
+    # Check time to sample if current time is 1 day before the timeref
+    current_time = time.mktime((2012, 6, 2, 1, 0, 0, -1, -1, -1))
+    time_till_sample = sample_set.CalcTimeToNextSample(current_time)
+    self.assertEqual(15, time_till_sample)
+
 
 
 if __name__ == '__main__':

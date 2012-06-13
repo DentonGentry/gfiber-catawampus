@@ -131,7 +131,6 @@ class PeriodicStatistics(BASE157PS):
       self.Unexport('ForceSample')
       self.Name = ''
       self.ParameterNumberOfEntries = 0
-      self.TimeReference = 0
       self._parameter_list = dict()
       self._sample_seconds = []
       self._attributes = dict()
@@ -144,6 +143,7 @@ class PeriodicStatistics(BASE157PS):
       self._sample_interval = 0
       self._report_start_time = 0
       self._report_end_time = 0
+      self._time_reference = None
 
     def IterParameters(self):
       return self._parameter_list.iteritems()
@@ -158,6 +158,20 @@ class PeriodicStatistics(BASE157PS):
 
     def DelParameter(self, key):
       del self._parameter_list[key]
+
+    @property
+    def TimeReference(self):
+      # if _time_reference is None, this returns a CWMP
+      # Unknown time.
+      return tr.cwmpdate.format(self._time_reference)
+
+    @TimeReference.setter
+    def TimeReference(self, value):
+      self.ClearSamplingData()
+      if value == '0001-01-01T00:00:00Z': # CWMP Unknown time.
+        self._time_reference = None
+      else:
+        self._time_reference = tr.cwmpdate.parse(value)
 
     @property
     def ReportStartTime(self):
@@ -252,11 +266,20 @@ class PeriodicStatistics(BASE157PS):
         return True
       return False
 
-    def CalcTimeToNextSample(self):
+    def CalcTimeToNextSample(self, current_time=None):
       """Return time until the next sample should be collected."""
-      # TODO(jnewlin): Make this work with the TR157- TimeReference.
-      # currently we'll just start a sample every SampleInterval.
-      return self._sample_interval
+      # The simple case, if TimeReference is not set, the time till next
+      # sample is simply the SampleInterval.
+      if not self._time_reference:
+        return self._sample_interval
+
+      # self._time_reference is a datetime object.
+      if not current_time:
+        current_time = time.time()
+      time_ref = time.mktime(self._time_reference.timetuple())
+      delta_seconds = (current_time - time_ref) % self._sample_interval
+      return int(round(self._sample_interval - delta_seconds))
+
 
     def CollectSample(self):
       """Collects a sample for each of the Parameters.
@@ -288,7 +311,7 @@ class PeriodicStatistics(BASE157PS):
           param_name = self._root.GetCanonicalName(self)
           param_name += '.Status'
           self._cpe.SetNotificationParameters(
-              [(param_name, self.Status)])
+              [(param_name, 'Trigger')])
           if self.ActiveNotification():
             self._cpe.NewValueChangeSession()
 
