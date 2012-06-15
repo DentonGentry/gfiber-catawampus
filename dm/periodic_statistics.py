@@ -35,15 +35,9 @@ CALC_MODES = frozenset(
 SAMPLE_MODES = frozenset(['Current', 'Change'])
 
 
-def _MakeSampleSeconds(sample_seconds):
+def _MakeSampleSeconds(sample_times):
   """Helper to convert an array of time values to a tr157 string."""
-  if not len(sample_seconds):
-    return ''
-  # Create a new array that is just array[n] - array[n-1]
-  # and then round to nearest, convert to int, and then to a string.
-  deltas = map(lambda x,y: y-x, sample_seconds[:-1], sample_seconds[1:])
-  deltas = [str(int(round(x))) for x in deltas]
-  deltas.insert(0, '0')
+  deltas = [str(int(round(end - start))) for start,end in sample_times]
   return ','.join(deltas)
 
 
@@ -132,7 +126,9 @@ class PeriodicStatistics(BASE157PS):
       self.Name = ''
       self.ParameterNumberOfEntries = 0
       self._parameter_list = dict()
-      self._sample_seconds = []
+      self._sample_times = []
+      self._samples_collected = 0
+      self._sample_start_time = None
       self._attributes = dict()
       self._cpe = None
       self._root = None
@@ -141,8 +137,6 @@ class PeriodicStatistics(BASE157PS):
       self._fetch_samples = 0
       self._report_samples = 0
       self._sample_interval = 0
-      self._report_start_time = 0
-      self._report_end_time = 0
       self._time_reference = None
 
     def IterParameters(self):
@@ -175,15 +169,17 @@ class PeriodicStatistics(BASE157PS):
 
     @property
     def ReportStartTime(self):
-      return tr.cwmpdate.format(self._report_start_time)
+      start_time = self._sample_times[0][0] if self._sample_times else None
+      return tr.cwmpdate.format(start_time)
 
     @property
     def ReportEndTime(self):
-      return tr.cwmpdate.format(self._report_end_time)
+      end_time = self_.sample_times[-1][1] if self._sample_times else None
+      return tr.cwmpdate.format(end_time)
 
     @property
     def Status(self):
-      return 'Disabled' if self.FinishedSampling() else 'Enabled'
+      return 'Enabled' if self._enable else 'Disabled'
 
     @property
     def FetchSamples(self):
@@ -203,6 +199,10 @@ class PeriodicStatistics(BASE157PS):
       if v < 1:
         raise ValueError('ReportSamples must be >= 1')
       self._report_samples = v
+      # Trim down samples
+      self._sample_times = self._sample_times[-v:]
+      for param in self._parameter_list.itervalues():
+        param.TrimSamples(v)
       self.UpdateSampling()
 
     @property
@@ -224,10 +224,12 @@ class PeriodicStatistics(BASE157PS):
         self._cpe.ioloop.remove_timeout(self._pending_timeout)
         self._pending_timeout = None
 
-    def SetSampleTrigger(self):
+    def SetSampleTrigger(self, current_time=None):
       """Sets the timeout to collect the next sample."""
+      current_time = current_time if current_time else time.time()
       self.RemoveTimeout()
-      time_to_sample = self.CalcTimeToNextSample()
+      self._sample_start_time = current_time
+      time_to_sample = self.CalcTimeToNextSample(current_time)
       delta = datetime.timedelta(0, time_to_sample)
       self._pending_timeout = self._cpe.ioloop.add_timeout(
           delta, self.CollectSample)
@@ -242,9 +244,8 @@ class PeriodicStatistics(BASE157PS):
       Clears any old sampled data, so that a new sampling run can
       begin.  Also clears all Parameter objects.
       """
-      self._sample_seconds = []
-      self._report_start_time = 0
-      self._report_end_time = 0
+      self._sample_times = []
+      self._samples_collected = 0
       for param in self._parameter_list.itervalues():
         param.ClearSamplingData()
 
@@ -260,13 +261,7 @@ class PeriodicStatistics(BASE157PS):
       else:
         self.StopSampling()
 
-    def FinishedSampling(self):
-      """Returns True if we are done sample for this set."""
-      if not self._enable or len(self._sample_seconds) >= self.ReportSamples:
-        return True
-      return False
-
-    def CalcTimeToNextSample(self, current_time=None):
+    def CalcTimeToNextSample(self, current_time):
       """Return time until the next sample should be collected."""
       # The simple case, if TimeReference is not set, the time till next
       # sample is simply the SampleInterval.
@@ -274,14 +269,12 @@ class PeriodicStatistics(BASE157PS):
         return self._sample_interval
 
       # self._time_reference is a datetime object.
-      if not current_time:
-        current_time = time.time()
       time_ref = time.mktime(self._time_reference.timetuple())
       delta_seconds = (current_time - time_ref) % self._sample_interval
       return int(round(self._sample_interval - delta_seconds))
 
 
-    def CollectSample(self):
+    def CollectSample(self, current_time=None):
       """Collects a sample for each of the Parameters.
 
       Iterate over all of the Parameter objects and collect samples
@@ -294,19 +287,25 @@ class PeriodicStatistics(BASE157PS):
       if not self._root or not self._cpe:
         return
 
-      current_time = time.time()
-      if len(self._sample_seconds) == 0:
-        self._report_start_time = current_time
-      self._report_end_time = current_time
-      self._sample_seconds.append(current_time)
+      current_time = current_time if current_time else time.time()
+      sample_start_time = self._sample_start_time
+      if not sample_start_time:
+        sample_start_time = current_time
+      self._sample_start_time = None
+      sample_end_time = current_time
+      self._samples_collected += 1
+      self._sample_times.append((sample_start_time, sample_end_time))
+      # This will keep just the last ReportSamples worth of samples.
+      self._sample_times = self._sample_times[-self._report_samples:]
 
       for key in self._parameter_list:
-        self._parameter_list[key].CollectSample()
+        self._parameter_list[key].CollectSample(
+            start_time=sample_start_time, current_time=current_time)
 
-      if not self.FinishedSampling():
-        self.SetSampleTrigger()
+      if self._enable:
+        self.SetSampleTrigger(current_time)
 
-      if len(self._sample_seconds) == self.FetchSamples:
+      if self.FetchSamplesTriggered():
         if self.PassiveNotification() or self.ActiveNotification():
           param_name = self._root.GetCanonicalName(self)
           param_name += '.Status'
@@ -314,6 +313,17 @@ class PeriodicStatistics(BASE157PS):
               [(param_name, 'Trigger')])
           if self.ActiveNotification():
             self._cpe.NewValueChangeSession()
+
+    def FetchSamplesTriggered(self):
+      """Check if FetchSamples would have triggered on this sample."""
+      if self._fetch_samples <= 0:
+        return False
+      samples_this_period = self._samples_collected % self._report_samples
+      # I'm sure there's a better way to do this, I just can't think
+      # of it.  Want the repeating set of [1..N] not [0..N-1]
+      if samples_this_period == 0:
+        samples_this_period = self._report_samples
+      return samples_this_period == self._fetch_samples
 
     def PassiveNotification(self):
       """Check if passive notification is enabled."""
@@ -347,7 +357,7 @@ class PeriodicStatistics(BASE157PS):
     @property
     def SampleSeconds(self):
       """A comma separarted string of unsigned integers."""
-      return _MakeSampleSeconds(self._sample_seconds)
+      return _MakeSampleSeconds(self._sample_times)
 
     def SetAttribute(self, attr, value):
       """Sets an attribute on this object.  Currently can be anything.
@@ -384,7 +394,7 @@ class PeriodicStatistics(BASE157PS):
         self._calculation_mode = 'Latest'
         self._failures = 0
         self._sample_mode = 'Current'
-        self._sample_seconds = []
+        self._sample_times = []
         self._suspect_data = []
         self._values = []
 
@@ -415,7 +425,7 @@ class PeriodicStatistics(BASE157PS):
       @property
       def SampleSeconds(self):
         """Convert the stored time values to a SampleSeconds string."""
-        return _MakeSampleSeconds(self._sample_seconds)
+        return _MakeSampleSeconds(self._sample_times)
 
       @property
       def SuspectData(self):
@@ -433,22 +443,35 @@ class PeriodicStatistics(BASE157PS):
         """Sets the root of the hierarchy, needed for GetExport."""
         self._root = root
 
-      def CollectSample(self):
+      def CollectSample(self, start_time=None, current_time=None):
         """Collects one new sample point."""
+        current_time = current_time if current_time else time.time()
+        start_time = start_time if start_time else current_time
         if not self.Enable:
           return
         try:
           # TODO(jnewlin): Update _suspect_data.
           current_value = self._root.GetExport(self.Reference)
           self._values.append(str(current_value))
-          self._sample_seconds.append(time.time())
+          self._sample_times.append((start_time, current_time))
         except (KeyError, AttributeError):
           pass
+        finally:
+          # This will keep just the last ReportSamples worth of samples.
+          self.TrimSamples(self._parent._report_samples)
 
       def ClearSamplingData(self):
         """Throw away any sampled data."""
         self._values = []
-        self._sample_seconds = []
+        self._sample_times = []
+
+      def TrimSamples(self, length):
+        """Trim any sampling data arrays to only keep the last N values."""
+        # Make sure some bogus value of length can't be passed in.
+        if length <= 0:
+          length = 1;
+        self._sample_times = self._sample_times[-length:]
+        self._values = self._values[-length:]
 
 def main():
   pass
