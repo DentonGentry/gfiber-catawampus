@@ -61,6 +61,7 @@ class MockPeriodicCallback(object):
 
   def stop(self):
     self.stop_called = True
+    periodic_callbacks.remove(self)
 
 
 class CpeManagementServerTest(unittest.TestCase):

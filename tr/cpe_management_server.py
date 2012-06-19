@@ -63,10 +63,12 @@ class CpeManagementServer(object):
     self.DefaultActiveNotificationThrottle = 0
     self.EnableCWMP = True
     self.Password = ''
-    self._PeriodicInformEnable = False
-    self._PeriodicInformInterval = 0
+    self._PeriodicInformEnable = True
+    # Once every 24 plus or minus one hour.
+    self._PeriodicInformInterval = (24 * 3600) + random.randint(-3600, 3600)
     self._PeriodicInformTime = 0
     self.Username = ''
+    self.ConfigurePeriodicInform()
 
   # TODO(dgentry) - monitor acs_url_file for changes. $SPEC3 3.2.1 requires
   # an immediate Inform when the ACS URL changes.
@@ -164,6 +166,11 @@ class CpeManagementServer(object):
     if self._start_periodic_timeout:
       self.ioloop.remove_timeout(self._start_periodic_timeout)
       self._start_periodic_timeout = None
+
+    # Delete the old periodic callback.
+    if self._periodic_callback:
+      self._periodic_callback.stop()
+      self._periodic_callback = None
 
     if self._PeriodicInformEnable and self._PeriodicInformInterval > 0:
       msec = self._PeriodicInformInterval * 1000
