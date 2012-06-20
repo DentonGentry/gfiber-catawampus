@@ -48,12 +48,6 @@
           <string/>
         </syntax>
       </parameter>
-      <parameter name="PropertyList" access="readOnly">
-        <description>Available properties on {Node}.</description>
-        <syntax>
-          <string/>
-        </syntax>
-      </parameter>
     </object>
   </model>
 </dm:document>

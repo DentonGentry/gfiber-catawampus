@@ -50,9 +50,6 @@ class TvPropertyRpcs(object):
   def ListNodes(self):
     return self.properties.keys()
 
-  def ListProperties(self, node):
-    return self.properties[node].keys()
-
   def Ping(self):
     return ''
 
@@ -138,11 +135,6 @@ class TvXmlRpcTest(unittest.TestCase):
     tvrpc.Node = 'Node1'
     tvrpc.Name = 'Prop1'
     self.assertRaises(IndexError, lambda: tvrpc.SetValue(1))
-
-  def testPropertyList(self):
-    tvrpc = gfibertv.GFiberTvMailbox('http://localhost:%d' % srv_port)
-    tvrpc.Node = 'Node1'
-    self.assertEqual(tvrpc.PropertyList, 'Prop1, Prop2')
 
   def testNodeList(self):
     tvrpc = gfibertv.GFiberTvMailbox('http://localhost:%d' % srv_port)
