@@ -23,6 +23,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import mox
 import os
 import shutil
+import sys
 import tempfile
 import time
 import unittest
@@ -241,6 +242,29 @@ class HttpTest(tornado.testing.AsyncTestCase):
     self.assertTrue(('2 PERIODIC', None) in cpe_machine.event_queue)
     cpe_machine.NewPeriodicSession()
     m.ReplayAll()
+
+  def testEventQueue(self):
+    cpe_machine = self.getCpe()
+    m = mox.Mox()
+    m.StubOutWithMock(sys, 'exit')
+    sys.exit(1)
+    sys.exit(1)
+    sys.exit(1)
+    sys.exit(1)
+    m.ReplayAll()
+
+    for i in range(64):
+      cpe_machine.event_queue.append(i)
+
+    cpe_machine.event_queue.append(100)
+    cpe_machine.event_queue.appendleft(200)
+    cpe_machine.event_queue.extend([300])
+    cpe_machine.event_queue.extendleft([400])
+
+    cpe_machine.event_queue.clear()
+    cpe_machine.event_queue.append(10)
+    cpe_machine.event_queue.clear()
+    m.VerifyAll()
 
 
 class TestManagementServer(object):
