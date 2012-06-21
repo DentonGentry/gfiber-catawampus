@@ -25,6 +25,7 @@ import binascii
 import collections
 import random
 import socket
+import sys
 import time
 import urllib
 
@@ -39,11 +40,48 @@ import cwmp_session
 import soap
 
 PROC_IF_INET6 = '/proc/net/if_inet6'
+MAX_EVENT_QUEUE_SIZE = 64
+
+
+class LimitDeque(collections.deque):
+  """Wrapper around a deque that limits the maximimum size.
+
+  If the maximum size is reached, call the supplied handler, or
+  exit if no handler is provided.
+  """
+
+  def __init__(self, max_size=None, handler=None):
+    collections.deque.__init__(self)
+    self.max_size = max_size
+    self.handler = handler
+
+  def CheckSize(self):
+    if self.max_size and len(self) > self.max_size:
+      if self.handler:
+        self.handler()
+      else:
+        print 'Maximum length of deque (%d) was exceeded' % (self.max_size)
+        sys.exit(1)
+
+  def append(self, *args):
+    collections.deque.append(self, *args)
+    self.CheckSize()
+
+  def appendleft(self, *args):
+    collections.deque.appendleft(self, *args)
+    self.CheckSize()
+
+  def extend(self, *args):
+    collections.deque.extend(self, *args)
+    self.CheckSize()
+
+  def extendleft(self, *args):
+    collections.deque.extendleft(self, *args)
+    self.CheckSize()
 
 
 # SPEC3 = TR-069_Amendment-3.pdf
 # http://www.broadband-forum.org/technical/download/TR-069_Amendment-3.pdf
-
 def SplitUrl(url):
   Url = collections.namedtuple('Url', ('method host port path'))
   method, rest = urllib.splittype(url)
@@ -60,6 +98,7 @@ class PingHandler(digest.DigestAuthMixin, tornado.web.RequestHandler):
     cpe_ms: the cpe_management_server object, from which to retrieve
       username and password.
   """
+
   # TODO $SPEC3 3.2.2 "The CPE SHOULD restrict the number of Connection
   #   Requests it accepts during a given period of time..."
   def initialize(self, callback, cpe_ms):
@@ -105,6 +144,7 @@ class CPEStateMachine(object):
     ping_ip6dev: ifname to use for the CPE Ping address.
     fetch_args: kwargs to pass to HTTPClient.fetch
   """
+
   def __init__(self, ip, cpe, listenport, acs_url_file, ping_path,
                ping_ip6dev=None, fetch_args=dict(), ioloop=None):
     self.cpe = cpe
@@ -113,7 +153,7 @@ class CPEStateMachine(object):
     self.outstanding = None
     self.response_queue = []
     self.request_queue = []
-    self.event_queue = collections.deque()
+    self.event_queue = LimitDeque(MAX_EVENT_QUEUE_SIZE, self.EventQueueHandler)
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self.retry_count = 0  # for Inform.RetryCount
     self.start_session_timeout = None  # timer for CWMPRetryInterval
@@ -129,6 +169,12 @@ class CPEStateMachine(object):
         acs_url_file=acs_url_file, port=listenport, ping_path=ping_path,
         get_parameter_key=cpe.getParameterKey,
         start_periodic_session=self.NewPeriodicSession, ioloop=self.ioloop)
+
+  def EventQueueHandler(self):
+    """Called if the event queue goes beyond the maximum threshold."""
+    print 'Event queue has grown beyond the maximum size, restarting...'
+    print 'event_queue=%s' % (str(self.event_queue))
+    sys.exit(1)
 
   def GetManagementServer(self):
     """Return the ManagementServer implementation for tr-98/181."""
@@ -179,7 +225,7 @@ class CPEStateMachine(object):
     s.setblocking(0)
     try:
       s.connect((host, port or 1))  # port doesn't matter, but can't be 0
-    except socket.error, e:
+    except socket.error:
       pass
     return s.getsockname()[0]
 
@@ -385,7 +431,7 @@ class CPEStateMachine(object):
       if callback_time < 1:
         callback_time = 1
       self.ping_timeout_pending = self.ioloop.add_timeout(
-        current_time + callback_time, self._NewTimeoutPingSession)
+          current_time + callback_time, self._NewTimeoutPingSession)
 
   def NewPeriodicSession(self):
     # If the ACS stops responding for some period of time, it's possible
@@ -411,8 +457,7 @@ class CPEStateMachine(object):
       self._changed_parameters.add(param)
 
   def NewValueChangeSession(self):
-    """Start a new session to the ACS for the parameters that have changed.
-    """
+    """Start a new session to the ACS for the parameters that have changed."""
     reason = '4 VALUE CHANGE'
     # merge these parameters into the list of parameters that maybe
     # have changed
@@ -427,7 +472,7 @@ class CPEStateMachine(object):
     """Return a new deque which removes events in rmset."""
     newdq = collections.deque()
     for event in dq:
-      (reason, command_key) = event
+      (reason, unused_command_key) = event
       if reason.lower() not in rmset:
         newdq.append(event)
     return newdq
