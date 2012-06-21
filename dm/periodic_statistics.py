@@ -37,7 +37,7 @@ SAMPLE_MODES = frozenset(['Current', 'Change'])
 
 def _MakeSampleSeconds(sample_times):
   """Helper to convert an array of time values to a tr157 string."""
-  deltas = [str(int(round(end - start))) for start,end in sample_times]
+  deltas = [str(int(round(end - start))) for start, end in sample_times]
   return ','.join(deltas)
 
 
@@ -53,10 +53,6 @@ class PeriodicStatistics(BASE157PS):
         'PeriodicStatistics.SampleSetList', iteritems=self.IterSampleSets,
         getitem=self.GetSampleSet, setitem=self.SetSampleSet,
         delitem=self.DelSampleSet)
-
-  @property
-  def SampleSet(self):
-    return dm.periodic_statistics.SampleSet()
 
   def SetRoot(self, root):
     """Sets the root object.
@@ -162,7 +158,7 @@ class PeriodicStatistics(BASE157PS):
     @TimeReference.setter
     def TimeReference(self, value):
       self.ClearSamplingData()
-      if value == '0001-01-01T00:00:00Z': # CWMP Unknown time.
+      if value == '0001-01-01T00:00:00Z':  # CWMP Unknown time.
         self._time_reference = None
       else:
         self._time_reference = tr.cwmpdate.parse(value)
@@ -174,7 +170,7 @@ class PeriodicStatistics(BASE157PS):
 
     @property
     def ReportEndTime(self):
-      end_time = self_.sample_times[-1][1] if self._sample_times else None
+      end_time = self._sample_times[-1][1] if self._sample_times else None
       return tr.cwmpdate.format(end_time)
 
     @property
@@ -273,7 +269,6 @@ class PeriodicStatistics(BASE157PS):
       delta_seconds = (current_time - time_ref) % self._sample_interval
       return int(round(self._sample_interval - delta_seconds))
 
-
     def CollectSample(self, current_time=None):
       """Collects a sample for each of the Parameters.
 
@@ -282,6 +277,9 @@ class PeriodicStatistics(BASE157PS):
       back to the ACS that the sampling is finished.  If another sample
       is required, setup a trigger to collect the next sample.
       TODO(jnewlin): Add code to trigger the ACS.
+
+      Args:
+        current_time: The current time, usually from time.time()
       """
       self.RemoveTimeout()
       if not self._root or not self._cpe:
@@ -458,7 +456,7 @@ class PeriodicStatistics(BASE157PS):
           pass
         finally:
           # This will keep just the last ReportSamples worth of samples.
-          self.TrimSamples(self._parent._report_samples)
+          self.TrimSamples(self._parent.ReportSamples)
 
       def ClearSamplingData(self):
         """Throw away any sampled data."""
@@ -469,9 +467,10 @@ class PeriodicStatistics(BASE157PS):
         """Trim any sampling data arrays to only keep the last N values."""
         # Make sure some bogus value of length can't be passed in.
         if length <= 0:
-          length = 1;
+          length = 1
         self._sample_times = self._sample_times[-length:]
         self._values = self._values[-length:]
+
 
 def main():
   pass
