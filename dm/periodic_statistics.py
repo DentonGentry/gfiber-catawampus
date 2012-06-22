@@ -262,12 +262,13 @@ class PeriodicStatistics(BASE157PS):
       # The simple case, if TimeReference is not set, the time till next
       # sample is simply the SampleInterval.
       if not self._time_reference:
-        return self._sample_interval
+        return max(1, self._sample_interval)
 
       # self._time_reference is a datetime object.
       time_ref = time.mktime(self._time_reference.timetuple())
       delta_seconds = (current_time - time_ref) % self._sample_interval
-      return int(round(self._sample_interval - delta_seconds))
+      tts = int(round(self._sample_interval - delta_seconds))
+      return max(1, tts)
 
     def CollectSample(self, current_time=None):
       """Collects a sample for each of the Parameters.
