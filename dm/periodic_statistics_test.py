@@ -369,6 +369,21 @@ class SampleSetTest(unittest.TestCase):
     time_till_sample = sample_set.CalcTimeToNextSample(current_time)
     self.assertEqual(15, time_till_sample)
 
+    # Check using TimeReference, where the time to sample would
+    # be less than 1
+    sample_set.TimeReference = '1970-01-01T00:00:00Z'
+    sample_set.SampleInterval = 5
+    time_till_sample = sample_set.CalcTimeToNextSample(current_time)
+    current_time = time.mktime((2012, 6, 2, 1, 1, 4, -1, -1, -1))
+    time_till_sample = sample_set.CalcTimeToNextSample(current_time)
+    self.assertEqual(1, time_till_sample)
+    current_time += 0.9
+    time_till_sample = sample_set.CalcTimeToNextSample(current_time)
+    self.assertEqual(1, time_till_sample)
+    current_time += 0.2
+    time_till_sample = sample_set.CalcTimeToNextSample(current_time)
+    self.assertEqual(5, time_till_sample)
+
   def testFetchSamplesTriggered(self):
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
     sample_set._report_samples = 10
