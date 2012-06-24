@@ -245,10 +245,6 @@ class CPEStateMachine(object):
       parameter_list += [
           ('InternetGatewayDevice.ManagementServer.ConnectionRequestURL',
            ms.ConnectionRequestURL),
-          ('InternetGatewayDevice.ManagementServer.ConnectionRequestUsername',
-           ms.ConnectionRequestUsername),
-          ('InternetGatewayDevice.ManagementServer.ConnectionRequestPassword',
-           ms.ConnectionRequestPassword),
           ('InternetGatewayDevice.ManagementServer.ParameterKey',
            ms.ParameterKey),
           ('InternetGatewayDevice.DeviceInfo.HardwareVersion',
