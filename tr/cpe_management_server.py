@@ -64,8 +64,8 @@ class CpeManagementServer(object):
     self.EnableCWMP = True
     self.Password = ''
     self._PeriodicInformEnable = True
-    # Once every 24 plus or minus one hour.
-    self._PeriodicInformInterval = (24 * 3600) + random.randint(-3600, 3600)
+    # Once every 15 minutes plus or minus one minute (3 minute spread)
+    self._PeriodicInformInterval = (15 * 60) + random.randint(-60, 60)
     self._PeriodicInformTime = 0
     self.Username = ''
     self.ConfigurePeriodicInform()
