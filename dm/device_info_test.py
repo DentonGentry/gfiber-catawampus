@@ -86,20 +86,23 @@ class DeviceInfoTest(tornado.testing.AsyncTestCase):
 
   def setUp(self):
     super(DeviceInfoTest, self).setUp()
+    self.old_PERIODICCALL = device_info.PERIODICCALL
     self.old_PROC_MEMINFO = device_info.PROC_MEMINFO
     self.old_PROC_NET_DEV = device_info.PROC_NET_DEV
     self.old_PROC_UPTIME = device_info.PROC_UPTIME
     self.old_SLASH_PROC = device_info.SLASH_PROC
-    self.old_PERIODICCALL = device_info.PERIODICCALL
     device_info.PERIODICCALL = FakePeriodicCallback
+    device_info.PROC_MEMINFO = 'testdata/device_info/meminfo'
+    device_info.PROC_UPTIME = 'testdata/device_info/uptime'
+    device_info.SLASH_PROC = 'testdata/device_info/processes'
 
   def tearDown(self):
     super(DeviceInfoTest, self).tearDown()
+    device_info.PERIODICCALL = self.old_PERIODICCALL
     device_info.PROC_MEMINFO = self.old_PROC_MEMINFO
     device_info.PROC_NET_DEV = self.old_PROC_NET_DEV
     device_info.PROC_UPTIME = self.old_PROC_UPTIME
     device_info.SLASH_PROC = self.old_SLASH_PROC
-    device_info.PERIODICCALL = self.old_PERIODICCALL
 
   def testValidate181(self):
     di = device_info.DeviceInfo181Linux26(TestDeviceId())

@@ -32,6 +32,7 @@ import dm.ethernet
 import dm.igd_time
 import dm.periodic_statistics
 import dm.storage
+import dm.temperature
 import gfibertv
 import platform_config
 import pynetlinux
@@ -329,6 +330,20 @@ class DeviceGFMedia(tr181.Device_v2_2.Device):
     self.InterfaceStackNumberOfEntries = 0
     self.Export(objects=['PeriodicStatistics'])
     self.PeriodicStatistics = periodic_stats
+
+    # GFHD100 & GFMS100 both monitor CPU temperature.
+    # GFMS100 also monitors hard drive temperature.
+    ts = self.DeviceInfo.TemperatureStatus
+    ts.AddSensor(name="CPU temperature",
+                 sensor=dm.temperature.SensorReadFromFile(
+                     '/tmp/gpio/cpu_temperature'))
+    for drive in ['sda', 'sdb', 'sdc', 'sdd', 'sde', 'sdf']:
+      try:
+        if os.stat('/sys/block/' + drive):
+          ts.AddSensor(name='Hard drive temperature ' + drive,
+                       sensor=dm.temperature.SensorHdparm(drive))
+      except OSError:
+        pass
 
 
 class LANDeviceGFMedia(BASE98IGD.LANDevice):

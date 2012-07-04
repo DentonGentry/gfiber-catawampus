@@ -27,8 +27,9 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import abc
 import glob
 import os
-import tr.core
 import tornado.ioloop
+import temperature
+import tr.core
 import tr.tr098_v1_4
 import tr.tr181_v2_2
 
@@ -121,9 +122,7 @@ class DeviceInfo181Linux26(BASE181DEVICE.DeviceInfo):
     self.Unexport('ProvisioningCode')
     self.Unexport('FirstUseDate')
     self.Unexport(objects='NetworkProperties')
-    self.TemperatureStatus = self.TemperatureStatus()
-    self.TemperatureStatus.TemperatureSensorNumberOfEntries = 0
-    self.TemperatureStatus.TemperatureSensorList = {}
+    self.TemperatureStatus = temperature.TemperatureStatus()
     self.VendorLogFileList = {}
     self.VendorConfigFileList = {}
     self.SupportedDataModelList = {}

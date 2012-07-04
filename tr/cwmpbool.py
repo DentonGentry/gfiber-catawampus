@@ -31,7 +31,7 @@ def format(arg):
 
 
 def parse(arg):
-  lower = arg.lower()
+  lower = str(arg).lower()
   if lower == 'false' or lower == '0':
     return False
   elif lower == 'true' or lower == '1':
