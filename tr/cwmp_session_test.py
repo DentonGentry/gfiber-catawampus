@@ -20,6 +20,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import time
 import unittest
 
 import google3
@@ -27,7 +28,7 @@ import cwmp_session
 
 
 class CwmpSessionTest(unittest.TestCase):
-  """tests for cwmp_session.py."""
+  """tests for CwmpSession."""
 
   def testStateConnect(self):
     cs = cwmp_session.CwmpSession('')
@@ -183,6 +184,71 @@ class CwmpSessionTest(unittest.TestCase):
     self.assertFalse(cs.inform_required())
     self.assertFalse(cs.request_allowed())
     self.assertFalse(cs.response_allowed())
+
+
+class SimpleCacheObject(object):
+  def __init__(self):
+    self.cache_this_function_n = 0
+    self.cache_this_function_args_n = 0
+
+  @cwmp_session.cache
+  def cache_this_function(self):
+    self.cache_this_function_n += 1
+
+  @cwmp_session.cache
+  def cache_function_with_args(self, arg1, arg2):  #pylint: disable-msg=W0613
+    self.cache_this_function_args_n += 1
+
+
+@cwmp_session.cache
+def SimpleCacheFunction():
+  return time.time()
+
+
+class SessionCacheTest(unittest.TestCase):
+  """tests for SessionCache."""
+
+  def testCacheObject(self):
+    t1 = SimpleCacheObject()
+    t2 = SimpleCacheObject()
+    t3 = SimpleCacheObject()
+    for _ in range(1001):
+      t1.cache_this_function()
+      t2.cache_this_function()
+      t3.cache_this_function()
+    self.assertEqual(t1.cache_this_function_n, 1)
+    self.assertEqual(t2.cache_this_function_n, 1)
+    self.assertEqual(t3.cache_this_function_n, 1)
+    cwmp_session.cache.flush()
+    for _ in range(101):
+      t1.cache_this_function()
+      t2.cache_this_function()
+    self.assertEqual(t1.cache_this_function_n, 2)
+    self.assertEqual(t2.cache_this_function_n, 2)
+    self.assertEqual(t3.cache_this_function_n, 1)
+
+  def testCacheFunction(self):
+    t = SimpleCacheFunction()
+    for _ in range(1000):
+      self.assertEqual(t, SimpleCacheFunction())
+    cwmp_session.cache.flush()
+    self.assertNotEqual(t, SimpleCacheFunction())
+
+  def testCacheFunctionArgs(self):
+    t = SimpleCacheObject()
+    for i in range(100):
+      t.cache_function_with_args(i, 0)
+    self.assertEqual(t.cache_this_function_args_n, 100)
+
+  def testCacheFunctionComplicatedArgs(self):
+    t = SimpleCacheObject()
+    arg = [1, 2, [3, 4], [5, 6, [7, 8, [9, 10]]], 11, 12]
+    for i in range(10):
+      t.cache_function_with_args(i, arg)
+    self.assertEqual(t.cache_this_function_args_n, 10)
+    for i in range(10):
+      t.cache_function_with_args(99, arg)
+    self.assertEqual(t.cache_this_function_args_n, 11)
 
 
 if __name__ == '__main__':
