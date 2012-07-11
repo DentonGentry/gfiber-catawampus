@@ -81,7 +81,7 @@ def main():
   loop = tr.mainloop.MainLoop()
   root = dm_root.DeviceModelRoot(loop, opt.platform)
   if opt.rcmd_port:
-    loop.ListenInet6(('', opt.rcmd_port),
+    loop.ListenInet6(('::1', opt.rcmd_port),
                      tr.rcommand.MakeRemoteCommandStreamer(root))
   if opt.unix_path:
     loop.ListenUnix(opt.unix_path,
