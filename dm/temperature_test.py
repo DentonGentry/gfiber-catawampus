@@ -45,7 +45,7 @@ class MockTime(object):
 
   @staticmethod
   def MockTimeNow():
-    return datetime.datetime.fromtimestamp(MockTime.TIME)
+    return datetime.datetime.utcfromtimestamp(MockTime.TIME)
 
 
 fake_periodics = []
@@ -136,27 +136,27 @@ class TemperatureTest(unittest.TestCase):
     sensor.temperature = 90.0
     MockTime.TIME = 1341359845.0
     t.SampleTemperature()
-    self.assertEqual(t.MaxTime, '2012-07-03T16:57:25Z')
+    self.assertEqual(t.MaxTime, '2012-07-03T23:57:25Z')
     self.assertEqual(t.MaxValue, 90)
-    self.assertEqual(t.MinTime, '2012-07-03T16:57:25Z')
+    self.assertEqual(t.MinTime, '2012-07-03T23:57:25Z')
     self.assertEqual(t.MinValue, 90)
     self.assertEqual(t.Value, 90)
 
     sensor.temperature = 110.0
     MockTime.TIME = 1341359846
     t.SampleTemperature()
-    self.assertEqual(t.MaxTime, '2012-07-03T16:57:26Z')
+    self.assertEqual(t.MaxTime, '2012-07-03T23:57:26Z')
     self.assertEqual(t.MaxValue, 110)
-    self.assertEqual(t.MinTime, '2012-07-03T16:57:25Z')
+    self.assertEqual(t.MinTime, '2012-07-03T23:57:25Z')
     self.assertEqual(t.MinValue, 90)
     self.assertEqual(t.Value, 110)
 
     sensor.temperature = 80.0
     MockTime.TIME = 1341359847
     t.SampleTemperature()
-    self.assertEqual(t.MaxTime, '2012-07-03T16:57:26Z')
+    self.assertEqual(t.MaxTime, '2012-07-03T23:57:26Z')
     self.assertEqual(t.MaxValue, 110)
-    self.assertEqual(t.MinTime, '2012-07-03T16:57:27Z')
+    self.assertEqual(t.MinTime, '2012-07-03T23:57:27Z')
     self.assertEqual(t.MinValue, 80)
     self.assertEqual(t.Value, 80)
 
@@ -190,14 +190,14 @@ class TemperatureTest(unittest.TestCase):
     sensor.temperature = 110.0
     MockTime.TIME = 1341359848
     t.SampleTemperature()
-    self.assertEqual(t.HighAlarmTime, '2012-07-03T16:57:28Z')
+    self.assertEqual(t.HighAlarmTime, '2012-07-03T23:57:28Z')
     self.assertEqual(t.LowAlarmTime, '0001-01-01T00:00:00Z')
 
     sensor.temperature = 40.0
     MockTime.TIME = 1341359849
     t.SampleTemperature()
-    self.assertEqual(t.HighAlarmTime, '2012-07-03T16:57:28Z')
-    self.assertEqual(t.LowAlarmTime, '2012-07-03T16:57:29Z')
+    self.assertEqual(t.HighAlarmTime, '2012-07-03T23:57:28Z')
+    self.assertEqual(t.LowAlarmTime, '2012-07-03T23:57:29Z')
 
     t.Reset = True
     self.assertEqual(t.HighAlarmValue, 100)
