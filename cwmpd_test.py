@@ -20,34 +20,49 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import errno
 import os
+import select
 import subprocess
 import unittest
 import google3
 
 
+def Unlink(filename):
+  try:
+    os.unlink(filename)
+  except OSError, e:
+    if e.errno == errno.ENOENT:
+      pass  # don't care
+    else:
+      raise
+
+
 class RunserverTest(unittest.TestCase):
   """Tests for cwmpd and cwmp."""
+
+  sockname = '/tmp/cwmpd_test.sock.%d' % os.getpid()
+
+  def _StartClient(self, stdout=None):
+    client = subprocess.Popen(['./cwmp', '--unix-path', self.sockname],
+                              stdin=subprocess.PIPE, stdout=stdout)
+    client.stdin.close()
+    return client
 
   def _DoTest(self, args):
     print
     print 'Testing with args=%r' % args
-    sockname = '/tmp/cwmpd_test.sock.%d' % os.getpid()
-    if os.path.exists(sockname):
-      os.unlink(sockname)
+    Unlink(self.sockname)
     server = subprocess.Popen(['./cwmpd',
                                '--rcmd-port', '0',
-                               '--unix-path', sockname,
+                               '--unix-path', self.sockname,
                                '--close-stdio'] + args,
                               stdout=subprocess.PIPE, stdin=subprocess.PIPE)
     try:
       print 'waiting for server to start...'
       while server.stdout.read():
         pass
-      client = subprocess.Popen(['./cwmp',
-                                 '--unix-path', sockname],
-                                stdin=subprocess.PIPE)
-      client.stdin.close()
+      client = self._StartClient()
       self.assertEqual(client.wait(), 0)
       server.stdin.close()
       self.assertEqual(server.wait(), 0)
@@ -56,6 +71,18 @@ class RunserverTest(unittest.TestCase):
         server.kill()
       except OSError:
         pass
+      Unlink(self.sockname)
+
+  def testExitOnError(self):
+    print 'testing client exit when server not running'
+    client = self._StartClient(stdout=subprocess.PIPE)
+    r, _, _ = select.select([client.stdout], [], [], 5)
+    try:
+      self.assertNotEqual(r, [])
+      self.assertNotEqual(client.wait(), 0)
+    finally:
+      if client.poll() is None:
+        client.kill()
 
   def testRunserver(self):
     self._DoTest(['--no-cpe'])

@@ -232,6 +232,7 @@ class MainLoop(object):
   def Connect(self, family, address, onconnect_func):
     sock = socket.socket(family, socket.SOCK_STREAM, 0)
     stream = tornado.iostream.IOStream(sock)
+    stream.set_close_callback(lambda: onconnect_func(None))
     stream.connect(address, lambda: onconnect_func(stream))
     return stream
 

@@ -114,6 +114,8 @@ class Client(object):
       self.stream.close()
 
   def OnConnect(self, stream):
+    if not stream:
+      raise Fatal('connection failed')
     print 'Connected to server.'
     self.stream = stream
     self.stream.set_close_callback(HandleFatal(self.OnClose))
