@@ -52,7 +52,7 @@ fake_periodics = []
 class FakePeriodicCallback(object):
   def __init__(self, callback, callback_time, io_loop=None):
     self.callback = callback
-    self.callback_time = callback_time
+    self.callback_time = callback_time / 1000
     self.io_loop = io_loop
     self.start_called = False
     self.stop_called = False

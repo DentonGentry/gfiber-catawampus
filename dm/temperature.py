@@ -240,7 +240,7 @@ class TemperatureSensor(BASE181TEMPERATURE.TemperatureSensor):
       self.scheduler = None
     if self.config.p_enable:
       self.scheduler = PERIODICCALL(self.SampleTemperature,
-              self.config.p_polling_interval, io_loop=self.ioloop)
+              self.config.p_polling_interval * 1000, io_loop=self.ioloop)
       self.scheduler.start()
     # Let new alarm thresholds take effect
     self.SampleTemperature()

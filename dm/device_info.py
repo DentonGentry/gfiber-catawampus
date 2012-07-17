@@ -213,7 +213,8 @@ class ProcessStatusLinux26(BASE181DEVICE.DeviceInfo.ProcessStatus):
     tick = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
     self._msec_per_jiffy = 1000.0 / tick
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
-    self.scheduler = PERIODICCALL(self.CpuUsageTimer, 300, io_loop=self.ioloop)
+    self.scheduler = PERIODICCALL(self.CpuUsageTimer, 300 * 1000,
+                                  io_loop=self.ioloop)
     self.scheduler.start()
     self.cpu_usage = 0.0
     self.cpu_used = 0
