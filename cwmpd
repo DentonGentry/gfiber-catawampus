@@ -43,6 +43,7 @@ cwmpd [options]
 r,rcmd-port=  TCP port to listen for rcommands on; 0 to disable [12999]
 u,unix-path=  Unix socket to listen on [/tmp/cwmpd.sock]
 i,ip=         IP address to report to ACS. (default=finds interface IP address)
+l,listenip=   IP address to listen on [::1]
 p,port=       TCP port to listen for TR-069 on [7547]
 ping-path=    Force CPE ping listener to this URL path (default=random)
 acs-url=      URL of the TR-069 ACS server to connect to (deprecated)
@@ -81,7 +82,7 @@ def main():
   loop = tr.mainloop.MainLoop()
   root = dm_root.DeviceModelRoot(loop, opt.platform)
   if opt.rcmd_port:
-    loop.ListenInet6(('::1', opt.rcmd_port),
+    loop.ListenInet((opt.listenip, opt.rcmd_port),
                      tr.rcommand.MakeRemoteCommandStreamer(root))
   if opt.unix_path:
     loop.ListenUnix(opt.unix_path,

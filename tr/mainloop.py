@@ -220,11 +220,22 @@ class MainLoop(object):
     self.ioloop.remove_timeout(self.loop_timeout)
     self.loop_timeout = None
 
+  def _IsIPv4Addr(self, address):
+    try:
+      socket.inet_aton(address[0])
+    except socket.error:
+      return False
+    else:
+      return True
+
   def Listen(self, family, address, onaccept_func):
     return ListenSocket(family, address, onaccept_func)
 
-  def ListenInet6(self, address, onaccept_func):
-    return self.Listen(socket.AF_INET6, address, onaccept_func)
+  def ListenInet(self, address, onaccept_func):
+    if self._IsIPv4Addr(address):
+      return self.Listen(socket.AF_INET, address, onaccept_func)
+    else:
+      return self.Listen(socket.AF_INET6, address, onaccept_func)
 
   def ListenUnix(self, filename, onaccept_func):
     return self.Listen(socket.AF_UNIX, filename, onaccept_func)
@@ -236,8 +247,11 @@ class MainLoop(object):
     stream.connect(address, lambda: onconnect_func(stream))
     return stream
 
-  def ConnectInet6(self, address, onconnect_func):
-    return self.Connect(socket.AF_INET6, address, onconnect_func)
+  def ConnectInet(self, address, onconnect_func):
+    if self._IsIPv4Addr(address):
+      return self.Connect(socket.AF_INET, address, onconnect_func)
+    else:
+      return self.Connect(socket.AF_INET6, address, onconnect_func)
 
   def ConnectUnix(self, filename, onconnect_func):
     return self.Connect(socket.AF_UNIX, filename, onconnect_func)
@@ -251,8 +265,8 @@ def _TestGotLine(line):
 def main():
   loop = MainLoop()
   #pylint: disable-msg=C6402
-  loop.ListenInet6(('', 12999),
-                   lambda sock, address: LineReader(sock, address,
+  loop.ListenInet(('', 12999),
+                  lambda sock, address: LineReader(sock, address,
                                                     _TestGotLine))
   loop.Start()
 

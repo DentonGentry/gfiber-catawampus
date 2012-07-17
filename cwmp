@@ -41,6 +41,8 @@ optspec = """
 cwmp [options]
 --
 u,unix-path=  Unix socket server is listening on [/tmp/cwmpd.sock]
+i,ip=        IP hostname/ipaddr server is listening on (default: unix socket)
+p,port=      IP port server is listening on [12999]
 """
 
 
@@ -90,9 +92,9 @@ def _SlashesToDots(s):
 class Client(object):
   """Manage the client-side state of an rcommand connection."""
 
-  def __init__(self, loop, sockname):
+  def __init__(self, loop, connector):
     self.loop = loop
-    self.sockname = sockname
+    self.connector = connector
     self.stream = None
     self.result = None
     self._last_res = None
@@ -104,8 +106,7 @@ class Client(object):
   def _StartConnect(self):
     self.stream = None
     try:
-      self.loop.ConnectUnix(self.sockname,
-                            HandleFatal(self.OnConnect))
+      self.connector(HandleFatal(self.OnConnect))
     except socket.error, e:
       raise Fatal(str(e))
 
@@ -217,7 +218,11 @@ def main():
   client = None
   try:  #pylint: disable-msg=C6405
     loop = tr.mainloop.MainLoop()
-    client = Client(loop, opt.unix_path)
+    if opt.ip is not None:
+      connector = lambda err: loop.ConnectInet((opt.ip, opt.port), err)
+    else:
+      connector = lambda err: loop.ConnectUnix(opt.unix_path, err)
+    client = Client(loop, connector)
     loop.Start()
 
     if readline:

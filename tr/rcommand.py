@@ -145,7 +145,7 @@ def main():
   root.Test = 'this is a test string'
   root.Export(params=['Test'], lists=['Sub'])
 
-  loop.ListenInet6(('', 12999), MakeRemoteCommandStreamer(root))
+  loop.ListenInet(('', 12999), MakeRemoteCommandStreamer(root))
   loop.ListenUnix('/tmp/cwmpd.sock', MakeRemoteCommandStreamer(root))
   loop.Start()
 
