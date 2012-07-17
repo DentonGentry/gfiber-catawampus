@@ -38,7 +38,7 @@ except ImportError:
 
 
 optspec = """
-cwmp [options]
+cwmp [options] [command...]
 --
 u,unix-path=  Unix socket server is listening on [/tmp/cwmpd.sock]
 i,ip=        IP hostname/ipaddr server is listening on (default: unix socket)
@@ -50,10 +50,17 @@ HISTORY_FILE = os.path.expanduser('~/.cwmp_history')
 
 
 def Log(s, *args):
+  s = str(s)
   if args:
-    sys.stderr.write((s+'\n') % args)
+    sys.stderr.write((s + '\n') % args)
   else:
     sys.stderr.write(s + '\n')
+
+
+_want_verbose = False
+def Verbose(s, *args):
+  if _want_verbose:
+    Log(s, *args)
 
 
 class Fatal(Exception):
@@ -65,7 +72,7 @@ def HandleFatal(func):
     try:
       return func(*args, **kwargs)
     except Fatal, e:
-      sys.stderr.write('Fatal: %s\n' % e)
+      Log('Fatal: %s' % e)
       sys.exit(1)
   return Fn
 
@@ -117,7 +124,7 @@ class Client(object):
   def OnConnect(self, stream):
     if not stream:
       raise Fatal('connection failed')
-    print 'Connected to server.'
+    Verbose('Connected to server.\n')
     self.stream = stream
     self.stream.set_close_callback(HandleFatal(self.OnClose))
     self._StartRead()
@@ -127,7 +134,7 @@ class Client(object):
     self.stream.read_until('\n', HandleFatal(self.GotData))
 
   def OnClose(self):
-    print 'Server connection closed!'
+    Log('Server connection closed!')
     self._StartConnect()
 
   def GotData(self, data):
@@ -209,6 +216,47 @@ class Client(object):
     Log('\nError in completion: %s\n' % e)
 
 
+def DoCmd(client, words):
+  cmd, args = (words[0].lower(), words[1:])
+  if cmd in ('cd', 'ls', 'list', 'rlist', 'add', 'del', 'get', 'set'):
+    if not args:
+      args = [client.cwd]
+    relpath = _DotsToSlashes(args[0])
+    abspath = os.path.normpath(os.path.join(client.cwd, relpath))
+    args[0] = _SlashesToDots(abspath)
+  if cmd == 'cd':
+    client.cwd = os.path.normpath(os.path.join(client.cwd, relpath))
+  else:
+    line = [cmd] + args
+    result = client.Run([line])
+    return result
+
+
+def Interactive(client):
+  global _want_verbose
+  _want_verbose = True
+  if readline:
+    readline.set_completer_delims(' \t\n\r/')
+    readline.set_completer(client.ReadlineCompleter)
+    readline.parse_and_bind('bind ^I rl_complete')  # MacOS
+    readline.parse_and_bind('tab: complete')        # other
+
+  while True:
+    print
+    line = raw_input('%s> ' % client.cwd) + '\n'
+    while 1:
+      word = bup.shquote.unfinished_word(line)[1]
+      if not word:
+        break
+      line += raw_input('%*s> ' % (len(client.cwd), '')) + '\n'
+    #pylint: disable-msg=W0612
+    words = [word for (idx, word) in bup.shquote.quotesplit(line)]
+    if not words:
+      continue
+    result = DoCmd(client, words)
+    print client.quotedblock.RenderBlock(result).strip()
+
+
 def main():
   o = bup.options.Options(optspec)
   (opt, flags, extra) = o.parse(sys.argv[1:])  #pylint: disable-msg=W0612
@@ -224,40 +272,17 @@ def main():
       connector = lambda err: loop.ConnectUnix(opt.unix_path, err)
     client = Client(loop, connector)
     loop.Start()
-
-    if readline:
-      readline.set_completer_delims(' \t\n\r/')
-      readline.set_completer(client.ReadlineCompleter)
-      readline.parse_and_bind('bind ^I rl_complete')  # MacOS
-      readline.parse_and_bind('tab: complete')        # other
-
-    while True:
-      print
-      line = raw_input('%s> ' % client.cwd) + '\n'
-      while 1:
-        word = bup.shquote.unfinished_word(line)[1]
-        if not word:
-          break
-        line += raw_input('%*s> ' % (len(client.cwd), '')) + '\n'
-      #pylint: disable-msg=W0612
-      words = [word for (idx, word) in bup.shquote.quotesplit(line)]
-      if not words:
-        continue
-      cmd, args = (words[0].lower(), words[1:])
-      if cmd in ('cd', 'ls', 'list', 'rlist', 'add', 'del', 'get', 'set'):
-        if not args:
-          args = [client.cwd]
-        relpath = _DotsToSlashes(args[0])
-        abspath = os.path.normpath(os.path.join(client.cwd, relpath))
-        args[0] = _SlashesToDots(abspath)
-      if cmd == 'cd':
-        client.cwd = os.path.normpath(os.path.join(client.cwd, relpath))
-      else:
-        line = [cmd] + args
-        result = client.Run([line])
-        print client.quotedblock.RenderBlock(result).strip()
+    if extra:
+      result = DoCmd(client, extra)
+      code = result.pop(0)
+      if code[0] != 'OK':
+        raise Fatal(' '.join(code))
+      for line in result:
+        print ' '.join(line)
+    else:
+      Interactive(client)
   except Fatal, e:
-    sys.stderr.write('%s\n' % e)
+    Log(e)
     sys.exit(1)
   except EOFError:
     pass
