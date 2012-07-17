@@ -478,12 +478,12 @@ class Exporter(object):
     Returns:
       An iterable of strings that can be passed to GetExport().
     """
-    if recursive:
-      self.ValidateExports()
     obj = self
     if name:
       obj = self.GetExport(name)
     if hasattr(obj, '_ListExports'):
+      if recursive:
+        obj.ValidateExports()
       #pylint: disable-msg=W0212
       return obj._ListExports(recursive=recursive)
     else:
