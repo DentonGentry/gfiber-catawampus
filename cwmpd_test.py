@@ -26,16 +26,7 @@ import select
 import subprocess
 import unittest
 import google3
-
-
-def Unlink(filename):
-  try:
-    os.unlink(filename)
-  except OSError, e:
-    if e.errno == errno.ENOENT:
-      pass  # don't care
-    else:
-      raise
+import tr.helpers
 
 
 class RunserverTest(unittest.TestCase):
@@ -52,7 +43,7 @@ class RunserverTest(unittest.TestCase):
   def _DoTest(self, args):
     print
     print 'Testing with args=%r' % args
-    Unlink(self.sockname)
+    tr.helpers.Unlink(self.sockname)
     server = subprocess.Popen(['./cwmpd',
                                '--rcmd-port', '0',
                                '--unix-path', self.sockname,
@@ -71,7 +62,7 @@ class RunserverTest(unittest.TestCase):
         server.kill()
       except OSError:
         pass
-      Unlink(self.sockname)
+      tr.helpers.Unlink(self.sockname)
 
   def testExitOnError(self):
     print 'testing client exit when server not running'

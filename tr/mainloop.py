@@ -29,14 +29,7 @@ import socket
 import time
 import tornado.ioloop
 import tornado.iostream  #pylint: disable-msg=W0404
-
-
-def _Unlink(filename):
-  try:
-    os.unlink(filename)
-  except OSError, e:
-    if e.errno != errno.ENOENT:
-      raise
+import helpers
 
 
 def _DeleteOldSock(family, address):
@@ -45,7 +38,7 @@ def _DeleteOldSock(family, address):
     tsock.connect(address)
   except socket.error, e:
     if e.errno == errno.ECONNREFUSED:
-      _Unlink(address)
+      helpers.Unlink(address)
 
 
 def _ListenSocket(family, address):
@@ -93,7 +86,7 @@ class ListenSocket(object):
     print 'deleting listener: %r' % (self.address,)
     if self.family == socket.AF_UNIX and self.sock:
       self.sock.close()
-      _Unlink(self.address)
+      helpers.Unlink(self.address)
 
   def _Accept(self, fd, events):  #pylint: disable-msg=W0613
     try:

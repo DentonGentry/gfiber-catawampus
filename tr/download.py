@@ -29,6 +29,7 @@ import tornado.httpclient
 import tornado.ioloop
 import tornado.web
 import core
+import helpers
 import http_download
 import persistobj
 
@@ -197,13 +198,6 @@ class Download(object):
                               starttime=start, endtime=end,
                               event_code=event_code)
 
-  def _remove_file(self, filename):
-    try:
-      os.unlink(filename)
-    except OSError:
-      return False
-    return True
-
   def state_machine(self, event, faultcode=0, faultstring='',
                     downloaded_file=None, must_reboot=False):
     dlstate = self.stateobj.dlstate
@@ -238,7 +232,7 @@ class Download(object):
     elif dlstate == self.INSTALLING:
       if event == self.EV_INSTALL_COMPLETE:
         if self.downloaded_file:
-          self._remove_file(self.downloaded_file)
+          helpers.Unlink(self.downloaded_file)
         if faultcode == 0:
           if must_reboot:
             self.stateobj.Update(dlstate=self.REBOOTING)
