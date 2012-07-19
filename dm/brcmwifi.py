@@ -467,6 +467,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     self.wl = Wl(ifname)
 
     # Unimplemented, but not yet evaluated
+    self.Unexport('Alias')
     self.Unexport('BeaconAdvertisementEnabled')
     self.Unexport('ChannelsInUse')
     self.Unexport('MaxBitRate')
@@ -985,7 +986,7 @@ class BrcmWlanAssociatedDevice(BASE98WIFI.AssociatedDevice):
 
 
 def main():
-  pass
+  print tr.core.DumpSchema(BrcmWifiWlanConfiguration)
 
 if __name__ == '__main__':
   main()

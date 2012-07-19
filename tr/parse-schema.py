@@ -40,6 +40,7 @@ imports = {}
 
 
 def Log(s):
+  sys.stdout.flush()
   sys.stderr.write('%s\n' % s)
 
 
@@ -89,12 +90,12 @@ IMPORT_BUG_FIXES = {
     # seem to exist anywhere.
     ('urn:broadband-forum-org:tr-143-1-0', 'component',
      'DownloadDiagnostics_Device2'):
-    ('urn:broadband-forum-org:tr-143-1-0', 'component',
-     'DownloadDiagnostics'),
+        ('urn:broadband-forum-org:tr-143-1-0', 'component',
+         'DownloadDiagnostics'),
     ('urn:broadband-forum-org:tr-143-1-0', 'component',
      'UploadDiagnostics_Device2'):
-    ('urn:broadband-forum-org:tr-143-1-0', 'component',
-     'UploadDiagnostics'),
+        ('urn:broadband-forum-org:tr-143-1-0', 'component',
+         'UploadDiagnostics'),
 }
 
 
@@ -213,8 +214,8 @@ class Object(object):
     return '\n'.join(pre + out)
 
   def FindParentClass(self):
-    parent_model = models[(self.model.spec.name,
-                           self.model.parent_model_name)]
+    parent_model = models.get((self.model.spec.name,
+                               self.model.parent_model_name), None)
     while parent_model:
       parent_class = parent_model.objects.get(self.prefix, None)
       if parent_class:
@@ -245,9 +246,18 @@ class Model(object):
     self.object_sequence = []
     models[(self.spec.name, self.name)] = self
 
+  def _AddItem(self, parts):
+    self.items[parts] = 1
+    if not parts[-1]:
+      if len(parts) > 2:
+        self._AddItem(parts[:-2] + ('',))
+    else:
+      if len(parts) > 1:
+        self._AddItem(parts[:-1] + ('',))
+
   def AddItem(self, name):
     parts = tuple(re.sub(r'\.{i}', r'-{i}', name).split('.'))
-    self.items[parts] = 1
+    self._AddItem(parts)
 
   def ItemsMatchingPrefix(self, prefix):
     assert (not prefix) or (not prefix[-1])

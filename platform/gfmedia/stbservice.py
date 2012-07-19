@@ -90,6 +90,7 @@ class STBFrontEnd(BASE135STB.Components.FrontEnd):
 
   def __init__(self):
     super(STBFrontEnd, self).__init__()
+    self.Unexport('Alias')
     self.Unexport('Enable')
     self.Unexport('Name')
     self.Unexport('Status')
@@ -110,6 +111,8 @@ class STBIP(BASE135STB.Components.FrontEnd.IP):
     self.Unexport(objects='RTCP')
     self.Unexport(objects='RTPAVPF')
     self.Unexport(objects='ServiceConnect')
+    self.Unexport(objects='FEC')
+    self.Unexport(objects='ForceMonitor')
     self.Unexport(lists='Inbound')
     self.Unexport(lists='Outbound')
     self.IGMP = STBIGMP()
@@ -196,6 +199,7 @@ class STBClientGroup(BASE135STB.Components.FrontEnd.IP.IGMP.ClientGroup):
   def __init__(self, ipaddr):
     super(STBClientGroup, self).__init__()
     self.Unexport('UpTime')
+    self.Unexport('Alias')
     self.ipaddr = ipaddr
 
   @property
@@ -282,6 +286,7 @@ class STBMainStream(BASE135STB.ServiceMonitoring.MainStream):
     self.Unexport('SevereLossMinLength')
     self.Unexport('Status')
     self.Unexport('ChannelChangeFailureTimeout')
+    self.Unexport('Alias')
     self.Unexport(objects='Sample')
     self.Total = STBTotal()
 
