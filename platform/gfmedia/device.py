@@ -179,6 +179,7 @@ class InstallerGFMedia(tr.download.Installer):
       self._install_cb(faultcode, faultstring, must_reboot=True)
 
   def install(self, file_type, target_filename, callback):
+    print 'Installing: %r %r' % (file_type, target_filename)
     ftype = file_type.split()
     if ftype and ftype[0] != '1':
       self._call_callback(INTERNAL_ERROR,
@@ -186,11 +187,14 @@ class InstallerGFMedia(tr.download.Installer):
       return False
     self._install_cb = callback
 
+    if not os.path.exists(self.filename):
+      self._call_callback(INTERNAL_ERROR,
+                          'Installer: file %r does not exist.' % self.filename)
+      return False
+
     cmd = [GINSTALL, '--tar={0}'.format(self.filename), '--partition=other']
-    devnull = open('/dev/null', 'w')
     try:
-      self._ginstall = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                        stderr=devnull)
+      self._ginstall = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     except OSError:
       self._call_callback(INTERNAL_ERROR, 'Unable to start installer process')
       return False
@@ -207,15 +211,19 @@ class InstallerGFMedia(tr.download.Installer):
   def on_stdout(self, fd, events):
     """Called whenever the ginstall process prints to stdout."""
     # drain the pipe
+    inp = ''
     try:
-      os.read(fd, 4096)
+      inp = os.read(fd, 4096)
     except OSError:   # returns EWOULDBLOCK
       pass
+    if inp and inp.strip() != '.':
+      print 'ginstall: %s' % inp.strip()
     if self._ginstall.poll() >= 0:
       self._ioloop.remove_handler(self._ginstall.stdout.fileno())
       if self._ginstall.returncode == 0:
         self._call_callback(0, '')
       else:
+        print 'ginstall: exit code %d' % self._ginstall.poll()
         self._call_callback(INTERNAL_ERROR, 'Unable to install image.')
 
 

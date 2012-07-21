@@ -128,6 +128,7 @@ class Download(object):
     self.download_dir = download_dir
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self.download = None
+    self.downloaded_fileobj = None
     self.downloaded_file = None
     self.wait_handle = None
     # the delay_seconds started when we received the RPC, even if we have
@@ -276,10 +277,13 @@ class Download(object):
     """Called by timer code when timeout expires."""
     return self.state_machine(self.EV_TIMER)
 
-  def download_complete_callback(self, faultcode, faultstring, filename):
-    self.downloaded_file = filename
-    return self.state_machine(self.EV_DOWNLOAD_COMPLETE, faultcode, faultstring,
-                              downloaded_file=filename)
+  def download_complete_callback(self, faultcode, faultstring, tmpfile):
+    print 'Download complete callback.'
+    self.downloaded_fileobj = tmpfile  # keep this around or it auto-deletes
+    self.downloaded_file = tmpfile.name
+    return self.state_machine(self.EV_DOWNLOAD_COMPLETE,
+                              faultcode, faultstring,
+                              downloaded_file=tmpfile.name)
 
   def installer_callback(self, faultcode, faultstring, must_reboot):
     return self.state_machine(self.EV_INSTALL_COMPLETE, faultcode, faultstring,
@@ -412,8 +416,9 @@ class DownloadManager(object):
                                starttime, endtime, event_code):
     self._downloads.remove(dl)
     self._pending_complete.append(dl)
-    self.send_transfer_complete(command_key, faultcode, faultstring,
-                                starttime, endtime, event_code)
+    if self.send_transfer_complete:
+      self.send_transfer_complete(command_key, faultcode, faultstring,
+                                  starttime, endtime, event_code)
 
   def RestoreDownloads(self):
     pobjs = persistobj.GetPersistentObjects(objdir=self.config_dir,
