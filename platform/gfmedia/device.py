@@ -52,7 +52,7 @@ INTERNAL_ERROR = 9002
 
 # Unit tests can override these with fake data
 CONFIGDIR = '/config/tr69'
-DOWNLOADDIR = '/rw/tr69'
+DOWNLOADDIR = '/tmp'
 GINSTALL = '/bin/ginstall.py'
 HNVRAM = '/usr/bin/hnvram'
 PROC_CPUINFO = '/proc/cpuinfo'

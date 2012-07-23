@@ -279,11 +279,12 @@ class Download(object):
 
   def download_complete_callback(self, faultcode, faultstring, tmpfile):
     print 'Download complete callback.'
+    name = tmpfile and tmpfile.name or None
     self.downloaded_fileobj = tmpfile  # keep this around or it auto-deletes
-    self.downloaded_file = tmpfile.name
+    self.downloaded_file = name
     return self.state_machine(self.EV_DOWNLOAD_COMPLETE,
                               faultcode, faultstring,
-                              downloaded_file=tmpfile.name)
+                              downloaded_file=name)
 
   def installer_callback(self, faultcode, faultstring, must_reboot):
     return self.state_machine(self.EV_INSTALL_COMPLETE, faultcode, faultstring,
@@ -402,8 +403,11 @@ class DownloadManager(object):
                   target_filename=target_filename,
                   delay_seconds=delay_seconds,
                   event_code='M Download')
-    pobj = persistobj.PersistentObject(objdir=self.config_dir, rootname=DNLDROOTNAME,
-                                       filename=None, **kwargs)
+    pobj = persistobj.PersistentObject(objdir=self.config_dir,
+                                       rootname=DNLDROOTNAME,
+                                       filename=None,
+                                       ignore_errors=True,
+                                       **kwargs)
     dl = DOWNLOADOBJ(stateobj=pobj,
                      transfer_complete_cb=self.TransferCompleteCallback,
                      download_dir=self.download_dir)
@@ -492,28 +496,18 @@ class DownloadManager(object):
                                        filename=None, **kwargs)
     self.ioloop.add_callback(self._DelayedReboot)
 
-  def _DoubleCheckDirectory(self, directory):
+  def _MakeDirsIgnoreError(self, directory):
     """Make sure a directory exists."""
     try:
       os.makedirs(directory, 0755)
-    except OSError as e:
-      if e.errno == errno.EEXIST:
-        pass
-      else:
-        raise
-
-  def _CleanDirectory(self, directory):
-    try:
-      shutil.rmtree(directory)
-    except OSError as e:
+    except OSError:
       pass
 
   def SetDirectories(self, config_dir, download_dir):
     self.config_dir = os.path.join(config_dir, 'state')
     self.download_dir = os.path.join(download_dir, 'dnld')
-    self._DoubleCheckDirectory(self.config_dir)
-    self._CleanDirectory(self.download_dir)
-    self._DoubleCheckDirectory(self.download_dir)
+    self._MakeDirsIgnoreError(self.config_dir)
+    self._MakeDirsIgnoreError(self.download_dir)
 
 
 def main():
