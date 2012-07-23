@@ -20,10 +20,15 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import glob
 import json
+import os
 import re
 import socket
 import struct
+
+import tr.cwmp_session as cwmp_session
+import tr.cwmpdate
 import tr.tr135_v1_2
 
 
@@ -37,6 +42,10 @@ PROCNETIGMP6 = '/proc/net/igmp6'
 # This is currently a place holder and needs update once the list is finalised.
 # List the files to read the servicemonitoring stats from.
 CONT_MONITOR_FILES = ['/tmp/cwmp/tr135_mp2ts_stats.json']
+HDMI_STATS_FILE = '/tmp/cwmp/monitoring/hdmi/tr_135_hdmi_stats*.json'
+HDMI_DISPLAY_DEVICE_STATS_FILES = [
+    '/tmp/cwmp/monitoring/hdmi/tr_135_dispdev_status*.json',
+    '/tmp/cwmp/monitoring/hdmi/tr_135_dispdev_stats*.json']
 
 
 class STBService(BASE135STB):
@@ -63,7 +72,6 @@ class Components(BASE135STB.Components):
     self.Unexport('AudioOutputNumberOfEntries')
     self.Unexport('CANumberOfEntries')
     self.Unexport('DRMNumberOfEntries')
-    self.Unexport('HDMINumberOfEntries')
     self.Unexport('SCARTNumberOfEntries')
     self.Unexport('SPDIFNumberOfEntries')
     self.Unexport('VideoDecoderNumberOfEntries')
@@ -73,16 +81,20 @@ class Components(BASE135STB.Components):
     self.Unexport(lists='AudioOutput')
     self.Unexport(lists='CA')
     self.Unexport(lists='DRM')
-    self.Unexport(lists='HDMI')
     self.Unexport(lists='SCART')
     self.Unexport(lists='SPDIF')
     self.Unexport(lists='VideoDecoder')
     self.Unexport(lists='VideoOutput')
     self.FrontEndList = {'1': FrontEnd()}
+    self.HDMIList = {'1': HDMI()}
 
   @property
   def FrontEndNumberOfEntries(self):
     return len(self.FrontEndList)
+
+  @property
+  def HDMINumberOfEntries(self):
+    return len(self.HDMIList)
 
 
 class FrontEnd(BASE135STB.Components.FrontEnd):
@@ -207,6 +219,177 @@ class ClientGroup(BASE135STB.Components.FrontEnd.IP.IGMP.ClientGroup):
     return self.ipaddr
 
 
+class HDMI(BASE135STB.Components.HDMI):
+  """STBService.{i}.Components.HDMI."""
+
+  def __init__(self):
+    super(HDMI, self).__init__()
+    self.Unexport('Alias')
+    self.Unexport('Enable')
+    self.Unexport('Status')
+    self.Unexport('Name')
+    self.DisplayDevice = HDMIDisplayDevice()
+
+  @property
+  @cwmp_session.cache
+  def _GetStats(self):
+    data = dict()
+    for filename in glob.glob(HDMI_STATS_FILE):
+      try:
+        with open(filename) as f:
+          d = json.load(f)
+          hdmiStats = d['HDMIStats']
+
+          if 'ResolutionValue' in hdmiStats.keys():
+            data['ResolutionValue'] = hdmiStats['ResolutionValue']
+
+      # IOError - Failed to open file or failed to read from file
+      # ValueError - JSON file is malformed and cannot be decoded
+      # KeyError - Decoded JSON file doesn't contain the required fields.
+      except (IOError, ValueError, KeyError) as e:
+        print('HDMIStats: Failed to read stats from file {0}, '
+              'error = {1}'.format(filename, e))
+    return data
+
+  @property
+  def ResolutionMode(self):
+    return 'Auto'
+
+  @property
+  def ResolutionValue(self):
+    return self._GetStats.get('ResolutionValue', '')
+
+
+class HDMIDisplayDevice(BASE135STB.Components.HDMI.DisplayDevice):
+  """STBService.{i}.Components.HDMI.{i}.DisplayDevice."""
+
+  def __init__(self):
+    super(HDMIDisplayDevice, self).__init__()
+    self.Unexport('CECSupport')
+    self.Export(params=['X_GOOGLE-COM_NegotiationCount4'])
+    self.Export(params=['X_GOOGLE-COM_NegotiationCount24'])
+    self.Export(params=['X_GOOGLE-COM_VendorId'])
+    self.Export(params=['X_GOOGLE-COM_ProductId'])
+    self.Export(params=['X_GOOGLE-COM_MfgYear'])
+    self.Export(params=['X_GOOGLE-COM_LastUpdateTimestamp'])
+    self.Export(params=['X_GOOGLE-COM_EDIDExtensions'])
+
+  @property
+  @cwmp_session.cache
+  def _GetStats(self):
+    data = dict()
+    for wildcard in HDMI_DISPLAY_DEVICE_STATS_FILES:
+      for filename in glob.glob(wildcard):
+        try:
+          with open(filename) as f:
+            d = json.load(f)
+            displayStats = d['HDMIDisplayDevice']
+
+            if 'Status' in displayStats.keys():
+              data['Status'] = displayStats['Status']
+            if 'Name' in displayStats.keys():
+              data['Name'] = displayStats['Name']
+            if 'EEDID' in displayStats.keys():
+              data['EEDID'] = displayStats['EEDID']
+            if 'EDIDExtensions' in displayStats.keys():
+              data['EDIDExtensions'] = ', '.join(displayStats['EDIDExtensions'])
+            # Supported resolutions can have duplicates! Handle it!
+            if 'SupportedResolutions' in displayStats.keys():
+              sup_res =set()
+              for v in displayStats['SupportedResolutions']:
+                sup_res.add(v)
+              data['SupportedResolutions'] = ', '.join(sorted(sup_res))
+            if 'PreferredResolution' in displayStats.keys():
+              data['PreferredResolution'] = displayStats['PreferredResolution']
+            if 'VideoLatency' in displayStats.keys():
+              data['VideoLatency'] = displayStats['VideoLatency']
+            if 'AutoLipSyncSupport' in displayStats.keys():
+              data['AutoLipSyncSupport'] = displayStats['AutoLipSyncSupport']
+            if 'HDMI3DPresent' in displayStats.keys():
+              data['HDMI3DPresent'] = displayStats['HDMI3DPresent']
+            if 'Negotiations4hr' in displayStats.keys():
+              data['Negotiations4hr'] = displayStats['Negotiations4hr']
+              data['LastUpdateTime'] = os.path.getmtime(filename)
+            if 'Negotiations24hr' in displayStats.keys():
+              data['Negotiations24hr'] = displayStats['Negotiations24hr']
+            if 'VendorId' in displayStats.keys():
+              data['VendorId'] = displayStats['VendorId']
+            if 'ProductId' in displayStats.keys():
+              data['ProductId'] = displayStats['ProductId']
+            if 'MfgYear' in displayStats.keys():
+              data['MfgYear'] = displayStats['MfgYear']
+
+        # IOError - Failed to open file or failed to read from file
+        # ValueError - JSON file is malformed and cannot be decoded
+        # KeyError - Decoded JSON file doesn't contain the required fields.
+        # OSError - mtime call failed.
+        except (IOError, ValueError, KeyError, OSError) as e:
+          print('HDMIStats: Failed to read stats from file {0}, '
+                'error = {1}'.format(filename, e))
+
+    return data
+
+  @property
+  def Status(self):
+    return self._GetStats.get('Status', 'None')
+
+  @property
+  def Name(self):
+    return self._GetStats.get('Name', '')
+
+  @property
+  def SupportedResolutions(self):
+    return self._GetStats.get('SupportedResolutions', '')
+
+  @property
+  def EEDID(self):
+    return self._GetStats.get('EEDID', '')
+
+  @property
+  def X_GOOGLE_COM_EDIDExtensions(self):
+    return self._GetStats.get('EDIDExtensions', '')
+
+  @property
+  def PreferredResolution(self):
+    return self._GetStats.get('PreferredResolution', '')
+
+  @property
+  def VideoLatency(self):
+    return self._GetStats.get('VideoLatency', 0)
+
+  @property
+  def AutoLipSyncSupport(self):
+    return self._GetStats.get('AutoLipSyncSupport', False)
+
+  @property
+  def HDMI3DPresent(self):
+    return self._GetStats.get('HDMI3DPresent', False)
+
+  @property
+  def X_GOOGLE_COM_NegotiationCount4(self):
+    return self._GetStats.get('Negotiations4hr', 0)
+
+  @property
+  def X_GOOGLE_COM_NegotiationCount24(self):
+    return self._GetStats.get('Negotiations24hr', 0)
+
+  @property
+  def X_GOOGLE_COM_VendorId(self):
+    return self._GetStats.get('VendorId', '')
+
+  @property
+  def X_GOOGLE_COM_ProductId(self):
+    return self._GetStats.get('ProductId', 0)
+
+  @property
+  def X_GOOGLE_COM_MfgYear(self):
+    return self._GetStats.get('MfgYear', 1990)
+
+  @property
+  def X_GOOGLE_COM_LastUpdateTimestamp(self):
+    return tr.cwmpdate.format(float(self._GetStats.get('LastUpdateTime', 0)))
+
+
 class ServiceMonitoring(BASE135STB.ServiceMonitoring):
   """STBService.{i}.ServiceMonitoring."""
 
@@ -320,7 +503,7 @@ class Total(BASE135STB.ServiceMonitoring.MainStream.Total):
 
 
 class DejitteringStats(BASE135STB.ServiceMonitoring.MainStream.Total.
-                          DejitteringStats):
+                       DejitteringStats):
   """STBService.{i}.ServiceMonitoring.MainStream.{i}.Total.DejitteringStats."""
 
   def __init__(self):
@@ -351,8 +534,7 @@ class DejitteringStats(BASE135STB.ServiceMonitoring.MainStream.Total.
       self._underruns = djstats['Underruns']
 
 
-class MPEG2TSStats(BASE135STB.ServiceMonitoring.MainStream.Total.
-                      MPEG2TSStats):
+class MPEG2TSStats(BASE135STB.ServiceMonitoring.MainStream.Total.MPEG2TSStats):
   """STBService.{i}.ServiceMonitoring.MainStream.{i}.Total.MPEG2TSStats."""
 
   def __init__(self):
