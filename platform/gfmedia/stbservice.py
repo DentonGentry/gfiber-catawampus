@@ -30,18 +30,19 @@ import struct
 import tr.cwmp_session as cwmp_session
 import tr.cwmpdate
 import tr.tr135_v1_2
+import tr.x_catawampus_videomonitoring_1_0 as vmonitor
 
 
 BASE135STB = tr.tr135_v1_2.STBService_v1_2.STBService
+BASEPROGMETADATA = vmonitor.X_CATAWAMPUS_ORG_STBVideoMonitoring_v1_0.STBService
 IGMPREGEX = re.compile('^\s+(\S+)\s+\d\s+\d:[0-9A-Fa-f]+\s+\d')
 IGMP6REGEX = re.compile(('^\d\s+\S+\s+([0-9A-Fa-f]{32})\s+\d\s+[0-9A-Fa-f]'
                          '+\s+\d'))
 PROCNETIGMP = '/proc/net/igmp'
 PROCNETIGMP6 = '/proc/net/igmp6'
-# TODO(binesh):
-# This is currently a place holder and needs update once the list is finalised.
-# List the files to read the servicemonitoring stats from.
-CONT_MONITOR_FILES = ['/tmp/cwmp/tr135_mp2ts_stats.json']
+
+CONT_MONITOR_FILES = ['/tmp/cwmp/monitoring/ts/tr_135_total_tsstats*.json']
+EPG_STATS_FILES = ['/tmp/cwmp/monitoring/epg/tr_135_epg_stats*.json']
 HDMI_STATS_FILE = '/tmp/cwmp/monitoring/hdmi/tr_135_hdmi_stats*.json'
 HDMI_DISPLAY_DEVICE_STATS_FILES = [
     '/tmp/cwmp/monitoring/hdmi/tr_135_dispdev_status*.json',
@@ -59,8 +60,10 @@ class STBService(BASE135STB):
     self.Unexport(objects='AVStreams')
     self.Unexport(objects='Applications')
     self.Unexport(objects='Capabilities')
+    self.Export(objects=['X_CATAWAMPUS-ORG_ProgramMetadata'])
     self.ServiceMonitoring = ServiceMonitoring()
     self.Components = Components()
+    self.X_CATAWAMPUS_ORG_ProgramMetadata = ProgMetadata()
 
 
 class Components(BASE135STB.Components):
@@ -295,7 +298,7 @@ class HDMIDisplayDevice(BASE135STB.Components.HDMI.DisplayDevice):
               data['EDIDExtensions'] = ', '.join(displayStats['EDIDExtensions'])
             # Supported resolutions can have duplicates! Handle it!
             if 'SupportedResolutions' in displayStats.keys():
-              sup_res =set()
+              sup_res = set()
               for v in displayStats['SupportedResolutions']:
                 sup_res.add(v)
               data['SupportedResolutions'] = ', '.join(sorted(sup_res))
@@ -417,8 +420,9 @@ class ServiceMonitoring(BASE135STB.ServiceMonitoring):
 
   def UpdateSvcMonitorStats(self):
     """Retrieve and aggregate stats from all related JSON stats files."""
-    for filename in CONT_MONITOR_FILES:
-      self.DeserializeStats(filename)
+    for wildcard in CONT_MONITOR_FILES:
+      for filename in glob.glob(wildcard):
+        self.DeserializeStats(filename)
 
   def ReadJSONStats(self, fname):
     """Retrieves statistics from the service monitoring JSON file."""
@@ -590,6 +594,67 @@ class TCPStats(BASE135STB.ServiceMonitoring.MainStream.Total.TCPStats):
       self._packets_received = tcpstats['Packets Received']
     if 'Packets Retransmitted' in tcpstats.keys():
       self._packets_retransmitted = tcpstats['Packets Retransmitted']
+
+
+class ProgMetadata(BASEPROGMETADATA.X_CATAWAMPUS_ORG_ProgramMetadata):
+  """STBService.{i}.X_CATAWAMPUS_ORG_ProgramMetadata."""
+
+  def __init__(self):
+    super(ProgMetadata, self).__init__()
+    self.EPG = EPG()
+
+
+class EPG(BASEPROGMETADATA.X_CATAWAMPUS_ORG_ProgramMetadata.EPG):
+  """STBService.{i}.X_CATAWAMPUS_ORG_ProgramMetadata.EPG."""
+
+  def __init__(self):
+    super(EPG, self).__init__()
+
+  @property
+  @cwmp_session.cache
+  def _GetStats(self):
+    """Generate stats object from the JSON stats."""
+    data = dict()
+    for wildcard in EPG_STATS_FILES:
+      for filename in glob.glob(wildcard):
+        try:
+          with open(filename) as f:
+            d = json.load(f)
+            epgStats = d['EPGStats']
+
+            if 'MulticastPackets' in epgStats.keys():
+              data['MulticastPackets'] = epgStats['MulticastPackets']
+            if 'EPGErrors' in epgStats.keys():
+              data['EPGErrors'] = epgStats['EPGErrors']
+            if 'LastReceivedTime' in epgStats.keys():
+              data['LastReceivedTime'] = epgStats['LastReceivedTime']
+            if'EPGExpireTime' in epgStats.keys():
+              data['EPGExpireTime'] = epgStats['EPGExpireTime']
+
+        # IOError - Failed to open file or failed to read from file
+        # ValueError - JSON file is malformed and cannot be decoded
+        # KeyError - Decoded JSON file doesn't contain the required fields.
+        except (IOError, ValueError, KeyError) as e:
+          print('EPGStats: Failed to read stats from file {0}, '
+                'error = {1}'.format(filename, e))
+
+    return data
+
+  @property
+  def MulticastPackets(self):
+    return self._GetStats.get('MulticastPackets', 0)
+
+  @property
+  def EPGErrors(self):
+    return self._GetStats.get('EPGErrors', 0)
+
+  @property
+  def LastReceivedTime(self):
+    return tr.cwmpdate.format(float(self._GetStats.get('LastReceivedTime', 0)))
+
+  @property
+  def EPGExpireTime(self):
+    return tr.cwmpdate.format(float(self._GetStats.get('EPGExpireTime', 0)))
 
 
 def main():

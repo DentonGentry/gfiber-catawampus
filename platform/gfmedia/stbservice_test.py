@@ -28,32 +28,37 @@ import stbservice
 
 class STBServiceTest(unittest.TestCase):
   def setUp(self):
-    self.old_PROCNETIGMP = stbservice.PROCNETIGMP
-    self.old_PROCNETIGMP6 = stbservice.PROCNETIGMP6
-    self.old_CONT_MONITOR_FILES = stbservice.CONT_MONITOR_FILES
-    self.old_HDMI_STATS_FILE = stbservice.HDMI_STATS_FILE
-    self.old_HDMI_DISP_DEVICE_STATS = stbservice.HDMI_DISPLAY_DEVICE_STATS_FILES
-    stbservice.PROCNETIGMP = 'testdata/stbservice/igmp'
-    stbservice.PROCNETIGMP6 = 'testdata/stbservice/igmp6'
-    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_full.json']
-    stbservice.HDMI_STATS_FILE = 'testdata/stbservice/hdmi_stats.json'
-    stbservice.HDMI_DISPLAY_DEVICE_STATS_FILES = [
-        'testdata/stbservice/hdmi_dispdev_stats*.json',
-        'testdata/stbservice/hdmi_dispdev_status*.json']
-    self.STATS_FILES_NOEXST = ['testdata/stbservice/notexist.json']
     self.CONT_MONITOR_FILES_ALT = ['testdata/stbservice/stats_small.json']
     self.CONT_MONITOR_FILES_P = ['testdata/stbservice/stats_small.json',
                                  'testdata/stbservice/stats_p2.json',
                                  'testdata/stbservice/stats_p1.json',
                                  'testdata/stbservice/notexist.json']
     self.CONT_MONITOR_FILES_P1 = ['testdata/stbservice/stats_p1.json']
+    self.STATS_FILES_NOEXST = ['testdata/stbservice/notexist.json']
+
+    self.old_CONT_MONITOR_FILES = stbservice.CONT_MONITOR_FILES
+    self.old_EPG_STATS_FILES = stbservice.EPG_STATS_FILES
+    self.old_HDMI_DISP_DEVICE_STATS = stbservice.HDMI_DISPLAY_DEVICE_STATS_FILES
+    self.old_HDMI_STATS_FILE = stbservice.HDMI_STATS_FILE
+    self.old_PROCNETIGMP = stbservice.PROCNETIGMP
+    self.old_PROCNETIGMP6 = stbservice.PROCNETIGMP6
+
+    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_full.json']
+    stbservice.EPG_STATS_FILES = ['testdata/stbservice/epgstats.json']
+    stbservice.HDMI_DISPLAY_DEVICE_STATS_FILES = [
+        'testdata/stbservice/hdmi_dispdev_stats*.json',
+        'testdata/stbservice/hdmi_dispdev_status*.json']
+    stbservice.HDMI_STATS_FILE = 'testdata/stbservice/hdmi_stats.json'
+    stbservice.PROCNETIGMP = 'testdata/stbservice/igmp'
+    stbservice.PROCNETIGMP6 = 'testdata/stbservice/igmp6'
 
   def tearDown(self):
+    stbservice.CONT_MONITOR_FILES = self.old_CONT_MONITOR_FILES
+    stbservice.EPG_STATS_FILES = self.old_EPG_STATS_FILES
+    stbservice.HDMI_DISPLAY_DEVICE_STATS_FILES = self.old_HDMI_DISP_DEVICE_STATS
+    stbservice.HDMI_STATS_FILE = self.old_HDMI_STATS_FILE
     stbservice.PROCNETIGMP = self.old_PROCNETIGMP
     stbservice.PROCNETIGMP6 = self.old_PROCNETIGMP6
-    stbservice.CONT_MONITOR_FILES = self.old_CONT_MONITOR_FILES
-    stbservice.HDMI_STATS_FILE = self.old_HDMI_STATS_FILE
-    stbservice.HDMI_DISPLAY_DEVICE_STATS_FILES = self.old_HDMI_DISP_DEVICE_STATS
 
   def testValidateExports(self):
     stb = stbservice.STBService()
@@ -280,6 +285,39 @@ class STBServiceTest(unittest.TestCase):
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_VendorId, '')
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_ProductId, 0)
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_MfgYear, 1990)
+
+  def testEPGStatsNoFile(self):
+    """Test whether EPG stats are deserialized properly when not file backed."""
+    stbservice.EPG_STATS_FILES = self.STATS_FILES_NOEXST
+    stb = stbservice.STBService()
+    stb.X_CATAWAMPUS_ORG_ProgramMetadata.ValidateExports()
+    epgStats = stb.X_CATAWAMPUS_ORG_ProgramMetadata.EPG
+    self.assertEqual(epgStats.MulticastPackets, 0)
+    self.assertEqual(epgStats.EPGErrors, 0)
+    self.assertEqual(epgStats.LastReceivedTime, '0001-01-01T00:00:00Z')
+    self.assertEqual(epgStats.EPGExpireTime, '0001-01-01T00:00:00Z')
+
+  def testEPGStatsIncorrectFileFormat(self):
+    """Test whether EPG stats are handled properly for a bad file."""
+    stbservice.EPG_STATS_FILES = [stbservice.PROCNETIGMP]
+    stb = stbservice.STBService()
+    stb.X_CATAWAMPUS_ORG_ProgramMetadata.ValidateExports()
+    epgStats = stb.X_CATAWAMPUS_ORG_ProgramMetadata.EPG
+    self.assertEqual(epgStats.MulticastPackets, 0)
+    self.assertEqual(epgStats.EPGErrors, 0)
+    self.assertEqual(epgStats.LastReceivedTime, '0001-01-01T00:00:00Z')
+    self.assertEqual(epgStats.EPGExpireTime, '0001-01-01T00:00:00Z')
+
+  def testEPGStatsAll(self):
+    """Test whether EPG stats are deserialized properly."""
+    stb = stbservice.STBService()
+    stb.X_CATAWAMPUS_ORG_ProgramMetadata.ValidateExports()
+    epgStats = stb.X_CATAWAMPUS_ORG_ProgramMetadata.EPG
+    self.assertEqual(epgStats.MulticastPackets, 1002)
+    self.assertEqual(epgStats.EPGErrors, 2)
+    self.assertEqual(epgStats.LastReceivedTime, '2012-07-25T01:50:37Z')
+    self.assertEqual(epgStats.EPGExpireTime, '2012-07-30T01:50:37Z')
+
 
 if __name__ == '__main__':
   unittest.main()
