@@ -119,6 +119,11 @@ class MockTransferComplete(object):
     self.event_code = event_code
 
 
+class MockFile(object):
+  def __init__(self, name):
+    self.name = name
+
+
 class DownloadTest(unittest.TestCase):
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp()
@@ -188,14 +193,14 @@ class DownloadTest(unittest.TestCase):
     self.assertEqual(self.QCheckBoring(dl, kwargs), 2)  # 2: In process
 
     # Step 3: Install
-    dlfile = '/path/to/downloaded/file'
+    dlfile = MockFile('/path/to/downloaded/file')
     http.download_complete_cb(0, '', dlfile)
     self.assertEqual(len(mock_installers), 1)
     inst = mock_installers[0]
     self.assertTrue(inst.did_install)
     self.assertEqual(inst.file_type, kwargs['file_type'])
     self.assertEqual(inst.target_filename, kwargs['target_filename'])
-    self.assertEqual(inst.filename, dlfile)
+    self.assertEqual(inst.filename, dlfile.name)
     self.assertFalse(inst.did_reboot)
     self.assertEqual(self.QCheckBoring(dl, kwargs), 2)  # 2: In process
 
@@ -283,12 +288,12 @@ class DownloadTest(unittest.TestCase):
     self.assertEqual(http.url, kwargs['url'])
 
     # Step 3: Install
-    dlfile = '/path/to/downloaded/file'
+    dlfile = MockFile('/path/to/downloaded/file')
     http.download_complete_cb(0, '', dlfile)
     self.assertEqual(len(mock_installers), 1)
     inst = mock_installers[0]
     self.assertTrue(inst.did_install)
-    self.assertEqual(inst.filename, dlfile)
+    self.assertEqual(inst.filename, dlfile.name)
     self.assertFalse(inst.did_reboot)
 
     # Step 4: Install Failed
@@ -328,12 +333,12 @@ class DownloadTest(unittest.TestCase):
     self.assertEqual(http.url, kwargs['url'])
 
     # Step 3: Install
-    dlfile = '/path/to/downloaded/file'
+    dlfile = MockFile('/path/to/downloaded/file')
     http.download_complete_cb(0, '', dlfile)
     self.assertEqual(len(mock_installers), 1)
     inst = mock_installers[0]
     self.assertTrue(inst.did_install)
-    self.assertEqual(inst.filename, dlfile)
+    self.assertEqual(inst.filename, dlfile.name)
     self.assertFalse(inst.did_reboot)
 
     # Step 4: Install Succeeded, no reboot
@@ -434,6 +439,32 @@ class DownloadManagerTest(unittest.TestCase):
 
   def testSimpleDownload(self):
     (dm, _) = self.allocTestDM()
+    args = {'command_key': 'TestCommandKey',
+            'file_type': 'TestFileType',
+            'url': 'http://example.com/',
+            'username': 'TestUser',
+            'password': 'TestPassword',
+            'file_size': 99,
+            'target_filename': 'TestFilename',
+            'delay_seconds': 30}
+    (code, start, end) = dm.NewDownload(**args)
+    self.assertEqual(code, 1)
+    self.assertEqual(start, 0.0)
+    self.assertEqual(end, 0.0)
+    self.assertEqual(len(mock_downloads), 1)
+    dl = mock_downloads[0]
+    self.assertEqual(dl.stateobj.command_key, args['command_key'])
+    self.assertEqual(dl.stateobj.file_type, args['file_type'])
+    self.assertEqual(dl.stateobj.url, args['url'])
+    self.assertEqual(dl.stateobj.username, args['username'])
+    self.assertEqual(dl.stateobj.password, args['password'])
+    self.assertEqual(dl.stateobj.file_size, args['file_size'])
+    self.assertEqual(dl.stateobj.target_filename, args['target_filename'])
+    self.assertEqual(dl.stateobj.delay_seconds, args['delay_seconds'])
+
+  def testReadonlyConfigDir(self):
+    (dm, _) = self.allocTestDM()
+    dm.SetDirectories(config_dir='/user/nonexist', download_dir=self.tmpdir)
     args = {'command_key': 'TestCommandKey',
             'file_type': 'TestFileType',
             'url': 'http://example.com/',
