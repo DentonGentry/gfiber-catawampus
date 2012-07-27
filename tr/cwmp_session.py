@@ -21,6 +21,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import functools
 import tornado.httpclient
 import tornado.ioloop
 
@@ -114,8 +115,52 @@ class CwmpSession(object):
     self.close()
 
   def close(self):
+    cache.flush()
     self.http = None
     return self.ping_received
+
+
+class cache(object):
+  """A global cache of arbitrary data for the lifetime of one CWMP session.
+
+  @cwmp_session.cache is a decorator to cache the return
+  value of a function for the remainder of the session with the ACS.
+  Calling the function again with the same arguments will be serviced
+  from the cache.
+
+  This is intended for very expensive operations, particularly where
+  a process is forked and its output parsed.
+  """
+
+  _thecache = dict()
+
+  @staticmethod
+  def flush():
+    """Flush all cached data."""
+    for k in cache._thecache.keys():
+      del cache._thecache[k]
+
+  def __init__(self, func):
+    self.func = func
+    self.obj = None
+
+  def __get__(self, obj, objtype):
+    """Support instance methods."""
+    self.obj = obj
+    return functools.partial(self.__call__, obj)
+
+  def __call__(self, *args):
+    key = self._cache_key(args)
+    try:
+      return cache._thecache[key]
+    except KeyError:
+      val = self.func(*args)
+      cache._thecache[key] = val
+      return val
+
+  def _cache_key(self, *args):
+    """Concatenate the function, object, and all arguments."""
+    return '\0'.join([repr(x) for x in [self.func, self.obj, args]])
 
 
 def main():

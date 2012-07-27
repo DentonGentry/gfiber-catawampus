@@ -50,15 +50,15 @@ class STBService(BASE135STB):
     self.Unexport(objects='AVStreams')
     self.Unexport(objects='Applications')
     self.Unexport(objects='Capabilities')
-    self.ServiceMonitoring = STBServiceMonitoring()
-    self.Components = STBComponents()
+    self.ServiceMonitoring = ServiceMonitoring()
+    self.Components = Components()
 
 
-class STBComponents(BASE135STB.Components):
+class Components(BASE135STB.Components):
   """STBService.{i}.Components."""
 
   def __init__(self):
-    super(STBComponents, self).__init__()
+    super(Components, self).__init__()
     self.Unexport('AudioDecoderNumberOfEntries')
     self.Unexport('AudioOutputNumberOfEntries')
     self.Unexport('CANumberOfEntries')
@@ -78,30 +78,31 @@ class STBComponents(BASE135STB.Components):
     self.Unexport(lists='SPDIF')
     self.Unexport(lists='VideoDecoder')
     self.Unexport(lists='VideoOutput')
-    self.FrontEndList = {'1': STBFrontEnd()}
+    self.FrontEndList = {'1': FrontEnd()}
 
   @property
   def FrontEndNumberOfEntries(self):
     return len(self.FrontEndList)
 
 
-class STBFrontEnd(BASE135STB.Components.FrontEnd):
+class FrontEnd(BASE135STB.Components.FrontEnd):
   """STBService.{i}.Components.FrontEnd.{i}."""
 
   def __init__(self):
-    super(STBFrontEnd, self).__init__()
+    super(FrontEnd, self).__init__()
+    self.Unexport('Alias')
     self.Unexport('Enable')
     self.Unexport('Name')
     self.Unexport('Status')
     self.Unexport(objects='DVBT')
-    self.IP = STBIP()
+    self.IP = IP()
 
 
-class STBIP(BASE135STB.Components.FrontEnd.IP):
+class IP(BASE135STB.Components.FrontEnd.IP):
   """STBService.{i}.Components.FrontEnd.{i}.IP."""
 
   def __init__(self):
-    super(STBIP, self).__init__()
+    super(IP, self).__init__()
     self.Unexport('ActiveInboundIPStreams')
     self.Unexport('ActiveOutboundIPStreams')
     self.Unexport('InboundNumberOfEntries')
@@ -110,16 +111,18 @@ class STBIP(BASE135STB.Components.FrontEnd.IP):
     self.Unexport(objects='RTCP')
     self.Unexport(objects='RTPAVPF')
     self.Unexport(objects='ServiceConnect')
+    self.Unexport(objects='FEC')
+    self.Unexport(objects='ForceMonitor')
     self.Unexport(lists='Inbound')
     self.Unexport(lists='Outbound')
-    self.IGMP = STBIGMP()
+    self.IGMP = IGMP()
 
 
-class STBIGMP(BASE135STB.Components.FrontEnd.IP.IGMP):
+class IGMP(BASE135STB.Components.FrontEnd.IP.IGMP):
   """STBService.{i}.Components.FrontEnd.{i}.IP.IGMP."""
 
   def __init__(self):
-    super(STBIGMP, self).__init__()
+    super(IGMP, self).__init__()
     self.Unexport('ClientGroupStatsNumberOfEntries')
     self.Unexport('ClientRobustness')
     self.Unexport('ClientUnsolicitedReportInterval')
@@ -174,7 +177,7 @@ class STBIGMP(BASE135STB.Components.FrontEnd.IP.IGMP):
     return list(igmps)
 
   def GetClientGroup(self, ipaddr):
-    return STBClientGroup(ipaddr)
+    return ClientGroup(ipaddr)
 
   def IterClientGroups(self):
     """Retrieves a list of IGMP memberships."""
@@ -190,12 +193,13 @@ class STBIGMP(BASE135STB.Components.FrontEnd.IP.IGMP):
     return self.GetClientGroup(igmps[i])
 
 
-class STBClientGroup(BASE135STB.Components.FrontEnd.IP.IGMP.ClientGroup):
+class ClientGroup(BASE135STB.Components.FrontEnd.IP.IGMP.ClientGroup):
   """STBService.{i}.Components.FrontEnd.{i}.IP.IGMP.ClientGroup.{i}."""
 
   def __init__(self, ipaddr):
-    super(STBClientGroup, self).__init__()
+    super(ClientGroup, self).__init__()
     self.Unexport('UpTime')
+    self.Unexport('Alias')
     self.ipaddr = ipaddr
 
   @property
@@ -203,11 +207,11 @@ class STBClientGroup(BASE135STB.Components.FrontEnd.IP.IGMP.ClientGroup):
     return self.ipaddr
 
 
-class STBServiceMonitoring(BASE135STB.ServiceMonitoring):
+class ServiceMonitoring(BASE135STB.ServiceMonitoring):
   """STBService.{i}.ServiceMonitoring."""
 
   def __init__(self):
-    super(STBServiceMonitoring, self).__init__()
+    super(ServiceMonitoring, self).__init__()
     self.Unexport('FetchSamples')
     self.Unexport('ForceSample')
     self.Unexport('ReportEndTime')
@@ -248,7 +252,7 @@ class STBServiceMonitoring(BASE135STB.ServiceMonitoring):
       for i in range(len(streams)):
         sid = streams[i]['StreamId']
         if sid not in self._MainStreamStats.keys():
-          self._MainStreamStats[sid] = STBMainStream()
+          self._MainStreamStats[sid] = MainStream()
         self._MainStreamStats[sid].UpdateMainstreamStats(streams[i])
 
     # IOError - Failed to open file or failed to read from file
@@ -269,11 +273,11 @@ class STBServiceMonitoring(BASE135STB.ServiceMonitoring):
     return self._MainStreamStats[index]
 
 
-class STBMainStream(BASE135STB.ServiceMonitoring.MainStream):
+class MainStream(BASE135STB.ServiceMonitoring.MainStream):
   """STBService.{i}.ServiceMonitoring.MainStream."""
 
   def __init__(self):
-    super(STBMainStream, self).__init__()
+    super(MainStream, self).__init__()
     self.Unexport('AVStream')
     self.Unexport('Enable')
     self.Unexport('Gmin')
@@ -282,18 +286,19 @@ class STBMainStream(BASE135STB.ServiceMonitoring.MainStream):
     self.Unexport('SevereLossMinLength')
     self.Unexport('Status')
     self.Unexport('ChannelChangeFailureTimeout')
+    self.Unexport('Alias')
     self.Unexport(objects='Sample')
-    self.Total = STBTotal()
+    self.Total = Total()
 
   def UpdateMainstreamStats(self, data):
     self.Total.UpdateTotalStats(data)
 
 
-class STBTotal(BASE135STB.ServiceMonitoring.MainStream.Total):
+class Total(BASE135STB.ServiceMonitoring.MainStream.Total):
   """STBService.{i}.ServiceMonitoring.MainStream.{i}.Total."""
 
   def __init__(self):
-    super(STBTotal, self).__init__()
+    super(Total, self).__init__()
     self.Unexport('Reset')
     self.Unexport('ResetTime')
     self.Unexport('TotalSeconds')
@@ -301,9 +306,9 @@ class STBTotal(BASE135STB.ServiceMonitoring.MainStream.Total):
     self.Unexport(objects='RTPStats')
     self.Unexport(objects='VideoDecoderStats')
     self.Unexport(objects='VideoResponseStats')
-    self.DejitteringStats = STBDejitteringStats()
-    self.MPEG2TSStats = STBMPEG2TSStats()
-    self.TCPStats = STBTCPStats()
+    self.DejitteringStats = DejitteringStats()
+    self.MPEG2TSStats = MPEG2TSStats()
+    self.TCPStats = TCPStats()
 
   def UpdateTotalStats(self, data):
     if 'DejitteringStats' in data.keys():
@@ -314,12 +319,12 @@ class STBTotal(BASE135STB.ServiceMonitoring.MainStream.Total):
       self.TCPStats.UpdateTCPStats(data['TCPStats'])
 
 
-class STBDejitteringStats(BASE135STB.ServiceMonitoring.MainStream.Total.
+class DejitteringStats(BASE135STB.ServiceMonitoring.MainStream.Total.
                           DejitteringStats):
   """STBService.{i}.ServiceMonitoring.MainStream.{i}.Total.DejitteringStats."""
 
   def __init__(self):
-    super(STBDejitteringStats, self).__init__()
+    super(DejitteringStats, self).__init__()
     self.Unexport('TotalSeconds')
     self._empty_buffer_time = 0
     self._overruns = 0
@@ -346,12 +351,12 @@ class STBDejitteringStats(BASE135STB.ServiceMonitoring.MainStream.Total.
       self._underruns = djstats['Underruns']
 
 
-class STBMPEG2TSStats(BASE135STB.ServiceMonitoring.MainStream.Total.
+class MPEG2TSStats(BASE135STB.ServiceMonitoring.MainStream.Total.
                       MPEG2TSStats):
   """STBService.{i}.ServiceMonitoring.MainStream.{i}.Total.MPEG2TSStats."""
 
   def __init__(self):
-    super(STBMPEG2TSStats, self).__init__()
+    super(MPEG2TSStats, self).__init__()
     self.Unexport('PacketDiscontinuityCounterBeforeCA')
     self.Unexport('TSSyncByteErrorCount')
     self.Unexport('TSSyncLossCount')
@@ -374,11 +379,11 @@ class STBMPEG2TSStats(BASE135STB.ServiceMonitoring.MainStream.Total.
       self._ts_packets_received = tsstats['TSPacketsReceived']
 
 
-class STBTCPStats(BASE135STB.ServiceMonitoring.MainStream.Total.TCPStats):
+class TCPStats(BASE135STB.ServiceMonitoring.MainStream.Total.TCPStats):
   """STBService.{i}.ServiceMonitoring.MainStream.{i}.Total.TCPStats."""
 
   def __init__(self):
-    super(STBTCPStats, self).__init__()
+    super(TCPStats, self).__init__()
     self.Unexport('TotalSeconds')
     self._bytes_received = 0
     self._packets_received = 0

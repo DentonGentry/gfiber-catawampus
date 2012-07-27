@@ -46,6 +46,8 @@ class GFiberTvMailbox(BASETV.Mailbox):
     self.Node = ''
 
   def GetValue(self):
+    if not self.Name:
+      return None
     try:
       return str(self.rpcclient.GetProperty(self.Name, self.Node))
     except xmlrpclib.Fault:
@@ -70,5 +72,6 @@ class GFiberTvMailbox(BASETV.Mailbox):
   def NodeList(self):
     try:
       return str(', '.join(self.rpcclient.ListNodes()))
-    except (xmlrpclib.Fault, xmlrpclib.ProtocolError, IOError):
-      raise IndexError('Unable to list Nodes connected to this device.')
+    except (xmlrpclib.Fault, xmlrpclib.ProtocolError, IOError), e:
+      print 'gfibertv.NodeList: %s' % e
+      return {}

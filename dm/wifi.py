@@ -61,11 +61,12 @@ class PreSharedKey98(tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDe
 
   def __init__(self):
     super(PreSharedKey98, self).__init__()
+    self.Unexport('Alias')
     self.key = None
     self.passphrase = None
-    self.assoc_mac_addr = None
     self.key_pbkdf2 = None
     self.salt = None
+    self.AssociatedDeviceMACAddress = None
 
   def GetKey(self, salt):
     """Return the key to program into the Wifi chipset.
@@ -113,32 +114,14 @@ class PreSharedKey98(tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDe
       GetKeyPassphrase, SetKeyPassphrase, None,
       'WLANConfiguration.{i}.PreSharedKey.{i}.KeyPassphrase')
 
-  def SetAssociatedDeviceMACAddress(self, value):
-    self.assoc_mac_addr = value
-
-  def GetAssociatedDeviceMACAddress(self):
-    return self.assoc_mac_addr
-
-  AssociatedDeviceMACAddress = property(
-      GetAssociatedDeviceMACAddress, SetAssociatedDeviceMACAddress, None,
-      'WLANConfiguration.{i}.PreSharedKey.{i}.AssociatedDeviceMACAddress')
-
 
 class WEPKey98(tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice.LANDevice.WLANConfiguration.WEPKey):
   """InternetGatewayDevice.WLANConfiguration.{i}.WEPKey.{i}."""
 
   def __init__(self):
     super(WEPKey98, self).__init__()
-    self.key = None
-
-  def GetWEPKey(self):
-    return self.key
-
-  def SetWEPKey(self, value):
-    self.key = value
-
-  WEPKey = property(GetWEPKey, SetWEPKey, None,
-                    'WLANConfiguration.{i}.WEPKey.{i}.WEPKey')
+    self.Unexport('Alias')
+    self.WEPKey = None
 
 
 def main():

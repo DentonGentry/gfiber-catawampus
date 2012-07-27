@@ -72,7 +72,7 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
     return DOWNLOADDIR
 
 
-class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
+class DeviceId(dm.device_info.DeviceIdMeta):
   def _GetOneLine(self, filename, default):
     try:
       f = open(filename, 'r')
@@ -166,7 +166,7 @@ class DeviceIdGFMedia(dm.device_info.DeviceIdMeta):
     return '0'
 
 
-class InstallerGFMedia(tr.download.Installer):
+class Installer(tr.download.Installer):
   """Installer class used by tr/download.py."""
 
   def __init__(self, filename, ioloop=None):
@@ -228,7 +228,7 @@ class InstallerGFMedia(tr.download.Installer):
         self._call_callback(INTERNAL_ERROR, 'Unable to install image.')
 
 
-class Services181GFMedia(tr181.Device_v2_2.Device.Services):
+class Services(tr181.Device_v2_2.Device.Services):
   def __init__(self):
     tr181.Device_v2_2.Device.Services.__init__(self)
     self.Export(objects=['StorageServices'])
@@ -265,7 +265,7 @@ class Services181GFMedia(tr181.Device_v2_2.Device.Services):
         pass
 
 
-class Ethernet181GFMedia(tr181.Device_v2_2.Device.Ethernet):
+class Ethernet(tr181.Device_v2_2.Device.Ethernet):
   """Implementation of tr-181 Device.Ethernet for GFMedia platforms."""
 
   def __init__(self):
@@ -287,7 +287,7 @@ class Ethernet181GFMedia(tr181.Device_v2_2.Device.Ethernet):
     return len(self.LinkList)
 
 
-class Moca181GFMedia(tr181.Device_v2_2.Device.MoCA):
+class Moca(tr181.Device_v2_2.Device.MoCA):
   """Implementation of tr-181 Device.MoCA for GFMedia platforms."""
 
   def __init__(self):
@@ -299,7 +299,7 @@ class Moca181GFMedia(tr181.Device_v2_2.Device.MoCA):
     return len(self.InterfaceList)
 
 
-class DeviceGFMedia(tr181.Device_v2_2.Device):
+class Device(tr181.Device_v2_2.Device):
   """tr-181 Device implementation for Google Fiber media platforms."""
 
   def __init__(self, device_id, periodic_stats):
@@ -309,19 +309,25 @@ class DeviceGFMedia(tr181.Device_v2_2.Device):
     self.Unexport(objects='CaptivePortal')
     self.Export(objects=['DeviceInfo'])
     self.Unexport(objects='DHCPv4')
+    self.Unexport(objects='DHCPv6')
     self.Unexport(objects='DNS')
     self.Unexport(objects='DSL')
+    self.Unexport(objects='DSLite')
+    self.Unexport(objects='Firewall')
     self.Unexport(objects='GatewayInfo')
     self.Unexport(objects='HPNA')
     self.Unexport(objects='HomePlug')
     self.Unexport(objects='Hosts')
     self.Unexport(objects='IEEE8021x')
     self.Unexport(objects='IP')
+    self.Unexport(objects='IPv6rd')
     self.Unexport(objects='LANConfigSecurity')
     self.Unexport(objects='NAT')
+    self.Unexport(objects='NeighborDiscovery')
     self.Unexport(objects='PPP')
     self.Unexport(objects='PTM')
     self.Unexport(objects='QoS')
+    self.Unexport(objects='RouterAdvertisement')
     self.Unexport(objects='Routing')
     self.Unexport(objects='SmartCardReaders')
     self.Unexport(objects='UPA')
@@ -330,10 +336,10 @@ class DeviceGFMedia(tr181.Device_v2_2.Device):
     self.Unexport(objects='WiFi')
 
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
-    self.Ethernet = Ethernet181GFMedia()
+    self.Ethernet = Ethernet()
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
-    self.MoCA = Moca181GFMedia()
-    self.Services = Services181GFMedia()
+    self.MoCA = Moca()
+    self.Services = Services()
     self.InterfaceStackList = {}
     self.InterfaceStackNumberOfEntries = 0
     self.Export(objects=['PeriodicStatistics'])
@@ -354,11 +360,12 @@ class DeviceGFMedia(tr181.Device_v2_2.Device):
         pass
 
 
-class LANDeviceGFMedia(BASE98IGD.LANDevice):
+class LANDevice(BASE98IGD.LANDevice):
   """tr-98 InternetGatewayDevice for Google Fiber media platforms."""
 
   def __init__(self):
     BASE98IGD.LANDevice.__init__(self)
+    self.Unexport('Alias')
     self.Unexport(objects='Hosts')
     self.Unexport(lists='LANEthernetInterfaceConfig')
     self.Unexport(objects='LANHostConfigManagement')
@@ -382,7 +389,7 @@ class LANDeviceGFMedia(BASE98IGD.LANDevice):
     return len(self.WLANConfigurationList)
 
 
-class InternetGatewayDeviceGFMedia(BASE98IGD):
+class InternetGatewayDevice(BASE98IGD):
   def __init__(self, device_id, periodic_stats):
     BASE98IGD.__init__(self)
     self.Unexport(objects='CaptivePortal')
@@ -391,7 +398,7 @@ class InternetGatewayDeviceGFMedia(BASE98IGD):
     self.Unexport(objects='DownloadDiagnostics')
     self.Unexport(objects='IPPingDiagnostics')
     self.Unexport(objects='LANConfigSecurity')
-    self.LANDeviceList = {'1': LANDeviceGFMedia()}
+    self.LANDeviceList = {'1': LANDevice()}
     self.Unexport(objects='LANInterfaces')
     self.Unexport(objects='Layer2Bridging')
     self.Unexport(objects='Layer3Forwarding')
@@ -418,13 +425,13 @@ class InternetGatewayDeviceGFMedia(BASE98IGD):
 
 
 def PlatformInit(name, device_model_root):
-  tr.download.INSTALLER = InstallerGFMedia
+  tr.download.INSTALLER = Installer
   params = []
   objects = []
-  dev_id = DeviceIdGFMedia()
+  dev_id = DeviceId()
   periodic_stats = dm.periodic_statistics.PeriodicStatistics()
-  device_model_root.Device = DeviceGFMedia(dev_id, periodic_stats)
-  device_model_root.InternetGatewayDevice = InternetGatewayDeviceGFMedia(
+  device_model_root.Device = Device(dev_id, periodic_stats)
+  device_model_root.InternetGatewayDevice = InternetGatewayDevice(
       dev_id, periodic_stats)
   device_model_root.X_GOOGLE_COM_GVSB = gvsb.Gvsb()
   tvrpc = gfibertv.GFiberTv('http://localhost:51834/xmlrpc')
@@ -437,9 +444,9 @@ def PlatformInit(name, device_model_root):
 
 
 def main():
-  dev_id = DeviceIdGFMedia()
+  dev_id = DeviceId()
   periodic_stats = dm.periodic_statistics.PeriodicStatistics()
-  root = DeviceGFMedia(dev_id, periodic_stats)
+  root = Device(dev_id, periodic_stats)
   root.ValidateExports()
   tr.core.Dump(root)
 
