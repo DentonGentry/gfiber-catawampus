@@ -91,6 +91,10 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     did = device.DeviceId()
     self.assertEqual(did.HardwareVersion, 'BCM7425B2')
 
+  def testFanSpeed(self):
+    fan = device.FanReadGpio(filename='testdata/fanspeed')
+    self.assertEqual(fan.RPM, 1800)
+
   def install_callback(self, faultcode, faultstring, must_reboot):
     self.install_cb_called = True
     self.install_cb_faultcode = faultcode
