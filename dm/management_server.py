@@ -117,22 +117,44 @@ class ManagementServer98(BASEMGMT98):
     """
     BASEMGMT98.__init__(self)
     self.mgmt = mgmt
+    self.Unexport('AliasBasedAddressing')
+    self.Unexport('AutoCreateInstances')
     self.Unexport('DownloadProgressURL')
+    self.Unexport('InstanceMode')
     self.Unexport('KickURL')
+    self.Unexport('ManageableDeviceNotificationLimit')
+    self.Unexport('NATDetected')
+    self.Unexport('STUNEnable')
+    self.Unexport('STUNMaximumKeepAlivePeriod')
+    self.Unexport('STUNMinimumKeepAlivePeriod')
+    self.Unexport('STUNPassword')
+    self.Unexport('STUNServerAddress')
+    self.Unexport('STUNServerPort')
+    self.Unexport('STUNUsername')
     self.Unexport('UDPConnectionRequestAddress')
+    self.Unexport('UDPConnectionRequestAddressNotificationLimit')
 
+    self.EmbeddedDeviceList = {}
     self.ManageableDeviceList = {}
-    self.ManageableDeviceNumberOfEntries = 0
+    self.VirtualDeviceList = {}
+
+  @property
+  def ManageableDeviceNumberOfEntries(self):
+    return 0
 
   @property
   def UpgradesManaged(self):
     return True
 
+  @property
+  def VirtualDeviceNumberOfEntries(self):
+    return 0
+
   def __getattr__(self, name):
     if name in self.MGMTATTRS:
       return getattr(self.mgmt, name)
     else:
-      raise AttributeError
+      raise AttributeError('No such attribute %s' % name)
 
   def __setattr__(self, name, value):
     if name in self.MGMTATTRS:
