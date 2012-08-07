@@ -41,7 +41,9 @@ IGMP6REGEX = re.compile(('^\d\s+\S+\s+([0-9A-Fa-f]{32})\s+\d\s+[0-9A-Fa-f]'
 PROCNETIGMP = '/proc/net/igmp'
 PROCNETIGMP6 = '/proc/net/igmp6'
 
-CONT_MONITOR_FILES = ['/tmp/cwmp/monitoring/ts/tr_135_total_tsstats*.json']
+CONT_MONITOR_FILES = [
+    '/tmp/cwmp/monitoring/ts/tr_135_total_tsstats*.json',
+    '/tmp/cwmp/monitoring/dejittering/tr_135_total_djstats*.json']
 EPG_STATS_FILES = ['/tmp/cwmp/monitoring/epg/tr_135_epg_stats*.json']
 HDMI_STATS_FILE = '/tmp/cwmp/monitoring/hdmi/tr_135_hdmi_stats*.json'
 HDMI_DISPLAY_DEVICE_STATS_FILES = [
@@ -513,9 +515,11 @@ class DejitteringStats(BASE135STB.ServiceMonitoring.MainStream.Total.
   def __init__(self):
     super(DejitteringStats, self).__init__()
     self.Unexport('TotalSeconds')
+    self.Export(params=['X_GOOGLE-COM_SessionID'])
     self._empty_buffer_time = 0
     self._overruns = 0
     self._underruns = 0
+    self._session_id = 0
 
   @property
   def EmptyBufferTime(self):
@@ -529,6 +533,10 @@ class DejitteringStats(BASE135STB.ServiceMonitoring.MainStream.Total.
   def Underruns(self):
     return self._underruns
 
+  @property
+  def X_GOOGLE_COM_SessionID(self):
+    return self._session_id
+
   def UpdateDejitteringStats(self, djstats):
     if 'EmptyBufferTime' in djstats.keys():
       self._empty_buffer_time = djstats['EmptyBufferTime']
@@ -536,6 +544,8 @@ class DejitteringStats(BASE135STB.ServiceMonitoring.MainStream.Total.
       self._overruns = djstats['Overruns']
     if 'Underruns' in djstats.keys():
       self._underruns = djstats['Underruns']
+    if 'SessionId' in djstats.keys():
+      self._session_id = djstats['SessionId']
 
 
 class MPEG2TSStats(BASE135STB.ServiceMonitoring.MainStream.Total.MPEG2TSStats):
