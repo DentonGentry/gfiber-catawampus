@@ -165,6 +165,7 @@ class CPEStateMachine(object):
     self.previous_ping_time = 0
     self.ping_timeout_pending = None
     self._changed_parameters = set()
+    self._changed_parameters_sent = set()
     self.cpe_management_server = cpe_management_server.CpeManagementServer(
         acs_url_file=acs_url_file, port=listenport, ping_path=ping_path,
         get_parameter_key=cpe.getParameterKey,
@@ -257,7 +258,17 @@ class CPEStateMachine(object):
       # explicitly with a value change event, or to be sent with the
       # periodic inform.  So it's not a bug if there is no value change
       # event in the event queue.
-      parameter_list += self._changed_parameters
+
+      # Take all of the parameters and put union them with the another
+      # set that has been previously sent.  When we receive an inform
+      # from the ACS we clear the _sent version.  This fixes a bug where
+      # we send this list of params to the ACS, followed by a PerioidStat
+      # adding itself to the list here, followed by getting an ack from the
+      # ACS where we clear the list.  Now we just clear the list of the
+      # params that was sent when the ACS acks.
+      self._changed_parameters_sent.update(self._changed_parameters)
+      self._changed_parameters.clear()
+      parameter_list += self._changed_parameters_sent
     except (AttributeError, KeyError):
       pass
     req = self.encode.Inform(root=self.cpe.root, events=events,
@@ -300,11 +311,16 @@ class CPEStateMachine(object):
     if self.session.should_close():
       print('Idle CWMP session, terminating.')
       self.outstanding = None
-      if self.session.close():
-        # Ping received during session, start another
-        self._NewPingSession()
+      ping_received = self.session.close()
       self.session = None
       self.retry_count = 0  # Successful close
+      if self._changed_parameters:
+        # Some values triggered during the prior session, start a new session
+        # with those changed params.  This should also satisfy a ping.
+        self.NewValueChangeSession()
+      elif ping_received:
+        # Ping received during session, start another
+        self._NewPingSession()
       return
 
     if self.outstanding is not None:
@@ -365,7 +381,7 @@ class CPEStateMachine(object):
     """Start a timer to retry a CWMP session.
 
     Args:
-      wait - number of seconds to wait. If wait=None, choose a random wait
+      wait: Number of seconds to wait. If wait=None, choose a random wait
         time according to $SPEC3 section 3.2.1
     """
     if self.session:
@@ -454,10 +470,16 @@ class CPEStateMachine(object):
 
   def NewValueChangeSession(self):
     """Start a new session to the ACS for the parameters that have changed."""
+
+    # If all the changed parameters have been reported, or there is already
+    # a session running, don't do anything.  The run loop for the session
+    # will autmatically kick off a new session if there are new changed
+    # parameters.
+    if not self._changed_parameters or self.session:
+      return
+
     reason = '4 VALUE CHANGE'
-    # merge these parameters into the list of parameters that maybe
-    # have changed
-    if self._changed_parameters and not (reason, None) in self.event_queue:
+    if not (reason, None) in self.event_queue:
       self._NewSession(reason)
 
   def PingReceived(self):
@@ -486,7 +508,7 @@ class CPEStateMachine(object):
                          '6 connection request', '8 diagnostics complete',
                          'm reboot', 'm scheduleinform'])
     self.event_queue = self._RemoveFromDequeue(self.event_queue, reasons)
-    self._changed_parameters.clear()
+    self._changed_parameters_sent.clear()
 
   def Startup(self):
     rb = self.cpe.download_manager.RestoreReboots()
@@ -494,7 +516,8 @@ class CPEStateMachine(object):
       self.event_queue.extend(rb)
     # TODO(dgentry) Check whether we have a config, send '1 BOOT' instead
     self._NewSession('0 BOOTSTRAP')
-    # This will call SendTransferComplete, so we have to already be in a session.
+    # This will call SendTransferComplete, so we have to already be in
+    # a session.
     self.cpe.startup()
 
 
