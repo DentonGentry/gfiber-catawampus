@@ -453,7 +453,7 @@ class PeriodicStatistics(BASE157PS):
           current_value = self._root.GetExport(self.Reference)
           self._values.append(str(current_value))
           self._sample_times.append((start_time, current_time))
-        except (KeyError, AttributeError):
+        except (KeyError, AttributeError, IndexError):
           pass
         finally:
           # This will keep just the last ReportSamples worth of samples.
