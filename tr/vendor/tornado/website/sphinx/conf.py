@@ -4,10 +4,6 @@ import sys
 sys.path.insert(0, os.path.abspath("../.."))
 import tornado
 
-# For our version of sphinx_coverage.py.  The version in sphinx 1.0.7
-# has too many false positives; this version comes from upstream HG.
-sys.path.append(os.path.abspath("."))
-
 master_doc = "index"
 
 project = "Tornado"
@@ -15,7 +11,7 @@ copyright = "2011, Facebook"
 
 version = release = tornado.version
 
-extensions = ["sphinx.ext.autodoc", "sphinx_coverage", "sphinx.ext.viewcode"]
+extensions = ["sphinx.ext.autodoc", "sphinx.ext.coverage", "sphinx.ext.viewcode"]
 
 primary_domain = 'py'
 default_role = 'py:obj'
@@ -24,14 +20,27 @@ autodoc_member_order = "bysource"
 autoclass_content = "both"
 
 coverage_skip_undoc_in_source = True
+coverage_ignore_modules = [
+    "tornado.platform.twisted",
+    ]
 # I wish this could go in a per-module file...
 coverage_ignore_classes = [
+    # tornado.gen
+    "Multi",
+    "Runner",
+    "YieldPoint",
+
     # tornado.web
     "ChunkedTransferEncoding",
     "GZipContentEncoding",
     "OutputTransform",
     "TemplateModule",
     "url",
+
+    # tornado.websocket
+    "WebSocketProtocol",
+    "WebSocketProtocol13",
+    "WebSocketProtocol76",
     ]
 
 coverage_ignore_functions = [
