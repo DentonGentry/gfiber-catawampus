@@ -58,7 +58,7 @@ class Encode(object):
     return xml
 
   def Inform(self, root, events=[], max_envelopes=1,
-             current_time=time.time(), retry_count=0, parameter_list=[]):
+             current_time=None, retry_count=0, parameter_list=[]):
     with self._Envelope() as xml:
       with xml['cwmp:Inform']:
         with xml.DeviceId:
@@ -80,6 +80,8 @@ class Encode(object):
                 xml.CommandKey(str(event[1]))
               else:
                 xml.CommandKey(None)
+        if current_time is None:
+          current_time = time.time()
         xml.MaxEnvelopes(str(max_envelopes))
         xml.CurrentTime(cwmpdate.format(current_time))
         xml.RetryCount(str(retry_count))
