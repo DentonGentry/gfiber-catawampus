@@ -35,7 +35,7 @@ Example usage::
     def die_on_error():
         try:
             yield
-        except:
+        except Exception:
             logging.error("exception in asynchronous operation",exc_info=True)
             sys.exit(1)
 
@@ -45,6 +45,25 @@ Example usage::
         # in the ioloop.
         http_client.fetch(url, callback)
     ioloop.start()
+
+Most applications shouln't have to work with `StackContext` directly.
+Here are a few rules of thumb for when it's necessary:
+
+* If you're writing an asynchronous library that doesn't rely on a
+  stack_context-aware library like `tornado.ioloop` or `tornado.iostream`
+  (for example, if you're writing a thread pool), use
+  `stack_context.wrap()` before any asynchronous operations to capture the
+  stack context from where the operation was started.
+
+* If you're writing an asynchronous library that has some shared
+  resources (such as a connection pool), create those shared resources
+  within a ``with stack_context.NullContext():`` block.  This will prevent
+  ``StackContexts`` from leaking from one request to another.
+
+* If you want to write something like an exception handler that will
+  persist across asynchronous calls, create a new `StackContext` (or
+  `ExceptionStackContext`), and make your asynchronous calls in a ``with``
+  block that references your `StackContext`.
 '''
 
 from __future__ import with_statement
@@ -82,7 +101,7 @@ class StackContext(object):
     def __enter__(self):
         self.old_contexts = _state.contexts
         # _state.contexts is a tuple of (class, arg) pairs
-        _state.contexts = (self.old_contexts + 
+        _state.contexts = (self.old_contexts +
                            ((StackContext, self.context_factory),))
         try:
             self.context = self.context_factory()
@@ -143,7 +162,7 @@ class _StackContextWrapper(functools.partial):
     pass
 
 def wrap(fn):
-    '''Returns a callable object that will resore the current StackContext
+    '''Returns a callable object that will restore the current StackContext
     when executed.
 
     Use this whenever saving a callback to be executed later in a
@@ -183,7 +202,10 @@ def wrap(fn):
                 callback(*args, **kwargs)
         else:
             callback(*args, **kwargs)
-    return _StackContextWrapper(wrapped, fn, _state.contexts)
+    if _state.contexts:
+        return _StackContextWrapper(wrapped, fn, _state.contexts)
+    else:
+        return _StackContextWrapper(fn)
 
 @contextlib.contextmanager
 def _nested(*managers):
