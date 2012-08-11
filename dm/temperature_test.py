@@ -98,6 +98,8 @@ class TemperatureTest(unittest.TestCase):
   def testValidateExports(self):
     t = temperature.TemperatureSensor(name='TestTemp', sensor=MockSensor())
     t.ValidateExports()
+    fan = temperature.FanReadFileRPS('Fan1', 'testdata/temperature/file1')
+    fan.ValidateExports()
 
   def testDefaults(self):
     sensor = MockSensor()
@@ -242,6 +244,20 @@ class TemperatureTest(unittest.TestCase):
     self.assertEqual(ts.TemperatureSensorNumberOfEntries, 2)
     self.assertEqual(ts.TemperatureSensorList[1].Name, 'Test1')
     self.assertEqual(ts.TemperatureSensorList[2].Name, 'Test2')
+
+  def testFanRPS(self):
+    fan = temperature.FanReadFileRPS('Fan1', 'testdata/temperature/file1')
+    self.assertEqual(fan.Name, 'Fan1')
+    self.assertEqual(fan.RPM, 4320)
+    fan = temperature.FanReadFileRPS('Fan2', 'testdata/temperature/file2')
+    self.assertEqual(fan.Name, 'Fan2')
+    self.assertEqual(fan.RPM, 4380)
+    fan = temperature.FanReadFileRPS('Fan3', 'testdata/temperature/file3')
+    self.assertEqual(fan.Name, 'Fan3')
+    self.assertEqual(fan.RPM, 4440)
+    fan = temperature.FanReadFileRPS('Fan4', 'testdata/temperature/file4')
+    self.assertEqual(fan.Name, 'Fan4')
+    self.assertTrue(fan.RPM < 0)
 
 
 if __name__ == '__main__':

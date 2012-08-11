@@ -42,10 +42,12 @@ import tr.core
 import tr.download
 import tr.tr098_v1_2
 import tr.tr181_v2_2 as tr181
+import tr.x_catawampus_tr181_2_0
 import gvsb
 
 
 BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
+CATA181DI = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.DeviceInfo
 PYNETIFCONF = pynetlinux.ifconfig.Interface
 
 # tr-69 error codes
@@ -299,6 +301,28 @@ class Moca(tr181.Device_v2_2.Device.MoCA):
     return len(self.InterfaceList)
 
 
+class FanReadGpio(CATA181DI.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
+  """Implementation of Fan object, reading rev/sec from a file."""
+
+  def __init__(self, name='Fan', filename='/tmp/gpio/fanspeed'):
+    super(FanReadGpio, self).__init__()
+    self._name = name
+    self._filename = filename
+
+  @property
+  def Name(self):
+    return self._name
+
+  @property
+  def RPM(self):
+    try:
+      rps2 = int(open(self._filename, 'r').read())
+      return rps2 * 30
+    except ValueError as e:
+      print 'FanReadGpio bad value %s' % self._filename
+      return -1
+
+
 class Device(tr181.Device_v2_2.Device):
   """tr-181 Device implementation for Google Fiber media platforms."""
 
@@ -358,6 +382,8 @@ class Device(tr181.Device_v2_2.Device):
                        sensor=dm.temperature.SensorHdparm(drive))
       except OSError:
         pass
+
+    ts.AddFan(FanReadGpio())
 
 
 class LANDevice(BASE98IGD.LANDevice):
