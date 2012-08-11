@@ -35,7 +35,6 @@ import Cookie
 import httplib
 import logging
 import sys
-import time
 import tornado
 import urllib
 
@@ -43,7 +42,7 @@ from tornado import escape
 from tornado import httputil
 from tornado import web
 from tornado.escape import native_str, utf8, parse_qs_bytes
-from tornado.util import b
+from tornado.util import b, monotime
 
 try:
     from io import BytesIO  # python 3
@@ -156,7 +155,7 @@ class HTTPRequest(object):
             else:
                 logging.warning("Invalid multipart/form-data")
 
-        self._start_time = time.time()
+        self._start_time = monotime()
         self._finish_time = None
 
     def supports_http_1_1(self):
@@ -183,7 +182,7 @@ class HTTPRequest(object):
     def request_time(self):
         """Returns the amount of time it took for this request to execute."""
         if self._finish_time is None:
-            return time.time() - self._start_time
+            return monotime() - self._start_time
         else:
             return self._finish_time - self._start_time
 

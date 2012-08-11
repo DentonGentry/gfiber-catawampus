@@ -34,10 +34,10 @@ except ImportError:
 from tornado.stack_context import StackContext, NullContext
 from tornado.util import raise_exc_info
 import contextlib
+import datetime
 import logging
 import signal
 import sys
-import time
 import unittest
 
 _next_port = 10000
@@ -186,7 +186,7 @@ class AsyncTestCase(unittest.TestCase):
                     self.stop()
                 if self.__timeout is not None:
                     self.io_loop.remove_timeout(self.__timeout)
-                self.__timeout = self.io_loop.add_timeout(time.time() + timeout, timeout_func)
+                self.__timeout = self.io_loop.add_timeout(datetime.timedelta(seconds=timeout), timeout_func)
             while True:
                 self.__running = True
                 with NullContext():

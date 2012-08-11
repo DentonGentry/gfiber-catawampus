@@ -6,7 +6,7 @@ from tornado.httpclient import HTTPRequest, HTTPResponse, HTTPError, AsyncHTTPCl
 from tornado.httputil import HTTPHeaders
 from tornado.iostream import IOStream, SSLIOStream
 from tornado import stack_context
-from tornado.util import b
+from tornado.util import b, monotime
 
 import base64
 import collections
@@ -18,7 +18,6 @@ import os.path
 import re
 import socket
 import sys
-import time
 import urlparse
 import zlib
 
@@ -127,7 +126,7 @@ class _HTTPConnection(object):
 
     def __init__(self, io_loop, client, request, release_callback,
                  final_callback, max_buffer_size):
-        self.start_time = time.time()
+        self.start_time = monotime()
         self.io_loop = io_loop
         self.client = client
         self.request = request
@@ -221,7 +220,7 @@ class _HTTPConnection(object):
             if timeout:
                 self._timeout = self.io_loop.add_timeout(
                     self.start_time + timeout,
-                    self._on_timeout)
+                    self._on_timeout, monotonic=True)
             self.stream.set_close_callback(self._on_close)
             self.stream.connect(sockaddr,
                                 functools.partial(self._on_connect, parsed,
@@ -230,7 +229,7 @@ class _HTTPConnection(object):
     def _on_timeout(self):
         self._timeout = None
         self._run_callback(HTTPResponse(self.request, 599,
-                                        request_time=time.time() - self.start_time,
+                                        request_time=monotime() - self.start_time,
                                         error=HTTPError(599, "Timeout")))
         self.stream.close()
 
@@ -241,7 +240,7 @@ class _HTTPConnection(object):
         if self.request.request_timeout:
             self._timeout = self.io_loop.add_timeout(
                 self.start_time + self.request.request_timeout,
-                self._on_timeout)
+                self._on_timeout, monotonic=True)
         if (self.request.validate_cert and
             isinstance(self.stream, SSLIOStream)):
             match_hostname(self.stream.socket.getpeercert(),
@@ -324,7 +323,7 @@ class _HTTPConnection(object):
         except Exception, e:
             logging.warning("uncaught exception", exc_info=True)
             self._run_callback(HTTPResponse(self.request, 599, error=e,
-                                request_time=time.time() - self.start_time,
+                                request_time=monotime() - self.start_time,
                                 ))
             if hasattr(self, "stream"):
                 self.stream.close()
@@ -332,7 +331,7 @@ class _HTTPConnection(object):
     def _on_close(self):
         self._run_callback(HTTPResponse(
                 self.request, 599,
-                request_time=time.time() - self.start_time,
+                request_time=monotime() - self.start_time,
                 error=HTTPError(599, "Connection closed")))
 
     def _on_headers(self, data):
@@ -431,7 +430,7 @@ class _HTTPConnection(object):
             buffer = BytesIO(data)  # TODO: don't require one big string?
         response = HTTPResponse(original_request,
                                 self.code, headers=self.headers,
-                                request_time=time.time() - self.start_time,
+                                request_time=monotime() - self.start_time,
                                 buffer=buffer,
                                 effective_url=self.request.url)
         self._run_callback(response)
