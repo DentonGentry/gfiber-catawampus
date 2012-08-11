@@ -21,6 +21,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import datetime
 import math
 import random
 import socket
@@ -174,24 +175,25 @@ class CpeManagementServer(object):
 
     if self._PeriodicInformEnable and self._PeriodicInformInterval > 0:
       msec = self._PeriodicInformInterval * 1000
-      self._periodic_callback = PERIODIC_CALLBACK(self.DoPeriodicInform,
+      self._periodic_callback = PERIODIC_CALLBACK(self.start_periodic_session,
                                                   msec, self.ioloop)
       if self._PeriodicInformTime:
+        # PeriodicInformTime is just meant as an offset, not an actual time.
+        # So if it's 25.5 hours in the future and the interval is 1 hour, then
+        # the interesting part is the 0.5 hours, not the 25.
+        #
+        # timetuple might be in the past, but that's okay; the modulus
+        # makes sure it's never negative.  (ie. (-3 % 5) == 2, in python)
         timetuple = cwmpdate.parse(self._PeriodicInformTime).timetuple()
-        wait = time.mktime(timetuple) - time.time()
-        if wait < 0.0:  # PeriodicInformTime has already passed
-          wait %= float(self._PeriodicInformInterval)
-          wait = float(self._PeriodicInformInterval) + wait
+        offset = ((time.mktime(timetuple) - time.time())
+                  % float(self._PeriodicInformInterval))
       else:
-        wait = 0.0
+        offset = 0.0
       self._start_periodic_timeout = self.ioloop.add_timeout(
-          wait, self.StartPeriodicInform)
+          datetime.timedelta(seconds=offset), self.StartPeriodicInform)
 
   def StartPeriodicInform(self):
     self._periodic_callback.start()
-
-  def DoPeriodicInform(self):
-    self.start_periodic_session()
 
   def SessionRetryWait(self, retry_count):
     """Calculate wait time before next session retry.
