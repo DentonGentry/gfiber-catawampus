@@ -38,7 +38,7 @@ class MockIoloop(object):
     self.remove_handle = None
     self.handle = 1
 
-  def add_timeout(self, time, callback):
+  def add_timeout(self, time, callback, monotonic=None):
     self.timeout_time = time
     self.timeout_callback = callback
     return self.handle
@@ -119,7 +119,7 @@ class CpeManagementServerTest(unittest.TestCase):
     cpe_ms.SetPeriodicInformInterval('15')
     # cpe_ms should schedule the callbacks when Enable and Interval both set
 
-    self.assertEqual(io.timeout_time, 0.0)
+    self.assertEqual(io.timeout_time, datetime.timedelta(0.0))
     self.assertEqual(len(periodic_callbacks), 1)
     cb = periodic_callbacks[0]
     self.assertTrue(cb.callback)

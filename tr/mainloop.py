@@ -23,10 +23,10 @@ so on.
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 
+import datetime
 import errno
 import os
 import socket
-import time
 import google3
 import tornado.ioloop
 import tornado.iostream  #pylint: disable-msg=W0404
@@ -179,9 +179,8 @@ class MainLoop(object):
     """
     tmo = None
     if timeout is not None:
-      deadline = time.time() + timeout
-      self.loop_timeout = tmo = self.ioloop.add_timeout(deadline,
-                                                        self._TimedOut)
+      self.loop_timeout = tmo = self.ioloop.add_timeout(
+          datetime.timedelta(seconds=timeout), self._TimedOut)
     try:
       self.ioloop.start()
     finally:
@@ -278,8 +277,12 @@ class _WaitUntilIdle(object):
     """Schedule a delayed call of the wrapped function with the given args."""
     key = (args, tuple(sorted(kwargs.items())))
     if key not in self.timeouts:
-      self.timeouts[key] = tornado.ioloop.IOLoop.instance().add_timeout(
-          0, lambda: self._Call(*args, **kwargs))
+      if hasattr(tornado.util, 'monotonic'):
+        self.timeouts[key] = tornado.ioloop.IOLoop.instance().add_timeout(
+            0, lambda: self._Call(*args, **kwargs), monotonic=True)
+      else:
+        self.timeouts[key] = tornado.ioloop.IOLoop.instance().add_timeout(
+            0, lambda: self._Call(*args, **kwargs))
 
 
 def WaitUntilIdle(func):

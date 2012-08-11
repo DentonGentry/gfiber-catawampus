@@ -18,6 +18,7 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import collections
+import datetime
 import errno
 import os
 import shutil
@@ -170,15 +171,19 @@ class Download(object):
 
   def _schedule_timer(self):
     delay_seconds = getattr(self.stateobj, 'delay_seconds', 0)
+    now = time.time()
     wait_start_time = self.stateobj.wait_start_time
 
-    # sanity check. If wait_start_time is in the future, ignore it.
-    now = time.time()
+    # sanity checks
     if wait_start_time > now:
       wait_start_time = now
+    when = wait_start_time + delay_seconds
+    if when < now:
+      when = now
 
-    self.wait_handle = self.ioloop.add_timeout(wait_start_time + delay_seconds,
-                                               self.timer_callback)
+    self.wait_handle = self.ioloop.add_timeout(
+        datetime.timedelta(seconds=when-now),
+        self.timer_callback)
 
   def _new_download_object(self, stateobj):
     url = getattr(stateobj, 'url', '')

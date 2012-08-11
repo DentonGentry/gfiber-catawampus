@@ -20,6 +20,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import datetime
 import mox
 import os
 import shutil
@@ -34,6 +35,7 @@ import dm_root
 import tornado.httpclient
 import tornado.ioloop
 import tornado.testing
+import tornado.util
 
 import api
 import cwmp_session
@@ -48,6 +50,29 @@ SOAPNS = '{http://schemas.xmlsoap.org/soap/envelope/}'
 CWMPNS = '{urn:dslforum-org:cwmp-1-2}'
 
 
+def GetMonotime():
+  """Older tornado doesn't have monotime(); stay compatible."""
+  if hasattr(tornado.util, 'monotime_impl'):
+    return tornado.util.monotime_impl
+  else:
+    return time.time
+
+
+def SetMonotime(func):
+  """Older tornado doesn't have monotime(); stay compatible."""
+  if hasattr(tornado.util, 'monotime_impl'):
+    tornado.util.monotime_impl = func
+  else:
+    time.time = func
+
+
+def StubOutMonotime(moxinstance):
+  if hasattr(tornado.util, 'monotime_impl'):
+    moxinstance.StubOutWithMock(tornado.util, 'monotime_impl')
+  else:
+    moxinstance.StubOutWithMock(time, 'time')
+
+
 class MockHttpClient(object):
   def __init__(self, **kwargs):
     self.ResetMock()
@@ -58,6 +83,7 @@ class MockHttpClient(object):
     self.fetch_called = False
 
   def fetch(self, req, callback):
+    print '%s: fetching: %s %s' % (self, req, callback)
     self.fetch_req = req
     self.fetch_callback = callback
     self.fetch_called = True
@@ -67,7 +93,7 @@ class MockHttpClient(object):
 class HttpTest(tornado.testing.AsyncTestCase):
   def setUp(self):
     super(HttpTest, self).setUp()
-    self.old_time = time.time
+    self.old_monotime = GetMonotime()
     self.advance_time = 0
     self.old_HTTPCLIENT = cwmp_session.HTTPCLIENT
     cwmp_session.HTTPCLIENT = MockHttpClient
@@ -79,7 +105,7 @@ class HttpTest(tornado.testing.AsyncTestCase):
 
   def tearDown(self):
     super(HttpTest, self).tearDown()
-    time.time = self.old_time
+    SetMonotime(self.old_monotime)
     cwmp_session.HTTPCLIENT = self.old_HTTPCLIENT
     for d in self.removedirs:
       shutil.rmtree(d)
@@ -88,7 +114,7 @@ class HttpTest(tornado.testing.AsyncTestCase):
     del mock_http_clients[:]
 
   def advanceTime(self):
-    return self.old_time() + self.advance_time
+    return 420000.0 + self.advance_time
 
   def getCpe(self):
     dm_root.PLATFORMDIR = '../platform'
@@ -110,7 +136,7 @@ class HttpTest(tornado.testing.AsyncTestCase):
     return cpe_machine
 
   def testMaxEnvelopes(self):
-    time.time = self.advanceTime
+    SetMonotime(self.advanceTime)
     cpe_machine = self.getCpe()
     cpe_machine.Startup()
     self.wait()
@@ -125,7 +151,7 @@ class HttpTest(tornado.testing.AsyncTestCase):
     self.assertEqual(envelope.text, '1')
 
   def testCurrentTime(self):
-    time.time = self.advanceTime
+    SetMonotime(self.advanceTime)
     cpe_machine = self.getCpe()
     cpe_machine.Startup()
     self.wait()
@@ -147,7 +173,7 @@ class HttpTest(tornado.testing.AsyncTestCase):
     self.assertEqual(cpe_machine.LookupDevIP6('foo0'), 0)
 
   def testRetryCount(self):
-    time.time = self.advanceTime
+    SetMonotime(self.advanceTime)
     cpe_machine = self.getCpe()
     cpe_machine.Startup()
     self.wait(timeout=20)
@@ -183,24 +209,26 @@ class HttpTest(tornado.testing.AsyncTestCase):
     m = mox.Mox()
     ioloop_mock = m.CreateMock(tornado.ioloop.IOLoop)
     m.StubOutWithMock(cpe_machine, "_NewSession")
-    m.StubOutWithMock(time, "time")
+    StubOutMonotime(m)
 
     # First call to _NewSession should get the time and trigger a new session
-    time.time().AndReturn(1000)
+    GetMonotime()().AndReturn(1000)
     cpe_machine._NewSession(mox.IsA(str))
 
     # Second call to _NewSession should queue a session
-    time.time().AndReturn(1001)
-    ioloop_mock.add_timeout(mox.IsA(int), mox.IgnoreArg()).AndReturn(1)
+    GetMonotime()().AndReturn(1001)
+    ioloop_mock.add_timeout(mox.IsA(datetime.timedelta),
+                            mox.IgnoreArg()).AndReturn(1)
 
     # Third call should get the time and then not do anything
     # since a session is queued.
-    time.time().AndReturn(1001)
+    GetMonotime()().AndReturn(1001)
 
     # And the call to _NewTimeoutSession should call through to
     # NewPingSession, and start a new session
-    time.time().AndReturn(1000 + cpe_machine.rate_limit_seconds)
-    ioloop_mock.add_timeout(mox.IsA(int), mox.IgnoreArg()).AndReturn(2)
+    GetMonotime()().AndReturn(1000 + cpe_machine.rate_limit_seconds)
+    ioloop_mock.add_timeout(mox.IsA(datetime.timedelta),
+                            mox.IgnoreArg()).AndReturn(2)
     cpe_machine.ioloop = ioloop_mock
     m.ReplayAll()
 

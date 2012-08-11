@@ -23,6 +23,7 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import binascii
 import collections
+import datetime
 import random
 import socket
 import sys
@@ -33,10 +34,12 @@ from curtain import digest
 import tornado.httpclient
 import tornado.ioloop
 import tornado.web
+import tornado.util
 
 import api_soap
 import cpe_management_server
 import cwmp_session
+import helpers
 import soap
 
 PROC_IF_INET6 = '/proc/net/if_inet6'
@@ -390,9 +393,8 @@ class CPEStateMachine(object):
     if wait is None:
       self.retry_count += 1
       wait = self.cpe_management_server.SessionRetryWait(self.retry_count)
-    timeout = time.time() + wait
     self.start_session_timeout = self.ioloop.add_timeout(
-        timeout, self._SessionWaitTimer)
+        datetime.timedelta(seconds=wait), self._SessionWaitTimer)
 
   def _SessionWaitTimer(self):
     """Handler for the CWMP Retry timer, to start a new session."""
@@ -429,7 +431,7 @@ class CPEStateMachine(object):
 
     # Rate limit how often new sessions can be started with ping to
     # once a minute
-    current_time = time.time()
+    current_time = helpers.monotime()
     elapsed_time = current_time - self.previous_ping_time
     allow_ping = (elapsed_time < 0 or
                   elapsed_time > self.rate_limit_seconds)
@@ -443,7 +445,8 @@ class CPEStateMachine(object):
       if callback_time < 1:
         callback_time = 1
       self.ping_timeout_pending = self.ioloop.add_timeout(
-          current_time + callback_time, self._NewTimeoutPingSession)
+          datetime.timedelta(seconds=callback_time),
+          self._NewTimeoutPingSession)
 
   def NewPeriodicSession(self):
     # If the ACS stops responding for some period of time, it's possible

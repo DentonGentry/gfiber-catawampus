@@ -20,6 +20,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import datetime
 import shutil
 import tempfile
 import time
@@ -55,7 +56,7 @@ class MockIoloop(object):
     self.time = None
     self.callback = None
 
-  def add_timeout(self, timeout, callback):
+  def add_timeout(self, timeout, callback, monotonic=None):
     self.timeout = timeout
     self.callback = callback
 
@@ -124,6 +125,10 @@ class MockFile(object):
     self.name = name
 
 
+def _Delta(t):
+  return datetime.timedelta(seconds=t)
+
+
 class DownloadTest(unittest.TestCase):
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp()
@@ -178,7 +183,7 @@ class DownloadTest(unittest.TestCase):
 
     # Step 1: Wait delay_seconds
     dl.do_start()
-    self.assertEqual(ioloop.timeout, self.mockTime() + kwargs['delay_seconds'])
+    self.assertEqual(ioloop.timeout, _Delta(kwargs['delay_seconds']))
     self.assertEqual(self.QCheckBoring(dl, kwargs), 1)  # 1: Not Yet Started
 
     # Step 2: HTTP Download
@@ -242,7 +247,7 @@ class DownloadTest(unittest.TestCase):
 
     # Step 1: Wait delay_seconds
     dl.do_start()
-    self.assertEqual(ioloop.timeout, self.mockTime() + kwargs['delay_seconds'])
+    self.assertEqual(ioloop.timeout, _Delta(kwargs['delay_seconds']))
 
     # Step 2: HTTP Download
     dl.timer_callback()
@@ -279,7 +284,7 @@ class DownloadTest(unittest.TestCase):
 
     # Step 1: Wait delay_seconds
     dl.do_start()
-    self.assertEqual(ioloop.timeout, self.mockTime() + kwargs['delay_seconds'])
+    self.assertEqual(ioloop.timeout, _Delta(kwargs['delay_seconds']))
 
     # Step 2: HTTP Download
     dl.timer_callback()
@@ -324,7 +329,7 @@ class DownloadTest(unittest.TestCase):
 
     # Step 1: Wait delay_seconds
     dl.do_start()
-    self.assertEqual(ioloop.timeout, self.mockTime() + kwargs['delay_seconds'])
+    self.assertEqual(ioloop.timeout, _Delta(kwargs['delay_seconds']))
 
     # Step 2: HTTP Download
     dl.timer_callback()
