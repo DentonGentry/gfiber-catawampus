@@ -70,8 +70,8 @@ class Encode(object):
           xml.OUI(di.ManufacturerOUI)
           xml.ProductClass(di.ProductClass)
           xml.SerialNumber(di.SerialNumber)
-        soaptype = "EventStruct[{0}]".format(len(events))
-        event_attrs = { 'soap-enc:arrayType': soaptype }
+        soaptype = 'EventStruct[{0}]'.format(len(events))
+        event_attrs = {'soap-enc:arrayType': soaptype}
         with xml.Event(**event_attrs):
           for event in events:
             with xml.EventStruct:
@@ -83,8 +83,8 @@ class Encode(object):
         xml.MaxEnvelopes(str(max_envelopes))
         xml.CurrentTime(cwmpdate.format(current_time))
         xml.RetryCount(str(retry_count))
-        soaptype = "cwmp:ParameterValueStruct[{0}]".format(len(parameter_list))
-        parameter_list_attrs = { 'soap-enc:arrayType': soaptype }
+        soaptype = 'cwmp:ParameterValueStruct[{0}]'.format(len(parameter_list))
+        parameter_list_attrs = {'soap-enc:arrayType': soaptype}
         with xml.ParameterList(**parameter_list_attrs):
           for name, value in parameter_list:
             with xml.ParameterValueStruct:
@@ -111,8 +111,8 @@ class Encode(object):
   def SetParameterValues(self, parameter_list, parameter_key):
     with self._Envelope() as xml:
       with xml['cwmp:SetParameterValues']:
-        soaptype = "cwmp:ParameterValueStruct[{0}]".format(len(parameter_list))
-        parameter_list_attrs = { 'soap-enc:arrayType': soaptype }
+        soaptype = 'cwmp:ParameterValueStruct[{0}]'.format(len(parameter_list))
+        parameter_list_attrs = {'soap-enc:arrayType': soaptype}
         with xml.ParameterList(**parameter_list_attrs):
           for name, value in parameter_list:
             with xml.ParameterValueStruct:
@@ -148,10 +148,6 @@ class Encode(object):
     return xml
 
 
-class ParameterNameError(AttributeError):
-  pass
-
-
 class SoapHandler(object):
   def __init__(self, impl):
     self.impl = impl
@@ -169,6 +165,10 @@ class SoapHandler(object):
         code = soap.CpeFault.INVALID_PARAM_TYPE
       elif isinstance(error, api.ParameterValueError):
         code = soap.CpeFault.INVALID_PARAM_VALUE
+      elif isinstance(error, api.ParameterNameError):
+        code = soap.CpeFault.INVALID_PARAM_NAME
+      elif isinstance(error, api.ParameterNotWritableError):
+        code = soap.CpeFault.NON_WRITABLE_PARAM
       else:
         code = soap.CpeFault.INTERNAL_ERROR
       faults.append((error.parameter, code, str(error)))
@@ -184,6 +184,9 @@ class SoapHandler(object):
       try:
         responder = self._GetResponder(method)
         result = responder(xml, req)
+      except api.SetParameterErrors as e:
+        faults = self._ExceptionListToFaultList(e.error_list)
+        result = soap.SetParameterValuesFault(xml, faults)
       except KeyError as e:
         result = soap.SimpleFault(
             xml, cpefault=soap.CpeFault.INVALID_PARAM_NAME,
@@ -196,19 +199,6 @@ class SoapHandler(object):
         cpefault = soap.CpeFault.METHOD_NOT_SUPPORTED
         faultstring = 'Unsupported RPC method: %s' % method
         result = soap.SimpleFault(xml, cpefault, faultstring)
-      except ParameterNameError as e:
-        result = soap.SimpleFault(
-            xml, cpefault=soap.CpeFault.INVALID_PARAM_NAME,
-            faultstring=str(e))
-      except api.ParameterTypeError as e:
-        result = soap.SetParameterValuesFault(
-            xml, [(e.parameter, soap.CpeFault.INVALID_PARAM_TYPE, str(e))])
-      except api.ParameterValueError as e:
-        result = soap.SetParameterValuesFault(
-            xml, [(e.parameter, soap.CpeFault.INVALID_PARAM_VALUE, str(e))])
-      except api.SetParameterErrors as e:
-        faults = self._ExceptionListToFaultList(e.error_list)
-        result = soap.SetParameterValuesFault(xml, faults)
       except:
         result = soap.SimpleFault(
             xml, cpefault=soap.CpeFault.INTERNAL_ERROR,
@@ -259,8 +249,8 @@ class CPE(SoapHandler):
       path = path[:-1]
     nextlevel = cwmpbool.parse(req.NextLevel)
     names = list(self.impl.GetParameterNames(path, nextlevel))
-    soaptype = "ParameterInfoStruct[{0}]".format(len(names))
-    parameter_list_attrs = { 'soap-enc:arrayType': soaptype }
+    soaptype = 'ParameterInfoStruct[{0}]'.format(len(names))
+    parameter_list_attrs = {'soap-enc:arrayType': soaptype}
     with xml['cwmp:GetParameterNamesResponse']:
       with xml.ParameterList(**parameter_list_attrs):
         for name in names:
@@ -272,8 +262,8 @@ class CPE(SoapHandler):
   def GetParameterValues(self, xml, req):
     names = [str(i) for i in req.ParameterNames]
     values = self.impl.GetParameterValues(names)
-    soaptype = "cwmp:ParameterValueStruct[{0}]".format(len(values))
-    parameter_list_attrs = { 'soap-enc:arrayType': soaptype }
+    soaptype = 'cwmp:ParameterValueStruct[{0}]'.format(len(values))
+    parameter_list_attrs = {'soap-enc:arrayType': soaptype}
     with xml['cwmp:GetParameterValuesResponse']:
       with xml.ParameterList(**parameter_list_attrs):
         for name, value in values:
@@ -292,7 +282,7 @@ class CPE(SoapHandler):
 
   def _CheckObjectName(self, name):
     if not name.endswith('.'):
-      raise ParameterNameError('ObjectName must end in period: %s' % name)
+      raise KeyError('ObjectName must end in period: %s' % name)
 
   def AddObject(self, xml, req):
     self._CheckObjectName(req.ObjectName)
@@ -389,10 +379,10 @@ class CPE(SoapHandler):
 
 def main():
   class FakeDeviceInfo(object):
-    Manufacturer = "manufacturer"
-    ManufacturerOUI = "oui"
-    ProductClass = "productclass"
-    SerialNumber = "serialnumber"
+    Manufacturer = 'manufacturer'
+    ManufacturerOUI = 'oui'
+    ProductClass = 'productclass'
+    SerialNumber = 'serialnumber'
 
   root = core.Exporter()
   root.Export(params=['Test', 'Test2'], lists=['Sub'])
@@ -410,8 +400,7 @@ def main():
   print cpe.Handle(encode.GetRPCMethods())
   print cpe.Handle(encode.GetParameterNames('', False))
   print cpe.Handle(encode.GetParameterValues(['Test']))
-  print cpe.Handle(encode.SetParameterValues([('Test', 6),('Test2', 7)],
-                                             77))
+  print cpe.Handle(encode.SetParameterValues([('Test', 6), ('Test2', 7)], 77))
   print cpe.Handle(encode.GetParameterValues(['Test', 'Test2']))
   print cpe.Handle(encode.AddObject('Sub.', 5))
   print cpe.Handle(encode.DeleteObject('Sub.0', 5))

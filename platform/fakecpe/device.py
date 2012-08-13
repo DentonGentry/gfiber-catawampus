@@ -47,6 +47,16 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
   def DownloadDir(self):
     return '/tmp/catawampus.%s/download/' % FakeCPEInstance()
 
+  def GetAcsUrl(self):
+    """FakeCPE requires a --acs_url parameter, there is no platform handling."""
+    return None
+
+  def SetAcsUrl(self, url):
+    raise AttributeError('URL is read-only')
+
+  def AcsAccess(self, url):
+    pass
+
 
 class InstallerFakeCPE(tr.download.Installer):
   """Fake Installer to install fake images on a fake CPE."""
@@ -186,8 +196,10 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
 
 
 class InternetGatewayDeviceFakeCPE(BASE98IGD):
+  """Implements tr-98 InternetGatewayDevice."""
+
   def __init__(self, device_id, periodic_stats):
-    BASE98IGD.__init__(self)
+    super(InternetGatewayDeviceFakeCPE, self).__init__()
     self.Unexport(objects='CaptivePortal')
     self.Unexport(objects='DeviceConfig')
     self.Unexport(params='DeviceSummary')
@@ -222,6 +234,7 @@ class InternetGatewayDeviceFakeCPE(BASE98IGD):
 
 
 def PlatformInit(name, device_model_root):
+  """Create platform-specific device models and initialize platform."""
   tr.download.INSTALLER = InstallerFakeCPE
   params = list()
   objects = list()

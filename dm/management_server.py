@@ -52,7 +52,7 @@ class ManagementServer181(BASEMGMT181):
     Args:
       mgmt: the real management configuration object.
     """
-    BASEMGMT181.__init__(self)
+    super(ManagementServer181, self).__init__()
     self.mgmt = mgmt
 
     self.Unexport('DownloadProgressURL')
@@ -81,7 +81,7 @@ class ManagementServer181(BASEMGMT181):
     if name in self.MGMTATTRS:
       return getattr(self.mgmt, name)
     else:
-      raise AttributeError
+      raise KeyError('No such attribute %s' % name)
 
   def __setattr__(self, name, value):
     if name in self.MGMTATTRS:
@@ -115,7 +115,7 @@ class ManagementServer98(BASEMGMT98):
     Args:
       mgmt: the real management configuration object.
     """
-    BASEMGMT98.__init__(self)
+    super(ManagementServer98, self).__init__()
     self.mgmt = mgmt
     self.Unexport('AliasBasedAddressing')
     self.Unexport('AutoCreateInstances')
@@ -154,7 +154,7 @@ class ManagementServer98(BASEMGMT98):
     if name in self.MGMTATTRS:
       return getattr(self.mgmt, name)
     else:
-      raise AttributeError('No such attribute %s' % name)
+      raise KeyError('No such attribute %s' % name)
 
   def __setattr__(self, name, value):
     if name in self.MGMTATTRS:

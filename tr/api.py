@@ -30,13 +30,24 @@ import download
 
 
 class SetParameterErrors(Exception):
+  """A list of exceptions which occurred during a SetParameterValues transaction."""
+
   def __init__(self, error_list, msg):
     Exception.__init__(self, msg)
     self.error_list = error_list
 
 
+class ParameterNameError(KeyError):
+  """Raised for a SetParameterValue to a nonexistant parameter."""
+
+  def __init__(self, parameter, msg):
+    KeyError.__init__(self, msg)
+    self.parameter = parameter
+
+
 class ParameterTypeError(TypeError):
   """Raised when a SetParameterValue has the wrong type."""
+
   def __init__(self, parameter, msg):
     TypeError.__init__(self, msg)
     self.parameter = parameter
@@ -44,8 +55,17 @@ class ParameterTypeError(TypeError):
 
 class ParameterValueError(ValueError):
   """Raised when a SetParameterValue has an invalid value."""
+
   def __init__(self, parameter, msg):
     ValueError.__init__(self, msg)
+    self.parameter = parameter
+
+
+class ParameterNotWritableError(AttributeError):
+  """Raised when a SetParameterValue tries to set a read-only parameter."""
+
+  def __init__(self, parameter, msg):
+    AttributeError.__init__(self, msg)
     self.parameter = parameter
 
 
@@ -158,17 +178,22 @@ class CPE(TR069Service):
   def _ConcludeTransaction(self, objects, do_commit):
     """Commit or abandon  all pending writes.
 
+    Args:
+      objects: list of dirty objects to commit
+      do_commit: call CommitTransaction if True, else AbandonTransaction
+
+    Returns: the response code to return
+
     SetParameterValues is an atomic transaction, all parameters are set or
     none of them are. We set obj.dirty and call obj.StartTransaction on
     every object written to. Now we walk back through the dirtied objects
-    and call CommitTransaction() if do_commit=True, else call
-    AbandonTransaction() if do_commit=False.
+    to finish the transaction.
     """
     # TODO(dgentry) At some point there will be interdependencies between
     #   objects. We'll need to develop a means to express those dependencies
     #   and walk the dirty objects in a specific order.
     for obj in objects:
-      assert(obj.dirty)
+      assert obj.dirty
       obj.dirty = False
       if do_commit:
         obj.CommitTransaction()
@@ -188,6 +213,10 @@ class CPE(TR069Service):
         error_list.append(ParameterTypeError(parameter=name, msg=str(e)))
       except ValueError as e:
         error_list.append(ParameterValueError(parameter=name, msg=str(e)))
+      except KeyError as e:
+        error_list.append(ParameterNameError(parameter=name, msg=str(e)))
+      except AttributeError as e:
+        error_list.append(ParameterNotWritableError(parameter=name, msg=str(e)))
 
       if obj:
         dirty.add(obj)
