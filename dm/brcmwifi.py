@@ -520,7 +520,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
 
   def _GetDefaultSettings(self):
     obj = WifiConfig()
-    obj.p_auto_channel_enable = False
+    obj.p_auto_channel_enable = True
     obj.p_auto_rate_fallback_enabled = None
     obj.p_basic_authentication_mode = 'None'
     obj.p_basic_encryption_modes = 'WEPEncryption'
@@ -656,6 +656,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     if not self.wl.ValidateChannel(value):
       raise ValueError('Invalid Channel: %s' % value)
     self.config.p_channel = value
+    self.config.p_auto_channel_enable = False
 
   Channel = property(GetChannel, SetChannel, None, 'WLANConfiguration.Channel')
 
