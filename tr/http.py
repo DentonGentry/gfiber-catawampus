@@ -24,6 +24,7 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 import binascii
 import collections
 import datetime
+import os
 import random
 import socket
 import sys
@@ -39,7 +40,6 @@ import tornado.util
 import api_soap
 import cpe_management_server
 import cwmp_session
-import helpers
 import soap
 
 PROC_IF_INET6 = '/proc/net/if_inet6'
@@ -397,6 +397,7 @@ class CPEStateMachine(object):
         datetime.timedelta(seconds=wait), self._SessionWaitTimer)
 
   def _SessionWaitTimer(self):
+    os.remove('/tmp/gpio/ledcontrol/acsconnected')
     """Handler for the CWMP Retry timer, to start a new session."""
     self.start_session_timeout = None
     self.session = cwmp_session.CwmpSession(
@@ -512,6 +513,7 @@ class CPEStateMachine(object):
                          'm reboot', 'm scheduleinform'])
     self.event_queue = self._RemoveFromDequeue(self.event_queue, reasons)
     self._changed_parameters_sent.clear()
+    open('/tmp/gpio/ledcontrol/acsconnected', 'w')
 
   def Startup(self):
     rb = self.cpe.download_manager.RestoreReboots()
