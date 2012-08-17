@@ -176,23 +176,23 @@ class DeviceInfoTest(tornado.testing.AsyncTestCase):
   def testProcessStatusFakeData(self):
     Process = device_info.BASE181DEVICE.DeviceInfo.ProcessStatus.Process
     fake_processes = {
-        '1': Process(PID='1', Command='init', Size='551',
-                     Priority='20', CPUTime='81970',
+        1: Process(PID=1, Command='init', Size=551,
+                     Priority=20, CPUTime=81970,
                      State='Sleeping'),
-        '3': Process(PID='3', Command='migration/0', Size='0',
-                     Priority='-100', CPUTime='591510',
+        3: Process(PID=3, Command='migration/0', Size=0,
+                     Priority=-100, CPUTime=591510,
                      State='Stopped'),
-        '5': Process(PID='5', Command='foobar', Size='0',
-                     Priority='-100', CPUTime='591510',
+        5: Process(PID=5, Command='foobar', Size=0,
+                     Priority=-100, CPUTime=591510,
                      State='Zombie'),
-        '17': Process(PID='17', Command='bar', Size='0',
-                      Priority='-100', CPUTime='591510',
+        17: Process(PID=17, Command='bar', Size=0,
+                      Priority=-100, CPUTime=591510,
                       State='Uninterruptible'),
-        '164': Process(PID='164', Command='udevd', Size='288',
-                       Priority='16', CPUTime='300',
+        164: Process(PID=164, Command='udevd', Size=288,
+                       Priority=16, CPUTime=300,
                        State='Running'),
-        '770': Process(PID='770', Command='automount', Size='6081',
-                       Priority='20', CPUTime='5515790',
+        770: Process(PID=770, Command='automount', Size=6081,
+                       Priority=20, CPUTime=5515790,
                        State='Uninterruptible')
         }
     device_info.SLASH_PROC = 'testdata/device_info/processes'
@@ -202,6 +202,17 @@ class DeviceInfoTest(tornado.testing.AsyncTestCase):
     for p in processes.values():
       fake_p = fake_processes[p.PID]
       self.assertEqual(tr.core.Dump(fake_p), tr.core.Dump(p))
+
+  def testProcessExited(self):
+    device_info.SLASH_PROC = 'testdata/device_info/processes'
+    ps = device_info.ProcessStatusLinux26(self.io_loop)
+    proc = ps.GetProcess(1000)
+    self.assertEqual(proc.PID, 1000);
+    self.assertEqual(proc.Command, '<exited>');
+    self.assertEqual(proc.Size, 0);
+    self.assertEqual(proc.Priority, 0);
+    self.assertEqual(proc.CPUTime, 0);
+    self.assertEqual(proc.State, 'X_CATAWAMPUS-ORG_Exited');
 
 
 if __name__ == '__main__':

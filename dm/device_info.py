@@ -245,7 +245,7 @@ class ProcessStatusLinux26(BASE181DEVICE.DeviceInfo.ProcessStatus):
   def _JiffiesToMsec(self, utime, stime):
     ticks = int(utime) + int(stime)
     msecs = ticks * self._msec_per_jiffy
-    return str(int(msecs))
+    return int(msecs)
 
   def _RemoveParens(self, command):
     return command[1:-1]
@@ -302,29 +302,26 @@ class ProcessStatusLinux26(BASE181DEVICE.DeviceInfo.ProcessStatus):
     try:
       with open(self._ProcFileName(pid)) as f:
         fields = f.read().split()
+      p = self.Process(PID=int(fields[self._PID]),
+                       Command=self._RemoveParens(fields[self._COMM]),
+                       Size=int(fields[self._RSS]),
+                       Priority=int(fields[self._PRIO]),
+                       CPUTime=self._JiffiesToMsec(fields[self._UTIME],
+                                                   fields[self._STIME]),
+                       State=self._LinuxStateToTr181(fields[self._STATE]))
     except IOError:
-      raise KeyError(pid)
-    p = self.Process(PID=fields[self._PID],
-                     Command=self._RemoveParens(fields[self._COMM]),
-                     Size=fields[self._RSS],
-                     Priority=fields[self._PRIO],
-                     CPUTime=self._JiffiesToMsec(fields[self._UTIME],
-                                                 fields[self._STIME]),
-                     State=self._LinuxStateToTr181(fields[self._STATE]))
-    p.ValidateExports()
+      # This isn't an error. We have a list of files which existed the
+      # moment the glob.glob was run. If a process exits before we get
+      # around to reading it, its /proc files will go away.
+      p = self.Process(PID=pid, Command='<exited>', Size=0, Priority=0,
+                       CPUTime=0, State='X_CATAWAMPUS-ORG_Exited')
     return p
 
   def IterProcesses(self):
     """Walks through /proc/<pid>/stat to return a list of all processes."""
     for filename in glob.glob(self._ProcFileName('[0123456789]*')):
       pid = int(filename.split('/')[-2])
-      try:
-        proc = self.GetProcess(pid)
-      except KeyError:
-        # This isn't an error. We have a list of files which existed the
-        # moment the glob.glob was run. If a process exits before we get
-        # around to reading it, its /proc files will go away.
-        continue
+      proc = self.GetProcess(pid)
       yield pid, proc
 
 
