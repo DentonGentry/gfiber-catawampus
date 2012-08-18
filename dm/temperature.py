@@ -303,8 +303,8 @@ class SensorReadFromFile(object):
   def GetTemperature(self):
     try:
       return GetNumberFromFile(self._filename)
-    except ValueError as e:
-      print 'TempFromFile bad value %s' % self._filename
+    except (IOError, ValueError):
+      print 'TempFromFile %s: bad value' % self._filename
       return BADCELSIUS
 
 
