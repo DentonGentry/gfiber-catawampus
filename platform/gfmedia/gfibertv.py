@@ -21,19 +21,120 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-
+import copy
+import os
 import xmlrpclib
 import google3
 import tr.core
 import tr.x_gfibertv_1_0
 BASETV = tr.x_gfibertv_1_0.X_GOOGLE_COM_GFIBERTV_v1_0.X_GOOGLE_COM_GFIBERTV
 
+NICKFILE = '/tmp/nicknames'
+NICKFILE_TMP = '/tmp/nicknames.tmp'
+
+
+class GFiberTvConfig(object):
+  """Class to store configuration settings for GFiberTV."""
+  pass
+
+
+class NickNameConfig(object):
+  """Class to store configuration settings for DeviceNickName."""
+  pass
+
 
 class GFiberTv(BASETV):
   """Implementation of x-gfibertv.xml."""
+
   def __init__(self, mailbox_url):
     super(GFiberTv, self).__init__()
     self.Mailbox = GFiberTvMailbox(mailbox_url)
+    self.config = GFiberTvConfig()
+    self.config.nicknames = dict()
+    self.config_old = None
+    self.DeviceNickNameList = tr.core.AutoDict(
+        'X_GOOGLE_COM_GFIBERTV.DeviceNickNameList',
+        iteritems=self.IterNickNames, getitem=self.GetNickName,
+        setitem=self.SetNickName, delitem=self.DelNickName)
+
+  class DeviceNickName(BASETV.DeviceNickName):
+    """Implementation of gfibertv.DeviceNickName."""
+
+    def __init__(self):
+      super(GFiberTv.DeviceNickName, self).__init__()
+      self.config = NickNameConfig()
+      # nick_name is a unicode string.
+      self.config.nick_name = ''
+      self.config.serial_number = ''
+
+    def StartTransaction(self):
+      # NOTE(jnewlin): If an inner object is added, we need to do deepcopy.
+      self.config_old = copy.copy(self.config)
+
+    def AbandonTransaction(self):
+      self.config = self.config_old
+      self.config_old = None
+
+    def CommitTransaction(self):
+      self.config_old = None
+
+    @property
+    def NickName(self):
+      return self.config.nick_name.decode('utf-8')
+
+    @NickName.setter
+    def NickName(self, value):
+      # TODO(jnewlin): Need some sanity here so the user can't enter
+      # a value that hoses the file, like a '/' or newline.
+      tmp_uni = unicode(value, 'utf-8')
+      tmp_uni = tmp_uni.replace(u'\n', u'')
+      tmp_uni = tmp_uni.replace(u'\r', u'')
+      self.config.nick_name = tmp_uni
+
+    @property
+    def SerialNumber(self):
+      return self.config.serial_number
+
+    @SerialNumber.setter
+    def SerialNumber(self, value):
+      self.config.serial_number = value
+
+  def StartTransaction(self):
+    assert self.config_old is None
+    self.config_old = copy.copy(self.config)
+
+  def AbandonTransaction(self):
+    self.config = self.config_old
+    self.config_old = None
+
+  def CommitTransaction(self):
+    """Write out the config file for Sage."""
+    with file(NICKFILE_TMP, 'w') as f:
+      if self.config.nicknames:
+        serials = []
+        for nn in self.config.nicknames.itervalues():
+          f.write('%s/nickname=%s\n' % (
+              nn.SerialNumber, nn.config.nick_name.encode('unicode-escape')))
+          serials.append(nn.SerialNumber)
+        f.write('SERIALS=%s\n' % ','.join(serials))
+    os.rename(NICKFILE_TMP, NICKFILE)
+    self.config_old = None
+
+  @property
+  def DeviceNickNameNumberOfEntries(self):
+    return len(self.config.nicknames)
+
+  def IterNickNames(self):
+    return self.config.nicknames.iteritems()
+
+  def GetNickName(self, key):
+    return self.config.nicknames[key]
+
+  def SetNickName(self, key, value):
+    self.config.nicknames[key] = value
+
+  def DelNickName(self, key):
+    del self.config.nicknames[key]
 
 
 class GFiberTvMailbox(BASETV.Mailbox):
