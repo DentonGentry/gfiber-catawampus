@@ -24,7 +24,9 @@ import fcntl
 import os
 import re
 import subprocess
+
 import google3
+
 import dm.brcmmoca
 import dm.brcmwifi
 import dm.device_info
@@ -33,17 +35,18 @@ import dm.igd_time
 import dm.periodic_statistics
 import dm.storage
 import dm.temperature
-import gfibertv
 import platform_config
 import pynetlinux
-import stbservice
 import tornado.ioloop
 import tr.core
 import tr.download
 import tr.tr098_v1_2
 import tr.tr181_v2_2 as tr181
 import tr.x_catawampus_tr181_2_0
+
+import gfibertv
 import gvsb
+import stbservice
 
 
 BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
@@ -61,6 +64,7 @@ HNVRAM = '/usr/bin/hnvram'
 PROC_CPUINFO = '/proc/cpuinfo'
 REBOOT = '/bin/tr69_reboot'
 REPOMANIFEST = '/etc/repo-buildroot-manifest'
+SET_ACS = 'set-acs'
 VERSIONFILE = '/etc/version'
 
 
@@ -73,12 +77,27 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
   def DownloadDir(self):
     return DOWNLOADDIR
 
+  def GetAcsUrl(self):
+    setacs = subprocess.Popen([SET_ACS, 'print'], stdout=subprocess.PIPE)
+    out, _ = setacs.communicate(None)
+    return out if setacs.returncode == 0 else ''
+
+  def SetAcsUrl(self, url):
+    rc = subprocess.call(args=[SET_ACS, 'cwmp', url])
+    if rc != 0:
+      raise AttributeError('set-acs failed')
+
+  def AcsAccess(self, url):
+    pass
+
 
 class DeviceId(dm.device_info.DeviceIdMeta):
+  """Fetch the DeviceInfo parameters from NVRAM."""
+
   def _GetOneLine(self, filename, default):
     try:
-      f = open(filename, 'r')
-      return f.readline().strip()
+      with open(filename, 'r') as f:
+        return f.readline().strip()
     except:
       return default
 
@@ -108,7 +127,7 @@ class DeviceId(dm.device_info.DeviceIdMeta):
 
     # HNVRAM does not distinguish between "value not present" and
     # "value present, and is empty." Treat empty values as invalid.
-    if len(outlist) > 1 and len(outlist[1].strip()) > 0:
+    if len(outlist) > 1 and outlist[1].strip():
       return outlist[1].strip()
     else:
       return default
@@ -182,6 +201,7 @@ class Installer(tr.download.Installer):
       self._install_cb(faultcode, faultstring, must_reboot=True)
 
   def install(self, file_type, target_filename, callback):
+    """Install self.filename to disk, then call callback."""
     print 'Installing: %r %r' % (file_type, target_filename)
     ftype = file_type.split()
     if ftype and ftype[0] != '1':
@@ -231,6 +251,8 @@ class Installer(tr.download.Installer):
 
 
 class Services(tr181.Device_v2_2.Device.Services):
+  """Implements tr-181 Device.Services."""
+
   def __init__(self):
     tr181.Device_v2_2.Device.Services.__init__(self)
     self.Export(objects=['StorageServices'])
@@ -251,7 +273,7 @@ class Services(tr181.Device_v2_2.Device.Services):
         if os.stat('/sys/block/' + drive):
           phys = dm.storage.PhysicalMediumDiskLinux26(drive, 'SATA/300')
           self.StorageServices.PhysicalMediumList[str(num)] = phys
-          num = num + 1
+          num += 1
       except OSError:
         pass
 
@@ -262,7 +284,7 @@ class Services(tr181.Device_v2_2.Device.Services):
         if os.stat('/sys/class/ubi/' + ubiname):
           ubi = dm.storage.FlashMediumUbiLinux26(ubiname)
           self.StorageServices.X_CATAWAMPUS_ORG_FlashMediaList[str(num)] = ubi
-          num = num + 1
+          num += 1
       except OSError:
         pass
 
@@ -318,7 +340,7 @@ class FanReadGpio(CATA181DI.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
     try:
       rps2 = int(open(self._filename, 'r').read())
       return rps2 * 30
-    except ValueError as e:
+    except ValueError:
       print 'FanReadGpio bad value %s' % self._filename
       return -1
 
@@ -327,7 +349,7 @@ class Device(tr181.Device_v2_2.Device):
   """tr-181 Device implementation for Google Fiber media platforms."""
 
   def __init__(self, device_id, periodic_stats):
-    tr181.Device_v2_2.Device.__init__(self)
+    super(Device, self).__init__()
     self.Unexport(objects='ATM')
     self.Unexport(objects='Bridging')
     self.Unexport(objects='CaptivePortal')
@@ -372,7 +394,7 @@ class Device(tr181.Device_v2_2.Device):
     # GFHD100 & GFMS100 both monitor CPU temperature.
     # GFMS100 also monitors hard drive temperature.
     ts = self.DeviceInfo.TemperatureStatus
-    ts.AddSensor(name="CPU temperature",
+    ts.AddSensor(name='CPU temperature',
                  sensor=dm.temperature.SensorReadFromFile(
                      '/tmp/gpio/cpu_temperature'))
     for drive in ['sda', 'sdb', 'sdc', 'sdd', 'sde', 'sdf']:
@@ -390,7 +412,7 @@ class LANDevice(BASE98IGD.LANDevice):
   """tr-98 InternetGatewayDevice for Google Fiber media platforms."""
 
   def __init__(self):
-    BASE98IGD.LANDevice.__init__(self)
+    super(LANDevice, self).__init__()
     self.Unexport('Alias')
     self.Unexport(objects='Hosts')
     self.Unexport(lists='LANEthernetInterfaceConfig')
@@ -405,7 +427,7 @@ class LANDevice(BASE98IGD.LANDevice):
 
   def _has_wifi(self):
     try:
-      PYNETIFCONF("eth2").get_index()
+      PYNETIFCONF('eth2').get_index()
       return True
     except IOError:
       return False
@@ -416,8 +438,10 @@ class LANDevice(BASE98IGD.LANDevice):
 
 
 class InternetGatewayDevice(BASE98IGD):
+  """Implements tr-98 InternetGatewayDevice."""
+
   def __init__(self, device_id, periodic_stats):
-    BASE98IGD.__init__(self)
+    super(InternetGatewayDevice, self).__init__()
     self.Unexport(objects='CaptivePortal')
     self.Unexport(objects='DeviceConfig')
     self.Unexport(params='DeviceSummary')
@@ -451,6 +475,7 @@ class InternetGatewayDevice(BASE98IGD):
 
 
 def PlatformInit(name, device_model_root):
+  """Create platform-specific device models and initialize platform."""
   tr.download.INSTALLER = Installer
   params = []
   objects = []

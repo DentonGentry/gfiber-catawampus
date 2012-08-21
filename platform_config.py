@@ -39,3 +39,37 @@ class PlatformConfigMeta(object):
     then the system reboots.
     """
     return None
+
+  @abc.abstractmethod
+  def GetAcsUrl(self):
+    """Return the current ACS_URL.
+
+    Handling of the ACS URL to use is platform and/or deployment specific.
+    For example, the platform may implement the CWMP ACS_URL option for DHCP,
+    or it may have a hard-coded ACS URL for a particular ISP deployment.
+    """
+    return None
+
+  @abc.abstractmethod
+  def SetAcsUrl(self, url):
+    """Called for a SetParameterValue of DeviceInfo.ManagementServer.URL.
+
+    Args:
+      url: the URL to set
+
+    It is up to the platform to determine the relative priority of ACS URLs
+    set via DeviceInfo.ManagementServer.URL versus other mechanisms.
+
+    If the platform does not allow the ACS to be set, this routine should
+    raise an AttributeError.
+    """
+    return None
+
+  @abc.abstractmethod
+  def AcsAccess(self, url):
+    """Called for every new session initiated with the ACS.
+
+    Args:
+      url: the ACS_URL being contacted.
+    """
+    return None

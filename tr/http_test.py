@@ -90,6 +90,11 @@ class MockHttpClient(object):
     mock_http_client_stop()
 
 
+class MockPlatformConfig(object):
+  def GetAcsUrl(self):
+    return 'http://example.com/cwmp'
+
+
 class HttpTest(tornado.testing.AsyncTestCase):
   def setUp(self):
     super(HttpTest, self).setUp()
@@ -125,14 +130,11 @@ class HttpTest(tornado.testing.AsyncTestCase):
     cfdir = tempfile.mkdtemp()
     self.removedirs.append(cfdir)
     cpe.download_manager.SetDirectories(config_dir=cfdir, download_dir=dldir)
-    acsfile = tempfile.NamedTemporaryFile(delete=False)
-    self.removefiles.append(acsfile.name)
-    acsfile.write('http://example.com/cwmp')
-    acsfile.close()
     cpe_machine = http.Listen(ip=None, port=0,
                               ping_path='/ping/http_test',
-                              acs=None, acs_url_file=acsfile.name,
-                              cpe=cpe, cpe_listener=False, ioloop=self.io_loop)
+                              acs=None, cpe=cpe, cpe_listener=False,
+                              platform_config=MockPlatformConfig(),
+                              ioloop=self.io_loop)
     return cpe_machine
 
   def testMaxEnvelopes(self):
@@ -242,18 +244,17 @@ class HttpTest(tornado.testing.AsyncTestCase):
     m.VerifyAll()
 
   def testNewPeriodicSession(self):
-    """Tests that _NewSession is called if the event queue is empty"""
+    """Tests that _NewSession is called if the event queue is empty."""
     cpe_machine = self.getCpe()
 
     # Create mocks of ioloop, and stubout the time function.
     m = mox.Mox()
-    m.StubOutWithMock(cpe_machine, "_NewSession")
+    m.StubOutWithMock(cpe_machine, '_NewSession')
     cpe_machine._NewSession('2 PERIODIC')
     m.ReplayAll()
 
     cpe_machine.NewPeriodicSession()
     m.VerifyAll()
-
 
   def testNewPeriodicSessionPending(self):
     """Tests that no new periodic session starts if there is one pending."""
@@ -261,7 +262,7 @@ class HttpTest(tornado.testing.AsyncTestCase):
 
     # Create mocks of ioloop, and stubout the time function.
     m = mox.Mox()
-    m.StubOutWithMock(cpe_machine, "Run")
+    m.StubOutWithMock(cpe_machine, 'Run')
     cpe_machine.Run()
     m.ReplayAll()
 
@@ -293,29 +294,6 @@ class HttpTest(tornado.testing.AsyncTestCase):
     cpe_machine.event_queue.append(10)
     cpe_machine.event_queue.clear()
     m.VerifyAll()
-
-
-class TestManagementServer(object):
-  ConnectionRequestUsername = 'username'
-  ConnectionRequestPassword = 'password'
-
-
-class PingTest(tornado.testing.AsyncHTTPTestCase):
-  def ping_callback(self):
-    self.ping_calledback = True
-
-  def get_app(self):
-    return tornado.web.Application(
-        [('/', http.PingHandler, dict(cpe_ms=TestManagementServer(),
-                                      callback=self.ping_callback))])
-
-  def test_ping(self):
-    self.ping_calledback = False
-    self.http_client.fetch(self.get_url('/'), self.stop)
-    response = self.wait()
-    self.assertEqual(response.error.code, 401)
-    self.assertFalse(self.ping_calledback)
-    self.assertTrue(response.body.find('qop'))
 
 
 class TestManagementServer(object):

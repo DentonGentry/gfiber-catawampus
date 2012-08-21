@@ -39,6 +39,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.old_PROC_CPUINFO = device.PROC_CPUINFO
     self.old_REBOOT = device.REBOOT
     self.old_REPOMANIFEST = device.REPOMANIFEST
+    self.old_SET_ACS = device.SET_ACS
     self.old_VERSIONFILE = device.VERSIONFILE
     self.install_cb_called = False
     self.install_cb_faultcode = None
@@ -52,6 +53,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     device.PROC_CPUINFO = self.old_PROC_CPUINFO
     device.REBOOT = self.old_REBOOT
     device.REPOMANIFEST = self.old_REPOMANIFEST
+    device.SET_ACS = self.old_SET_ACS
     device.VERSIONFILE = self.old_VERSIONFILE
 
   def testGetSerialNumber(self):
@@ -114,8 +116,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def testInstallerStdout(self):
     device.GINSTALL = 'testdata/device/installer_128k_stdout'
-    inst = device.Installer('testdata/device/imagefile',
-                                   ioloop=self.io_loop)
+    inst = device.Installer('testdata/device/imagefile', ioloop=self.io_loop)
     inst.install(file_type='1 Firmware Upgrade Image',
                  target_filename='',
                  callback=self.install_callback)
@@ -127,8 +128,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def testInstallerFailed(self):
     device.GINSTALL = 'testdata/device/installer_fails'
-    inst = device.Installer('testdata/device/imagefile',
-                                   ioloop=self.io_loop)
+    inst = device.Installer('testdata/device/imagefile', ioloop=self.io_loop)
     inst.install(file_type='1 Firmware Upgrade Image',
                  target_filename='',
                  callback=self.install_callback)
@@ -136,6 +136,13 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.assertTrue(self.install_cb_called)
     self.assertEqual(self.install_cb_faultcode, 9002)
     self.assertTrue(self.install_cb_faultstring)
+
+  def testSetAcs(self):
+    device.SET_ACS = 'testdata/device/set-acs'
+    pc = device.PlatformConfig()
+    self.assertEqual(pc.GetAcsUrl(), 'bar')
+    # just check that this does not raise an AttributeError
+    pc.SetAcsUrl('foo')
 
 
 if __name__ == '__main__':

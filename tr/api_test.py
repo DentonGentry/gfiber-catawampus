@@ -62,8 +62,8 @@ class ApiTest(unittest.TestCase):
     #pylint: disable-msg=E1103
     cpe.SetParameterValues([('%s.word' % name, 'word1')], 0)
     self.assertEqual(root.GetExport(name).word, 'word1')
-    self.assertRaises(KeyError, cpe.SetParameterValues,
-                      [('%s.not_exist' % name, 'word1')], 0)
+    self.assertRaises(KeyError, cpe._SetParameterValue,
+                      '%s.not_exist' % name, 'word1')
     result = cpe.GetParameterValues(['%s.word' % name])
     self.assertEqual(result, [('%s.word' % name, 'word1')])
 

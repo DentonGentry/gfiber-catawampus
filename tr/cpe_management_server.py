@@ -37,13 +37,20 @@ import cwmpdate
 PERIODIC_CALLBACK = tornado.ioloop.PeriodicCallback
 
 
+class DefaultSetAcsUrl(object):
+  def SetAcsUrl(self, url):
+    return False
+
+
 class CpeManagementServer(object):
   """Inner class implementing tr-98 & 181 ManagementServer."""
 
-  def __init__(self, acs_url_file, port, ping_path, get_parameter_key=None,
+  def __init__(self, platform_config, port, ping_path,
+               acs_url=None, get_parameter_key=None,
                start_periodic_session=None, ioloop=None):
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
-    self.acs_url_file = acs_url_file
+    self.acs_url = acs_url
+    self.platform_config = platform_config
     self.port = port
     self.ping_path = ping_path
     self.get_parameter_key = get_parameter_key
@@ -71,20 +78,18 @@ class CpeManagementServer(object):
     self.Username = ''
     self.ConfigurePeriodicInform()
 
-  # TODO(dgentry) - monitor acs_url_file for changes. $SPEC3 3.2.1 requires
-  # an immediate Inform when the ACS URL changes.
-
   def GetURL(self):
-    try:
-      f = open(self.acs_url_file, 'r')
-      line = f.readline().strip()
-      f.close()
-    except IOError:
-      line = ''
-    return line
-  URL = property(GetURL, None, None, 'tr-98/181 ManagementServer.URL')
+    return self.acs_url or self.platform_config.GetAcsUrl()
 
-  def isIp6Address(self, ip):
+  def SetURL(self, value):
+    if self.acs_url:
+      self.acs_url = value
+    else:
+      self.platform_config.SetAcsUrl(value)
+
+  URL = property(GetURL, SetURL, None, 'tr-98/181 ManagementServer.URL')
+
+  def _isIp6Address(self, ip):
     # pylint: disable-msg=W0702
     try:
       socket.inet_pton(socket.AF_INET6, ip)
@@ -92,8 +97,8 @@ class CpeManagementServer(object):
       return False
     return True
 
-  def formatIP(self, ip):
-    if self.isIp6Address(ip):
+  def _formatIP(self, ip):
+    if self._isIp6Address(ip):
       return '[' + ip + ']'
     else:
       return ip
@@ -101,7 +106,7 @@ class CpeManagementServer(object):
   def GetConnectionRequestURL(self):
     if self.my_ip and self.port and self.ping_path:
       path = self.ping_path if self.ping_path[0] != '/' else self.ping_path[1:]
-      ip = self.formatIP(self.my_ip)
+      ip = self._formatIP(self.my_ip)
       return 'http://{0}:{1!s}/{2}'.format(ip, self.port, path)
     else:
       return ''
@@ -124,9 +129,6 @@ class CpeManagementServer(object):
     self._PeriodicInformEnable = cwmpbool.parse(value)
     self.ConfigurePeriodicInform()
 
-  def ValidatePeriodicInformEnable(self, value):
-    return cwmpbool.valid(value)
-
   PeriodicInformEnable = property(
       GetPeriodicInformEnable, SetPeriodicInformEnable, None,
       'tr-98/181 ManagementServer.PeriodicInformEnable')
@@ -137,10 +139,6 @@ class CpeManagementServer(object):
   def SetPeriodicInformInterval(self, value):
     self._PeriodicInformInterval = int(value)
     self.ConfigurePeriodicInform()
-
-  def ValidatePeriodicInformInterval(self, value):
-    v = int(value)
-    return True if v >= 1 else False
 
   PeriodicInformInterval = property(
       GetPeriodicInformInterval, SetPeriodicInformInterval, None,
@@ -153,14 +151,12 @@ class CpeManagementServer(object):
     self._PeriodicInformTime = value
     self.ConfigurePeriodicInform()
 
-  def ValidatePeriodicInformTime(self, value):
-    return cwmpdate.valid(value)
-
   PeriodicInformTime = property(
       GetPeriodicInformTime, SetPeriodicInformTime, None,
       'tr-98/181 ManagementServer.PeriodicInformTime')
 
   def ConfigurePeriodicInform(self):
+    """Commit changes to PeriodicInform parameters."""
     if self._periodic_callback:
       self._periodic_callback.stop()
       self._periodic_callback = None
@@ -220,6 +216,7 @@ class CpeManagementServer(object):
     start = int(min(start, periodic_interval/k))
     stop = int(min(stop, periodic_interval))
     return random.randrange(start, stop)
+
 
 def main():
   pass

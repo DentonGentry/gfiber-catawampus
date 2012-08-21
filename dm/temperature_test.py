@@ -94,6 +94,8 @@ class TemperatureTest(unittest.TestCase):
     self.assertEqual(t.GetTemperature(), 74)
     t = temperature.SensorReadFromFile('testdata/temperature/file4')
     self.assertEqual(t.GetTemperature(), TR181_BAD_TEMPERATURE)
+    t = temperature.SensorReadFromFile('no/such/file')
+    self.assertEqual(t.GetTemperature(), TR181_BAD_TEMPERATURE)
 
   def testValidateExports(self):
     t = temperature.TemperatureSensor(name='TestTemp', sensor=MockSensor())

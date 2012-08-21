@@ -102,8 +102,6 @@ class PingHandler(digest.DigestAuthMixin, tornado.web.RequestHandler):
       username and password.
   """
 
-  # TODO $SPEC3 3.2.2 "The CPE SHOULD restrict the number of Connection
-  #   Requests it accepts during a given period of time..."
   def initialize(self, callback, cpe_ms):
     self.callback = callback
     self.cpe_ms = cpe_ms
@@ -141,15 +139,14 @@ class CPEStateMachine(object):
     ip: local ip address to bind to. If None, find address automatically.
     cpe: the api_soap.cpe object for this device
     listenport: the port number to listen on for ACS ping requests.
-    acs_url_file: A file which will contain the ACS URL. This file can
-      change during operation, and must be periodically re-read.
+    acs_url: An ACS URL to use. This overrides platform_config.GetAcsUrl()
     ping_path: URL path for the ACS Ping function
     ping_ip6dev: ifname to use for the CPE Ping address.
     fetch_args: kwargs to pass to HTTPClient.fetch
   """
 
-  def __init__(self, ip, cpe, listenport, acs_url_file, ping_path,
-               ping_ip6dev=None, fetch_args=dict(), ioloop=None):
+  def __init__(self, ip, cpe, listenport, platform_config, ping_path,
+               acs_url=None, ping_ip6dev=None, fetch_args=dict(), ioloop=None):
     self.cpe = cpe
     self.cpe_soap = api_soap.CPE(self.cpe)
     self.encode = api_soap.Encode()
@@ -170,8 +167,8 @@ class CPEStateMachine(object):
     self._changed_parameters = set()
     self._changed_parameters_sent = set()
     self.cpe_management_server = cpe_management_server.CpeManagementServer(
-        acs_url_file=acs_url_file, port=listenport, ping_path=ping_path,
-        get_parameter_key=cpe.getParameterKey,
+        acs_url=acs_url, platform_config=platform_config, port=listenport,
+        ping_path=ping_path, get_parameter_key=cpe.getParameterKey,
         start_periodic_session=self.NewPeriodicSession, ioloop=self.ioloop)
 
   def EventQueueHandler(self):
@@ -305,14 +302,14 @@ class CPEStateMachine(object):
   def Run(self):
     print 'RUN'
     if not self.session:
-      print('No ACS session, returning.')
+      print 'No ACS session, returning.'
       return
     if not self.session.acs_url:
-      print('No ACS URL populated, returning.')
+      print 'No ACS URL populated, returning.'
       self._ScheduleRetrySession(wait=60)
       return
     if self.session.should_close():
-      print('Idle CWMP session, terminating.')
+      print 'Idle CWMP session, terminating.'
       self.outstanding = None
       ping_received = self.session.close()
       self.session = None
@@ -375,7 +372,7 @@ class CPEStateMachine(object):
       else:
         self.session.state_update(acs_to_cpe_empty=True)
     else:
-      print('HTTP ERROR {0!s}: {1}'.format(response.code, response.error))
+      print 'HTTP ERROR {0!s}: {1}'.format(response.code, response.error)
       self._ScheduleRetrySession()
     self.Run()
     return 200
@@ -526,16 +523,17 @@ class CPEStateMachine(object):
     self.cpe.startup()
 
 
-def Listen(ip, port, ping_path, acs, acs_url_file, cpe, cpe_listener,
-           ping_ip6dev=None, fetch_args=dict(), ioloop=None):
+def Listen(ip, port, ping_path, acs, cpe, cpe_listener, platform_config,
+           acs_url=None, ping_ip6dev=None, fetch_args=dict(), ioloop=None):
   if not ping_path:
     ping_path = '/ping/%x' % random.getrandbits(120)
   while ping_path.startswith('/'):
     ping_path = ping_path[1:]
   cpe_machine = CPEStateMachine(ip=ip, cpe=cpe, listenport=port,
-                                acs_url_file=acs_url_file, ping_path=ping_path,
-                                ping_ip6dev=ping_ip6dev, fetch_args=fetch_args,
-                                ioloop=ioloop)
+                                platform_config=platform_config,
+                                ping_path=ping_path,
+                                acs_url=acs_url, ping_ip6dev=ping_ip6dev,
+                                fetch_args=fetch_args, ioloop=ioloop)
   cpe.setCallbacks(cpe_machine.SendTransferComplete,
                    cpe_machine.TransferCompleteReceived,
                    cpe_machine.InformResponseReceived)
@@ -556,15 +554,3 @@ def Listen(ip, port, ping_path, acs, acs_url_file, cpe, cpe_listener,
   webapp = tornado.web.Application(handlers)
   webapp.listen(port)
   return cpe_machine
-
-
-def main():
-  with soap.Envelope(1234, False) as xml:
-    soap.GetParameterNames(xml, '', True)
-    #xml.GetRPCMethods(None)
-  print 'Response:'
-  print SyncClient('http://localhost:7547/cpe', xml)
-
-
-if __name__ == '__main__':
-  main()
