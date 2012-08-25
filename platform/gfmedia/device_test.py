@@ -36,6 +36,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.old_CONFIGDIR = device.CONFIGDIR
     self.old_GINSTALL = device.GINSTALL
     self.old_HNVRAM = device.HNVRAM
+    self.old_NAND_MB = device.NAND_MB
     self.old_PROC_CPUINFO = device.PROC_CPUINFO
     self.old_REBOOT = device.REBOOT
     self.old_REPOMANIFEST = device.REPOMANIFEST
@@ -50,6 +51,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     device.CONFIGDIR = self.old_CONFIGDIR
     device.GINSTALL = self.old_GINSTALL
     device.HNVRAM = self.old_HNVRAM
+    device.NAND_MB = self.old_NAND_MB
     device.PROC_CPUINFO = self.old_PROC_CPUINFO
     device.REBOOT = self.old_REBOOT
     device.REPOMANIFEST = self.old_REPOMANIFEST
@@ -58,10 +60,10 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def testGetSerialNumber(self):
     did = device.DeviceId()
-    device.HNVRAM = 'testdata/device/hnvramSN'
+    device.HNVRAM = 'testdata/device/hnvram'
     self.assertEqual(did.SerialNumber, '123456789')
 
-    device.HNVRAM = 'testdata/device/hnvramFOO_Empty'
+    device.HNVRAM = 'testdata/device/hnvramSN_Empty'
     self.assertEqual(did.SerialNumber, '000000000000')
 
     device.HNVRAM = 'testdata/device/hnvramSN_Err'
@@ -74,7 +76,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def testModelName(self):
     did = device.DeviceId()
-    device.HNVRAM = 'testdata/device/hnvramPN'
+    device.HNVRAM = 'testdata/device/hnvram'
     self.assertEqual(did.ModelName, 'ModelName')
 
   def testSoftwareVersion(self):
@@ -89,9 +91,23 @@ class DeviceTest(tornado.testing.AsyncTestCase):
                      'platform 1111111111111111111111111111111111111111')
 
   def testGetHardwareVersion(self):
-    device.PROC_CPUINFO = 'testdata/proc_cpuinfo'
+    device.HNVRAM = 'testdata/device/hnvram'
+    device.PROC_CPUINFO = 'testdata/device/proc_cpuinfo_b0'
+    device.NAND_MB = 'testdata/device/nand_size_mb_rev1'
     did = device.DeviceId()
-    self.assertEqual(did.HardwareVersion, 'BCM7425B2')
+    self.assertEqual(did.HardwareVersion, 'rev')
+
+    device.HNVRAM = 'testdata/device/hnvramFOO_Empty'
+    self.assertEqual(did.HardwareVersion, '0')
+
+    device.PROC_CPUINFO = 'testdata/device/proc_cpuinfo_b2'
+    self.assertEqual(did.HardwareVersion, '1')
+
+    device.NAND_MB = 'testdata/device/nand_size_mb_rev2'
+    self.assertEqual(did.HardwareVersion, '2')
+
+    device.NAND_MB = 'testdata/device/nand_size_mb_unk'
+    self.assertEqual(did.HardwareVersion, '?')
 
   def testFanSpeed(self):
     fan = device.FanReadGpio(filename='testdata/fanspeed')

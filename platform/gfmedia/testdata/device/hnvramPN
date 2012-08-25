@@ -1,7 +1,0 @@
-#!/bin/sh
-
-if [ x"$1" = "x-r" ] && [ x"$2" = "xPLATFORM_NAME" ] ; then
-  echo "PLATFORM_NAME=ModelName"
-fi
-
-exit 0

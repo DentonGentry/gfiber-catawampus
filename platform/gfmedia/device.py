@@ -22,7 +22,6 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import fcntl
 import os
-import re
 import subprocess
 
 import google3
@@ -61,6 +60,7 @@ CONFIGDIR = '/config/tr69'
 DOWNLOADDIR = '/tmp'
 GINSTALL = '/bin/ginstall.py'
 HNVRAM = '/usr/bin/hnvram'
+NAND_MB = '/proc/sys/dev/repartition/nand_size_mb'
 PROC_CPUINFO = '/proc/cpuinfo'
 REBOOT = '/bin/tr69_reboot'
 REPOMANIFEST = '/etc/repo-buildroot-manifest'
@@ -157,14 +157,26 @@ class DeviceId(dm.device_info.DeviceIdMeta):
 
   @property
   def HardwareVersion(self):
-    cpu = '?'
-    with open(PROC_CPUINFO, 'r') as f:
-      sys_re = re.compile('system type\s+: (\S+) STB platform')
-      for line in f:
-        stype = sys_re.search(line)
-        if stype is not None:
-          cpu = stype.group(1)
-    return cpu
+    """Return NVRAM HW_REV, inferring one if not present."""
+    hw_rev = self._GetNvramParam('HW_REV', default=None)
+    if hw_rev:
+      return hw_rev
+
+    # initial builds with no HW_REV; infer a rev.
+    cpu = open(PROC_CPUINFO, 'r').read()
+    if cpu.find('BCM7425B0') > 0:
+      return '0'
+    if cpu.find('BCM7425B2') > 0:
+      # B2 chip with 4 Gig MLC flash == rev1. 1 Gig SLC flash == rev2.
+      try:
+        siz = int(open(NAND_MB, 'r').read())
+      except OSError:
+        return '?'
+      if siz == 4096:
+        return '1'
+      if siz == 1024:
+        return '2'
+    return '?'
 
   @property
   def AdditionalHardwareVersion(self):
