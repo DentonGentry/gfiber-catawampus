@@ -101,7 +101,7 @@ def main():
         fetch_args['client_cert'] = opt.client_cert
         fetch_args['client_key'] = opt.client_key
 
-      pc = root.get_platform_config()
+      pc = root.get_platform_config(ioloop=loop.ioloop)
       cpe.download_manager.SetDirectories(config_dir=pc.ConfigDir(),
                                           download_dir=pc.DownloadDir())
       cpe_machine = tr.http.Listen(ip=opt.ip, port=opt.port,

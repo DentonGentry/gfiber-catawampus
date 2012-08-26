@@ -41,6 +41,9 @@ BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
 class PlatformConfig(platform_config.PlatformConfigMeta):
   """PlatformConfig for FakeCPE."""
 
+  def __init__(self, ioloop=None):
+    platform_config.PlatformConfigMeta.__init__(self)
+
   def ConfigDir(self):
     return '/tmp/catawampus.%s/config/' % FakeCPEInstance()
 

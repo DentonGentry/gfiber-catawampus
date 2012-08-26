@@ -49,9 +49,9 @@ class DeviceModelRoot(tr.core.Exporter):
     objects.append('X_CATAWAMPUS-ORG_CATAWAMPUS')
     self.Export(params=params, objects=objects)
 
-  def get_platform_config(self):
+  def get_platform_config(self, ioloop):
     """Return the platform_config.py object for this platform."""
-    return self.device.PlatformConfig()
+    return self.device.PlatformConfig(ioloop=ioloop)
 
   def add_management_server(self, mgmt):
     # tr-181 Device.ManagementServer
@@ -77,7 +77,7 @@ class DeviceModelRoot(tr.core.Exporter):
       tr157_object.SetCpe(cpe)
       tr157_object.SetRoot(self)
     except (AttributeError, KeyError):
-      pass # no tr-157 object on the InternetGatewayDevice.
+      pass  # no tr-157 object on the InternetGatewayDevice.
 
     # Check on the Device object.
     BASE157PS_DEV = 'Device.PeriodicStatistics'
@@ -86,4 +86,4 @@ class DeviceModelRoot(tr.core.Exporter):
       tr157_object.SetCpe(cpe)
       tr157_object.SetRoot(self)
     except (AttributeError, KeyError):
-      pass # no tr-157 object found on the Device object.
+      pass  # no tr-157 object found on the Device object.

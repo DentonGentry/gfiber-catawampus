@@ -20,6 +20,9 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import os
+import shutil
+import tempfile
 import unittest
 
 import google3
@@ -28,11 +31,22 @@ import tornado.testing
 import device
 
 
+class MockIoloop(object):
+  def __init__(self):
+    self.timeout = None
+    self.callback = None
+
+  def add_timeout(self, timeout, callback, monotonic=None):
+    self.timeout = timeout
+    self.callback = callback
+
+
 class DeviceTest(tornado.testing.AsyncTestCase):
   """Tests for device.py."""
 
   def setUp(self):
     super(DeviceTest, self).setUp()
+    self.old_ACSCONNECTED = device.ACSCONNECTED
     self.old_CONFIGDIR = device.CONFIGDIR
     self.old_GINSTALL = device.GINSTALL
     self.old_HNVRAM = device.HNVRAM
@@ -48,6 +62,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def tearDown(self):
     super(DeviceTest, self).tearDown()
+    device.ACSCONNECTED = self.old_ACSCONNECTED
     device.CONFIGDIR = self.old_CONFIGDIR
     device.GINSTALL = self.old_GINSTALL
     device.HNVRAM = self.old_HNVRAM
@@ -155,10 +170,33 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def testSetAcs(self):
     device.SET_ACS = 'testdata/device/set-acs'
-    pc = device.PlatformConfig()
+    pc = device.PlatformConfig(ioloop=MockIoloop())
     self.assertEqual(pc.GetAcsUrl(), 'bar')
     # just check that this does not raise an AttributeError
     pc.SetAcsUrl('foo')
+
+  def testAcsAccess(self):
+    ioloop = MockIoloop()
+    tmpdir = tempfile.mkdtemp()
+    tmpfile = os.path.join(tmpdir, 'acsconnected')
+    self.assertRaises(OSError, os.stat, tmpfile)  # File does not exist yet
+    device.ACSCONNECTED = tmpfile
+    pc = device.PlatformConfig(ioloop)
+    acsurl = 'this is the acs url'
+
+    # Simulate ACS connection
+    pc.AcsAccess(acsurl)
+    self.assertTrue(os.stat(tmpfile))
+    self.assertEqual(open(tmpfile, 'r').read(), acsurl)
+    self.assertTrue(ioloop.timeout)
+    self.assertTrue(ioloop.callback)
+
+    # Simulate timeout
+    ioloop.callback()
+    self.assertRaises(OSError, os.stat, tmpfile)
+
+    # cleanup
+    shutil.rmtree(tmpdir)
 
 
 if __name__ == '__main__':

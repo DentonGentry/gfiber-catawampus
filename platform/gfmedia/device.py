@@ -20,6 +20,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import datetime
 import fcntl
 import os
 import subprocess
@@ -56,6 +57,8 @@ PYNETIFCONF = pynetlinux.ifconfig.Interface
 INTERNAL_ERROR = 9002
 
 # Unit tests can override these with fake data
+ACSCONNECTED = '/tmp/gpio/ledcontrol/acsconnected'
+ACSERRORTIME = 6*60*60
 CONFIGDIR = '/config/tr69'
 DOWNLOADDIR = '/tmp'
 GINSTALL = '/bin/ginstall.py'
@@ -70,6 +73,11 @@ VERSIONFILE = '/etc/version'
 
 class PlatformConfig(platform_config.PlatformConfigMeta):
   """PlatformConfig for GFMedia devices."""
+
+  def __init__(self, ioloop=None):
+    platform_config.PlatformConfigMeta.__init__(self)
+    self._ioloop = ioloop or tornado.ioloop.IOLoop.instance()
+    self.acs_timeout = None
 
   def ConfigDir(self):
     return CONFIGDIR
@@ -87,8 +95,24 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
     if rc != 0:
       raise AttributeError('set-acs failed')
 
+  def _AcsAccessTimeout(self):
+    """Timeout for AcsAccess.
+
+    There has been no successful connection to ACS in ACSERRORTIME seconds.
+    Remove the ACSCONNECTED file, which makes an error LED pattern light up.
+    """
+    try:
+      os.remove(ACSCONNECTED)
+    except OSError:
+      pass  # No such file == harmless
+
   def AcsAccess(self, url):
-    pass
+    if self.acs_timeout:
+      self._ioloop.remove_timeout(self.acs_timeout)
+    self.acs_timeout = self._ioloop.add_timeout(
+        datetime.timedelta(seconds=ACSERRORTIME), self._AcsAccessTimeout)
+    # We only *need* to create a 0 byte file, but write URL for debugging
+    open(ACSCONNECTED, 'w').write(url)
 
 
 class DeviceId(dm.device_info.DeviceIdMeta):

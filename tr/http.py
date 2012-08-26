@@ -24,7 +24,6 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 import binascii
 import collections
 import datetime
-import os
 import random
 import socket
 import sys
@@ -34,14 +33,13 @@ import urllib
 from curtain import digest
 import tornado.httpclient
 import tornado.ioloop
-import tornado.web
 import tornado.util
+import tornado.web
 
 import api_soap
 import cpe_management_server
 import cwmp_session
 import helpers
-import soap
 
 PROC_IF_INET6 = '/proc/net/if_inet6'
 MAX_EVENT_QUEUE_SIZE = 64
@@ -163,6 +161,7 @@ class CPEStateMachine(object):
     self.ping_ip6dev = ping_ip6dev
     self.fetch_args = fetch_args
     self.rate_limit_seconds = 60
+    self.platform_config = platform_config
     self.previous_ping_time = 0
     self.ping_timeout_pending = None
     self._changed_parameters = set()
@@ -313,6 +312,7 @@ class CPEStateMachine(object):
       print 'Idle CWMP session, terminating.'
       self.outstanding = None
       ping_received = self.session.close()
+      self.platform_config.AcsAccess(self.session.acs_url)
       self.session = None
       self.retry_count = 0  # Successful close
       if self._changed_parameters:
@@ -395,7 +395,6 @@ class CPEStateMachine(object):
         datetime.timedelta(seconds=wait), self._SessionWaitTimer)
 
   def _SessionWaitTimer(self):
-    os.remove('/tmp/gpio/ledcontrol/acsconnected')
     """Handler for the CWMP Retry timer, to start a new session."""
     self.start_session_timeout = None
     self.session = cwmp_session.CwmpSession(
@@ -511,7 +510,6 @@ class CPEStateMachine(object):
                          'm reboot', 'm scheduleinform'])
     self.event_queue = self._RemoveFromDequeue(self.event_queue, reasons)
     self._changed_parameters_sent.clear()
-    open('/tmp/gpio/ledcontrol/acsconnected', 'w')
 
   def Startup(self):
     rb = self.cpe.download_manager.RestoreReboots()
