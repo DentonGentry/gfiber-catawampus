@@ -145,7 +145,8 @@ class CPEStateMachine(object):
   """
 
   def __init__(self, ip, cpe, listenport, platform_config, ping_path,
-               acs_url=None, ping_ip6dev=None, fetch_args=dict(), ioloop=None):
+               acs_url=None, ping_ip6dev=None, fetch_args=dict(), ioloop=None,
+               restrict_acs_hosts=None):
     self.cpe = cpe
     self.cpe_soap = api_soap.CPE(self.cpe)
     self.encode = api_soap.Encode()
@@ -169,7 +170,8 @@ class CPEStateMachine(object):
     self.cpe_management_server = cpe_management_server.CpeManagementServer(
         acs_url=acs_url, platform_config=platform_config, port=listenport,
         ping_path=ping_path, get_parameter_key=cpe.getParameterKey,
-        start_periodic_session=self.NewPeriodicSession, ioloop=self.ioloop)
+        start_periodic_session=self.NewPeriodicSession, ioloop=self.ioloop,
+        restrict_acs_hosts=restrict_acs_hosts)
 
   def EventQueueHandler(self):
     """Called if the event queue goes beyond the maximum threshold."""
@@ -523,7 +525,8 @@ class CPEStateMachine(object):
 
 
 def Listen(ip, port, ping_path, acs, cpe, cpe_listener, platform_config,
-           acs_url=None, ping_ip6dev=None, fetch_args=dict(), ioloop=None):
+           acs_url=None, ping_ip6dev=None, fetch_args=dict(), ioloop=None,
+           restrict_acs_hosts=None):
   if not ping_path:
     ping_path = '/ping/%x' % random.getrandbits(120)
   while ping_path.startswith('/'):
@@ -531,6 +534,7 @@ def Listen(ip, port, ping_path, acs, cpe, cpe_listener, platform_config,
   cpe_machine = CPEStateMachine(ip=ip, cpe=cpe, listenport=port,
                                 platform_config=platform_config,
                                 ping_path=ping_path,
+                                restrict_acs_hosts=restrict_acs_hosts,
                                 acs_url=acs_url, ping_ip6dev=ping_ip6dev,
                                 fetch_args=fetch_args, ioloop=ioloop)
   cpe.setCallbacks(cpe_machine.SendTransferComplete,

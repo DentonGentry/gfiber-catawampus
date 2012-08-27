@@ -205,6 +205,45 @@ class CpeManagementServerTest(unittest.TestCase):
       self.assertTrue(12 <= cpe_ms.SessionRetryWait(2) <= 30)
       self.assertTrue(12 <= cpe_ms.SessionRetryWait(3) <= 30)
 
+  def testValidateServer(self):
+    def TryUrl(cpe, value):
+      valid = True
+      try:
+        cpe_ms.ValidateAcsUrl(value)
+      except ValueError:
+        valid = False
+      return valid
+
+    cpe_ms = ms.CpeManagementServer(
+        platform_config=None, port=5, ping_path='/',
+        restrict_acs_hosts='google.com .gfsvc.com foo.com')
+    self.assertTrue(TryUrl(cpe_ms, 'https://bugger.gfsvc.com'))
+    self.assertTrue(TryUrl(cpe_ms, 'https://acs.prod.gfsvc.com'))
+    self.assertTrue(TryUrl(cpe_ms, 'https://acs.prod.google.com'))
+    self.assertTrue(TryUrl(cpe_ms, 'https://google.com'))
+    self.assertFalse(TryUrl(cpe_ms, 'https://imposter.evilgfsvc.com'))
+    self.assertFalse(TryUrl(cpe_ms, 'https://evilgfsvc.com'))
+    self.assertFalse(TryUrl(cpe_ms, 'https://gfsvc.com.evil.com'))
+
+    # No restrictions
+    cpe_ms = ms.CpeManagementServer(
+        platform_config=None, port=5, ping_path='/')
+    self.assertTrue(TryUrl(cpe_ms, 'https://bugger.gfsvc.com'))
+    self.assertTrue(TryUrl(cpe_ms, 'https://gfsvc.com.evil.com'))
+
+    # Single domain
+    cpe_ms = ms.CpeManagementServer(
+        platform_config=None, port=5, ping_path='/',
+        restrict_acs_hosts='.gfsvc.com')
+    self.assertTrue(TryUrl(cpe_ms, 'https://bugger.gfsvc.com'))
+    self.assertTrue(TryUrl(cpe_ms, 'https://acs.prod.gfsvc.com'))
+    self.assertFalse(TryUrl(cpe_ms, 'https://acs.prod.google.com'))
+    self.assertFalse(TryUrl(cpe_ms, 'https://google.com'))
+    self.assertFalse(TryUrl(cpe_ms, 'https://imposter.evilgfsvc.com'))
+    self.assertFalse(TryUrl(cpe_ms, 'https://evilgfsvc.com'))
+    self.assertFalse(TryUrl(cpe_ms, 'https://gfsvc.com.evil.com'))
+
+
 
 if __name__ == '__main__':
   unittest.main()

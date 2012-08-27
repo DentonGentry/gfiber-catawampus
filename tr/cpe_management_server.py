@@ -24,8 +24,10 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import datetime
 import math
 import random
+import re
 import socket
 import time
+import urlparse
 
 import google3
 import tornado.ioloop
@@ -47,9 +49,13 @@ class CpeManagementServer(object):
 
   def __init__(self, platform_config, port, ping_path,
                acs_url=None, get_parameter_key=None,
-               start_periodic_session=None, ioloop=None):
+               start_periodic_session=None, ioloop=None,
+               restrict_acs_hosts=None):
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
-    self.acs_url = acs_url
+    self.restrict_acs_hosts = restrict_acs_hosts
+    self.ValidateAcsUrl(acs_url)
+    self.ValidateAcsUrl(platform_config.GetAcsUrl())
+    self.acs_url = None
     self.platform_config = platform_config
     self.port = port
     self.ping_path = ping_path
@@ -78,10 +84,40 @@ class CpeManagementServer(object):
     self.Username = ''
     self.ConfigurePeriodicInform()
 
+  def ValidateAcsUrl(self, value):
+    """Checks if the URL passed is acceptable.  If not raises an exception."""
+    if not self.restrict_acs_hosts or not value:
+      return
+
+    # Require https for the url scheme.
+    split_url = urlparse.urlsplit(value)
+    if split_url.scheme != 'https':
+      raise ValueError('The ACS Host must be https: %s' % str(value))
+
+    # Iterate over the restrict domain name list and see if one of
+    # the restricted domain names matches the supplied url host name.
+    restrict_hosts = re.split(r'[\s,]+', self.restrict_acs_hosts)
+    for host in restrict_hosts:
+      # Check the full hostname.
+      if split_url.hostname == host:
+        return
+
+      # Check against the restrict host of form '.foo.com'
+      if not host.startswith('.'):
+        dotted_host = '.' + host
+      else:
+        dotted_host = host
+      if split_url.hostname.endswith(dotted_host):
+        return
+
+    # If we don't find a valid host, raise an exception.
+    raise ValueError('The ACS Host is not permissible: %s' % str(value))
+
   def GetURL(self):
     return self.acs_url or self.platform_config.GetAcsUrl()
 
   def SetURL(self, value):
+    self.ValidateAcsUrl(value)
     if self.acs_url:
       self.acs_url = value
     else:

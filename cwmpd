@@ -23,13 +23,11 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import os.path
 import sys
-import tempfile
 import google3
 import bup.options
-import dm_root
-import platform_config
 import tornado.autoreload
 import tornado.httpclient
+import dm_root
 import tr.api
 import tr.core
 import tr.http
@@ -56,6 +54,7 @@ ping_ip6dev=  Use the IPv6 address from dev for the CPE Ping address
 ca-certs=     SSL ca_certificates.crt file to use
 client-cert=  SSL client certificate to use
 client-key=   SSL client private key to use
+restrict-acs-hosts= Domain names allowed for ACS URL.  Default=unrestricted.  Example: 'google.com gfsvc.com'
 """
 
 
@@ -75,7 +74,7 @@ def main():
   root = dm_root.DeviceModelRoot(loop, opt.platform)
   if opt.rcmd_port:
     loop.ListenInet((opt.listenip, opt.rcmd_port),
-                     tr.rcommand.MakeRemoteCommandStreamer(root))
+                    tr.rcommand.MakeRemoteCommandStreamer(root))
   if opt.unix_path:
     loop.ListenUnix(opt.unix_path,
                     tr.rcommand.MakeRemoteCommandStreamer(root))
@@ -107,6 +106,7 @@ def main():
       cpe_machine = tr.http.Listen(ip=opt.ip, port=opt.port,
                                    ping_path=opt.ping_path,
                                    acs=acs, cpe=cpe,
+                                   restrict_acs_hosts=opt.restrict_acs_hosts,
                                    cpe_listener=opt.cpe_listener,
                                    platform_config=pc,
                                    acs_url=opt.acs_url,
