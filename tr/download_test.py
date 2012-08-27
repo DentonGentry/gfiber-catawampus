@@ -53,7 +53,7 @@ class MockHttpClient(object):
 
 class MockIoloop(object):
   def __init__(self):
-    self.time = None
+    self.timeout = None
     self.callback = None
 
   def add_timeout(self, timeout, callback, monotonic=None):

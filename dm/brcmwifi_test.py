@@ -65,7 +65,8 @@ class BrcmWifiTest(unittest.TestCase):
       return False
 
   def VerifyCommonWlCommands(self, cmd, rmwep=0, wsec=0, primary_key=1,
-                             wpa_auth=0, sup_wpa=1, amode='open'):
+                             wpa_auth=0, sup_wpa=1, amode='open',
+                             autochan=True):
     # Verify the number of "rmwep #" commands, and remove them.
     l = [x for x in cmd.split('\n') if x]  # Suppress blank lines
     for i in range(rmwep, 4):
@@ -74,11 +75,21 @@ class BrcmWifiTest(unittest.TestCase):
     self.assertTrue(self.RmFromList(l, 'sup_wpa %d' % sup_wpa))
     self.assertTrue(self.RmFromList(l, 'wpa_auth %d' % wpa_auth))
     self.assertTrue(self.RmFromList(l, 'primary_key %d' % primary_key))
-    self.assertTrue(len(l) >= 3)
-    self.assertEqual(l[0], '-i wifi0 radio on')
-    self.assertEqual(l[1], '-i wifi0 ap 1')
-    self.assertEqual(l[2], '-i wifi0 bss down')
-    return l[3:]
+    self.assertTrue(self.RmFromList(l, 'radio on'))
+    self.assertTrue(self.RmFromList(l, 'ap 1'))
+    self.assertTrue(self.RmFromList(l, 'bss down'))
+    if autochan:
+      self.assertTrue(self.RmFromList(l, 'down'))
+      self.assertTrue(self.RmFromList(l, 'spect 0'))
+      self.assertTrue(self.RmFromList(l, 'mpc 0'))
+      self.assertTrue(self.RmFromList(l, 'up'))
+      self.assertTrue(self.RmFromList(l, 'ssid'))
+      self.assertTrue(self.RmFromList(l, 'autochannel 1'))
+      self.assertTrue(self.RmFromList(l, 'autochannel 2'))
+      self.assertTrue(self.RmFromList(l, 'down'))
+      self.assertTrue(self.RmFromList(l, 'spect 1'))
+      self.assertTrue(self.RmFromList(l, 'mpc 1'))
+    return l
 
   def testValidateExports(self):
     netdev.PROC_NET_DEV = 'testdata/brcmwifi/proc_net_dev'
@@ -128,7 +139,7 @@ class BrcmWifiTest(unittest.TestCase):
     bw.CommitTransaction()
     output = out.read()
     out.close()
-    outlist = self.VerifyCommonWlCommands(output)
+    outlist = self.VerifyCommonWlCommands(output, autochan=False)
     self.assertTrue(self.RmFromList(outlist, 'channel 11'))
     self.assertFalse(outlist)
 
@@ -602,6 +613,7 @@ class BrcmWifiTest(unittest.TestCase):
     self.assertTrue(self.RmFromList(outlist, 'addwep 1 password2'))
     self.assertTrue(self.RmFromList(outlist, 'addwep 2 password3'))
     self.assertTrue(self.RmFromList(outlist, 'addwep 3 password4'))
+    print outlist
     self.assertFalse(outlist)
 
   def testPreSharedKey(self):
