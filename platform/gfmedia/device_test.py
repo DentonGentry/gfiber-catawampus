@@ -50,6 +50,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.old_CONFIGDIR = device.CONFIGDIR
     self.old_GINSTALL = device.GINSTALL
     self.old_HNVRAM = device.HNVRAM
+    self.old_LEDSTATUS = device.LEDSTATUS
     self.old_NAND_MB = device.NAND_MB
     self.old_PROC_CPUINFO = device.PROC_CPUINFO
     self.old_REBOOT = device.REBOOT
@@ -66,6 +67,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     device.CONFIGDIR = self.old_CONFIGDIR
     device.GINSTALL = self.old_GINSTALL
     device.HNVRAM = self.old_HNVRAM
+    device.LEDSTATUS = self.old_LEDSTATUS
     device.NAND_MB = self.old_NAND_MB
     device.PROC_CPUINFO = self.old_PROC_CPUINFO
     device.REBOOT = self.old_REBOOT
