@@ -159,7 +159,7 @@ class GFiberTvMailbox(BASETV.Mailbox):
 
   def SetValue(self, value):
     try:
-      return str(self.rpcclient.SetProperty(self.Name, self.Node, value))
+      return str(self.rpcclient.SetProperty(self.Name, value, self.Node))
     except xmlrpclib.Fault:
       raise IndexError('No such Property %s:%s' % (self.Node, self.Name))
     except (xmlrpclib.ProtocolError, IOError):

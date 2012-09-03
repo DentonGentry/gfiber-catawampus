@@ -45,7 +45,7 @@ class TvPropertyRpcs(object):
   def GetProperty(self, name, node):
     return self.properties[node][name]
 
-  def SetProperty(self, name, node, value):
+  def SetProperty(self, name, value, node):
     self.properties[node][name] = value
     return ''
 
