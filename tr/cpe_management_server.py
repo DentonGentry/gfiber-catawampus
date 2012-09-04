@@ -55,7 +55,7 @@ class CpeManagementServer(object):
     self.restrict_acs_hosts = restrict_acs_hosts
     self.ValidateAcsUrl(acs_url)
     self.ValidateAcsUrl(platform_config.GetAcsUrl())
-    self.acs_url = None
+    self.acs_url = acs_url
     self.platform_config = platform_config
     self.port = port
     self.ping_path = ping_path
