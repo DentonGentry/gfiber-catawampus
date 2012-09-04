@@ -40,6 +40,13 @@ def Unlink(filename):
       raise
 
 
+def WriteFileAtomic(tmp_file_name, final_file_name, data):
+  """Writes data to tmp file, then moves it to the final file atomically."""
+  with file(tmp_file_name, 'w') as f:
+    f.write(data)
+  os.rename(tmp_file_name, final_file_name)
+
+
 def monotime():
   if hasattr(tornado.util, 'monotime'):
     return tornado.util.monotime()
