@@ -38,8 +38,8 @@ class GFiberTvConfig(object):
   pass
 
 
-class NickNameConfig(object):
-  """Class to store configuration settings for DeviceNickName."""
+class PropertiesConfig(object):
+  """Class to store configuration settings for DeviceProperties."""
   pass
 
 
@@ -52,17 +52,17 @@ class GFiberTv(BASETV):
     self.config = GFiberTvConfig()
     self.config.nicknames = dict()
     self.config_old = None
-    self.DeviceNickNameList = tr.core.AutoDict(
-        'X_GOOGLE_COM_GFIBERTV.DeviceNickNameList',
-        iteritems=self.IterNickNames, getitem=self.GetNickName,
-        setitem=self.SetNickName, delitem=self.DelNickName)
+    self.DevicePropertiesList = tr.core.AutoDict(
+        'X_GOOGLE_COM_GFIBERTV.DevicePropertiesList',
+        iteritems=self.IterProperties, getitem=self.GetProperties,
+        setitem=self.SetProperties, delitem=self.DelProperties)
 
-  class DeviceNickName(BASETV.DeviceNickName):
-    """Implementation of gfibertv.DeviceNickName."""
+  class DeviceProperties(BASETV.DeviceProperties):
+    """Implementation of gfibertv.DeviceProperties."""
 
     def __init__(self):
-      super(GFiberTv.DeviceNickName, self).__init__()
-      self.config = NickNameConfig()
+      super(GFiberTv.DeviceProperties, self).__init__()
+      self.config = PropertiesConfig()
       # nick_name is a unicode string.
       self.config.nick_name = ''
       self.config.serial_number = ''
@@ -121,19 +121,19 @@ class GFiberTv(BASETV):
     self.config_old = None
 
   @property
-  def DeviceNickNameNumberOfEntries(self):
+  def DevicePropertiesNumberOfEntries(self):
     return len(self.config.nicknames)
 
-  def IterNickNames(self):
+  def IterProperties(self):
     return self.config.nicknames.iteritems()
 
-  def GetNickName(self, key):
+  def GetProperties(self, key):
     return self.config.nicknames[key]
 
-  def SetNickName(self, key, value):
+  def SetProperties(self, key, value):
     self.config.nicknames[key] = value
 
-  def DelNickName(self, key):
+  def DelProperties(self, key):
     del self.config.nicknames[key]
 
 
