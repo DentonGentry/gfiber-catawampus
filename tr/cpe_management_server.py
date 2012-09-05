@@ -21,10 +21,13 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import datetime
 import math
 import random
+import re
 import socket
 import time
+import urlparse
 
 import google3
 import tornado.ioloop
@@ -36,13 +39,24 @@ import cwmpdate
 PERIODIC_CALLBACK = tornado.ioloop.PeriodicCallback
 
 
+class DefaultSetAcsUrl(object):
+  def SetAcsUrl(self, url):
+    return False
+
+
 class CpeManagementServer(object):
   """Inner class implementing tr-98 & 181 ManagementServer."""
 
-  def __init__(self, acs_url_file, port, ping_path, get_parameter_key=None,
-               start_periodic_session=None, ioloop=None):
+  def __init__(self, platform_config, port, ping_path,
+               acs_url=None, get_parameter_key=None,
+               start_periodic_session=None, ioloop=None,
+               restrict_acs_hosts=None):
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
-    self.acs_url_file = acs_url_file
+    self.restrict_acs_hosts = restrict_acs_hosts
+    self.ValidateAcsUrl(acs_url)
+    self.ValidateAcsUrl(platform_config.GetAcsUrl())
+    self.acs_url = None
+    self.platform_config = platform_config
     self.port = port
     self.ping_path = ping_path
     self.get_parameter_key = get_parameter_key
@@ -70,20 +84,48 @@ class CpeManagementServer(object):
     self.Username = ''
     self.ConfigurePeriodicInform()
 
-  # TODO(dgentry) - monitor acs_url_file for changes. $SPEC3 3.2.1 requires
-  # an immediate Inform when the ACS URL changes.
+  def ValidateAcsUrl(self, value):
+    """Checks if the URL passed is acceptable.  If not raises an exception."""
+    if not self.restrict_acs_hosts or not value:
+      return
+
+    # Require https for the url scheme.
+    split_url = urlparse.urlsplit(value)
+    if split_url.scheme != 'https':
+      raise ValueError('The ACS Host must be https: %s' % str(value))
+
+    # Iterate over the restrict domain name list and see if one of
+    # the restricted domain names matches the supplied url host name.
+    restrict_hosts = re.split(r'[\s,]+', self.restrict_acs_hosts)
+    for host in restrict_hosts:
+      # Check the full hostname.
+      if split_url.hostname == host:
+        return
+
+      # Check against the restrict host of form '.foo.com'
+      if not host.startswith('.'):
+        dotted_host = '.' + host
+      else:
+        dotted_host = host
+      if split_url.hostname.endswith(dotted_host):
+        return
+
+    # If we don't find a valid host, raise an exception.
+    raise ValueError('The ACS Host is not permissible: %s' % str(value))
 
   def GetURL(self):
-    try:
-      f = open(self.acs_url_file, 'r')
-      line = f.readline().strip()
-      f.close()
-    except IOError:
-      line = ''
-    return line
-  URL = property(GetURL, None, None, 'tr-98/181 ManagementServer.URL')
+    return self.acs_url or self.platform_config.GetAcsUrl()
 
-  def isIp6Address(self, ip):
+  def SetURL(self, value):
+    self.ValidateAcsUrl(value)
+    if self.acs_url:
+      self.acs_url = value
+    else:
+      self.platform_config.SetAcsUrl(value)
+
+  URL = property(GetURL, SetURL, None, 'tr-98/181 ManagementServer.URL')
+
+  def _isIp6Address(self, ip):
     # pylint: disable-msg=W0702
     try:
       socket.inet_pton(socket.AF_INET6, ip)
@@ -91,8 +133,8 @@ class CpeManagementServer(object):
       return False
     return True
 
-  def formatIP(self, ip):
-    if self.isIp6Address(ip):
+  def _formatIP(self, ip):
+    if self._isIp6Address(ip):
       return '[' + ip + ']'
     else:
       return ip
@@ -100,7 +142,7 @@ class CpeManagementServer(object):
   def GetConnectionRequestURL(self):
     if self.my_ip and self.port and self.ping_path:
       path = self.ping_path if self.ping_path[0] != '/' else self.ping_path[1:]
-      ip = self.formatIP(self.my_ip)
+      ip = self._formatIP(self.my_ip)
       return 'http://{0}:{1!s}/{2}'.format(ip, self.port, path)
     else:
       return ''
@@ -123,9 +165,6 @@ class CpeManagementServer(object):
     self._PeriodicInformEnable = cwmpbool.parse(value)
     self.ConfigurePeriodicInform()
 
-  def ValidatePeriodicInformEnable(self, value):
-    return cwmpbool.valid(value)
-
   PeriodicInformEnable = property(
       GetPeriodicInformEnable, SetPeriodicInformEnable, None,
       'tr-98/181 ManagementServer.PeriodicInformEnable')
@@ -136,10 +175,6 @@ class CpeManagementServer(object):
   def SetPeriodicInformInterval(self, value):
     self._PeriodicInformInterval = int(value)
     self.ConfigurePeriodicInform()
-
-  def ValidatePeriodicInformInterval(self, value):
-    v = int(value)
-    return True if v >= 1 else False
 
   PeriodicInformInterval = property(
       GetPeriodicInformInterval, SetPeriodicInformInterval, None,
@@ -152,14 +187,12 @@ class CpeManagementServer(object):
     self._PeriodicInformTime = value
     self.ConfigurePeriodicInform()
 
-  def ValidatePeriodicInformTime(self, value):
-    return cwmpdate.valid(value)
-
   PeriodicInformTime = property(
       GetPeriodicInformTime, SetPeriodicInformTime, None,
       'tr-98/181 ManagementServer.PeriodicInformTime')
 
   def ConfigurePeriodicInform(self):
+    """Commit changes to PeriodicInform parameters."""
     if self._periodic_callback:
       self._periodic_callback.stop()
       self._periodic_callback = None
@@ -174,24 +207,25 @@ class CpeManagementServer(object):
 
     if self._PeriodicInformEnable and self._PeriodicInformInterval > 0:
       msec = self._PeriodicInformInterval * 1000
-      self._periodic_callback = PERIODIC_CALLBACK(self.DoPeriodicInform,
+      self._periodic_callback = PERIODIC_CALLBACK(self.start_periodic_session,
                                                   msec, self.ioloop)
       if self._PeriodicInformTime:
+        # PeriodicInformTime is just meant as an offset, not an actual time.
+        # So if it's 25.5 hours in the future and the interval is 1 hour, then
+        # the interesting part is the 0.5 hours, not the 25.
+        #
+        # timetuple might be in the past, but that's okay; the modulus
+        # makes sure it's never negative.  (ie. (-3 % 5) == 2, in python)
         timetuple = cwmpdate.parse(self._PeriodicInformTime).timetuple()
-        wait = time.mktime(timetuple) - time.time()
-        if wait < 0.0:  # PeriodicInformTime has already passed
-          wait %= float(self._PeriodicInformInterval)
-          wait = float(self._PeriodicInformInterval) + wait
+        offset = ((time.mktime(timetuple) - time.time())
+                  % float(self._PeriodicInformInterval))
       else:
-        wait = 0.0
+        offset = 0.0
       self._start_periodic_timeout = self.ioloop.add_timeout(
-          wait, self.StartPeriodicInform)
+          datetime.timedelta(seconds=offset), self.StartPeriodicInform)
 
   def StartPeriodicInform(self):
     self._periodic_callback.start()
-
-  def DoPeriodicInform(self):
-    self.start_periodic_session()
 
   def SessionRetryWait(self, retry_count):
     """Calculate wait time before next session retry.
@@ -218,6 +252,7 @@ class CpeManagementServer(object):
     start = int(min(start, periodic_interval/k))
     stop = int(min(stop, periodic_interval))
     return random.randrange(start, stop)
+
 
 def main():
   pass

@@ -26,7 +26,8 @@ import tempfile
 class PersistentObject(object):
   """Object holding simple data fields which can persist itself to json."""
 
-  def __init__(self, objdir, rootname='object', filename=None, **kwargs):
+  def __init__(self, objdir, rootname='object', filename=None,
+               ignore_errors=False, **kwargs):
     """Create either a fresh new object, or restored state from filesystem.
 
     Raises:
@@ -38,19 +39,30 @@ class PersistentObject(object):
       filename: name of an json file on disk, to restore object state from.
         If filename is None then this is a new object, and will create
         a file for itself in dir.
+      ignore_errors: True if you want to ignore common errors (like read-only
+        or nonexistent directories) when saving/loading state.
+        Otherwise this object will raise exceptions in those cases.
       kwargs parameters will be passed to self.Update
     """
     self.objdir = objdir
     self.rootname = rootname
     self._fields = {}
+    self.ignore_errors = ignore_errors
     if filename:
       self._ReadFromFS(filename)
     else:
       prefix = rootname + '_'
-      f = tempfile.NamedTemporaryFile(mode='a+', prefix=prefix,
-                                      dir=objdir, delete=False)
-      filename = f.name
-      f.close()
+      try:
+        f = tempfile.NamedTemporaryFile(mode='a+', prefix=prefix,
+                                        dir=objdir, delete=False)
+      except OSError:
+        if self.ignore_errors:
+          filename = objdir
+        else:
+          raise
+      else:
+        filename = f.name
+        f.close()
     self.filename = filename
     if kwargs:
       self.Update(**kwargs)
@@ -111,11 +123,16 @@ class PersistentObject(object):
 
   def _WriteToFS(self):
     """Write PersistentState object out to a json file."""
-    f = tempfile.NamedTemporaryFile(
-        mode='a+', prefix='tmpwrite', dir=self.objdir, delete=False)
-    f.write(self._ToJson())
-    f.close()
-    os.rename(f.name, self.filename)
+    try:
+      f = tempfile.NamedTemporaryFile(
+          mode='a+', prefix='tmpwrite', dir=self.objdir, delete=False)
+    except OSError:
+      if not self.ignore_errors:
+        raise
+    else:
+      f.write(self._ToJson())
+      f.close()
+      os.rename(f.name, self.filename)
 
   def Delete(self):
     """Remove backing file from filesystem, immediately."""

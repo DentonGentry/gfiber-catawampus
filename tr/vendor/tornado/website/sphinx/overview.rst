@@ -1,3 +1,5 @@
+.. currentmodule:: tornado.web
+
 Overview
 ========
 
@@ -79,9 +81,9 @@ You can get query string arguments and parse ``POST`` bodies with the
 
 ::
 
-    class MainHandler(tornado.web.RequestHandler):
+    class MyFormHandler(tornado.web.RequestHandler):
         def get(self):
-            self.write('<html><body><form action="/" method="post">'
+            self.write('<html><body><form action="/myform" method="post">'
                        '<input type="text" name="message">'
                        '<input type="submit" value="Submit">'
                        '</form></body></html>')
@@ -138,6 +140,9 @@ place:
 4. One of the HTTP methods is called: ``get()``, ``post()``, ``put()``,
    etc. If the URL regular expression contains capturing groups, they
    are passed as arguments to this method.
+5. When the request is finished, ``on_finish()`` is called.  For synchronous
+   handlers this is immediately after ``get()`` (etc) return; for
+   asynchronous handlers it is after the call to ``finish()``.
 
 Here is an example demonstrating the ``initialize()`` method:
 
@@ -156,8 +161,8 @@ Here is an example demonstrating the ``initialize()`` method:
 
 Other methods designed for overriding include:
 
--  ``get_error_html(self, status_code, exception=None, **kwargs)`` -
-   returns HTML (as a string) for use on error pages.
+-  ``write_error(self, status_code, exc_info=None, **kwargs)`` -
+   outputs HTML for use on error pages.
 -  ``get_current_user(self)`` - see `User
    Authentication <#user-authentication>`_ below
 -  ``get_user_locale(self)`` - returns ``locale`` object to use for the
@@ -166,6 +171,40 @@ Other methods designed for overriding include:
    ``@authenticated`` decorator (default is in ``Application`` settings)
 -  ``get_template_path(self)`` - returns location of template files
    (default is in ``Application`` settings)
+-  ``set_default_headers(self)`` - may be used to set additional headers
+   on the response (such as a custom ``Server`` header)
+
+Error Handling
+~~~~~~~~~~~~~~
+
+There are three ways to return an error from a `RequestHandler`:
+
+1. Manually call `~tornado.web.RequestHandler.set_status` and output the
+   response body normally.
+2. Call `~RequestHandler.send_error`.  This discards
+   any pending unflushed output and calls `~RequestHandler.write_error` to
+   generate an error page.
+3. Raise an exception.  `tornado.web.HTTPError` can be used to generate
+   a specified status code; all other exceptions return a 500 status.
+   The exception handler uses `~RequestHandler.send_error` and
+   `~RequestHandler.write_error` to generate the error page.
+
+The default error page includes a stack trace in debug mode and a one-line
+description of the error (e.g. "500: Internal Server Error") otherwise.
+To produce a custom error page, override `RequestHandler.write_error`.
+This method may produce output normally via methods such as 
+`~RequestHandler.write` and `~RequestHandler.render`.  If the error was
+caused by an exception, an ``exc_info`` triple will be passed as a keyword
+argument (note that this exception is not guaranteed to be the current
+exception in ``sys.exc_info``, so ``write_error`` must use e.g.
+`traceback.format_exception` instead of `traceback.format_exc`).
+
+In Tornado 2.0 and earlier, custom error pages were implemented by overriding
+``RequestHandler.get_error_html``, which returned the error page as a string
+instead of calling the normal output methods (and had slightly different
+semantics for exceptions).  This method is still supported, but it is
+deprecated and applications are encouraged to switch to 
+`RequestHandler.write_error`.
 
 Redirection
 ~~~~~~~~~~~
@@ -316,6 +355,14 @@ globally by passing ``autoescape=None`` to the ``Application`` or
 replacing ``{{ ... }}`` with ``{% raw ...%}``. Additionally, in each of
 these places the name of an alternative escaping function may be used
 instead of ``None``.
+
+Note that while Tornado's automatic escaping is helpful in avoiding
+XSS vulnerabilities, it is not sufficient in all cases.  Expressions
+that appear in certain locations, such as in Javascript or CSS, may need
+additional escaping.  Additionally, either care must be taken to always
+use double quotes and ``xhtml_escape`` in HTML attributes that may contain
+untrusted content, or a separate escaping function must be used for
+attributes (see e.g. http://wonko.com/post/html-escaping)
 
 Cookies and secure cookies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1059,13 +1106,3 @@ See the `appengine example application
 <https://github.com/facebook/tornado/tree/master/demos/appengine>`_ for a
 full-featured AppEngine app built on Tornado.
 
-Caveats and support
-~~~~~~~~~~~~~~~~~~~
-
-Because FriendFeed and other large users of Tornado run `behind
-nginx <#running-tornado-in-production>`_ or Apache proxies, Tornado's
-HTTP server currently does not attempt to handle multi-line headers and
-some types of malformed input.
-
-You can discuss Tornado and report bugs on `the Tornado developer
-mailing list <http://groups.google.com/group/python-tornado>`_.

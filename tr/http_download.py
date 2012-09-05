@@ -79,7 +79,7 @@ class HttpDownload(object):
   def _start_download(self):
     print 'starting (auth_header=%r)' % self.auth_header
     if not self.tempfile:
-      self.tempfile = tempfile.NamedTemporaryFile(delete=False,
+      self.tempfile = tempfile.NamedTemporaryFile(delete=True,
                                                   dir=self.download_dir)
     kwargs = dict(url=self.url,
                   request_timeout=3600.0,
@@ -152,18 +152,17 @@ class HttpDownload(object):
         return
 
     self.tempfile.flush()
-    self.tempfile.close()
 
     if response.error:
       print('Download failed: {0!r}'.format(response.error))
       print json.dumps(response.headers, indent=2)
-      helpers.Unlink(self.tempfile.name)
+      self.tempfile.close()
       self.download_complete_cb(
           DOWNLOAD_FAILED,
           'Download failed {0!s}'.format(response.error.code),
           None)
     else:
-      self.download_complete_cb(0, '', self.tempfile.name)
+      self.download_complete_cb(0, '', self.tempfile)
       print('Download success: {0}'.format(self.tempfile.name))
 
 

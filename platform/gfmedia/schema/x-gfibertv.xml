@@ -19,8 +19,29 @@
              spec="urn:google-com:x-gfibertv-1-0">
 <import file="tr-069-biblio.xml" spec="urn:broadband-forum-org:tr-069-biblio"/>
   <model name="X_GOOGLE-COM_GFIBERTV:1.0" isService="true">
+
     <object name="X_GOOGLE_COM_GFIBERTV." access="readOnly" minEntries="1" maxEntries="1">
       <description>Container for parameters supporting the Google Fiber TV system.</description>
+      <parameter name="DeviceNickNameNumberOfEntries" access="readOnly">
+        <description>Number of instances of {{object|DeviceNickName}}.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <object name="DeviceNickName.{i}." access="readWrite" numEntriesParameter="DeviceNickNameNumberOfEntries" minEntries="0" maxEntries="16">
+        <parameter name="SerialNumber" access="readWrite">
+          <description>Serial number of the device.</description>
+          <syntax>
+            <string/>
+          </syntax>
+        </parameter>
+        <parameter name="NickName" access="readWrite">
+          <description>Nickname of the device.</description>
+          <syntax>
+            <string/>
+          </syntax>
+        </parameter>
+      </object>
     </object>
     <object name="X_GOOGLE_COM_GFIBERTV.Mailbox." access="readOnly" minEntries="1" maxEntries="1">
       <description>Mailbox to access properties from the Google Fiber TV system.</description>

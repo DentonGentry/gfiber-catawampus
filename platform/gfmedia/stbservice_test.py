@@ -28,24 +28,37 @@ import stbservice
 
 class STBServiceTest(unittest.TestCase):
   def setUp(self):
-    self.old_PROCNETIGMP = stbservice.PROCNETIGMP
-    self.old_PROCNETIGMP6 = stbservice.PROCNETIGMP6
-    self.old_CONT_MONITOR_FILES = stbservice.CONT_MONITOR_FILES
-    stbservice.PROCNETIGMP = 'testdata/stbservice/igmp'
-    stbservice.PROCNETIGMP6 = 'testdata/stbservice/igmp6'
-    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_full.json']
-    self.CONT_MONITOR_FILES_NOEXST = ['testdata/stbservice/notexist.json']
     self.CONT_MONITOR_FILES_ALT = ['testdata/stbservice/stats_small.json']
     self.CONT_MONITOR_FILES_P = ['testdata/stbservice/stats_small.json',
                                  'testdata/stbservice/stats_p2.json',
                                  'testdata/stbservice/stats_p1.json',
                                  'testdata/stbservice/notexist.json']
     self.CONT_MONITOR_FILES_P1 = ['testdata/stbservice/stats_p1.json']
+    self.STATS_FILES_NOEXST = ['testdata/stbservice/notexist.json']
+
+    self.old_CONT_MONITOR_FILES = stbservice.CONT_MONITOR_FILES
+    self.old_EPG_STATS_FILES = stbservice.EPG_STATS_FILES
+    self.old_HDMI_DISP_DEVICE_STATS = stbservice.HDMI_DISPLAY_DEVICE_STATS_FILES
+    self.old_HDMI_STATS_FILE = stbservice.HDMI_STATS_FILE
+    self.old_PROCNETIGMP = stbservice.PROCNETIGMP
+    self.old_PROCNETIGMP6 = stbservice.PROCNETIGMP6
+
+    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_full.json']
+    stbservice.EPG_STATS_FILES = ['testdata/stbservice/epgstats.json']
+    stbservice.HDMI_DISPLAY_DEVICE_STATS_FILES = [
+        'testdata/stbservice/hdmi_dispdev_stats*.json',
+        'testdata/stbservice/hdmi_dispdev_status*.json']
+    stbservice.HDMI_STATS_FILE = 'testdata/stbservice/hdmi_stats.json'
+    stbservice.PROCNETIGMP = 'testdata/stbservice/igmp'
+    stbservice.PROCNETIGMP6 = 'testdata/stbservice/igmp6'
 
   def tearDown(self):
+    stbservice.CONT_MONITOR_FILES = self.old_CONT_MONITOR_FILES
+    stbservice.EPG_STATS_FILES = self.old_EPG_STATS_FILES
+    stbservice.HDMI_DISPLAY_DEVICE_STATS_FILES = self.old_HDMI_DISP_DEVICE_STATS
+    stbservice.HDMI_STATS_FILE = self.old_HDMI_STATS_FILE
     stbservice.PROCNETIGMP = self.old_PROCNETIGMP
     stbservice.PROCNETIGMP6 = self.old_PROCNETIGMP6
-    stbservice.CONT_MONITOR_FILES = self.old_CONT_MONITOR_FILES
 
   def testValidateExports(self):
     stb = stbservice.STBService()
@@ -66,7 +79,7 @@ class STBServiceTest(unittest.TestCase):
 
   def testNonexistentStatsFile(self):
     """Test whether the absence of stats file is handled gracefully."""
-    stbservice.CONT_MONITOR_FILES = self.CONT_MONITOR_FILES_NOEXST
+    stbservice.CONT_MONITOR_FILES = self.STATS_FILES_NOEXST
     stb = stbservice.STBService()
     self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 0)
 
@@ -179,6 +192,132 @@ class STBServiceTest(unittest.TestCase):
     self.assertEqual(expected_pktsrcvd, actual_pktsrcvd)
     self.assertEqual(expected_bytesrcvd, actual_bytesrcvd)
     self.assertEqual(expected_pktsretran, actual_pktsretran)
+
+  def testNonexistentHDMIStatsFile(self):
+    """Test whether the absence of HDMI stats file is handled gracefully."""
+    stbservice.HDMI_STATS_FILE = self.STATS_FILES_NOEXST[0]
+    stbservice.HDMI_DISPLAY_DEVICE_STATS_FILES = self.STATS_FILES_NOEXST
+    stb = stbservice.STBService()
+    self.assertEqual(stb.Components.HDMINumberOfEntries, 1)
+    for v in stb.Components.HDMIList.values():
+      self.assertEqual(v.ResolutionMode, 'Auto')
+      self.assertEqual(v.ResolutionValue, '')
+      self.assertEqual(v.DisplayDevice.Status, 'None')
+      self.assertEqual(v.DisplayDevice.Name, '')
+      self.assertEqual(v.DisplayDevice.EEDID, '')
+      self.assertEqual(len(v.DisplayDevice.SupportedResolutions), 0)
+      self.assertEqual(v.DisplayDevice.PreferredResolution, '')
+      self.assertEqual(v.DisplayDevice.VideoLatency, 0)
+      self.assertEqual(v.DisplayDevice.AutoLipSyncSupport, False)
+      self.assertEqual(v.DisplayDevice.HDMI3DPresent, False)
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_NegotiationCount4, 0)
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_NegotiationCount24, 0)
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_VendorId, '')
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_ProductId, 0)
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_MfgYear, 1990)
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_LastUpdateTimestamp,
+                       '0001-01-01T00:00:00Z')
+
+  def testHDMIStatsAll(self):
+    """Test deserialization of all HDMI stats parameters."""
+    stb = stbservice.STBService()
+    self.assertEqual(stb.Components.HDMINumberOfEntries, 1)
+    for v in stb.Components.HDMIList.values():
+      self.assertEqual(v.ResolutionMode, 'Auto')
+      self.assertEqual(v.ResolutionValue, '640x480 @ 51Hz')
+      self.assertEqual(v.DisplayDevice.Status, 'Present')
+      self.assertEqual(v.DisplayDevice.Name, 'X213W')
+      self.assertEqual(v.DisplayDevice.EEDID, ('00ffffffffffff000472330088b4808'
+                                               '008120103802f1e78eade95a3544c99'
+                                               '260f5054bfef90a940714f814001019'
+                                               '500950f9040010121399030621a2740'
+                                               '68b03600da2811000019000000fd003'
+                                               '84d1f5411000a202020202020000000'
+                                               'ff004c43473043303233343031300a0'
+                                               '00000fc0058323133570a2020202020'
+                                               '202000d9'))
+      self.assertEqual(v.DisplayDevice.SupportedResolutions, ('640x480 @ 51Hz, '
+                                                              '640x480 @ 52Hz, '
+                                                              '640x480 @ 55Hz'))
+      self.assertEqual(v.DisplayDevice.PreferredResolution, '640x480 @ 51Hz')
+      self.assertEqual(v.DisplayDevice.VideoLatency, 0)
+      self.assertEqual(v.DisplayDevice.AutoLipSyncSupport, False)
+      self.assertEqual(v.DisplayDevice.HDMI3DPresent, False)
+
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_EDIDExtensions,
+                       v.DisplayDevice.EEDID + ', ' + v.DisplayDevice.EEDID)
+
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_NegotiationCount4, 3)
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_NegotiationCount24, 9)
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_VendorId, 'ACR')
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_ProductId, 51)
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_MfgYear, 2008)
+
+  def testIncorrectHDMIStatsFile(self):
+    """Test deserialization when a subset of stats files are invalid."""
+    stbservice.HDMI_STATS_FILE = stbservice.PROCNETIGMP
+    stb = stbservice.STBService()
+    self.assertEqual(stb.Components.HDMINumberOfEntries, 1)
+    for v in stb.Components.HDMIList.values():
+      self.assertEqual(v.ResolutionMode, 'Auto')
+      self.assertEqual(v.ResolutionValue, '')
+      self.assertEqual(v.DisplayDevice.Name, 'X213W')
+
+  def testPartialHDMIStatsFiles(self):
+    """Test deserialization when a subset of files are not present."""
+    stbservice.HDMI_DISPLAY_DEVICE_STATS_FILES = [
+        'testdata/stbservice/hdmi_dispdev_status.json']
+    stb = stbservice.STBService()
+    self.assertEqual(stb.Components.HDMINumberOfEntries, 1)
+    for v in stb.Components.HDMIList.values():
+      self.assertEqual(v.ResolutionMode, 'Auto')
+      self.assertEqual(v.ResolutionValue, '640x480 @ 51Hz')
+      self.assertEqual(v.DisplayDevice.Status, 'Present')
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_NegotiationCount4, 3)
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_NegotiationCount24, 9)
+      self.assertEqual(v.DisplayDevice.Name, '')
+      self.assertEqual(v.DisplayDevice.EEDID, '')
+      self.assertEqual(len(v.DisplayDevice.SupportedResolutions), 0)
+      self.assertEqual(v.DisplayDevice.PreferredResolution, '')
+      self.assertEqual(v.DisplayDevice.VideoLatency, 0)
+      self.assertEqual(v.DisplayDevice.AutoLipSyncSupport, False)
+      self.assertEqual(v.DisplayDevice.HDMI3DPresent, False)
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_VendorId, '')
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_ProductId, 0)
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_MfgYear, 1990)
+
+  def testEPGStatsNoFile(self):
+    """Test whether EPG stats are deserialized properly when not file backed."""
+    stbservice.EPG_STATS_FILES = self.STATS_FILES_NOEXST
+    stb = stbservice.STBService()
+    stb.X_CATAWAMPUS_ORG_ProgramMetadata.ValidateExports()
+    epgStats = stb.X_CATAWAMPUS_ORG_ProgramMetadata.EPG
+    self.assertEqual(epgStats.MulticastPackets, 0)
+    self.assertEqual(epgStats.EPGErrors, 0)
+    self.assertEqual(epgStats.LastReceivedTime, '0001-01-01T00:00:00Z')
+    self.assertEqual(epgStats.EPGExpireTime, '0001-01-01T00:00:00Z')
+
+  def testEPGStatsIncorrectFileFormat(self):
+    """Test whether EPG stats are handled properly for a bad file."""
+    stbservice.EPG_STATS_FILES = [stbservice.PROCNETIGMP]
+    stb = stbservice.STBService()
+    stb.X_CATAWAMPUS_ORG_ProgramMetadata.ValidateExports()
+    epgStats = stb.X_CATAWAMPUS_ORG_ProgramMetadata.EPG
+    self.assertEqual(epgStats.MulticastPackets, 0)
+    self.assertEqual(epgStats.EPGErrors, 0)
+    self.assertEqual(epgStats.LastReceivedTime, '0001-01-01T00:00:00Z')
+    self.assertEqual(epgStats.EPGExpireTime, '0001-01-01T00:00:00Z')
+
+  def testEPGStatsAll(self):
+    """Test whether EPG stats are deserialized properly."""
+    stb = stbservice.STBService()
+    stb.X_CATAWAMPUS_ORG_ProgramMetadata.ValidateExports()
+    epgStats = stb.X_CATAWAMPUS_ORG_ProgramMetadata.EPG
+    self.assertEqual(epgStats.MulticastPackets, 1002)
+    self.assertEqual(epgStats.EPGErrors, 2)
+    self.assertEqual(epgStats.LastReceivedTime, '2012-07-25T01:50:37Z')
+    self.assertEqual(epgStats.EPGExpireTime, '2012-07-30T01:50:37Z')
+
 
 if __name__ == '__main__':
   unittest.main()

@@ -28,6 +28,22 @@ import mainloop
 REQUEST_STRING = 'this is the request\n'
 
 
+idler = [0,0]
+
+
+@mainloop.WaitUntilIdle
+def IdleFunc():
+  print 'i0'
+  idler[0] += 1
+
+
+class IdleClass(object):
+  @mainloop.WaitUntilIdle
+  def ClassIdleFunc(self):
+    print 'i1: %r' % self
+    idler[1] += 1
+
+
 class MainLoopTest(unittest.TestCase):
   """Tests for mainloop.MainLoop."""
 
@@ -71,6 +87,27 @@ class MainLoopTest(unittest.TestCase):
     loop = mainloop.MainLoop()
     loop.RunOnce()
 
+  def testIdler(self):
+    print
+    print 'testIdler'
+    loop = mainloop.MainLoop()
+    loop.RunOnce()
+    idler[0] = 0
+    idler[1] = 0
+    IdleFunc()
+    IdleFunc()
+    loop.RunOnce()
+    self.assertEquals(idler, [1, 0])
+    loop.RunOnce()
+    self.assertEquals(idler, [1, 0])
+    i1 = IdleClass()
+    i2 = IdleClass()
+    i1.ClassIdleFunc()
+    i1.ClassIdleFunc()
+    i2.ClassIdleFunc()
+    i2.ClassIdleFunc()
+    loop.RunOnce()
+    self.assertEquals(idler, [1, 2])
 
 if __name__ == '__main__':
   unittest.main()

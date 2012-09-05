@@ -16,14 +16,14 @@
 
 """Blocking and non-blocking HTTP client implementations using pycurl."""
 
-from __future__ import with_statement
+from __future__ import absolute_import, division, with_statement
 
 import cStringIO
 import collections
+import datetime
 import logging
 import pycurl
 import threading
-import time
 
 from tornado import httputil
 from tornado import ioloop
@@ -31,6 +31,8 @@ from tornado import stack_context
 
 from tornado.escape import utf8
 from tornado.httpclient import HTTPRequest, HTTPResponse, HTTPError, AsyncHTTPClient, main
+from tornado.util import monotime
+
 
 class CurlAsyncHTTPClient(AsyncHTTPClient):
     def initialize(self, io_loop=None, max_clients=10,
@@ -109,15 +111,17 @@ class CurlAsyncHTTPClient(AsyncHTTPClient):
         if self._timeout is not None:
             self.io_loop.remove_timeout(self._timeout)
         self._timeout = self.io_loop.add_timeout(
-            time.time() + msecs/1000.0, self._handle_timeout)
+            datetime.timedelta(milliseconds=msecs), self._handle_timeout)
 
     def _handle_events(self, fd, events):
         """Called by IOLoop when there is activity on one of our
         file descriptors.
         """
         action = 0
-        if events & ioloop.IOLoop.READ: action |= pycurl.CSELECT_IN
-        if events & ioloop.IOLoop.WRITE: action |= pycurl.CSELECT_OUT
+        if events & ioloop.IOLoop.READ:
+            action |= pycurl.CSELECT_IN
+        if events & ioloop.IOLoop.WRITE:
+            action |= pycurl.CSELECT_OUT
         while True:
             try:
                 ret, num_handles = self._socket_action(fd, action)
@@ -199,7 +203,7 @@ class CurlAsyncHTTPClient(AsyncHTTPClient):
                         "buffer": cStringIO.StringIO(),
                         "request": request,
                         "callback": callback,
-                        "curl_start_time": time.time(),
+                        "curl_start_time": monotime(),
                     }
                     # Disable IPv6 to mitigate the effects of this bug
                     # on curl versions <= 7.21.0
@@ -245,11 +249,10 @@ class CurlAsyncHTTPClient(AsyncHTTPClient):
             info["callback"](HTTPResponse(
                 request=info["request"], code=code, headers=info["headers"],
                 buffer=buffer, effective_url=effective_url, error=error,
-                request_time=time.time() - info["curl_start_time"],
+                request_time=monotime() - info["curl_start_time"],
                 time_info=time_info))
         except Exception:
             self.handle_callback_exception(info["callback"])
-
 
     def handle_callback_exception(self, callback):
         self.io_loop.handle_callback_exception(callback)
@@ -372,7 +375,7 @@ def _curl_setup_request(curl, request, buffer, headers):
 
     # Handle curl's cryptic options for every individual HTTP method
     if request.method in ("POST", "PUT"):
-        request_buffer =  cStringIO.StringIO(utf8(request.body))
+        request_buffer = cStringIO.StringIO(utf8(request.body))
         curl.setopt(pycurl.READFUNCTION, request_buffer.read)
         if request.method == "POST":
             def ioctl(cmd):
@@ -393,11 +396,11 @@ def _curl_setup_request(curl, request, buffer, headers):
         curl.unsetopt(pycurl.USERPWD)
         logging.debug("%s %s", request.method, request.url)
 
-    if request.client_key is not None:
-        curl.setopt(pycurl.SSLKEY, request.client_key)
     if request.client_cert is not None:
         curl.setopt(pycurl.SSLCERT, request.client_cert)
 
+    if request.client_key is not None:
+        curl.setopt(pycurl.SSLKEY, request.client_key)
 
     if threading.activeCount() > 1:
         # libcurl/pycurl is not thread-safe by default.  When multiple threads
@@ -422,6 +425,7 @@ def _curl_header_callback(headers, header_line):
     if not header_line:
         return
     headers.parse_line(header_line)
+
 
 def _curl_debug(debug_type, debug_msg):
     debug_types = ('I', '<', '>', '<', '>')

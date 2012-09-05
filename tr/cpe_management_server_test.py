@@ -38,7 +38,7 @@ class MockIoloop(object):
     self.remove_handle = None
     self.handle = 1
 
-  def add_timeout(self, time, callback):
+  def add_timeout(self, time, callback, monotonic=None):
     self.timeout_time = time
     self.timeout_callback = callback
     return self.handle
@@ -64,6 +64,23 @@ class MockPeriodicCallback(object):
     periodic_callbacks.remove(self)
 
 
+class MockPlatformConfig(object):
+  def __init__(self):
+    self.set_acs_raise = True
+    self.set_acs_url_called = False
+    self.acs_url = 'http://acs.example.com/cwmp'
+
+  def SetAcsUrl(self, url):
+    self.set_acs_url_called = True
+    if self.set_acs_raise:
+      raise AttributeError('read-only param')
+    else:
+      self.acs_url = url
+
+  def GetAcsUrl(self):
+    return self.acs_url
+
+
 class CpeManagementServerTest(unittest.TestCase):
   """tests for http.py CpeManagementServer."""
 
@@ -72,15 +89,15 @@ class CpeManagementServerTest(unittest.TestCase):
     del periodic_callbacks[:]
 
   def testIsIp6Address(self):
-    cpe_ms = ms.CpeManagementServer(acs_url_file=None, port=5,
+    cpe_ms = ms.CpeManagementServer(platform_config=None, port=5,
                                     ping_path='/ping/path')
-    self.assertTrue(cpe_ms.isIp6Address('fe80::21d:9ff:fe11:f55f'))
-    self.assertTrue(cpe_ms.isIp6Address('2620:0:1000:5200:222:3ff:fe44:5555'))
-    self.assertFalse(cpe_ms.isIp6Address('1.2.3.4'))
-    self.assertFalse(cpe_ms.isIp6Address('foobar'))
+    self.assertTrue(cpe_ms._isIp6Address('fe80::21d:9ff:fe11:f55f'))
+    self.assertTrue(cpe_ms._isIp6Address('2620:0:1000:5200:222:3ff:fe44:5555'))
+    self.assertFalse(cpe_ms._isIp6Address('1.2.3.4'))
+    self.assertFalse(cpe_ms._isIp6Address('foobar'))
 
   def testConnectionRequestURL(self):
-    cpe_ms = ms.CpeManagementServer(acs_url_file=None, port=5,
+    cpe_ms = ms.CpeManagementServer(platform_config=None, port=5,
                                     ping_path='/ping/path')
     cpe_ms.my_ip = '1.2.3.4'
     self.assertEqual(cpe_ms.ConnectionRequestURL, 'http://1.2.3.4:5/ping/path')
@@ -88,21 +105,23 @@ class CpeManagementServerTest(unittest.TestCase):
     self.assertEqual(cpe_ms.ConnectionRequestURL,
                      'http://[2620:0:1000:5200:222:3ff:fe44:5555]:5/ping/path')
 
-  def testUrl(self):
-    cpe_ms = ms.CpeManagementServer(acs_url_file='testdata/http/acs_url_file',
-                                    port=0, ping_path='')
+  def testAcsUrl(self):
+    pc = MockPlatformConfig()
+    cpe_ms = ms.CpeManagementServer(platform_config=pc, port=0, ping_path='')
     self.assertEqual(cpe_ms.URL, 'http://acs.example.com/cwmp')
-
-  def testEmptyUrl(self):
-    cpe_ms = ms.CpeManagementServer(acs_url_file='/no/such/file', port=0,
-                                    ping_path='/')
-    self.assertEqual(cpe_ms.URL, '')
+    self.assertRaises(AttributeError, cpe_ms.SetURL, 'http://example.com/')
+    self.assertTrue(pc.set_acs_url_called)
+    pc.set_acs_raise = False
+    pc.set_acs_url_called = False
+    cpe_ms.URL = 'http://example.com/'
+    self.assertTrue(pc.set_acs_url_called)
+    self.assertEqual(pc.acs_url, 'http://example.com/')
 
   def GetParameterKey(self):
     return 'ParameterKey'
 
   def testParameterKey(self):
-    cpe_ms = ms.CpeManagementServer(acs_url_file=None, port=0, ping_path='/',
+    cpe_ms = ms.CpeManagementServer(platform_config=None, port=0, ping_path='/',
                                     get_parameter_key=self.GetParameterKey)
     self.assertEqual(cpe_ms.ParameterKey, self.GetParameterKey())
 
@@ -112,14 +131,14 @@ class CpeManagementServerTest(unittest.TestCase):
   def testPeriodicEnable(self):
     ms.PERIODIC_CALLBACK = MockPeriodicCallback
     io = MockIoloop()
-    cpe_ms = ms.CpeManagementServer(acs_url_file=None, port=0, ping_path='/',
+    cpe_ms = ms.CpeManagementServer(platform_config=None, port=0, ping_path='/',
                                     start_periodic_session=self.start_session,
                                     ioloop=io)
-    cpe_ms.SetPeriodicInformEnable('true')
-    cpe_ms.SetPeriodicInformInterval('15')
+    cpe_ms.PeriodicInformEnable = 'true'
+    cpe_ms.PeriodicInformInterval = '15'
     # cpe_ms should schedule the callbacks when Enable and Interval both set
 
-    self.assertEqual(io.timeout_time, 0.0)
+    self.assertEqual(io.timeout_time, datetime.timedelta(0.0))
     self.assertEqual(len(periodic_callbacks), 1)
     cb = periodic_callbacks[0]
     self.assertTrue(cb.callback)
@@ -132,12 +151,12 @@ class CpeManagementServerTest(unittest.TestCase):
   def testPeriodicLongInterval(self):
     ms.PERIODIC_CALLBACK = MockPeriodicCallback
     io = MockIoloop()
-    cpe_ms = ms.CpeManagementServer(acs_url_file=None, port=0, ping_path='/',
+    cpe_ms = ms.CpeManagementServer(platform_config=None, port=0, ping_path='/',
                                     start_periodic_session=self.start_session,
                                     ioloop=io)
-    cpe_ms.SetPeriodicInformEnable('true')
-    cpe_ms.SetPeriodicInformTime(cwmpdate.format(datetime.datetime.now()))
-    cpe_ms.SetPeriodicInformInterval('1200')
+    cpe_ms.PeriodicInformEnable = 'true'
+    cpe_ms.PeriodicInformTime = cwmpdate.format(datetime.datetime.now())
+    cpe_ms.PeriodicInformInterval = '1200'
 
     # Just check that the delay is reasonable
     self.assertNotEqual(io.timeout_time, datetime.timedelta(seconds=0))
@@ -148,7 +167,7 @@ class CpeManagementServerTest(unittest.TestCase):
   def testSessionRetryWait(self):
     """Test $SPEC3 Table3 timings."""
 
-    cpe_ms = ms.CpeManagementServer(acs_url_file=None, port=5, ping_path='/')
+    cpe_ms = ms.CpeManagementServer(platform_config=None, port=5, ping_path='/')
     cpe_ms._PeriodicInformInterval = 100000
     for _ in range(1000):
       self.assertEqual(cpe_ms.SessionRetryWait(0), 0)
@@ -185,6 +204,45 @@ class CpeManagementServerTest(unittest.TestCase):
       self.assertTrue(10 <= cpe_ms.SessionRetryWait(1) <= 25)
       self.assertTrue(12 <= cpe_ms.SessionRetryWait(2) <= 30)
       self.assertTrue(12 <= cpe_ms.SessionRetryWait(3) <= 30)
+
+  def testValidateServer(self):
+    def TryUrl(cpe, value):
+      valid = True
+      try:
+        cpe_ms.ValidateAcsUrl(value)
+      except ValueError:
+        valid = False
+      return valid
+
+    cpe_ms = ms.CpeManagementServer(
+        platform_config=None, port=5, ping_path='/',
+        restrict_acs_hosts='google.com .gfsvc.com foo.com')
+    self.assertTrue(TryUrl(cpe_ms, 'https://bugger.gfsvc.com'))
+    self.assertTrue(TryUrl(cpe_ms, 'https://acs.prod.gfsvc.com'))
+    self.assertTrue(TryUrl(cpe_ms, 'https://acs.prod.google.com'))
+    self.assertTrue(TryUrl(cpe_ms, 'https://google.com'))
+    self.assertFalse(TryUrl(cpe_ms, 'https://imposter.evilgfsvc.com'))
+    self.assertFalse(TryUrl(cpe_ms, 'https://evilgfsvc.com'))
+    self.assertFalse(TryUrl(cpe_ms, 'https://gfsvc.com.evil.com'))
+
+    # No restrictions
+    cpe_ms = ms.CpeManagementServer(
+        platform_config=None, port=5, ping_path='/')
+    self.assertTrue(TryUrl(cpe_ms, 'https://bugger.gfsvc.com'))
+    self.assertTrue(TryUrl(cpe_ms, 'https://gfsvc.com.evil.com'))
+
+    # Single domain
+    cpe_ms = ms.CpeManagementServer(
+        platform_config=None, port=5, ping_path='/',
+        restrict_acs_hosts='.gfsvc.com')
+    self.assertTrue(TryUrl(cpe_ms, 'https://bugger.gfsvc.com'))
+    self.assertTrue(TryUrl(cpe_ms, 'https://acs.prod.gfsvc.com'))
+    self.assertFalse(TryUrl(cpe_ms, 'https://acs.prod.google.com'))
+    self.assertFalse(TryUrl(cpe_ms, 'https://google.com'))
+    self.assertFalse(TryUrl(cpe_ms, 'https://imposter.evilgfsvc.com'))
+    self.assertFalse(TryUrl(cpe_ms, 'https://evilgfsvc.com'))
+    self.assertFalse(TryUrl(cpe_ms, 'https://gfsvc.com.evil.com'))
+
 
 
 if __name__ == '__main__':

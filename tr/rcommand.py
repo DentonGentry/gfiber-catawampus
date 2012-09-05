@@ -23,6 +23,7 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import traceback
 import core
+import download
 import mainloop
 import quotedblock
 
@@ -40,6 +41,7 @@ class RemoteCommandStreamer(quotedblock.QuotedBlockStreamer):
     """
     quotedblock.QuotedBlockStreamer.__init__(self, sock, address)
     self.root = root
+    self.download_manager = download.DownloadManager()
 
   def _ProcessBlock(self, lines):
     if not lines:
@@ -122,6 +124,19 @@ class RemoteCommandStreamer(quotedblock.QuotedBlockStreamer):
     for idx in idxlist:
       self.root.DeleteExportObject(name, idx)
       yield [idx]
+
+  def CmdDownload(self, url):
+    """Download a system image, install it, and reboot."""
+    self.download_manager.NewDownload(
+        command_key='rcmd',
+        file_type='1 IMAGE',
+        url=url,
+        username=None,
+        password=None,
+        file_size=0,
+        target_filename='rcmd.gi',
+        delay_seconds=0)
+    return [['OK', 'Starting download.']]
 
 
 def MakeRemoteCommandStreamer(root):

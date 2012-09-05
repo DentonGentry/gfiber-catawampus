@@ -26,7 +26,7 @@ In addition to I/O events, the `IOLoop` can also schedule time-based events.
 `IOLoop.add_timeout` is a non-blocking alternative to `time.sleep`.
 """
 
-from __future__ import with_statement
+from __future__ import absolute_import, division, with_statement
 
 import datetime
 import errno
@@ -47,6 +47,7 @@ except ImportError:
     signal = None
 
 from tornado.platform.auto import set_close_exec, Waker
+from tornado.util import monotime
 
 
 class IOLoop(object):
@@ -104,6 +105,9 @@ class IOLoop(object):
     WRITE = _EPOLLOUT
     ERROR = _EPOLLERR | _EPOLLHUP
 
+    # Global lock for creating global IOLoop instance
+    _instance_lock = threading.Lock()
+
     def __init__(self, impl=None):
         self._impl = impl or _poll()
         if hasattr(self._impl, 'fileno'):
@@ -142,7 +146,10 @@ class IOLoop(object):
                     self.io_loop = io_loop or IOLoop.instance()
         """
         if not hasattr(IOLoop, "_instance"):
-            IOLoop._instance = IOLoop()
+            with IOLoop._instance_lock:
+                if not hasattr(IOLoop, "_instance"):
+                    # New instance after double check
+                    IOLoop._instance = IOLoop()
         return IOLoop._instance
 
     @staticmethod
@@ -164,7 +171,20 @@ class IOLoop(object):
         """Closes the IOLoop, freeing any resources used.
 
         If ``all_fds`` is true, all file descriptors registered on the
-        IOLoop will be closed (not just the ones created by the IOLoop itself.
+        IOLoop will be closed (not just the ones created by the IOLoop itself).
+
+        Many applications will only use a single IOLoop that runs for the
+        entire lifetime of the process.  In that case closing the IOLoop
+        is not necessary since everything will be cleaned up when the
+        process exits.  `IOLoop.close` is provided mainly for scenarios
+        such as unit tests, which create and destroy a large number of
+        IOLoops.
+
+        An IOLoop must be completely stopped before it can be closed.  This
+        means that `IOLoop.stop()` must be called *and* `IOLoop.start()` must
+        be allowed to return before attempting to call `IOLoop.close()`.
+        Therefore the call to `close` will usually appear just after
+        the call to `start` rather than near the call to `stop`.
         """
         self.remove_handler(self._waker.fileno())
         if all_fds:
@@ -252,7 +272,7 @@ class IOLoop(object):
                 self._run_callback(callback)
 
             if self._timeouts:
-                now = time.time()
+                now = monotime()
                 while self._timeouts:
                     if self._timeouts[0].callback is None:
                         # the timeout was cancelled
@@ -335,6 +355,9 @@ class IOLoop(object):
 
         ioloop.start() will return after async_method has run its callback,
         whether that callback was invoked before or after ioloop.start.
+
+        Note that even after `stop` has been called, the IOLoop is not
+        completely stopped until `IOLoop.start` has also returned.
         """
         self._running = False
         self._stopped = True
@@ -344,7 +367,7 @@ class IOLoop(object):
         """Returns true if this IOLoop is currently running."""
         return self._running
 
-    def add_timeout(self, deadline, callback):
+    def add_timeout(self, deadline, callback, monotonic=None):
         """Calls the given callback at the time deadline from the I/O loop.
 
         Returns a handle that may be passed to remove_timeout to cancel.
@@ -356,8 +379,15 @@ class IOLoop(object):
         Note that it is not safe to call `add_timeout` from other threads.
         Instead, you must use `add_callback` to transfer control to the
         IOLoop's thread, and then call `add_timeout` from there.
+
+        Set monotonic=False if deadline is from time.time(), or monotonic=True
+        if it comes from tornado.util.monotime().  If deadline is a
+        datetime.timedelta, you can omit the monotonic flag.  For backward
+        compatibility, an unspecified monotonic flag acts like monotonic=False
+        but prints a warning.
         """
-        timeout = _Timeout(deadline, stack_context.wrap(callback))
+        timeout = _Timeout(deadline, stack_context.wrap(callback),
+                           monotonic=monotonic)
         heapq.heappush(self._timeouts, timeout)
         return timeout
 
@@ -419,11 +449,18 @@ class _Timeout(object):
     # Reduce memory overhead when there are lots of pending callbacks
     __slots__ = ['deadline', 'callback']
 
-    def __init__(self, deadline, callback):
+    def __init__(self, deadline, callback, monotonic):
         if isinstance(deadline, (int, long, float)):
-            self.deadline = deadline
+            if monotonic:
+                self.deadline = deadline
+            else:
+                if hasattr(time, 'monotonic'):
+                    import inspect
+                    logging.warning('non-monotonic time _Timeout() created at %s:%d',
+                                    inspect.stack()[2][1], inspect.stack()[2][2])
+                self.deadline = deadline - time.time() + monotime()
         elif isinstance(deadline, datetime.timedelta):
-            self.deadline = time.time() + _Timeout.timedelta_to_seconds(deadline)
+            self.deadline = monotime() + _Timeout.timedelta_to_seconds(deadline)
         else:
             raise TypeError("Unsupported deadline %r" % deadline)
         self.callback = callback
@@ -431,7 +468,7 @@ class _Timeout(object):
     @staticmethod
     def timedelta_to_seconds(td):
         """Equivalent to td.total_seconds() (introduced in python 2.7)."""
-        return (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10**6) / float(10**6)
+        return (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10 ** 6) / float(10 ** 6)
 
     # Comparison methods to sort by deadline, with object id as a tiebreaker
     # to guarantee a consistent ordering.  The heapq module uses __le__
@@ -463,7 +500,7 @@ class PeriodicCallback(object):
     def start(self):
         """Starts the timer."""
         self._running = True
-        self._next_timeout = time.time()
+        self._next_timeout = monotime()
         self._schedule_next()
 
     def stop(self):
@@ -474,7 +511,8 @@ class PeriodicCallback(object):
             self._timeout = None
 
     def _run(self):
-        if not self._running: return
+        if not self._running:
+            return
         try:
             self.callback()
         except Exception:
@@ -483,10 +521,11 @@ class PeriodicCallback(object):
 
     def _schedule_next(self):
         if self._running:
-            current_time = time.time()
+            current_time = monotime()
             while self._next_timeout <= current_time:
                 self._next_timeout += self.callback_time / 1000.0
-            self._timeout = self.io_loop.add_timeout(self._next_timeout, self._run)
+            self._timeout = self.io_loop.add_timeout(self._next_timeout,
+                                    self._run, monotonic=True)
 
 
 class _EPoll(object):
@@ -591,8 +630,10 @@ class _Select(object):
         pass
 
     def register(self, fd, events):
-        if events & IOLoop.READ: self.read_fds.add(fd)
-        if events & IOLoop.WRITE: self.write_fds.add(fd)
+        if events & IOLoop.READ:
+            self.read_fds.add(fd)
+        if events & IOLoop.WRITE:
+            self.write_fds.add(fd)
         if events & IOLoop.ERROR:
             self.error_fds.add(fd)
             # Closed connections are reported as errors by epoll and kqueue,
@@ -633,7 +674,7 @@ elif hasattr(select, "kqueue"):
 else:
     try:
         # Linux systems with our C module installed
-        import epoll
+        from tornado import epoll
         _poll = _EPoll
     except Exception:
         # All other systems

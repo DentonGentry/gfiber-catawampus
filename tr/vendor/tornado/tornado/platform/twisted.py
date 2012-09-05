@@ -41,14 +41,13 @@ recommended to call::
 
 before closing the `IOLoop`.
 
-This module has been tested with Twisted versions 11.0.0 and 11.1.0.
+This module has been tested with Twisted versions 11.0.0, 11.1.0, and 12.0.0
 """
 
-from __future__ import with_statement, absolute_import
+from __future__ import absolute_import, division, with_statement
 
 import functools
 import logging
-import time
 
 from twisted.internet.posixbase import PosixReactorBase
 from twisted.internet.interfaces import \
@@ -62,10 +61,16 @@ import tornado
 import tornado.ioloop
 from tornado.stack_context import NullContext
 from tornado.ioloop import IOLoop
+from tornado.util import monotime
 
 
 class TornadoDelayedCall(object):
     """DelayedCall object for Tornado."""
+    # Note that zope.interface.implements is deprecated in
+    # zope.interface 4.0, because it cannot work in python 3.  The
+    # replacement is a class decorator, which cannot work on python
+    # 2.5.  So when twisted supports python 3, we'll need to drop 2.5
+    # support on this module to make it work.
     implements(IDelayedCall)
 
     def __init__(self, reactor, seconds, f, *args, **kw):
@@ -73,7 +78,8 @@ class TornadoDelayedCall(object):
         self._func = functools.partial(f, *args, **kw)
         self._time = self._reactor.seconds() + seconds
         self._timeout = self._reactor._io_loop.add_timeout(self._time,
-                                                           self._called)
+                                                           self._called,
+                                                           monotonic=True)
         self._active = True
 
     def _called(self):
@@ -107,6 +113,7 @@ class TornadoDelayedCall(object):
     def active(self):
         return self._active
 
+
 class TornadoReactor(PosixReactorBase):
     """Twisted reactor built on the Tornado IOLoop.
 
@@ -125,7 +132,7 @@ class TornadoReactor(PosixReactorBase):
         self._io_loop = io_loop
         self._readers = {}  # map of reader objects to fd
         self._writers = {}  # map of writer objects to fd
-        self._fds = {} # a map of fd to a (reader, writer) tuple
+        self._fds = {}  # a map of fd to a (reader, writer) tuple
         self._delayedCalls = {}
         PosixReactorBase.__init__(self)
 
@@ -139,7 +146,7 @@ class TornadoReactor(PosixReactorBase):
 
     # IReactorTime
     def seconds(self):
-        return time.time()
+        return monotime()
 
     def callLater(self, seconds, f, *args, **kw):
         dc = TornadoDelayedCall(self, seconds, f, *args, **kw)
@@ -295,6 +302,7 @@ class TornadoReactor(PosixReactorBase):
         if self._stopped:
             self.fireSystemEvent("shutdown")
 
+
 class _TestReactor(TornadoReactor):
     """Subclass of TornadoReactor for use in unittests.
 
@@ -317,7 +325,6 @@ class _TestReactor(TornadoReactor):
             interface = '127.0.0.1'
         return super(_TestReactor, self).listenUDP(
             port, protocol, interface=interface, maxPacketSize=maxPacketSize)
-
 
 
 def install(io_loop=None):

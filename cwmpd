@@ -23,13 +23,11 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import os.path
 import sys
-import tempfile
 import google3
 import bup.options
-import dm_root
-import platform_config
 import tornado.autoreload
 import tornado.httpclient
+import dm_root
 import tr.api
 import tr.core
 import tr.http
@@ -46,8 +44,7 @@ i,ip=         IP address to report to ACS. (default=finds interface IP address)
 l,listenip=   IP address to listen on [::1]
 p,port=       TCP port to listen for TR-069 on [7547]
 ping-path=    Force CPE ping listener to this URL path (default=random)
-acs-url=      URL of the TR-069 ACS server to connect to (deprecated)
-acs-url-file= Filename where ACS URL should be read from
+acs-url=      URL of the TR-069 ACS server to connect to
 fake-acs      Run a fake ACS (and auto-set --acs-url to that)
 no-cpe        Don't run a CPE (and thus never connect to ACS)
 cpe-listener  Let CPE listen for http requests (not TR-069 compliant)
@@ -57,14 +54,8 @@ ping_ip6dev=  Use the IPv6 address from dev for the CPE Ping address
 ca-certs=     SSL ca_certificates.crt file to use
 client-cert=  SSL client certificate to use
 client-key=   SSL client private key to use
+restrict-acs-hosts= Domain names allowed for ACS URL.  Default=unrestricted.  Example: 'google.com gfsvc.com'
 """
-
-
-def _WriteAcsFile(acs_url):
-  acsfile = tempfile.NamedTemporaryFile(prefix='acsurl', delete=False)
-  acsfile.write(acs_url)
-  acsfile.close()
-  return acsfile.name
 
 
 #pylint: disable-msg=W0613
@@ -83,15 +74,12 @@ def main():
   root = dm_root.DeviceModelRoot(loop, opt.platform)
   if opt.rcmd_port:
     loop.ListenInet((opt.listenip, opt.rcmd_port),
-                     tr.rcommand.MakeRemoteCommandStreamer(root))
+                    tr.rcommand.MakeRemoteCommandStreamer(root))
   if opt.unix_path:
     loop.ListenUnix(opt.unix_path,
                     tr.rcommand.MakeRemoteCommandStreamer(root))
 
   if opt.port:
-    acs_url_present = opt.acs_url or opt.acs_url_file
-    if not acs_url_present and not opt.fake_acs and not opt.no_cpe:
-      o.fatal('You must give either --acs-url-file, --fake-acs, or --no-cpe.')
     acs = cpe = None
     if opt.fake_acs:
       acs = tr.api.ACS()
@@ -101,12 +89,6 @@ def main():
       cpe = tr.api.CPE(root)
       if not opt.cpe_listener:
         print 'CPE API is client mode only.'
-    if opt.acs_url_file:
-      acs_url_file = opt.acs_url_file
-    elif opt.acs_url:
-      acs_url_file = _WriteAcsFile(opt.acs_url)
-    else:
-      acs_url_file = _WriteAcsFile('')
 
     if cpe:
       # Arguments to pass to Tornado HTTPClient.fetch
@@ -118,16 +100,20 @@ def main():
         fetch_args['client_cert'] = opt.client_cert
         fetch_args['client_key'] = opt.client_key
 
-      pc = root.get_platform_config()
+      pc = root.get_platform_config(ioloop=loop.ioloop)
       cpe.download_manager.SetDirectories(config_dir=pc.ConfigDir(),
                                           download_dir=pc.DownloadDir())
       cpe_machine = tr.http.Listen(ip=opt.ip, port=opt.port,
-                                   ping_path=opt.ping_path, acs=acs,
-                                   acs_url_file=acs_url_file, cpe=cpe,
+                                   ping_path=opt.ping_path,
+                                   acs=acs, cpe=cpe,
+                                   restrict_acs_hosts=opt.restrict_acs_hosts,
                                    cpe_listener=opt.cpe_listener,
+                                   platform_config=pc,
+                                   acs_url=opt.acs_url,
                                    ping_ip6dev=opt.ping_ip6dev,
                                    fetch_args=fetch_args)
-      root.add_management_server(cpe_machine.GetManagementServer())
+      ms = cpe_machine.GetManagementServer()
+      root.add_management_server(ms)
       root.configure_tr157(cpe_machine)
       cpe_machine.Startup()
 

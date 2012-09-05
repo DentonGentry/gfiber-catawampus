@@ -20,6 +20,9 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import os
+import shutil
+import tempfile
 import unittest
 
 import google3
@@ -28,17 +31,30 @@ import tornado.testing
 import device
 
 
+class MockIoloop(object):
+  def __init__(self):
+    self.timeout = None
+    self.callback = None
+
+  def add_timeout(self, timeout, callback, monotonic=None):
+    self.timeout = timeout
+    self.callback = callback
+
+
 class DeviceTest(tornado.testing.AsyncTestCase):
   """Tests for device.py."""
 
   def setUp(self):
     super(DeviceTest, self).setUp()
+    self.old_ACSCONNECTED = device.ACSCONNECTED
     self.old_CONFIGDIR = device.CONFIGDIR
     self.old_GINSTALL = device.GINSTALL
     self.old_HNVRAM = device.HNVRAM
+    self.old_NAND_MB = device.NAND_MB
     self.old_PROC_CPUINFO = device.PROC_CPUINFO
     self.old_REBOOT = device.REBOOT
     self.old_REPOMANIFEST = device.REPOMANIFEST
+    self.old_SET_ACS = device.SET_ACS
     self.old_VERSIONFILE = device.VERSIONFILE
     self.install_cb_called = False
     self.install_cb_faultcode = None
@@ -46,20 +62,23 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def tearDown(self):
     super(DeviceTest, self).tearDown()
+    device.ACSCONNECTED = self.old_ACSCONNECTED
     device.CONFIGDIR = self.old_CONFIGDIR
     device.GINSTALL = self.old_GINSTALL
     device.HNVRAM = self.old_HNVRAM
+    device.NAND_MB = self.old_NAND_MB
     device.PROC_CPUINFO = self.old_PROC_CPUINFO
     device.REBOOT = self.old_REBOOT
     device.REPOMANIFEST = self.old_REPOMANIFEST
+    device.SET_ACS = self.old_SET_ACS
     device.VERSIONFILE = self.old_VERSIONFILE
 
   def testGetSerialNumber(self):
     did = device.DeviceId()
-    device.HNVRAM = 'testdata/device/hnvramSN'
+    device.HNVRAM = 'testdata/device/hnvram'
     self.assertEqual(did.SerialNumber, '123456789')
 
-    device.HNVRAM = 'testdata/device/hnvramFOO_Empty'
+    device.HNVRAM = 'testdata/device/hnvramSN_Empty'
     self.assertEqual(did.SerialNumber, '000000000000')
 
     device.HNVRAM = 'testdata/device/hnvramSN_Err'
@@ -72,7 +91,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def testModelName(self):
     did = device.DeviceId()
-    device.HNVRAM = 'testdata/device/hnvramPN'
+    device.HNVRAM = 'testdata/device/hnvram'
     self.assertEqual(did.ModelName, 'ModelName')
 
   def testSoftwareVersion(self):
@@ -87,9 +106,27 @@ class DeviceTest(tornado.testing.AsyncTestCase):
                      'platform 1111111111111111111111111111111111111111')
 
   def testGetHardwareVersion(self):
-    device.PROC_CPUINFO = 'testdata/proc_cpuinfo'
+    device.HNVRAM = 'testdata/device/hnvram'
+    device.PROC_CPUINFO = 'testdata/device/proc_cpuinfo_b0'
+    device.NAND_MB = 'testdata/device/nand_size_mb_rev1'
     did = device.DeviceId()
-    self.assertEqual(did.HardwareVersion, 'BCM7425B2')
+    self.assertEqual(did.HardwareVersion, 'rev')
+
+    device.HNVRAM = 'testdata/device/hnvramFOO_Empty'
+    self.assertEqual(did.HardwareVersion, '0')
+
+    device.PROC_CPUINFO = 'testdata/device/proc_cpuinfo_b2'
+    self.assertEqual(did.HardwareVersion, '1')
+
+    device.NAND_MB = 'testdata/device/nand_size_mb_rev2'
+    self.assertEqual(did.HardwareVersion, '2')
+
+    device.NAND_MB = 'testdata/device/nand_size_mb_unk'
+    self.assertEqual(did.HardwareVersion, '?')
+
+  def testFanSpeed(self):
+    fan = device.FanReadGpio(filename='testdata/fanspeed')
+    self.assertEqual(fan.RPM, 1800)
 
   def install_callback(self, faultcode, faultstring, must_reboot):
     self.install_cb_called = True
@@ -110,8 +147,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def testInstallerStdout(self):
     device.GINSTALL = 'testdata/device/installer_128k_stdout'
-    inst = device.Installer('testdata/device/imagefile',
-                                   ioloop=self.io_loop)
+    inst = device.Installer('testdata/device/imagefile', ioloop=self.io_loop)
     inst.install(file_type='1 Firmware Upgrade Image',
                  target_filename='',
                  callback=self.install_callback)
@@ -123,8 +159,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def testInstallerFailed(self):
     device.GINSTALL = 'testdata/device/installer_fails'
-    inst = device.Installer('testdata/device/imagefile',
-                                   ioloop=self.io_loop)
+    inst = device.Installer('testdata/device/imagefile', ioloop=self.io_loop)
     inst.install(file_type='1 Firmware Upgrade Image',
                  target_filename='',
                  callback=self.install_callback)
@@ -132,6 +167,36 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.assertTrue(self.install_cb_called)
     self.assertEqual(self.install_cb_faultcode, 9002)
     self.assertTrue(self.install_cb_faultstring)
+
+  def testSetAcs(self):
+    device.SET_ACS = 'testdata/device/set-acs'
+    pc = device.PlatformConfig(ioloop=MockIoloop())
+    self.assertEqual(pc.GetAcsUrl(), 'bar')
+    # just check that this does not raise an AttributeError
+    pc.SetAcsUrl('foo')
+
+  def testAcsAccess(self):
+    ioloop = MockIoloop()
+    tmpdir = tempfile.mkdtemp()
+    tmpfile = os.path.join(tmpdir, 'acsconnected')
+    self.assertRaises(OSError, os.stat, tmpfile)  # File does not exist yet
+    device.ACSCONNECTED = tmpfile
+    pc = device.PlatformConfig(ioloop)
+    acsurl = 'this is the acs url'
+
+    # Simulate ACS connection
+    pc.AcsAccess(acsurl)
+    self.assertTrue(os.stat(tmpfile))
+    self.assertEqual(open(tmpfile, 'r').read(), acsurl)
+    self.assertTrue(ioloop.timeout)
+    self.assertTrue(ioloop.callback)
+
+    # Simulate timeout
+    ioloop.callback()
+    self.assertRaises(OSError, os.stat, tmpfile)
+
+    # cleanup
+    shutil.rmtree(tmpdir)
 
 
 if __name__ == '__main__':

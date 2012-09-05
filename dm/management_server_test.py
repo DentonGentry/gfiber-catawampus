@@ -32,6 +32,7 @@ class MockCpeManagementServer(object):
     self.CWMPRetryMinimumWaitInterval = 2
     self.ConnectionRequestPassword = 'ConnectPassword'
     self.ConnectionRequestUsername = 'ConnectUsername'
+    self.ConnectionRequestURL = 'http://example.com/'
     self.DefaultActiveNotificationThrottle = 3
     self.EnableCWMP = True
     self.ParameterKey = 'ParameterKey'
@@ -39,6 +40,7 @@ class MockCpeManagementServer(object):
     self.PeriodicInformEnable = False
     self.PeriodicInformInterval = 4
     self.PeriodicInformTime = 5
+    self.URL = 'http://example.com/'
     self.Username = 'Username'
 
 
@@ -58,19 +60,23 @@ class ManagementServerTest(unittest.TestCase):
     self.assertEqual(mgmt98.ParameterKey, mgmt.ParameterKey)
     self.assertEqual(mgmt98.EnableCWMP, mgmt.EnableCWMP)
     self.assertTrue(mgmt98.UpgradesManaged)
+    mgmt98.ValidateExports()
 
   def testSetMgmt181(self):
     mgmt = MockCpeManagementServer()
     mgmt181 = management_server.ManagementServer181(mgmt)
     self.assertEqual(mgmt.CWMPRetryIntervalMultiplier, 1)
+    self.assertEqual(mgmt181.CWMPRetryIntervalMultiplier, 1)
     mgmt181.CWMPRetryIntervalMultiplier = 2
     self.assertEqual(mgmt.CWMPRetryIntervalMultiplier, 2)
     self.assertEqual(mgmt181.CWMPRetryIntervalMultiplier, 2)
+    mgmt181.ValidateExports()
 
   def testSetMgmt98(self):
     mgmt = MockCpeManagementServer()
     mgmt98 = management_server.ManagementServer98(mgmt)
     self.assertEqual(mgmt.CWMPRetryIntervalMultiplier, 1)
+    self.assertEqual(mgmt98.CWMPRetryIntervalMultiplier, 1)
     mgmt98.CWMPRetryIntervalMultiplier = 2
     self.assertEqual(mgmt.CWMPRetryIntervalMultiplier, 2)
     self.assertEqual(mgmt98.CWMPRetryIntervalMultiplier, 2)

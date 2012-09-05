@@ -20,7 +20,9 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import os
 import SimpleXMLRPCServer
+import tempfile
 import threading
 import unittest
 import xmlrpclib
@@ -79,18 +81,25 @@ class XmlRpcThread(threading.Thread):
     xmlrpcsrv.server_close()
 
 
-class TvXmlRpcTest(unittest.TestCase):
-  """Tests for tvxmlrpc.py."""
+class GfiberTvTests(unittest.TestCase):
+  """Tests for gfibertv.py and tvxmlrpc.py."""
 
   def setUp(self):
     srv_cv.acquire()
     self.server_thread = XmlRpcThread()
     self.server_thread.start()
     srv_cv.wait()
+    (nick_file_handle, self.nick_file_name) = tempfile.mkstemp()
+    (tmp_file_handle, self.tmp_file_name) = tempfile.mkstemp()
+    os.close(nick_file_handle)
+    os.close(tmp_file_handle)
+    gfibertv.NICKFILE = self.nick_file_name
+    gfibertv.NICKFILE_TMP = self.tmp_file_name
 
   def tearDown(self):
     xmlrpclib.ServerProxy('http://localhost:%d' % srv_port).Quit()
     self.server_thread.join()
+    os.unlink(gfibertv.NICKFILE)
 
   def testValidate(self):
     tv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
@@ -139,6 +148,56 @@ class TvXmlRpcTest(unittest.TestCase):
   def testNodeList(self):
     tvrpc = gfibertv.GFiberTvMailbox('http://localhost:%d' % srv_port)
     self.assertEqual(tvrpc.NodeList, 'Node1, Node2')
+
+  def testListManipulation(self):
+    gftv = gfibertv.GFiberTv('http://localhost:1000')
+    gftv.ValidateExports()
+    self.assertEqual(0, gftv.DeviceNickNameNumberOfEntries)
+    idx, newobj = gftv.AddExportObject('DeviceNickName', None)
+    idx = int(idx)
+    self.assertEqual(1, gftv.DeviceNickNameNumberOfEntries)
+    self.assertEqual(newobj, gftv.DeviceNickNameList[idx])
+    gftv.StartTransaction()
+    gftv.DeviceNickNameList[idx].StartTransaction()
+    gftv.DeviceNickNameList[idx].NickName = 'testroom'
+    gftv.DeviceNickNameList[idx].SerialNumber = '12345'
+    gftv.DeviceNickNameList[idx].AbandonTransaction()
+    gftv.AbandonTransaction()
+    self.assertEqual('', gftv.DeviceNickNameList[idx].NickName)
+
+    gftv.StartTransaction()
+    idx2, newobj = gftv.AddExportObject('DeviceNickName', None)
+    idx2 = int(idx2)
+    gftv.DeviceNickNameList[idx].StartTransaction()
+    gftv.DeviceNickNameList[idx].NickName = 'testroom'
+    gftv.DeviceNickNameList[idx].SerialNumber = '12345'
+    gftv.DeviceNickNameList[idx].CommitTransaction()
+
+    gftv.DeviceNickNameList[idx2].StartTransaction()
+    uni_name = u'\u212ced\nroom\n\r!'.encode('utf-8')
+    gftv.DeviceNickNameList[idx2].NickName = uni_name
+    gftv.DeviceNickNameList[idx2].SerialNumber = '56789'
+    gftv.DeviceNickNameList[idx2].CommitTransaction()
+
+    gftv.CommitTransaction()
+
+    # read the test file back in.
+    f = file(gfibertv.NICKFILE, 'r')
+    lines = set()
+    lines.add(f.readline())
+    lines.add(f.readline())
+    last_line = f.readline()
+    last_line = last_line.strip()
+
+    self.assertTrue('12345/nickname=testroom\n' in lines)
+    self.assertTrue('56789/nickname=\u212cedroom!\n' in lines)
+    self.assertTrue(last_line.startswith('SERIALS='))
+    split1 = last_line.split('=')
+    self.assertEqual(2, len(split1))
+    split2 = split1[1].split(',')
+    self.assertTrue('12345' in split2)
+    self.assertTrue('56789' in split2)
+    f.close()
 
 
 if __name__ == '__main__':

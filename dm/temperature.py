@@ -33,8 +33,11 @@ import tr.core
 import tr.cwmpbool
 import tr.cwmpdate
 import tr.tr181_v2_2
+import tr.x_catawampus_tr181_2_0
 
 BASE181TEMPERATURE = tr.tr181_v2_2.Device_v2_2.DeviceInfo.TemperatureStatus
+CATA181DI = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.DeviceInfo
+NUMBER = re.compile(r'(\d+(?:\.\d+)?)')
 
 # tr-181 defines a temperature below 0 Kelvin as "Invalid temperature"
 BADCELSIUS = -274
@@ -43,6 +46,21 @@ BADCELSIUS = -274
 HDPARM = 'hdparm'
 PERIODICCALL = tornado.ioloop.PeriodicCallback
 TIMENOW = datetime.datetime.now
+
+
+def GetNumberFromFile(filename):
+  """Extract a number from a file.
+
+  The number can be an integer or float. If float, it will be rounded.
+
+  Returns:
+    an integer.
+  """
+  with open(filename, 'r') as f:
+    result = NUMBER.search(f.readline())
+    if result is not None:
+      return int(round(float(result.group(0))))
+  raise ValueError('No number found in %s' % filename)
 
 
 class TemperatureSensorConfig(object):
@@ -279,41 +297,66 @@ class SensorReadFromFile(object):
      temperature written to a file.
   """
 
-  NUMBER = re.compile(r'(\d+(?:\.\d+)?)')
-
   def __init__(self, filename):
     self._filename = filename
 
   def GetTemperature(self):
-    with open(self._filename, 'r') as f:
-      result = self.NUMBER.search(f.readline())
-      if result is not None:
-        try:
-          return int(round(float(result.group(0))))
-        except ValueError as e:
-          print 'TempFromFile %s bad value %s' % (self._filename, line)
-          return BADCELSIUS
-    # No value found. Return the invalid value.
-    return BADCELSIUS
+    try:
+      return GetNumberFromFile(self._filename)
+    except (IOError, ValueError):
+      print 'TempFromFile %s: bad value' % self._filename
+      return BADCELSIUS
 
 
-class TemperatureStatus(BASE181TEMPERATURE):
+class TemperatureStatus(CATA181DI.TemperatureStatus):
   """Implementation of tr-181 DeviceInfo.TemperatureStatus."""
 
   def __init__(self):
     super(TemperatureStatus, self).__init__()
     self.TemperatureSensorList = dict()
     self._next_sensor_number = 1
+    self.X_CATAWAMPUS_ORG_FanList = dict()
+    self._next_fan_number = 1
 
   @property
   def TemperatureSensorNumberOfEntries(self):
     return len(self.TemperatureSensorList)
+
+  @property
+  def X_CATAWAMPUS_ORG_FanNumberOfEntries(self):
+    return len(self.X_CATAWAMPUS_ORG_FanList)
 
   def AddSensor(self, name, sensor):
     ts = TemperatureSensor(name=name, sensor=sensor)
     ts.SampleTemperature()
     self.TemperatureSensorList[self._next_sensor_number] = ts
     self._next_sensor_number += 1
+
+  def AddFan(self, fan):
+    self.X_CATAWAMPUS_ORG_FanList[self._next_fan_number] = fan
+    self._next_fan_number += 1
+
+
+class FanReadFileRPS(CATA181DI.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
+  """Implementation of Fan object, reading rev/sec from a file."""
+
+  def __init__(self, name, filename):
+    super(FanReadFileRPS, self).__init__()
+    self._name = name
+    self._filename = filename
+
+  @property
+  def Name(self):
+    return self._name
+
+  @property
+  def RPM(self):
+    try:
+      rps = GetNumberFromFile(self._filename)
+      return rps * 60
+    except ValueError as e:
+      print 'FanReadFileRPS bad value %s' % self._filename
+      return -1
 
 
 def main():

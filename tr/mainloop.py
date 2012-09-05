@@ -23,10 +23,11 @@ so on.
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 
+import datetime
 import errno
 import os
 import socket
-import time
+import google3
 import tornado.ioloop
 import tornado.iostream  #pylint: disable-msg=W0404
 import helpers
@@ -151,15 +152,16 @@ class MainLoop(object):
   """A slightly more convenient wrapper for tornado.ioloop.IOLoop."""
 
   def __init__(self):
+    self.loop_timeout = None
     self.ioloop = None
     self.ioloop = tornado.ioloop.IOLoop.instance()
-    self.loop_timeout = None
 
   def __del__(self):
     # we have to do this so objects who have registered with the ioloop
     # can get their refcounts down to zero, so their destructors can be
     # called
     if self.ioloop:
+      #gpylint: disable-msg=W0212
       for fd in self.ioloop._handlers.keys():
         self.ioloop.remove_handler(fd)
       self.ioloop._handlers.clear()
@@ -177,9 +179,8 @@ class MainLoop(object):
     """
     tmo = None
     if timeout is not None:
-      deadline = time.time() + timeout
-      self.loop_timeout = tmo = self.ioloop.add_timeout(deadline,
-                                                        self._TimedOut)
+      self.loop_timeout = tmo = self.ioloop.add_timeout(
+          datetime.timedelta(seconds=timeout), self._TimedOut)
     try:
       self.ioloop.start()
     finally:
@@ -248,6 +249,72 @@ class MainLoop(object):
 
   def ConnectUnix(self, filename, onconnect_func):
     return self.Connect(socket.AF_UNIX, filename, onconnect_func)
+
+
+class _WaitUntilIdle(object):
+  """Manage some state variables for WaitUntilIdle."""
+
+  def __init__(self, func):
+    self.func = func
+    self.timeouts = {}
+
+  def __del__(self):
+    timeouts = self.timeouts
+    self.timeouts = {}
+    for tmo in timeouts:
+      try:
+        tornado.ioloop.IOLoop.instance().remove_timeout(tmo)
+      except:  #gpylint: disable-msg=W0702
+        pass   # must catch all exceptions in a destructor
+
+  def _Call(self, *args, **kwargs):
+    """Actually call the wrapped function and mark the timeout as done."""
+    key = (args, tuple(sorted(kwargs.items())))
+    del self.timeouts[key]
+    self.func(*args, **kwargs)  # note: discards return value
+
+  def Schedule(self, *args, **kwargs):
+    """Schedule a delayed call of the wrapped function with the given args."""
+    key = (args, tuple(sorted(kwargs.items())))
+    if key not in self.timeouts:
+      if hasattr(tornado.util, 'monotonic'):
+        self.timeouts[key] = tornado.ioloop.IOLoop.instance().add_timeout(
+            0, lambda: self._Call(*args, **kwargs), monotonic=True)
+      else:
+        self.timeouts[key] = tornado.ioloop.IOLoop.instance().add_timeout(
+            0, lambda: self._Call(*args, **kwargs))
+
+
+def WaitUntilIdle(func):
+  """A decorator that calls the given function when the loop is idle.
+
+  If you call this more than once with the same method and args before the
+  mainloop becomes idle, it will only run once, not once per call.
+
+  Args:
+    func: the function to decorate.
+  Returns:
+    A variation of func() that waits until the ioloop is idle.
+
+  Example:
+    class X(object):
+      @tr.mainloop.WaitUntilIdle
+      def Func(self):
+        print 'running!'
+
+    x = X()
+    x.Func()
+    x.Func()
+    loop.Start()  # runs Func exactly once
+  """
+  # These w and ScheduleIt objects are are created once when you *declare*
+  # a @WaitUntilIdle function...
+  w = _WaitUntilIdle(func)
+
+  def ScheduleIt(*args, **kwargs):
+    # ...and ScheduleIt() is called when you *call* the declared function
+    w.Schedule(*args, **kwargs)
+  return ScheduleIt
 
 
 def _TestGotLine(line):

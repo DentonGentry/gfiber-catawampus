@@ -19,6 +19,8 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import errno
 import os
+import time
+import tornado.util
 
 
 def Unlink(filename):
@@ -36,3 +38,10 @@ def Unlink(filename):
   except OSError, e:
     if e.errno != errno.ENOENT:
       raise
+
+
+def monotime():
+  if hasattr(tornado.util, 'monotime'):
+    return tornado.util.monotime()
+  else:
+    return time.time()
