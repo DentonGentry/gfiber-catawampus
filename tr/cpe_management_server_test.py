@@ -20,6 +20,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import copy
 import datetime
 import unittest
 
@@ -173,7 +174,7 @@ class CpeManagementServerTest(unittest.TestCase):
     """Test $SPEC3 Table3 timings."""
 
     cpe_ms = ms.CpeManagementServer(platform_config=FakePlatformConfig(), port=5, ping_path='/')
-    cpe_ms._PeriodicInformInterval = 100000
+    cpe_ms.PeriodicInformInterval = 100000
     for _ in range(1000):
       self.assertEqual(cpe_ms.SessionRetryWait(0), 0)
       self.assertTrue(5 <= cpe_ms.SessionRetryWait(1) <= 10)
@@ -203,7 +204,7 @@ class CpeManagementServerTest(unittest.TestCase):
       self.assertTrue(38146 <= cpe_ms.SessionRetryWait(10) <= 95367)
       self.assertTrue(38146 <= cpe_ms.SessionRetryWait(99) <= 95367)
     # Check that the time never exceeds the periodic inform time.
-    cpe_ms._PeriodicInformInterval = 30
+    cpe_ms.PeriodicInformInterval = 30
     for _ in range(1000):
       self.assertEqual(cpe_ms.SessionRetryWait(0), 0)
       self.assertTrue(10 <= cpe_ms.SessionRetryWait(1) <= 25)
@@ -248,7 +249,66 @@ class CpeManagementServerTest(unittest.TestCase):
     self.assertFalse(TryUrl(cpe_ms, 'https://evilgfsvc.com'))
     self.assertFalse(TryUrl(cpe_ms, 'https://gfsvc.com.evil.com'))
 
+  def testReadParameters(self):
+    cpe_ms = ms.CpeManagementServer(
+        platform_config=None, port=5, ping_path='/',
+        restrict_acs_hosts='.gfsvc.com')
+    _ = cpe_ms.CWMPRetryMinimumWaitInterval
+    _ = cpe_ms.CWMPRetryIntervalMultiplier
+    _ = cpe_ms.ConnectionRequestPassword
+    _ = cpe_ms.ConnectionRequestUsername
+    _ = cpe_ms.DefaultActiveNotificationThrottle
+    _ = cpe_ms.EnableCWMP
+    _ = cpe_ms.PeriodicInformEnable
+    _ = cpe_ms.PeriodicInformInterval
+    _ = cpe_ms.PeriodicInformTime
+    _ = cpe_ms.Password
+    _ = cpe_ms.Username
 
+  def testWriteParameters(self):
+    cpe_ms = ms.CpeManagementServer(
+        platform_config=None, port=5, ping_path='/',
+        restrict_acs_hosts='.gfsvc.com')
+    cpe_ms.CWMPRetryMinimumWaitInterval = 10
+    cpe_ms.CWMPRetryIntervalMultiplier = 100
+    cpe_ms.ConnectionRequestPassword = 'pass'
+    cpe_ms.ConnectionRequestUsername = 'user'
+    cpe_ms.DefaultActiveNotificationThrottle = True
+    cpe_ms.PeriodicInformEnable = True
+    cpe_ms.PeriodicInformInterval = 10
+    cpe_ms.PeriodicInformTime = '2012-08-22T15:50:14.725772Z'
+    cpe_ms.Password = ' pass'
+    cpe_ms.Username = ' user'
+
+  def testTransaction(self):
+    cpe_ms = ms.CpeManagementServer(
+        platform_config=None, port=5, ping_path='/',
+        restrict_acs_hosts='.gfsvc.com')
+    orig = copy.deepcopy(cpe_ms.config)
+    # sanity
+    self.assertEqual(orig.CWMPRetryMinimumWaitInterval,
+                     cpe_ms.CWMPRetryMinimumWaitInterval)
+    cpe_ms.StartTransaction()
+    cpe_ms.AbandonTransaction()
+    self.assertEqual(orig.CWMPRetryMinimumWaitInterval,
+                     cpe_ms.CWMPRetryMinimumWaitInterval)
+
+    cpe_ms.StartTransaction()
+    cpe_ms.CommitTransaction()
+    self.assertEqual(orig.CWMPRetryMinimumWaitInterval,
+                     cpe_ms.CWMPRetryMinimumWaitInterval)
+
+    cpe_ms.StartTransaction()
+    cpe_ms.CWMPRetryMinimumWaitInterval *= 2
+    cpe_ms.AbandonTransaction()
+    self.assertEqual(orig.CWMPRetryMinimumWaitInterval,
+                     cpe_ms.CWMPRetryMinimumWaitInterval)
+
+    cpe_ms.StartTransaction()
+    cpe_ms.CWMPRetryMinimumWaitInterval *= 2
+    cpe_ms.CommitTransaction()
+    self.assertEqual(orig.CWMPRetryMinimumWaitInterval * 2,
+                     cpe_ms.CWMPRetryMinimumWaitInterval)
 
 if __name__ == '__main__':
   unittest.main()
