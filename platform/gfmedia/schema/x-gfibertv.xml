@@ -22,13 +22,13 @@
 
     <object name="X_GOOGLE_COM_GFIBERTV." access="readOnly" minEntries="1" maxEntries="1">
       <description>Container for parameters supporting the Google Fiber TV system.</description>
-      <parameter name="DeviceNickNameNumberOfEntries" access="readOnly">
-        <description>Number of instances of {{object|DeviceNickName}}.</description>
+      <parameter name="DevicePropertiesNumberOfEntries" access="readOnly">
+        <description>Number of instances of {{object|DeviceProperties}}.</description>
         <syntax>
           <unsignedInt/>
         </syntax>
       </parameter>
-      <object name="DeviceNickName.{i}." access="readWrite" numEntriesParameter="DeviceNickNameNumberOfEntries" minEntries="0" maxEntries="16">
+      <object name="DeviceProperties.{i}." access="readWrite" numEntriesParameter="DevicePropertiesNumberOfEntries" minEntries="0" maxEntries="16">
         <parameter name="SerialNumber" access="readWrite">
           <description>Serial number of the device.</description>
           <syntax>

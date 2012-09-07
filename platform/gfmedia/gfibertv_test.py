@@ -152,32 +152,32 @@ class GfiberTvTests(unittest.TestCase):
   def testListManipulation(self):
     gftv = gfibertv.GFiberTv('http://localhost:1000')
     gftv.ValidateExports()
-    self.assertEqual(0, gftv.DeviceNickNameNumberOfEntries)
-    idx, newobj = gftv.AddExportObject('DeviceNickName', None)
+    self.assertEqual(0, gftv.DevicePropertiesNumberOfEntries)
+    idx, newobj = gftv.AddExportObject('DeviceProperties', None)
     idx = int(idx)
-    self.assertEqual(1, gftv.DeviceNickNameNumberOfEntries)
-    self.assertEqual(newobj, gftv.DeviceNickNameList[idx])
+    self.assertEqual(1, gftv.DevicePropertiesNumberOfEntries)
+    self.assertEqual(newobj, gftv.DevicePropertiesList[idx])
     gftv.StartTransaction()
-    gftv.DeviceNickNameList[idx].StartTransaction()
-    gftv.DeviceNickNameList[idx].NickName = 'testroom'
-    gftv.DeviceNickNameList[idx].SerialNumber = '12345'
-    gftv.DeviceNickNameList[idx].AbandonTransaction()
+    gftv.DevicePropertiesList[idx].StartTransaction()
+    gftv.DevicePropertiesList[idx].NickName = 'testroom'
+    gftv.DevicePropertiesList[idx].SerialNumber = '12345'
+    gftv.DevicePropertiesList[idx].AbandonTransaction()
     gftv.AbandonTransaction()
-    self.assertEqual('', gftv.DeviceNickNameList[idx].NickName)
+    self.assertEqual('', gftv.DevicePropertiesList[idx].NickName)
 
     gftv.StartTransaction()
-    idx2, newobj = gftv.AddExportObject('DeviceNickName', None)
+    idx2, newobj = gftv.AddExportObject('DeviceProperties', None)
     idx2 = int(idx2)
-    gftv.DeviceNickNameList[idx].StartTransaction()
-    gftv.DeviceNickNameList[idx].NickName = 'testroom'
-    gftv.DeviceNickNameList[idx].SerialNumber = '12345'
-    gftv.DeviceNickNameList[idx].CommitTransaction()
+    gftv.DevicePropertiesList[idx].StartTransaction()
+    gftv.DevicePropertiesList[idx].NickName = 'testroom'
+    gftv.DevicePropertiesList[idx].SerialNumber = '12345'
+    gftv.DevicePropertiesList[idx].CommitTransaction()
 
-    gftv.DeviceNickNameList[idx2].StartTransaction()
+    gftv.DevicePropertiesList[idx2].StartTransaction()
     uni_name = u'\u212ced\nroom\n\r!'.encode('utf-8')
-    gftv.DeviceNickNameList[idx2].NickName = uni_name
-    gftv.DeviceNickNameList[idx2].SerialNumber = '56789'
-    gftv.DeviceNickNameList[idx2].CommitTransaction()
+    gftv.DevicePropertiesList[idx2].NickName = uni_name
+    gftv.DevicePropertiesList[idx2].SerialNumber = '56789'
+    gftv.DevicePropertiesList[idx2].CommitTransaction()
 
     gftv.CommitTransaction()
 
