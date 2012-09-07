@@ -199,6 +199,11 @@ class MockDownloadManager(object):
     self.reboot_command_key = command_key
 
 
+class FakePlatformConfig(object):
+  def GetAcsUrl(self):
+    return None
+
+
 class TransferRpcTest(unittest.TestCase):
   """Test cases for RPCs relating to file transfers."""
 
@@ -209,7 +214,7 @@ class TransferRpcTest(unittest.TestCase):
     cpe_machine = http.Listen(ip=None, port=0,
                               ping_path='/ping/acs_integration_test',
                               acs=None, cpe=cpe, cpe_listener=False,
-                              platform_config=None)
+                              platform_config=FakePlatformConfig())
     return cpe_machine
 
   def testDownloadSimple(self):
@@ -454,7 +459,7 @@ class GetParamsRpcTest(unittest.TestCase):
     cpe_machine = http.Listen(ip=None, port=0,
                               ping_path='/ping/acs_integration_test',
                               acs=None, cpe=cpe, cpe_listener=False,
-                              platform_config=None)
+                              platform_config=FakePlatformConfig())
     return cpe_machine
 
   def testGetParamValue(self):

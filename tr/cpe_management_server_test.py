@@ -81,6 +81,11 @@ class MockPlatformConfig(object):
     return self.acs_url
 
 
+class FakePlatformConfig(object):
+  def GetAcsUrl(self):
+    return None
+
+
 class CpeManagementServerTest(unittest.TestCase):
   """tests for http.py CpeManagementServer."""
 
@@ -89,7 +94,7 @@ class CpeManagementServerTest(unittest.TestCase):
     del periodic_callbacks[:]
 
   def testIsIp6Address(self):
-    cpe_ms = ms.CpeManagementServer(platform_config=None, port=5,
+    cpe_ms = ms.CpeManagementServer(platform_config=FakePlatformConfig(), port=5,
                                     ping_path='/ping/path')
     self.assertTrue(cpe_ms._isIp6Address('fe80::21d:9ff:fe11:f55f'))
     self.assertTrue(cpe_ms._isIp6Address('2620:0:1000:5200:222:3ff:fe44:5555'))
@@ -97,7 +102,7 @@ class CpeManagementServerTest(unittest.TestCase):
     self.assertFalse(cpe_ms._isIp6Address('foobar'))
 
   def testConnectionRequestURL(self):
-    cpe_ms = ms.CpeManagementServer(platform_config=None, port=5,
+    cpe_ms = ms.CpeManagementServer(platform_config=FakePlatformConfig(), port=5,
                                     ping_path='/ping/path')
     cpe_ms.my_ip = '1.2.3.4'
     self.assertEqual(cpe_ms.ConnectionRequestURL, 'http://1.2.3.4:5/ping/path')
@@ -121,7 +126,7 @@ class CpeManagementServerTest(unittest.TestCase):
     return 'ParameterKey'
 
   def testParameterKey(self):
-    cpe_ms = ms.CpeManagementServer(platform_config=None, port=0, ping_path='/',
+    cpe_ms = ms.CpeManagementServer(platform_config=FakePlatformConfig(), port=0, ping_path='/',
                                     get_parameter_key=self.GetParameterKey)
     self.assertEqual(cpe_ms.ParameterKey, self.GetParameterKey())
 
@@ -131,7 +136,7 @@ class CpeManagementServerTest(unittest.TestCase):
   def testPeriodicEnable(self):
     ms.PERIODIC_CALLBACK = MockPeriodicCallback
     io = MockIoloop()
-    cpe_ms = ms.CpeManagementServer(platform_config=None, port=0, ping_path='/',
+    cpe_ms = ms.CpeManagementServer(platform_config=FakePlatformConfig(), port=0, ping_path='/',
                                     start_periodic_session=self.start_session,
                                     ioloop=io)
     cpe_ms.PeriodicInformEnable = 'true'
@@ -151,7 +156,7 @@ class CpeManagementServerTest(unittest.TestCase):
   def testPeriodicLongInterval(self):
     ms.PERIODIC_CALLBACK = MockPeriodicCallback
     io = MockIoloop()
-    cpe_ms = ms.CpeManagementServer(platform_config=None, port=0, ping_path='/',
+    cpe_ms = ms.CpeManagementServer(platform_config=FakePlatformConfig(), port=0, ping_path='/',
                                     start_periodic_session=self.start_session,
                                     ioloop=io)
     cpe_ms.PeriodicInformEnable = 'true'
@@ -167,7 +172,7 @@ class CpeManagementServerTest(unittest.TestCase):
   def testSessionRetryWait(self):
     """Test $SPEC3 Table3 timings."""
 
-    cpe_ms = ms.CpeManagementServer(platform_config=None, port=5, ping_path='/')
+    cpe_ms = ms.CpeManagementServer(platform_config=FakePlatformConfig(), port=5, ping_path='/')
     cpe_ms._PeriodicInformInterval = 100000
     for _ in range(1000):
       self.assertEqual(cpe_ms.SessionRetryWait(0), 0)
@@ -215,7 +220,7 @@ class CpeManagementServerTest(unittest.TestCase):
       return valid
 
     cpe_ms = ms.CpeManagementServer(
-        platform_config=None, port=5, ping_path='/',
+        platform_config=FakePlatformConfig(), port=5, ping_path='/',
         restrict_acs_hosts='google.com .gfsvc.com foo.com')
     self.assertTrue(TryUrl(cpe_ms, 'https://bugger.gfsvc.com'))
     self.assertTrue(TryUrl(cpe_ms, 'https://acs.prod.gfsvc.com'))
@@ -227,13 +232,13 @@ class CpeManagementServerTest(unittest.TestCase):
 
     # No restrictions
     cpe_ms = ms.CpeManagementServer(
-        platform_config=None, port=5, ping_path='/')
+        platform_config=FakePlatformConfig(), port=5, ping_path='/')
     self.assertTrue(TryUrl(cpe_ms, 'https://bugger.gfsvc.com'))
     self.assertTrue(TryUrl(cpe_ms, 'https://gfsvc.com.evil.com'))
 
     # Single domain
     cpe_ms = ms.CpeManagementServer(
-        platform_config=None, port=5, ping_path='/',
+        platform_config=FakePlatformConfig(), port=5, ping_path='/',
         restrict_acs_hosts='.gfsvc.com')
     self.assertTrue(TryUrl(cpe_ms, 'https://bugger.gfsvc.com'))
     self.assertTrue(TryUrl(cpe_ms, 'https://acs.prod.gfsvc.com'))
