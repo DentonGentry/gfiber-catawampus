@@ -25,7 +25,6 @@ import google3
 import dm.catawampus
 import dm.management_server
 import tr.core
-import traceroute
 
 
 def _RecursiveImport(name):
@@ -43,8 +42,6 @@ class DeviceModelRoot(tr.core.Exporter):
                                                    device_model_root=self)
     else:
       (params, objects) = (list(), list())
-    self.TraceRoute = traceroute.TraceRoute(loop)
-    objects.append('TraceRoute')
     self.X_CATAWAMPUS_ORG_CATAWAMPUS = dm.catawampus.CatawampusDm()
     objects.append('X_CATAWAMPUS-ORG_CATAWAMPUS')
     self.Export(params=params, objects=objects)
