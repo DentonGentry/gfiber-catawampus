@@ -422,9 +422,30 @@ class ServiceMonitoring(BASE135STB.ServiceMonitoring):
 
   def UpdateSvcMonitorStats(self):
     """Retrieve and aggregate stats from all related JSON stats files."""
+    streams = dict()
     for wildcard in CONT_MONITOR_FILES:
       for filename in glob.glob(wildcard):
-        self.DeserializeStats(filename)
+        self.DeserializeStats(filename, streams)
+
+    num_streams = len(streams)
+    new_main_stream_stats = dict()
+    old_main_stream_stats = self._MainStreamStats
+
+    # Existing stream_ids keep their instance number in self._MainStreamStats
+    for instance, old_stream in old_main_stream_stats.items():
+      stream_id = old_stream.stream_id
+      if stream_id in streams:
+        new_main_stream_stats[instance] = streams[stream_id]
+        del streams[stream_id]
+
+    # Remaining stream_ids claim an unused instance number in 1..num_streams
+    assigned = set(new_main_stream_stats.keys())
+    unassigned = set(range(1, num_streams + 1)) - assigned
+    for strm in streams.values():
+      instance = unassigned.pop()
+      new_main_stream_stats[instance] = strm
+
+    self._MainStreamStats = new_main_stream_stats
 
   def ReadJSONStats(self, fname):
     """Retrieves statistics from the service monitoring JSON file."""
@@ -433,17 +454,16 @@ class ServiceMonitoring(BASE135STB.ServiceMonitoring):
       d = json.load(f)
     return d
 
-  def DeserializeStats(self, fname):
+  def DeserializeStats(self, fname, new_streams):
     """Generate stats object from the JSON stats."""
     try:
       d = self.ReadJSONStats(fname)
       streams = d['STBService'][0]['MainStream']
       for i in range(len(streams)):
-        sid = streams[i]['StreamId']
-        if sid not in self._MainStreamStats.keys():
-          self._MainStreamStats[sid] = MainStream()
-        self._MainStreamStats[sid].UpdateMainstreamStats(streams[i])
-
+        stream_id = streams[i]['StreamId']
+        strm = new_streams.get(stream_id, MainStream(stream_id))
+        strm.UpdateMainstreamStats(streams[i])
+        new_streams[stream_id] = strm
     # IOError - Failed to open file or failed to read from file
     # ValueError - JSON file is malformed and cannot be decoded
     # KeyError - Decoded JSON file doesn't contain the required fields.
@@ -465,7 +485,7 @@ class ServiceMonitoring(BASE135STB.ServiceMonitoring):
 class MainStream(BASE135STB.ServiceMonitoring.MainStream):
   """STBService.{i}.ServiceMonitoring.MainStream."""
 
-  def __init__(self):
+  def __init__(self, stream_id):
     super(MainStream, self).__init__()
     self.Unexport('AVStream')
     self.Unexport('Enable')
@@ -477,7 +497,13 @@ class MainStream(BASE135STB.ServiceMonitoring.MainStream):
     self.Unexport('ChannelChangeFailureTimeout')
     self.Unexport('Alias')
     self.Unexport(objects='Sample')
+    self.Export(params=['X_GOOGLE-COM_StreamID'])
     self.Total = Total()
+    self.stream_id = stream_id
+
+  @property
+  def X_GOOGLE_COM_StreamID(self):
+    return self.stream_id
 
   def UpdateMainstreamStats(self, data):
     self.Total.UpdateTotalStats(data)
