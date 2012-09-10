@@ -35,6 +35,7 @@ import tr.tr181_v2_2
 
 BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
 BASE181DEVICE = tr.tr181_v2_2.Device_v2_2
+CATA181DEVICE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
 
 # Unit tests can override these with fake data
 PERIODICCALL = tornado.ioloop.PeriodicCallback
@@ -109,24 +110,28 @@ def _GetUptime():
 
 
 #pylint: disable-msg=W0231
-class DeviceInfo181Linux26(BASE181DEVICE.DeviceInfo):
+class DeviceInfo181Linux26(CATA181DEVICE.DeviceInfo):
   """Implements tr-181 DeviceInfo for Linux 2.6 and similar systems."""
 
   def __init__(self, device_id, ioloop=None):
-    BASE181DEVICE.DeviceInfo.__init__(self)
+    super(DeviceInfo181Linux26, self).__init__()
     assert isinstance(device_id, DeviceIdMeta)
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self._device_id = device_id
     self.MemoryStatus = MemoryStatusLinux26()
     self.ProcessStatus = ProcessStatusLinux26(ioloop=ioloop)
-    self.Unexport('ProvisioningCode')
     self.Unexport('FirstUseDate')
+    self.Unexport(lists='Location')
     self.Unexport(objects='NetworkProperties')
+    self.Unexport('ProvisioningCode')
+    self.Unexport(objects='ProxierInfo')
     self.TemperatureStatus = temperature.TemperatureStatus()
     self.VendorLogFileList = {}
     self.VendorConfigFileList = {}
     self.SupportedDataModelList = {}
     self.ProcessorList = {}
+    self.X_CATAWAMPUS_ORG_LedStatusList = {}
+    self._next_led_number = 1
 
   def __getattr__(self, name):
     """Allows passthrough of parameters to the platform-supplied device_id."""
@@ -148,12 +153,24 @@ class DeviceInfo181Linux26(BASE181DEVICE.DeviceInfo):
     return len(self.VendorConfigFileList)
 
   @property
+  def LocationNumberOfEntries(self):
+    return 0
+
+  @property
   def ProcessorNumberOfEntries(self):
     return len(self.ProcessorList)
 
   @property
   def SupportedDataModelNumberOfEntries(self):
     return len(self.SupportedDataModelList)
+
+  @property
+  def X_CATAWAMPUS_ORG_LedStatusNumberOfEntries(self):
+    return len(self.X_CATAWAMPUS_ORG_LedStatusList)
+
+  def AddLedStatus(self, led):
+    self.X_CATAWAMPUS_ORG_LedStatusList[self._next_led_number] = led
+    self._next_led_number += 1
 
 
 class MemoryStatusLinux26(BASE181DEVICE.DeviceInfo.MemoryStatus):
@@ -163,7 +180,7 @@ class MemoryStatusLinux26(BASE181DEVICE.DeviceInfo.MemoryStatus):
   """
 
   def __init__(self):
-    BASE181DEVICE.DeviceInfo.MemoryStatus.__init__(self)
+    super(MemoryStatusLinux26, self).__init__()
     (self._totalmem, self._freemem) = self._GetMemInfo()
 
   @property
@@ -209,7 +226,7 @@ class ProcessStatusLinux26(BASE181DEVICE.DeviceInfo.ProcessStatus):
   _RSS = 23
 
   def __init__(self, ioloop=None):
-    BASE181DEVICE.DeviceInfo.ProcessStatus.__init__(self)
+    super(ProcessStatusLinux26, self).__init__()
     tick = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
     self._msec_per_jiffy = 1000.0 / tick
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
@@ -325,11 +342,28 @@ class ProcessStatusLinux26(BASE181DEVICE.DeviceInfo.ProcessStatus):
       yield pid, proc
 
 
+class LedStatusReadFromFile(CATA181DEVICE.DeviceInfo.X_CATAWAMPUS_ORG_LedStatus):
+  """X_CATAWAMPUS-ORG_LedStatus implementation which reads a line from a file."""
+
+  def __init__(self, name, filename):
+    super(LedStatusReadFromFile, self).__init__()
+    self._name = name
+    self._filename = filename
+
+  @property
+  def Name(self):
+    return self._name
+
+  @property
+  def Status(self):
+    return open(self._filename).readline().strip()
+
+
 class DeviceInfo98Linux26(BASE98IGD.DeviceInfo):
   """Implementation of tr-98 DeviceInfo for Linux."""
 
   def __init__(self, device_id):
-    BASE98IGD.DeviceInfo.__init__(self)
+    super(DeviceInfo98Linux26, self).__init__()
     assert isinstance(device_id, DeviceIdMeta)
     self._device_id = device_id
     self.Unexport(params='DeviceLog')
@@ -351,7 +385,7 @@ class DeviceInfo98Linux26(BASE98IGD.DeviceInfo):
     if hasattr(self._device_id, name):
       return getattr(self._device_id, name)
     else:
-      raise AttributeError
+      raise AttributeError('No such attribute %s' % name)
 
 
 def main():

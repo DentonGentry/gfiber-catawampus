@@ -39,7 +39,31 @@
       </parameter>
     </object>
 
-    <object name="DeviceInfo." access="readOnly" minEntries="1" maxEntries="1" />
+    <object name="DeviceInfo." access="readOnly" minEntries="1" maxEntries="1">
+      <parameter name="X_CATAWAMPUS-ORG_LedStatusNumberOfEntries" access="readOnly">
+        <description>The number of instances of {{object|.X_CATAWAMPUS-ORG_LedStatus.{i}.}}.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+    </object>
+    <object name="DeviceInfo.X_CATAWAMPUS-ORG_LedStatus.{i}." access="readOnly"
+            numEntriesParameter="X_CATAWAMPUS-ORG_LedStatusNumberOfEntries" minEntries="0" maxEntries="unbounded">
+        <description>This object reflects the state of an LED or other indicator light.</description>
+        <uniqueKey><parameter ref="Name"/></uniqueKey>
+        <parameter name="Name" access="readOnly">
+            <description>Name of this LED. This text MUST be sufficient to distinguish this object from others.</description>
+            <syntax><string><size maxLength="256"/></string></syntax>
+        </parameter>
+        <parameter name="Status" access="readOnly">
+            <description>
+              A description of the state of the indicator.
+            </description>
+            <syntax>
+              <string/>
+            </syntax>
+        </parameter>
+    </object>
     <object name="DeviceInfo.TemperatureStatus." access="readOnly" minEntries="1" maxEntries="1" />
     <object name="DeviceInfo.TemperatureStatus.X_CATAWAMPUS-ORG_Fan.{i}." access="readOnly" 
             numEntriesParameter="X_CATAWAMPUS-ORG_FanNumberOfEntries" minEntries="0" maxEntries="unbounded">
