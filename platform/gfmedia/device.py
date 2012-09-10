@@ -63,6 +63,7 @@ CONFIGDIR = '/config/tr69'
 DOWNLOADDIR = '/tmp'
 GINSTALL = '/bin/ginstall.py'
 HNVRAM = '/usr/bin/hnvram'
+LEDSTATUS = '/tmp/gpio/ledstate'
 NAND_MB = '/proc/sys/dev/repartition/nand_size_mb'
 PROC_CPUINFO = '/proc/cpuinfo'
 REBOOT = '/bin/tr69_reboot'
@@ -418,6 +419,8 @@ class Device(tr181.Device_v2_2.Device):
     self.Unexport(objects='WiFi')
 
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
+    led = dm.device_info.LedStatusReadFromFile('LED', LEDSTATUS)
+    self.DeviceInfo.AddLedStatus(led)
     self.Ethernet = Ethernet()
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
     self.MoCA = Moca()

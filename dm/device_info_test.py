@@ -81,6 +81,10 @@ class FakePeriodicCallback(object):
     self.stop_called = True
 
 
+def FakeLedStatus():
+  return 'LEDSTATUS'
+
+
 class DeviceInfoTest(tornado.testing.AsyncTestCase):
   """Tests for device_info.py."""
 
@@ -213,6 +217,13 @@ class DeviceInfoTest(tornado.testing.AsyncTestCase):
     self.assertEqual(proc.Priority, 0);
     self.assertEqual(proc.CPUTime, 0);
     self.assertEqual(proc.State, 'X_CATAWAMPUS-ORG_Exited');
+
+  def testLedStatus(self):
+    led = device_info.LedStatusReadFromFile(
+        'LED', 'testdata/device_info/ledstatus')
+    led.ValidateExports()
+    self.assertEqual(led.Name, 'LED')
+    self.assertEqual(led.Status, 'LED_ON')
 
 
 if __name__ == '__main__':
