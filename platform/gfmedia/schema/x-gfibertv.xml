@@ -28,6 +28,30 @@
           <unsignedInt/>
         </syntax>
       </parameter>
+      <parameter name="BtDevices" access="readWrite">
+        <description>The bluetooth devices config.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="BtHHDevices" access="readWrite">
+        <description>The bluetooth HH devices config.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="BtConfig" access="readWrite">
+        <description>The bluetooth device config.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="BtNoPairing" access="readWrite">
+        <description>Creates a file that will prevent the device from pairing with the remote control over bluetooth, which effectively forces IR mode.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
       <object name="DeviceProperties.{i}." access="readWrite" numEntriesParameter="DevicePropertiesNumberOfEntries" minEntries="0" maxEntries="16">
         <parameter name="SerialNumber" access="readWrite">
           <description>Serial number of the device.</description>
