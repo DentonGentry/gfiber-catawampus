@@ -23,7 +23,9 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import datetime
 import fcntl
 import os
+import random
 import subprocess
+import traceback
 
 import google3
 
@@ -58,7 +60,8 @@ INTERNAL_ERROR = 9002
 
 # Unit tests can override these with fake data
 ACSCONNECTED = '/tmp/gpio/ledcontrol/acsconnected'
-ACSERRORTIME = 6*60*60
+ACSTIMEOUTMIN = 2*60*60
+ACSTIMEOUTMAX = 4*60*60
 CONFIGDIR = '/config/tr69'
 DOWNLOADDIR = '/tmp'
 GINSTALL = '/bin/ginstall.py'
@@ -79,6 +82,8 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
     platform_config.PlatformConfigMeta.__init__(self)
     self._ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self.acs_timeout = None
+    self.acs_timeout_interval = random.randrange(ACSTIMEOUTMIN, ACSTIMEOUTMAX)
+    self.acs_timeout_url = None
 
   def ConfigDir(self):
     return CONFIGDIR
@@ -92,28 +97,54 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
     return out if setacs.returncode == 0 else ''
 
   def SetAcsUrl(self, url):
-    rc = subprocess.call(args=[SET_ACS, 'cwmp', url])
+    set_acs_url = url if url else 'clear'
+    rc = subprocess.call(args=[SET_ACS, 'cwmp', set_acs_url.strip()])
     if rc != 0:
       raise AttributeError('set-acs failed')
+
+  def _AcsAccessClearTimeout(self):
+    if self.acs_timeout:
+      self._ioloop.remove_timeout(self.acs_timeout)
+      self.acs_timeout = None
 
   def _AcsAccessTimeout(self):
     """Timeout for AcsAccess.
 
-    There has been no successful connection to ACS in ACSERRORTIME seconds.
-    Remove the ACSCONNECTED file, which makes an error LED pattern light up.
+    There has been no successful connection to ACS in self.acs_timeout_interval
+    seconds.
     """
     try:
       os.remove(ACSCONNECTED)
-    except OSError:
+    except OSError as e:
+      if e.errno != errno.ENOENT:
+        raise
       pass  # No such file == harmless
 
-  def AcsAccess(self, url):
-    if self.acs_timeout:
-      self._ioloop.remove_timeout(self.acs_timeout)
-    self.acs_timeout = self._ioloop.add_timeout(
-        datetime.timedelta(seconds=ACSERRORTIME), self._AcsAccessTimeout)
+    try:
+      rc = subprocess.call(args=[SET_ACS, 'timeout', self.acs_timeout_url.strip()])
+    except OSError:
+      rc = -1
+
+    if rc != 0:
+      # Log the failure
+      print '%s timeout %s failed %d' % (SET_ACS, self.acs_timeout_url, rc)
+
+  def AcsAccessAttempt(self, url):
+    """Called when a connection to the ACS is attempted."""
+    if url != self.acs_timeout_url:
+      self._AcsAccessClearTimeout()  # new ACS, restart timer
+      self.acs_timeout_url = url
+    if not self.acs_timeout:
+      self.acs_timeout = self._ioloop.add_timeout(
+          datetime.timedelta(seconds=self.acs_timeout_interval),
+          self._AcsAccessTimeout)
+
+  def AcsAccessSuccess(self, url):
+    """Called when a session with the ACS successfully concludes."""
+    self._AcsAccessClearTimeout()
     # We only *need* to create a 0 byte file, but write URL for debugging
-    open(ACSCONNECTED, 'w').write(url)
+    with open(ACSCONNECTED, 'w') as f:
+      f.write(url)
 
 
 class DeviceId(dm.device_info.DeviceIdMeta):

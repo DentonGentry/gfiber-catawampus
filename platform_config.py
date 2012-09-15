@@ -66,8 +66,17 @@ class PlatformConfigMeta(object):
     return None
 
   @abc.abstractmethod
-  def AcsAccess(self, url):
-    """Called for every new session initiated with the ACS.
+  def AcsAccessAttempt(self, url):
+    """Called before attempting to initiate a connection with the ACS.
+
+    Args:
+      url: the ACS_URL being contacted.
+    """
+    return None
+
+  @abc.abstractmethod
+  def AcsAccessSuccess(self, url):
+    """Called at the end of every successful ACS session.
 
     Args:
       url: the ACS_URL being contacted.

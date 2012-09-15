@@ -172,12 +172,25 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def testSetAcs(self):
     device.SET_ACS = 'testdata/device/set-acs'
+    scriptout = tempfile.NamedTemporaryFile()
+    os.environ['TESTOUTPUT'] = scriptout.name
     pc = device.PlatformConfig(ioloop=MockIoloop())
     self.assertEqual(pc.GetAcsUrl(), 'bar')
-    # just check that this does not raise an AttributeError
     pc.SetAcsUrl('foo')
+    self.assertEqual(scriptout.read().strip(), 'cwmp foo')
+
+  def testClearAcs(self):
+    device.SET_ACS = 'testdata/device/set-acs'
+    scriptout = tempfile.NamedTemporaryFile()
+    os.environ['TESTOUTPUT'] = scriptout.name
+    pc = device.PlatformConfig(ioloop=MockIoloop())
+    pc.SetAcsUrl('')
+    self.assertEqual(scriptout.read().strip(), 'cwmp clear')
 
   def testAcsAccess(self):
+    device.SET_ACS = 'testdata/device/set-acs'
+    scriptout = tempfile.NamedTemporaryFile()
+    os.environ['TESTOUTPUT'] = scriptout.name
     ioloop = MockIoloop()
     tmpdir = tempfile.mkdtemp()
     tmpfile = os.path.join(tmpdir, 'acsconnected')
@@ -187,15 +200,19 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     acsurl = 'this is the acs url'
 
     # Simulate ACS connection
-    pc.AcsAccess(acsurl)
+    pc.AcsAccessAttempt(acsurl)
+    pc.AcsAccessSuccess(acsurl)
     self.assertTrue(os.stat(tmpfile))
     self.assertEqual(open(tmpfile, 'r').read(), acsurl)
     self.assertTrue(ioloop.timeout)
     self.assertTrue(ioloop.callback)
 
     # Simulate timeout
+    pc.AcsAccessAttempt(acsurl)
+    scriptout.truncate()
     ioloop.callback()
     self.assertRaises(OSError, os.stat, tmpfile)
+    self.assertEqual(scriptout.read().strip(), 'timeout ' + acsurl)
 
     # cleanup
     shutil.rmtree(tmpdir)

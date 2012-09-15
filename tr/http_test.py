@@ -94,6 +94,12 @@ class MockPlatformConfig(object):
   def GetAcsUrl(self):
     return 'http://example.com/cwmp'
 
+  def AcsAccessAttempt(self, url):
+    pass
+
+  def AcsAccessSuccess(self, url):
+    pass
+
 
 class HttpTest(tornado.testing.AsyncTestCase):
   def setUp(self):

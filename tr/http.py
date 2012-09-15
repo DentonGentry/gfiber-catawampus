@@ -314,7 +314,7 @@ class CPEStateMachine(object):
       print 'Idle CWMP session, terminating.'
       self.outstanding = None
       ping_received = self.session.close()
-      self.platform_config.AcsAccess(self.session.acs_url)
+      self.platform_config.AcsAccessSuccess(self.session.acs_url)
       self.session = None
       self.retry_count = 0  # Successful close
       if self._changed_parameters:
@@ -344,6 +344,7 @@ class CPEStateMachine(object):
     else:
       # Empty message
       self.session.state_update(cpe_to_acs_empty=True)
+    self.platform_config.AcsAccessAttempt(self.session.acs_url)
     print('CPE POST (at {0!s}):\n'
           'ACS URL: {1!r}\n'
           '{2!s}\n'

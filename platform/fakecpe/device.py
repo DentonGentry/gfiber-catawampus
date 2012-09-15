@@ -57,7 +57,10 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
   def SetAcsUrl(self, url):
     raise AttributeError('URL is read-only')
 
-  def AcsAccess(self, url):
+  def AcsAccessAttempt(self, url):
+    pass
+
+  def AcsAccessSuccess(self, url):
     pass
 
 
