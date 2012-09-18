@@ -251,15 +251,23 @@ class TemperatureTest(unittest.TestCase):
     fan = temperature.FanReadFileRPS('Fan1', 'testdata/temperature/file1')
     self.assertEqual(fan.Name, 'Fan1')
     self.assertEqual(fan.RPM, 4320)
+    self.assertEqual(fan.DesiredRPM, -1)
+    self.assertEqual(fan.DesiredPercentage, -1)
     fan = temperature.FanReadFileRPS('Fan2', 'testdata/temperature/file2')
     self.assertEqual(fan.Name, 'Fan2')
     self.assertEqual(fan.RPM, 4380)
+    self.assertEqual(fan.DesiredRPM, -1)
+    self.assertEqual(fan.DesiredPercentage, -1)
     fan = temperature.FanReadFileRPS('Fan3', 'testdata/temperature/file3')
     self.assertEqual(fan.Name, 'Fan3')
     self.assertEqual(fan.RPM, 4440)
+    self.assertEqual(fan.DesiredRPM, -1)
+    self.assertEqual(fan.DesiredPercentage, -1)
     fan = temperature.FanReadFileRPS('Fan4', 'testdata/temperature/file4')
     self.assertEqual(fan.Name, 'Fan4')
     self.assertTrue(fan.RPM < 0)
+    self.assertEqual(fan.DesiredRPM, -1)
+    self.assertEqual(fan.DesiredPercentage, -1)
 
 
 if __name__ == '__main__':

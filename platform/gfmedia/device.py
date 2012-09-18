@@ -394,10 +394,13 @@ class Moca(tr181.Device_v2_2.Device.MoCA):
 class FanReadGpio(CATA181DI.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
   """Implementation of Fan object, reading rev/sec from a file."""
 
-  def __init__(self, name='Fan', filename='/tmp/gpio/fanspeed'):
+  def __init__(self, name='Fan', speed_filename='/tmp/gpio/fanspeed',
+                  percent_filename='/tmp/gpio/fanpercent'):
     super(FanReadGpio, self).__init__()
+    self.Unexport(params='DesiredRPM')
     self._name = name
-    self._filename = filename
+    self._speed_filename = speed_filename
+    self._percent_filename = percent_filename
 
   @property
   def Name(self):
@@ -406,11 +409,30 @@ class FanReadGpio(CATA181DI.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
   @property
   def RPM(self):
     try:
-      rps2 = int(open(self._filename, 'r').read())
-      return rps2 * 30
-    except ValueError:
-      print 'FanReadGpio bad value %s' % self._filename
+      f = open(self._speed_filename, 'r')
+    except IOError as e:
+      print 'Fan speed file %r: %s' % (self._speed_filename, e)
       return -1
+    try:
+      rps2 = int(f.read())
+      return rps2 * 30
+    except ValueError as e:
+      print 'FanReadGpio RPM %r: %s' % (self._speed_filename, e)
+      return -1
+
+  @property
+  def DesiredPercentage(self):
+    try:
+      f = open(self._percent_filename, 'r')
+    except IOError as e:
+      print 'Fan percent file %r: %s' % (self._percent_filename, e)
+      return -1
+    try:
+      return int(f.read())
+    except ValueError as e:
+      print 'FanReadGpio DesiredPercentage %r: %s' % (self._percent_filename, e)
+      return -1
+
 
 
 class Device(tr181.Device_v2_2.Device):

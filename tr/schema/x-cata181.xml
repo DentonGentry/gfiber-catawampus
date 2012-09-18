@@ -75,7 +75,23 @@
         </parameter>
         <parameter name="RPM" access="readOnly">
             <description>
-              Speed of the fan, in revolutions/minute.
+              Measured speed of the fan, in revolutions/minute.
+            </description>
+            <syntax>
+              <int/>
+            </syntax>
+        </parameter>
+        <parameter name="DesiredRPM" access="readOnly">
+            <description>
+              The calculated speed the system believes the fan should run at, given the current temperature. Measured in revolutions/minute.
+            </description>
+            <syntax>
+              <int/>
+            </syntax>
+        </parameter>
+        <parameter name="DesiredPercentage" access="readOnly">
+            <description>
+              Percentage for the level that the fan should run at.
             </description>
             <syntax>
               <int/>

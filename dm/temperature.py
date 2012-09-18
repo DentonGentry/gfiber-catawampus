@@ -358,6 +358,13 @@ class FanReadFileRPS(CATA181DI.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
       print 'FanReadFileRPS bad value %s' % self._filename
       return -1
 
+  @property
+  def DesiredRPM(self):
+    return -1
+
+  @property
+  def DesiredPercentage(self):
+    return -1
 
 def main():
   pass

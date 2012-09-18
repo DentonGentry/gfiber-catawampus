@@ -127,8 +127,15 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.assertEqual(did.HardwareVersion, '?')
 
   def testFanSpeed(self):
-    fan = device.FanReadGpio(filename='testdata/fanspeed')
+    fan = device.FanReadGpio(speed_filename='testdata/fanspeed',
+                    percent_filename='testdata/fanpercent')
+    fan.ValidateExports()
     self.assertEqual(fan.RPM, 1800)
+    self.assertEqual(fan.DesiredPercentage, 50)
+    fan = device.FanReadGpio(speed_filename='foo',
+                    percent_filename='bar')
+    self.assertEqual(fan.RPM, -1)
+    self.assertEqual(fan.DesiredPercentage, -1)
 
   def install_callback(self, faultcode, faultstring, must_reboot):
     self.install_cb_called = True
