@@ -23,15 +23,40 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 import unittest
 
 import google3
+import tr.types
 import api
 import core
+
+
+changes = 0
 
 
 class Word(core.Exporter):
   def __init__(self):
     core.Exporter.__init__(self)
-    self.Export(params=['word'])
-    self.word = None
+    self.Export(params=['word', 'readonlyword'])
+    self._word = None
+
+  @property
+  def word(self):
+    return self._word
+
+  @word.setter
+  def word(self, value):
+    global changes
+    changes += 1
+    self._word = value
+
+  @property
+  def readonlyword(self):
+    return 'cant-write-me!'
+
+  validatedword = tr.types.String()
+  @validatedword.validator
+  def validatedword(self, value):
+    if value not in ['yes', 'no']:
+      raise ValueError('must be yes or no')
+    return value
 
 
 class TestObject(core.Exporter):
@@ -66,6 +91,42 @@ class ApiTest(unittest.TestCase):
                       '%s.not_exist' % name, 'word1')
     result = cpe.GetParameterValues(['%s.word' % name])
     self.assertEqual(result, [('%s.word' % name, 'word1')])
+    self.assertEqual(changes, 1)
+    self.assertRaises(api.SetParameterErrors,
+                      cpe.SetParameterValues,
+                      [('%s.word' % name, 'snorkleberry'),
+                       ('nonexist', 'broken')], 0)
+    # word was not changed because nonexist didn't exist and we check for
+    # existence first.
+    self.assertEqual(result, [('%s.word' % name, 'word1')])
+    self.assertEqual(changes, 1)
+
+    # word changed, but then changed back, because readonlyword has no
+    # validator and it failed in the set phase.
+    self.assertRaises(api.SetParameterErrors,
+                      cpe.SetParameterValues,
+                      [('%s.word' % name, 'snorkleberry'),
+                       ('%s.readonlyword' % name, 'broken')], 0)
+    self.assertEqual(result, [('%s.word' % name, 'word1')])
+    self.assertEqual(changes, 3)
+
+    # word changed, but then changed back.  Strictly speaking we could have
+    # aborted the set as soon as reasonlyword failed, but then the set of
+    # error messages wouldn't be as thorough as possible, so we deliberately
+    # choose to try all the sets if we get to the setting phase.
+    self.assertRaises(api.SetParameterErrors,
+                      cpe.SetParameterValues,
+                      [('%s.readonlyword' % name, 'broken'),
+                       ('%s.word' % name, 'snorkleberry')], 0)
+    self.assertEqual(result, [('%s.word' % name, 'word1')])
+    self.assertEqual(changes, 5)
+
+    self.assertRaises(api.SetParameterErrors,
+                      cpe.SetParameterValues,
+                      [('%s.word' % name, 'snorkleberry'),
+                       ('%s.validatedword' % name, 'broken')], 0)
+    self.assertEqual(result, [('%s.word' % name, 'word1')])
+    self.assertEqual(changes, 5)
 
   def testGetParameterValuesEmpty(self):
     cpe = api.CPE(TestSimpleRoot())

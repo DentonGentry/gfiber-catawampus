@@ -57,8 +57,10 @@ class Encode(object):
       xml['cwmp:GetRPCMethods'](None)
     return xml
 
-  def Inform(self, root, events=[], max_envelopes=1,
-             current_time=None, retry_count=0, parameter_list=[]):
+  def Inform(self, root, events=None, max_envelopes=1,
+             current_time=None, retry_count=0, parameter_list=None):
+    if not events: events = []
+    if not parameter_list: parameter_list = []
     with self._Envelope() as xml:
       with xml['cwmp:Inform']:
         with xml.DeviceId:
@@ -205,6 +207,7 @@ class SoapHandler(object):
         result = soap.SimpleFault(
             xml, cpefault=soap.CpeFault.INTERNAL_ERROR,
             faultstring=traceback.format_exc())
+        traceback.print_exc()
 
     if result is not None:
       return xml

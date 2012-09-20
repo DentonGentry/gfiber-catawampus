@@ -30,7 +30,7 @@ import datetime
 
 import tornado.ioloop
 import tr.cwmpbool
-
+import tr.types
 import download
 
 # Time in seconds to refetch the values that are being watched
@@ -46,7 +46,7 @@ class SetParameterErrors(Exception):
   """Exceptions which occurred during a SetParameterValues transaction."""
 
   def __init__(self, error_list, msg):
-    Exception.__init__(self, msg)
+    Exception.__init__(self, '%s (%s)' % (msg, error_list))
     self.error_list = error_list
 
 
@@ -297,7 +297,7 @@ class CPE(TR069Service):
       return self.root.SetExportParam(name, value)
 
   def _ConcludeTransaction(self, objects, do_commit):
-    """Commit or abandon  all pending writes.
+    """Commit or abandon all pending writes.
 
     Args:
       objects: list of dirty objects to commit
@@ -323,32 +323,92 @@ class CPE(TR069Service):
         obj.AbandonTransaction()
     return 0  # all values changed successfully
 
+  @staticmethod
+  def _Apply(error_list, fullname, attr_error, func, *args):
+    try:
+      return func(*args)
+    except TypeError as e:
+      error_list.append(ParameterTypeError(parameter=fullname, msg=str(e)))
+    except ValueError as e:
+      error_list.append(ParameterValueError(parameter=fullname, msg=str(e)))
+    except KeyError as e:
+      error_list.append(ParameterNameError(parameter=fullname, msg=str(e)))
+    except AttributeError as e:
+      # AttributeError might mean the attribute is missing, or that it's
+      # read-only.  Since we call _Apply() to read the values first,
+      # it means missing in that case.  If we get to the part where we start
+      # writing values, it must mean read-only, because it wasn't missing
+      # before.
+      error_list.append(attr_error(parameter=fullname, msg=str(e)))
+
   def SetParameterValues(self, parameter_list, parameter_key):
     """Sets parameters on some objects."""
-    dirty = set()
+    parameter_list = list(parameter_list)
     error_list = []
-    for name, value in parameter_list:
-      obj = None
-      try:
-        obj = self._SetParameterValue(name, value)
-      except TypeError as e:
-        error_list.append(ParameterTypeError(parameter=name, msg=str(e)))
-      except ValueError as e:
-        error_list.append(ParameterValueError(parameter=name, msg=str(e)))
-      except KeyError as e:
-        error_list.append(ParameterNameError(parameter=name, msg=str(e)))
-      except AttributeError as e:
-        error_list.append(ParameterNotWritableError(parameter=name, msg=str(e)))
+    keys = []
+    values = []
+    for key, value in parameter_list:
+      if key == 'ParameterKey':
+        pass  # parameter_key overrides it anyhow
+      else:
+        keys.append(key)
+        values.append(value)
+    lookup = list(self.root.LookupExports(keys))
 
-      if obj:
-        dirty.add(obj)
+    # phase 1: grab existing values.
+    oldvals = []
+    for key, (obj, param) in zip(keys, lookup):
+      oldvals.append(self._Apply(error_list, key, ParameterNameError,
+                                 getattr, obj, param))
     if error_list:
+      # don't need to _ConcludeTransaction since we didn't change anything yet
+      raise SetParameterErrors(error_list=error_list,
+                               msg='Transaction Errors: %d' % len(error_list))
+
+    # phase 2: try validating new values.
+    #  Since not all properties have validators, this won't catch all
+    #  possible errors, but the more objects that support validators, the
+    #  fewer transactions we'll have to rollback in the future.
+    assert not error_list
+    for key, (obj, param), value in zip(keys, lookup, values):
+      self._Apply(error_list, key, ParameterNotWritableError,
+                  tr.types.tryattr, obj, param, value)
+    if error_list:
+      # don't need to _ConcludeTransaction since we didn't change anything yet
+      raise SetParameterErrors(error_list=error_list,
+                               msg='Transaction Errors: %d' % len(error_list))
+
+    # phase 3: try setting new values.
+    assert not error_list
+    dirty = set()
+    for key, (obj, param), value in zip(keys, lookup, values):
+      self._Apply(error_list, key, ParameterNotWritableError,
+                  obj.SetExportParam, param, value)
+      dirty.add(obj)
+    if error_list:
+      # if there were *any* errors, need to undo *all* changes.
+      # First reset all values to their recorded values.  (Some of them might
+      # fail, but we can't do anything about that, so throw away the error
+      # list.)
+      for key, (obj, param), value, oldval in zip(keys, lookup,
+                                                  values, oldvals):
+        if oldval != value:
+          self._Apply([], key, ParameterNotWritableError,
+                      setattr, obj, param, oldval)
+      # Now tell the objects themselves to undo the transactions, if they
+      # support it.
+      # TODO(apenwarr): Deprecate per-object transaction support.
+      #  Once upon a time, we didn't have high-level transactions (ie. this
+      #  function) so objects had to do it themselves, but it was very error
+      #  prone.
       self._ConcludeTransaction(objects=dirty, do_commit=False)
       raise SetParameterErrors(error_list=error_list,
                                msg='Transaction Errors: %d' % len(error_list))
-    else:
-      self._SetParameterKey(parameter_key)
-      return self._ConcludeTransaction(dirty, True)
+
+    # if we get here, all went well.
+    assert not error_list
+    self._SetParameterKey(parameter_key)
+    return self._ConcludeTransaction(dirty, True)
 
   def _GetParameterValue(self, name):
     """Given a parameter (which can include an object), return its value."""
