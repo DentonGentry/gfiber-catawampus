@@ -125,7 +125,7 @@ class CwmpSession(object):
 class cache(object):
   """A global cache of arbitrary data for the lifetime of one CWMP session.
 
-  @cwmp_session.cache is a decorator to cache the return
+  @session.cache is a decorator to cache the return
   value of a function for the remainder of the session with the ACS.
   Calling the function again with the same arguments will be serviced
   from the cache.
@@ -168,7 +168,7 @@ class cache(object):
 def main():
   # pylint: disable-msg=C6003
   print('# pipe this to grapviz, ex:')
-  print('# ./cwmp_session.py | dot -Tpdf -ocwmp_session.pdf')
+  print('# ./session.py | dot -Tpdf -osession.pdf')
   print(graphviz)
 
 

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#/usr/bin/python
 # Copyright 2012 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,6 +28,7 @@ import os.path
 import re
 import subprocess
 import tr.core
+import tr.session
 import tr.tr140_v1_1
 import tr.types
 import tr.x_catawampus_storage_1_0
@@ -140,7 +141,7 @@ class LogicalVolumeLinux26(BASESTORAGE.LogicalVolume):
     self.FolderList = {}
     self.ThresholdLimit = 0
 
-  # TODO(dgentry) need @sessioncache decorator
+  @tr.session.cache
   def _GetStatVfs(self):
     return STATVFS(self.rootpath)
 
@@ -205,7 +206,7 @@ class PhysicalMediumDiskLinux26(BASESTORAGE.PhysicalMedium):
       assert conn_type[0:1] == 'X_' or conn_type in self.CONNECTION_TYPES
     type(self).ConnectionType.Set(self, conn_type)
 
-  # TODO(dgentry) need @sessioncache decorator
+  @tr.session.cache
   def _GetSmartctlOutput(self):
     """Return smartctl info and health output."""
     dev = SLASHDEV + self.dev

@@ -36,6 +36,7 @@ import subprocess
 import time
 import tr.core
 import tr.cwmpbool
+import tr.session
 import tr.tr098_v1_4
 import netdev
 import wifi
@@ -557,7 +558,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   def Name(self):
     return self._ifname
 
-  @property  # TODO(dgentry) need @sessioncache decorator.
+  @property
   def Stats(self):
     return BrcmWlanConfigurationStats(self._ifname)
 
@@ -913,30 +914,33 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
         self.wl.SetWepKey(idx-1, key)
     self.wl.SetWepKeyIndex(self.config.p_wepkeyindex)
 
+  @tr.session.cache
+  def _GetWlCounters(self):
+    return self.wl.GetWlCounters()
+
   def GetTotalBytesReceived(self):
-    # TODO(dgentry) cache for lifetime of session
-    counters = self.wl.GetWlCounters()
+    counters = self._GetWlCounters()
     return int(counters.get('rxbyte', 0))
 
   TotalBytesReceived = property(GetTotalBytesReceived, None, None,
                                 'WLANConfiguration.TotalBytesReceived')
 
   def GetTotalBytesSent(self):
-    counters = self.wl.GetWlCounters()
+    counters = self._GetWlCounters()
     return int(counters.get('txbyte', 0))
 
   TotalBytesSent = property(GetTotalBytesSent, None, None,
                             'WLANConfiguration.TotalBytesSent')
 
   def GetTotalPacketsReceived(self):
-    counters = self.wl.GetWlCounters()
+    counters = self._GetWlCounters()
     return int(counters.get('rxframe', 0))
 
   TotalPacketsReceived = property(GetTotalPacketsReceived, None, None,
                                   'WLANConfiguration.TotalPacketsReceived')
 
   def GetTotalPacketsSent(self):
-    counters = self.wl.GetWlCounters()
+    counters = self._GetWlCounters()
     return int(counters.get('txframe', 0))
 
   TotalPacketsSent = property(GetTotalPacketsSent, None, None,

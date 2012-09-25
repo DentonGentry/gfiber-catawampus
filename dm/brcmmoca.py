@@ -24,6 +24,7 @@ import re
 import subprocess
 import pynetlinux
 import tr.core
+import tr.session
 import tr.tr181_v2_2
 import tr.types
 import netdev
@@ -103,18 +104,18 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
         'AssociatedDeviceList', iteritems=self.IterAssociatedDevices,
         getitem=self.GetAssociatedDeviceByIndex)
 
-  @property  # TODO(dgentry) need @sessioncache decorator.
+  @property
   def Stats(self):
     return BrcmMocaInterfaceStatsLinux26(self.Name)
 
-  # TODO(dgentry) need @sessioncache decorator
+  @tr.session.cache
   def _MocaCtlShowStatus(self):
     """Return output of mocactl show --status."""
     mc = subprocess.Popen([MOCACTL, 'show', '--status'], stdout=subprocess.PIPE)
     out, _ = mc.communicate(None)
     return out.splitlines()
 
-  # TODO(dgentry) need @sessioncache decorator
+  @tr.session.cache
   def _MocaCtlShowInitParms(self):
     """Return output of mocactl show --initparms."""
     mc = subprocess.Popen([MOCACTL, 'show', '--initparms'],
@@ -122,7 +123,7 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
     out, _ = mc.communicate(None)
     return out.splitlines()
 
-  # TODO(dgentry) need @sessioncache decorator
+  @tr.session.cache
   def _MocaCtlShowConfig(self):
     """Return output of mocactl show --config."""
     mc = subprocess.Popen([MOCACTL, 'show', '--config'], stdout=subprocess.PIPE)

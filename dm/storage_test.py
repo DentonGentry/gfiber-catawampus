@@ -25,6 +25,7 @@ import unittest
 
 import google3
 import storage
+import tr.session
 
 
 statvfsstruct = collections.namedtuple(
@@ -58,20 +59,25 @@ def GetMtdStats(mtdpath):
 
 class StorageTest(unittest.TestCase):
   def setUp(self):
-    storage.STATVFS = OsStatVfs
-    storage.GETMTDSTATS = GetMtdStats
+    self.old_GETMTDSTATS = storage.GETMTDSTATS
     self.old_PROC_FILESYSTEMS = storage.PROC_FILESYSTEMS
     self.old_PROC_MOUNTS = storage.PROC_MOUNTS
     self.old_SMARTCTL = storage.SMARTCTL
+    self.old_STATVFS = storage.STATVFS
     self.old_SYS_BLOCK = storage.SYS_BLOCK
     self.old_SYS_UBI = storage.SYS_UBI
+    storage.GETMTDSTATS = GetMtdStats
     storage.SMARTCTL = 'testdata/storage/smartctl'
+    storage.STATVFS = OsStatVfs
     storage.SYS_UBI = 'testdata/storage/sys/class'
+    tr.session.cache.flush()
 
   def tearDown(self):
+    storage.GETMTDSTATS = self.old_GETMTDSTATS
     storage.PROC_FILESYSTEMS = self.old_PROC_FILESYSTEMS
     storage.PROC_MOUNTS = self.old_PROC_MOUNTS
     storage.SMARTCTL = self.old_SMARTCTL
+    storage.STATVFS = self.old_STATVFS
     storage.SYS_BLOCK = self.old_SYS_BLOCK
     storage.SYS_UBI = self.old_SYS_UBI
 

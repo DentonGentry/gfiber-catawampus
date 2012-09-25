@@ -24,6 +24,7 @@ __author__ = 'jnewlin@google.com (John Newlin)'
 import datetime
 import time
 import tr.cwmpbool
+import tr.session
 import tr.tr157_v1_3
 
 # TODO(jnewlin): Denton has suggested that we might need to import a newer
@@ -290,6 +291,11 @@ class PeriodicStatistics(BASE157PS):
       self.RemoveTimeout()
       if not self._root or not self._cpe:
         return
+
+      # We're starting what is effectively a CWMP session, one without such
+      # trifling details as an ACS. We don't want stale data from previous
+      # stats collections and/or actual ACS sessions.
+      tr.session.cache.flush()
 
       current_time = current_time if current_time else time.time()
       sample_start_time = self._sample_start_time

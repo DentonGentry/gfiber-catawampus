@@ -28,6 +28,7 @@ import unittest
 import google3
 import brcmwifi
 import netdev
+import tr.session
 
 
 class BrcmWifiTest(unittest.TestCase):
@@ -38,6 +39,7 @@ class BrcmWifiTest(unittest.TestCase):
     brcmwifi.WL_AUTOCHAN_SLEEP = 0
     self.old_PROC_NET_DEV = netdev.PROC_NET_DEV
     self.files_to_remove = list()
+    tr.session.cache.flush()
 
   def tearDown(self):
     brcmwifi.WL_EXE = self.old_WL_EXE
@@ -637,19 +639,27 @@ class BrcmWifiTest(unittest.TestCase):
     # pylint: disable-msg=E1101
     self.assertEqual(stats.BroadcastPacketsReceived, None)
     self.assertEqual(stats.BroadcastPacketsSent, None)
-    self.assertEqual(stats.BytesReceived, '1')
-    self.assertEqual(stats.BytesSent, '9')
-    self.assertEqual(stats.DiscardPacketsReceived, '4')
-    self.assertEqual(stats.DiscardPacketsSent, '11')
-    self.assertEqual(stats.ErrorsReceived, '9')
-    self.assertEqual(stats.ErrorsSent, '12')
-    self.assertEqual(stats.MulticastPacketsReceived, '8')
+    self.assertEqual(stats.BytesReceived, 1)
+    self.assertEqual(stats.BytesSent, 9)
+    self.assertEqual(stats.DiscardPacketsReceived, 4)
+    self.assertEqual(stats.DiscardPacketsSent, 11)
+    self.assertEqual(stats.ErrorsReceived, 9)
+    self.assertEqual(stats.ErrorsSent, 12)
+    self.assertEqual(stats.MulticastPacketsReceived, 8)
     self.assertEqual(stats.MulticastPacketsSent, None)
-    self.assertEqual(stats.PacketsReceived, '100')
-    self.assertEqual(stats.PacketsSent, '10')
-    self.assertEqual(stats.UnicastPacketsReceived, '92')
-    self.assertEqual(stats.UnicastPacketsSent, '10')
+    self.assertEqual(stats.PacketsReceived, 100)
+    self.assertEqual(stats.PacketsSent, 10)
+    self.assertEqual(stats.UnicastPacketsReceived, 92)
+    self.assertEqual(stats.UnicastPacketsSent, 10)
     self.assertEqual(stats.UnknownProtoPacketsReceived, None)
+
+  def testWifiStats(self):
+    brcmwifi.WL_EXE = 'testdata/brcmwifi/wlcounters'
+    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    self.assertEqual(bw.TotalBytesReceived, 6)
+    self.assertEqual(bw.TotalBytesSent, 2)
+    self.assertEqual(bw.TotalPacketsReceived, 5)
+    self.assertEqual(bw.TotalPacketsSent, 1)
 
   def testAssociatedDevice(self):
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlassociated'

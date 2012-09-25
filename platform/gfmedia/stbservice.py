@@ -27,8 +27,8 @@ import re
 import socket
 import struct
 
-import tr.cwmp_session as cwmp_session
 import tr.cwmpdate
+import tr.session
 import tr.tr135_v1_2
 import tr.x_catawampus_videomonitoring_1_0 as vmonitor
 
@@ -235,7 +235,7 @@ class HDMI(BASE135STB.Components.HDMI):
     self.Unexport('Name')
     self.DisplayDevice = HDMIDisplayDevice()
 
-  @cwmp_session.cache
+  @tr.session.cache
   def _GetStats(self):
     data = dict()
     for filename in glob.glob(HDMI_STATS_FILE):
@@ -278,7 +278,7 @@ class HDMIDisplayDevice(BASE135STB.Components.HDMI.DisplayDevice):
     self.Export(params=['X_GOOGLE-COM_LastUpdateTimestamp'])
     self.Export(params=['X_GOOGLE-COM_EDIDExtensions'])
 
-  @cwmp_session.cache
+  @tr.session.cache
   def _GetStats(self):
     data = dict()
     for wildcard in HDMI_DISPLAY_DEVICE_STATS_FILES:
@@ -663,7 +663,7 @@ class EPG(CATA135STB.X_CATAWAMPUS_ORG_ProgramMetadata.EPG):
   def __init__(self):
     super(EPG, self).__init__()
 
-  @cwmp_session.cache
+  @tr.session.cache
   def _GetStats(self):
     """Generate stats object from the JSON stats."""
     data = dict()

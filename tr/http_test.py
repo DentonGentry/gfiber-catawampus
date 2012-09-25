@@ -39,10 +39,10 @@ import tornado.testing
 import tornado.util
 
 import api
-import cwmp_session
 import cwmpdate
 import download
 import http
+import session
 
 
 mock_http_client_stop = None
@@ -107,8 +107,8 @@ class HttpTest(tornado.testing.AsyncTestCase):
     super(HttpTest, self).setUp()
     self.old_monotime = GetMonotime()
     self.advance_time = 0
-    self.old_HTTPCLIENT = cwmp_session.HTTPCLIENT
-    cwmp_session.HTTPCLIENT = MockHttpClient
+    self.old_HTTPCLIENT = session.HTTPCLIENT
+    session.HTTPCLIENT = MockHttpClient
     global mock_http_client_stop
     mock_http_client_stop = self.stop
     self.removedirs = list()
@@ -118,7 +118,7 @@ class HttpTest(tornado.testing.AsyncTestCase):
   def tearDown(self):
     super(HttpTest, self).tearDown()
     SetMonotime(self.old_monotime)
-    cwmp_session.HTTPCLIENT = self.old_HTTPCLIENT
+    session.HTTPCLIENT = self.old_HTTPCLIENT
     for d in self.removedirs:
       shutil.rmtree(d)
     for f in self.removefiles:
