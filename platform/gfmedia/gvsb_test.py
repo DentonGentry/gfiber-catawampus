@@ -76,6 +76,7 @@ class GvsbTest(unittest.TestCase):
     temp = tempfile.NamedTemporaryFile()
     gvsb.GVSBCHANNELFILE = temp.name
     gv = gvsb.Gvsb()
+    self.assertEqual(gv.GvsbChannelLineup, 0)
     gv.StartTransaction()
     gv.GvsbChannelLineup = 1000
     gv.CommitTransaction()
