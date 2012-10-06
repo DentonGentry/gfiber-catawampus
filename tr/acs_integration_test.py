@@ -45,6 +45,18 @@ class TestDeviceModelObject(core.Exporter):
     self.Export(params=params, objects=objects)
 
 
+class TestDeviceModelRootSimple(core.Exporter):
+  """A class to hold the device models."""
+
+  def __init__(self):
+    core.Exporter.__init__(self)
+    params = []
+    objects = []
+    self.SubObject = TestDeviceModelObject()
+    objects.append('SubObject')
+    self.Export(params=params, objects=objects)
+
+
 class TestDeviceModelRoot(core.Exporter):
   """A class to hold the device models."""
 
@@ -204,21 +216,22 @@ class FakePlatformConfig(object):
     return None
 
 
+def getCpe(simpleroot=False):
+  root = TestDeviceModelRootSimple() if simpleroot else TestDeviceModelRoot()
+  cpe = api.CPE(root)
+  cpe.download_manager = MockDownloadManager()
+  cpe_machine = http.Listen(ip=None, port=0,
+                            ping_path='/ping/acs_integration_test',
+                            acs=None, cpe=cpe, cpe_listener=False,
+                            platform_config=FakePlatformConfig())
+  return cpe_machine
+
+
 class TransferRpcTest(unittest.TestCase):
   """Test cases for RPCs relating to file transfers."""
 
-  def getCpe(self):
-    root = TestDeviceModelRoot()
-    cpe = api.CPE(root)
-    cpe.download_manager = MockDownloadManager()
-    cpe_machine = http.Listen(ip=None, port=0,
-                              ping_path='/ping/acs_integration_test',
-                              acs=None, cpe=cpe, cpe_listener=False,
-                              platform_config=FakePlatformConfig())
-    return cpe_machine
-
   def testDownloadSimple(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     downloadXml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:Download><CommandKey>CommandKey</CommandKey><FileType>1 Firmware Upgrade Image</FileType><URL>http://example.com/image</URL><Username>Username</Username><Password>Password</Password><FileSize>123456</FileSize><TargetFileName>TargetFileName</TargetFileName><DelaySeconds>321</DelaySeconds><SuccessURL/><FailureURL/></cwmp:Download></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     dm = cpe.cpe.download_manager
     responseXml = cpe.cpe_soap.Handle(downloadXml)
@@ -239,7 +252,7 @@ class TransferRpcTest(unittest.TestCase):
     self.assertEqual(dlresp.find('CompleteTime').text, '0001-01-01T00:00:00Z')
 
   def testDownloadFailed(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     downloadXml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:Download><CommandKey>CommandKey</CommandKey><FileType>1 Firmware Upgrade Image</FileType><URL>invalid</URL><Username>Username</Username><Password>Password</Password><FileSize>123456</FileSize><TargetFileName>TargetFileName</TargetFileName><DelaySeconds>321</DelaySeconds><SuccessURL/><FailureURL/></cwmp:Download></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     dm = cpe.cpe.download_manager
     dm.newdl_raise_resources = True
@@ -288,7 +301,7 @@ class TransferRpcTest(unittest.TestCase):
       </soap:Envelope>"""
 
   def testGetAllQueuedTransfers(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetAllQueuedTransfers></cwmp:GetAllQueuedTransfers></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     dm = cpe.cpe.download_manager
     dm.AddQueuedTransfer()
@@ -338,7 +351,7 @@ class TransferRpcTest(unittest.TestCase):
     </soap:Envelope>"""
 
   def testGetQueuedTransfers(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetQueuedTransfers></cwmp:GetQueuedTransfers></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     dm = cpe.cpe.download_manager
     dm.AddQueuedTransfer()
@@ -377,7 +390,7 @@ class TransferRpcTest(unittest.TestCase):
     </soap:Envelope>"""
 
   def testCancelTransfer(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:CancelTransfer><CommandKey>CommandKey</CommandKey></cwmp:CancelTransfer></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(soapxml)
     root = ET.fromstring(str(responseXml))
@@ -399,7 +412,7 @@ class TransferRpcTest(unittest.TestCase):
       </soap:Envelope>"""
 
   def testCancelTransferRefused(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:CancelTransfer><CommandKey>CommandKey</CommandKey></cwmp:CancelTransfer></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     dm = cpe.cpe.download_manager
     dm.cancel_raise = True
@@ -439,7 +452,7 @@ class TransferRpcTest(unittest.TestCase):
       </soap:Envelope>"""
 
   def testReboot(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     dm = cpe.cpe.download_manager
     downloadXml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:Reboot><CommandKey>CommandKey</CommandKey></cwmp:Reboot></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(downloadXml)
@@ -453,17 +466,8 @@ class TransferRpcTest(unittest.TestCase):
 class GetParamsRpcTest(unittest.TestCase):
   """Test cases for RPCs relating to Parameters."""
 
-  def getCpe(self):
-    root = TestDeviceModelRoot()
-    cpe = api.CPE(root)
-    cpe_machine = http.Listen(ip=None, port=0,
-                              ping_path='/ping/acs_integration_test',
-                              acs=None, cpe=cpe, cpe_listener=False,
-                              platform_config=FakePlatformConfig())
-    return cpe_machine
-
   def testGetParamValue(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterValues><ParameterNames soapenc:arrayType="{urn:dslforum-org:cwmp-1-2}string[1]"><ns3:string xmlns="urn:dslforum-org:cwmp-1-2" xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" xmlns:ns3="urn:dslforum-org:cwmp-1-2">Foo</ns3:string></ParameterNames></cwmp:GetParameterValues></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(soapxml)
 
@@ -496,7 +500,7 @@ class GetParamsRpcTest(unittest.TestCase):
       </soap:Envelope>"""
 
   def testXsiTypes(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterValues><ParameterNames soapenc:arrayType="{urn:dslforum-org:cwmp-1-2}string[1]"><ns3:string xmlns="urn:dslforum-org:cwmp-1-2" xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" xmlns:ns3="urn:dslforum-org:cwmp-1-2">BooleanParameter</ns3:string><ns3:string xmlns="urn:dslforum-org:cwmp-1-2" xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" xmlns:ns3="urn:dslforum-org:cwmp-1-2">IntegerParameter</ns3:string><ns3:string xmlns="urn:dslforum-org:cwmp-1-2" xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" xmlns:ns3="urn:dslforum-org:cwmp-1-2">FloatParameter</ns3:string><ns3:string xmlns="urn:dslforum-org:cwmp-1-2" xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" xmlns:ns3="urn:dslforum-org:cwmp-1-2">DateTimeParameter</ns3:string><ns3:string xmlns="urn:dslforum-org:cwmp-1-2" xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" xmlns:ns3="urn:dslforum-org:cwmp-1-2">StringParameter</ns3:string></ParameterNames></cwmp:GetParameterValues></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(soapxml)
 
@@ -512,7 +516,7 @@ class GetParamsRpcTest(unittest.TestCase):
     self.assertEqual(params[4].find('Value').get(XSINS + 'type'), 'xsd:string')
 
   def testGetParamName(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterNames><ParameterPath/><NextLevel>true</NextLevel></cwmp:GetParameterNames></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(soapxml)
 
@@ -522,26 +526,20 @@ class GetParamsRpcTest(unittest.TestCase):
         'GetParameterNamesResponse/ParameterList/ParameterInfoStruct/Name')
     self.assertEqual(len(names), 12)
 
-    # We don't do a string compare of the XML output, that is too fragile
-    # as a test. We parse the XML and look for expected values. Nonetheless
-    # here is roughly what responseXml should look like, if you need to debug
-    # this test case:
-    _ = r"""<?xml version="1.0" encoding="utf-8"?>
-      <soap:Envelope xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-        <soap:Header>
-          <cwmp:ID soap:mustUnderstand="1">TestCwmpId</cwmp:ID>
-        </soap:Header>
-        <soap:Body>
-          <cwmp:GetParameterNamesResponse>
-            <ParameterList soap-enc:arrayType="ParameterInfoStruct[1]">
-              <ParameterInfoStruct>
-                <Name>Foo</Name>
-                <Writable>1</Writable>
-              </ParameterInfoStruct>
-            </ParameterList>
-          </cwmp:GetParameterNamesResponse>
-        </soap:Body>
-      </soap:Envelope>"""
+  def testGetParamNameRecursive(self):
+    cpe = getCpe(simpleroot=True)
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterNames><ParameterPath></ParameterPath><NextLevel>false</NextLevel></cwmp:GetParameterNames></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+    print responseXml
+
+    root = ET.fromstring(str(responseXml))
+    names = root.findall(
+        SOAPNS + 'Body/' + CWMPNS +
+        'GetParameterNamesResponse/ParameterList/ParameterInfoStruct/Name')
+    self.assertEqual(len(names), 3)
+    self.assertEqual(names[0].text, '.')
+    self.assertEqual(names[1].text, 'SubObject.')
+    self.assertEqual(names[2].text, 'SubObject.Foo')
 
   def _AssertCwmpFaultNopeNotHere(self, root):
     fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
@@ -554,7 +552,7 @@ class GetParamsRpcTest(unittest.TestCase):
     self.assertTrue(detail.find('FaultString').text.find('NopeNotHere'))
 
   def testGetBadParamValue(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterValues><ParameterNames soapenc:arrayType="{urn:dslforum-org:cwmp-1-2}string[1]"><ns3:string xmlns="urn:dslforum-org:cwmp-1-2" xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" xmlns:ns3="urn:dslforum-org:cwmp-1-2">NopeNotHere</ns3:string></ParameterNames></cwmp:GetParameterValues></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(soapxml)
 
@@ -587,7 +585,7 @@ class GetParamsRpcTest(unittest.TestCase):
       </soap:Envelope>"""
 
   def testGetBadParamValueFullPath(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterValues><ParameterNames soapenc:arrayType="{urn:dslforum-org:cwmp-1-2}string[1]"><ns3:string xmlns="urn:dslforum-org:cwmp-1-2" xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" xmlns:ns3="urn:dslforum-org:cwmp-1-2">SubObject.NopeNotHere</ns3:string></ParameterNames></cwmp:GetParameterValues></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(soapxml)
 
@@ -605,7 +603,7 @@ class GetParamsRpcTest(unittest.TestCase):
         detail.find('FaultString').text.find('SubObject.NopeNotHere'))
 
   def testGetBadParamName(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterNames><ParameterPath>NopeNotHere</ParameterPath><NextLevel>true</NextLevel></cwmp:GetParameterNames></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(soapxml)
     root = ET.fromstring(str(responseXml))
@@ -637,7 +635,7 @@ class GetParamsRpcTest(unittest.TestCase):
       </soap:Envelope>"""
 
   def testBadAddObjectName(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:AddObject><ObjectName>NopeNotHere.</ObjectName><ParameterKey>ParameterKey1</ParameterKey></cwmp:AddObject></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(soapxml)
     root = ET.fromstring(str(responseXml))
@@ -647,7 +645,7 @@ class GetParamsRpcTest(unittest.TestCase):
 
   def testBadAddObjectNameNoDot(self):
     """<ObjectName> does not end in a dot, as spec requires."""
-    cpe = self.getCpe()
+    cpe = getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:AddObject><ObjectName>NopeNotHere</ObjectName><ParameterKey>ParameterKey1</ParameterKey></cwmp:AddObject></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(soapxml)
     root = ET.fromstring(str(responseXml))
@@ -656,7 +654,7 @@ class GetParamsRpcTest(unittest.TestCase):
     self._AssertCwmpFaultNopeNotHere(root)
 
   def testBadDelObjectName(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:DeleteObject><ObjectName>NopeNotHere.</ObjectName><ParameterKey>ParameterKey1</ParameterKey></cwmp:DeleteObject></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(soapxml)
     root = ET.fromstring(str(responseXml))
@@ -666,7 +664,7 @@ class GetParamsRpcTest(unittest.TestCase):
 
   def testBadDelObjectNameNoDot(self):
     """<ObjectName> does not end in a dot, as spec requires."""
-    cpe = self.getCpe()
+    cpe = getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:DeleteObject><ObjectName>NopeNotHere</ObjectName><ParameterKey>ParameterKey1</ParameterKey></cwmp:DeleteObject></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(soapxml)
     root = ET.fromstring(str(responseXml))
@@ -675,7 +673,7 @@ class GetParamsRpcTest(unittest.TestCase):
     self._AssertCwmpFaultNopeNotHere(root)
 
   def testNoSuchMethod(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:NoSuchMethod><NoSuchArgument/></cwmp:NoSuchMethod></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(soapxml)
     root = ET.fromstring(str(responseXml))
@@ -689,7 +687,7 @@ class GetParamsRpcTest(unittest.TestCase):
     self.assertTrue(detail.find('FaultString').text.find('NoSuchMethod'))
 
   def testInvalidArgument(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterValues><ParameterNames soapenc:arrayType="{urn:dslforum-org:cwmp-1-2}string[1]"><ns3:string xmlns="urn:dslforum-org:cwmp-1-2" xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" xmlns:ns3="urn:dslforum-org:cwmp-1-2">RaiseIndexError</ns3:string></ParameterNames></cwmp:GetParameterValues></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(soapxml)
     root = ET.fromstring(str(responseXml))
@@ -702,7 +700,7 @@ class GetParamsRpcTest(unittest.TestCase):
     self.assertEqual(detail.find('FaultCode').text, '9003')
 
   def testSetParameterValues(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:SetParameterValues><ParameterList><ns2:ParameterValueStruct xmlns:ns2="urn:dslforum-org:cwmp-1-2"><Name>BooleanParameter</Name><Value xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:boolean">true</Value></ns2:ParameterValueStruct></ParameterList><ParameterKey>myParamKey</ParameterKey></cwmp:SetParameterValues></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(soapxml)
     root = ET.fromstring(str(responseXml))
@@ -715,7 +713,7 @@ class GetParamsRpcTest(unittest.TestCase):
     self.assertFalse(cpe.cpe.root.abandon_transaction_called)
 
   def testSetParameterFault(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:SetParameterValues><ParameterList><ns2:ParameterValueStruct xmlns:ns2="urn:dslforum-org:cwmp-1-2"><Name>RaiseTypeError</Name><Value xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:boolean">true</Value></ns2:ParameterValueStruct><ns2:ParameterValueStruct xmlns:ns2="urn:dslforum-org:cwmp-1-2"><Name>RaiseValueError</Name><Value xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:boolean">true</Value></ns2:ParameterValueStruct><ns2:ParameterValueStruct xmlns:ns2="urn:dslforum-org:cwmp-1-2"><Name>NoSuchParameter</Name><Value xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:boolean">true</Value></ns2:ParameterValueStruct><ns2:ParameterValueStruct xmlns:ns2="urn:dslforum-org:cwmp-1-2"><Name>ReadOnlyParameter</Name><Value xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:boolean">true</Value></ns2:ParameterValueStruct></ParameterList><ParameterKey>myParamKey</ParameterKey></cwmp:SetParameterValues></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(soapxml)
     root = ET.fromstring(str(responseXml))
@@ -745,7 +743,7 @@ class GetParamsRpcTest(unittest.TestCase):
     self.assertTrue(setfaults[3].find('FaultString').text)
 
   def testGetRPCMethods(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetRPCMethods></cwmp:GetRPCMethods></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(soapxml)
     root = ET.fromstring(str(responseXml))
@@ -775,7 +773,7 @@ class GetParamsRpcTest(unittest.TestCase):
     self.assertEqual(rpcnames, expected)
 
   def testInternalError(self):
-    cpe = self.getCpe()
+    cpe = getCpe()
     # RaiseSystemError simulates an unexpected problem which should
     # turn into a SOAP:Fault INTERNAL_ERROR
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterValues><ParameterNames soapenc:arrayType="{urn:dslforum-org:cwmp-1-2}string[1]"><ns3:string xmlns="urn:dslforum-org:cwmp-1-2" xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" xmlns:ns3="urn:dslforum-org:cwmp-1-2">RaiseSystemError</ns3:string></ParameterNames></cwmp:GetParameterValues></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
