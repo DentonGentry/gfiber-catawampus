@@ -49,5 +49,14 @@
         </syntax>
       </parameter>
     </object>
+    <object name="STBService.{i}.ServiceMonitoring.MainStream.{i}.Total.X_CATAWAMPUS-ORG_MulticastStats." access="readOnly" minEntries="1" maxEntries="1">
+      <description>Total IP Multicast statistics for this ''ServiceMonitoring'' main stream instance.</description>
+      <parameter name="MulticastGroup" access="readOnly">
+        <description>The Multicast IP group (if any) associated with this MainStream.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+    </object>
   </model>
 </dm:document>

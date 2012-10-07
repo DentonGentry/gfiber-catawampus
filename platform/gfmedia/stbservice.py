@@ -34,7 +34,7 @@ import tr.x_catawampus_videomonitoring_1_0 as vmonitor
 
 
 BASE135STB = tr.tr135_v1_2.STBService_v1_2.STBService
-BASEPROGMETADATA = vmonitor.X_CATAWAMPUS_ORG_STBVideoMonitoring_v1_0.STBService
+CATA135STB = vmonitor.X_CATAWAMPUS_ORG_STBVideoMonitoring_v1_0.STBService
 IGMPREGEX = re.compile('^\s+(\S+)\s+\d\s+\d:[0-9A-Fa-f]+\s+\d')
 IGMP6REGEX = re.compile(('^\d\s+\S+\s+([0-9A-Fa-f]{32})\s+\d\s+[0-9A-Fa-f]'
                          '+\s+\d'))
@@ -235,7 +235,6 @@ class HDMI(BASE135STB.Components.HDMI):
     self.Unexport('Name')
     self.DisplayDevice = HDMIDisplayDevice()
 
-  @property
   @cwmp_session.cache
   def _GetStats(self):
     data = dict()
@@ -262,7 +261,7 @@ class HDMI(BASE135STB.Components.HDMI):
 
   @property
   def ResolutionValue(self):
-    return self._GetStats.get('ResolutionValue', '')
+    return self._GetStats().get('ResolutionValue', '')
 
 
 class HDMIDisplayDevice(BASE135STB.Components.HDMI.DisplayDevice):
@@ -279,7 +278,6 @@ class HDMIDisplayDevice(BASE135STB.Components.HDMI.DisplayDevice):
     self.Export(params=['X_GOOGLE-COM_LastUpdateTimestamp'])
     self.Export(params=['X_GOOGLE-COM_EDIDExtensions'])
 
-  @property
   @cwmp_session.cache
   def _GetStats(self):
     data = dict()
@@ -336,63 +334,63 @@ class HDMIDisplayDevice(BASE135STB.Components.HDMI.DisplayDevice):
 
   @property
   def Status(self):
-    return self._GetStats.get('Status', 'None')
+    return self._GetStats().get('Status', 'None')
 
   @property
   def Name(self):
-    return self._GetStats.get('Name', '')
+    return self._GetStats().get('Name', '')
 
   @property
   def SupportedResolutions(self):
-    return self._GetStats.get('SupportedResolutions', '')
+    return self._GetStats().get('SupportedResolutions', '')
 
   @property
   def EEDID(self):
-    return self._GetStats.get('EEDID', '')
+    return self._GetStats().get('EEDID', '')
 
   @property
   def X_GOOGLE_COM_EDIDExtensions(self):
-    return self._GetStats.get('EDIDExtensions', '')
+    return self._GetStats().get('EDIDExtensions', '')
 
   @property
   def PreferredResolution(self):
-    return self._GetStats.get('PreferredResolution', '')
+    return self._GetStats().get('PreferredResolution', '')
 
   @property
   def VideoLatency(self):
-    return self._GetStats.get('VideoLatency', 0)
+    return self._GetStats().get('VideoLatency', 0)
 
   @property
   def AutoLipSyncSupport(self):
-    return self._GetStats.get('AutoLipSyncSupport', False)
+    return self._GetStats().get('AutoLipSyncSupport', False)
 
   @property
   def HDMI3DPresent(self):
-    return self._GetStats.get('HDMI3DPresent', False)
+    return self._GetStats().get('HDMI3DPresent', False)
 
   @property
   def X_GOOGLE_COM_NegotiationCount4(self):
-    return self._GetStats.get('Negotiations4hr', 0)
+    return self._GetStats().get('Negotiations4hr', 0)
 
   @property
   def X_GOOGLE_COM_NegotiationCount24(self):
-    return self._GetStats.get('Negotiations24hr', 0)
+    return self._GetStats().get('Negotiations24hr', 0)
 
   @property
   def X_GOOGLE_COM_VendorId(self):
-    return self._GetStats.get('VendorId', '')
+    return self._GetStats().get('VendorId', '')
 
   @property
   def X_GOOGLE_COM_ProductId(self):
-    return self._GetStats.get('ProductId', 0)
+    return self._GetStats().get('ProductId', 0)
 
   @property
   def X_GOOGLE_COM_MfgYear(self):
-    return self._GetStats.get('MfgYear', 1990)
+    return self._GetStats().get('MfgYear', 1990)
 
   @property
   def X_GOOGLE_COM_LastUpdateTimestamp(self):
-    return tr.cwmpdate.format(float(self._GetStats.get('LastUpdateTime', 0)))
+    return tr.cwmpdate.format(float(self._GetStats().get('LastUpdateTime', 0)))
 
 
 class ServiceMonitoring(BASE135STB.ServiceMonitoring):
@@ -509,7 +507,7 @@ class MainStream(BASE135STB.ServiceMonitoring.MainStream):
     self.Total.UpdateTotalStats(data)
 
 
-class Total(BASE135STB.ServiceMonitoring.MainStream.Total):
+class Total(CATA135STB.ServiceMonitoring.MainStream.Total):
   """STBService.{i}.ServiceMonitoring.MainStream.{i}.Total."""
 
   def __init__(self):
@@ -524,6 +522,7 @@ class Total(BASE135STB.ServiceMonitoring.MainStream.Total):
     self.DejitteringStats = DejitteringStats()
     self.MPEG2TSStats = MPEG2TSStats()
     self.TCPStats = TCPStats()
+    self.X_CATAWAMPUS_ORG_MulticastStats = MulticastStats()
 
   def UpdateTotalStats(self, data):
     if 'DejitteringStats' in data.keys():
@@ -532,6 +531,8 @@ class Total(BASE135STB.ServiceMonitoring.MainStream.Total):
       self.MPEG2TSStats.UpdateMPEG2TSStats(data['MPEG2TSStats'])
     if 'TCPStats' in data.keys():
       self.TCPStats.UpdateTCPStats(data['TCPStats'])
+    if 'MulticastStats' in data.keys():
+      self.X_CATAWAMPUS_ORG_MulticastStats.UpdateMulticastStats(data['MulticastStats'])
 
 
 class DejitteringStats(BASE135STB.ServiceMonitoring.MainStream.Total.
@@ -632,7 +633,23 @@ class TCPStats(BASE135STB.ServiceMonitoring.MainStream.Total.TCPStats):
       self._packets_retransmitted = tcpstats['Packets Retransmitted']
 
 
-class ProgMetadata(BASEPROGMETADATA.X_CATAWAMPUS_ORG_ProgramMetadata):
+class MulticastStats(CATA135STB.ServiceMonitoring.MainStream.Total.X_CATAWAMPUS_ORG_MulticastStats):
+  """STBService.{i}.ServiceMonitoring.MainStream.{i}.Total.X_CATAWAMPUS_ORG_MulticastStats."""
+
+  def __init__(self):
+    super(MulticastStats, self).__init__()
+    self._multicast_group = ''
+
+  @property
+  def MulticastGroup(self):
+    return self._multicast_group
+
+  def UpdateMulticastStats(self, mcstats):
+    if 'MulticastGroup' in mcstats.keys():
+      self._multicast_group = mcstats['MulticastGroup']
+
+
+class ProgMetadata(CATA135STB.X_CATAWAMPUS_ORG_ProgramMetadata):
   """STBService.{i}.X_CATAWAMPUS_ORG_ProgramMetadata."""
 
   def __init__(self):
@@ -640,13 +657,12 @@ class ProgMetadata(BASEPROGMETADATA.X_CATAWAMPUS_ORG_ProgramMetadata):
     self.EPG = EPG()
 
 
-class EPG(BASEPROGMETADATA.X_CATAWAMPUS_ORG_ProgramMetadata.EPG):
+class EPG(CATA135STB.X_CATAWAMPUS_ORG_ProgramMetadata.EPG):
   """STBService.{i}.X_CATAWAMPUS_ORG_ProgramMetadata.EPG."""
 
   def __init__(self):
     super(EPG, self).__init__()
 
-  @property
   @cwmp_session.cache
   def _GetStats(self):
     """Generate stats object from the JSON stats."""
@@ -678,19 +694,19 @@ class EPG(BASEPROGMETADATA.X_CATAWAMPUS_ORG_ProgramMetadata.EPG):
 
   @property
   def MulticastPackets(self):
-    return self._GetStats.get('MulticastPackets', 0)
+    return self._GetStats().get('MulticastPackets', 0)
 
   @property
   def EPGErrors(self):
-    return self._GetStats.get('EPGErrors', 0)
+    return self._GetStats().get('EPGErrors', 0)
 
   @property
   def LastReceivedTime(self):
-    return tr.cwmpdate.format(float(self._GetStats.get('LastReceivedTime', 0)))
+    return tr.cwmpdate.format(float(self._GetStats().get('LastReceivedTime', 0)))
 
   @property
   def EPGExpireTime(self):
-    return tr.cwmpdate.format(float(self._GetStats.get('EPGExpireTime', 0)))
+    return tr.cwmpdate.format(float(self._GetStats().get('EPGExpireTime', 0)))
 
 
 def main():

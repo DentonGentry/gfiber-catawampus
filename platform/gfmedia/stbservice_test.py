@@ -197,6 +197,18 @@ class STBServiceTest(unittest.TestCase):
     self.assertEqual(expected_bytesrcvd, actual_bytesrcvd)
     self.assertEqual(expected_pktsretran, actual_pktsretran)
 
+  def testMulticastStats(self):
+    """Test whether multicast stats are deserialized."""
+    stb = stbservice.STBService()
+    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
+    expected_mc = set(['225.0.0.1', '225.0.0.2', '225.0.0.3', '225.0.0.4',
+                       '225.0.0.5', '225.0.0.6', '225.0.0.7', '225.0.0.8'])
+    actual_mc = set()
+    for v in stb.ServiceMonitoring.MainStreamList.values():
+      mcstats = v.Total.X_CATAWAMPUS_ORG_MulticastStats
+      actual_mc.add(mcstats.MulticastGroup)
+    self.assertEqual(expected_mc, actual_mc)
+
   def testInstancePersistance(self):
     """Test whether MainStream instance numbers are persistent."""
     stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_strm1.json']
