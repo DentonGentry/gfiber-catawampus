@@ -21,11 +21,11 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import datetime
+import errno
 import fcntl
 import os
 import random
 import subprocess
-import traceback
 
 import google3
 
@@ -102,6 +102,13 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
     if rc != 0:
       raise AttributeError('set-acs failed')
 
+  def InvalidateAcsUrl(self, url):
+    try:
+      subprocess.check_call(args=[SET_ACS, 'timeout', url.strip()])
+    except subprocess.CalledProcessError:
+      return False
+    return True
+
   def _AcsAccessClearTimeout(self):
     if self.acs_timeout:
       self._ioloop.remove_timeout(self.acs_timeout)
@@ -118,10 +125,11 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
     except OSError as e:
       if e.errno != errno.ENOENT:
         raise
-      pass  # No such file == harmless
+      # No such file == harmless
 
     try:
-      rc = subprocess.call(args=[SET_ACS, 'timeout', self.acs_timeout_url.strip()])
+      rc = subprocess.call(args=[SET_ACS, 'timeout',
+                                 self.acs_timeout_url.strip()])
     except OSError:
       rc = -1
 
@@ -154,7 +162,7 @@ class DeviceId(dm.device_info.DeviceIdMeta):
     try:
       with open(filename, 'r') as f:
         return f.readline().strip()
-    except:
+    except IOError:
       return default
 
   def _GetNvramParam(self, param, default=''):
@@ -299,7 +307,7 @@ class Installer(tr.download.Installer):
     cmd = [REBOOT]
     subprocess.call(cmd)
 
-  def on_stdout(self, fd, events):
+  def on_stdout(self, fd, unused_events):
     """Called whenever the ginstall process prints to stdout."""
     # drain the pipe
     inp = ''
@@ -395,7 +403,7 @@ class FanReadGpio(CATA181DI.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
   """Implementation of Fan object, reading rev/sec from a file."""
 
   def __init__(self, name='Fan', speed_filename='/tmp/gpio/fanspeed',
-                  percent_filename='/tmp/gpio/fanpercent'):
+               percent_filename='/tmp/gpio/fanpercent'):
     super(FanReadGpio, self).__init__()
     self.Unexport(params='DesiredRPM')
     self._name = name
@@ -432,7 +440,6 @@ class FanReadGpio(CATA181DI.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
     except ValueError as e:
       print 'FanReadGpio DesiredPercentage %r: %s' % (self._percent_filename, e)
       return -1
-
 
 
 class Device(tr181.Device_v2_2.Device):

@@ -54,8 +54,11 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
     """FakeCPE requires a --acs_url parameter, there is no platform handling."""
     return None
 
-  def SetAcsUrl(self, url):
+  def SetAcsUrl(self, unused_url):
     raise AttributeError('URL is read-only')
+
+  def InvalidateAcsUrl(self, unused_url):
+    raise AttributeError('Cannot invalidate URL')
 
   def AcsAccessAttempt(self, url):
     pass
@@ -77,7 +80,7 @@ class InstallerFakeCPE(tr.download.Installer):
     if self._install_cb:
       self._install_cb(faultcode, faultstring, must_reboot=True)
 
-  def install(self, file_type, target_filename, callback):
+  def install(self, file_type, unused_target_filename, callback):
     ftype = file_type.split()
     if ftype and ftype[0] != '1':
       self._call_callback(INTERNAL_ERROR,
