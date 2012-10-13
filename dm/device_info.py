@@ -28,14 +28,16 @@ import abc
 import glob
 import os
 import tornado.ioloop
-import temperature
 import tr.core
 import tr.tr098_v1_4
 import tr.tr181_v2_2
+import tr.types
+import temperature
 
 BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
 BASE181DEVICE = tr.tr181_v2_2.Device_v2_2
 CATA181DEVICE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
+CATA181DEVICEINFO = CATA181DEVICE.DeviceInfo
 
 # Unit tests can override these with fake data
 PERIODICCALL = tornado.ioloop.PeriodicCallback
@@ -110,7 +112,7 @@ def _GetUptime():
 
 
 #pylint: disable-msg=W0231
-class DeviceInfo181Linux26(CATA181DEVICE.DeviceInfo):
+class DeviceInfo181Linux26(CATA181DEVICEINFO):
   """Implements tr-181 DeviceInfo for Linux 2.6 and similar systems."""
 
   def __init__(self, device_id, ioloop=None):
@@ -121,10 +123,10 @@ class DeviceInfo181Linux26(CATA181DEVICE.DeviceInfo):
     self.MemoryStatus = MemoryStatusLinux26()
     self.ProcessStatus = ProcessStatusLinux26(ioloop=ioloop)
     self.Unexport('FirstUseDate')
-    self.Unexport(lists='Location')
     self.Unexport(objects='NetworkProperties')
     self.Unexport('ProvisioningCode')
     self.Unexport(objects='ProxierInfo')
+    self.LocationList = {}
     self.TemperatureStatus = temperature.TemperatureStatus()
     self.VendorLogFileList = {}
     self.VendorConfigFileList = {}
@@ -154,7 +156,7 @@ class DeviceInfo181Linux26(CATA181DEVICE.DeviceInfo):
 
   @property
   def LocationNumberOfEntries(self):
-    return 0
+    return len(self.LocationList)
 
   @property
   def ProcessorNumberOfEntries(self):
@@ -287,7 +289,7 @@ class ProcessStatusLinux26(BASE181DEVICE.DeviceInfo.ProcessStatus):
           syst = float(fields[3])
           idle = float(fields[4])
           iowt = float(fields[5])
-          irq  = float(fields[6])
+          irq = float(fields[6])
           sirq = float(fields[7])
           total = user + nice + syst + idle + iowt + irq + sirq
           used = total - idle
@@ -342,17 +344,14 @@ class ProcessStatusLinux26(BASE181DEVICE.DeviceInfo.ProcessStatus):
       yield pid, proc
 
 
-class LedStatusReadFromFile(CATA181DEVICE.DeviceInfo.X_CATAWAMPUS_ORG_LedStatus):
-  """X_CATAWAMPUS-ORG_LedStatus implementation which reads a line from a file."""
+class LedStatusReadFromFile(CATA181DEVICEINFO.X_CATAWAMPUS_ORG_LedStatus):
+  """X_CATAWAMPUS-ORG_LedStatus implementation to read a line from a file."""
+  Name = tr.types.ReadOnlyString('')
 
   def __init__(self, name, filename):
     super(LedStatusReadFromFile, self).__init__()
-    self._name = name
+    type(self).Name.Set(self, name)
     self._filename = filename
-
-  @property
-  def Name(self):
-    return self._name
 
   @property
   def Status(self):
@@ -361,6 +360,7 @@ class LedStatusReadFromFile(CATA181DEVICE.DeviceInfo.X_CATAWAMPUS_ORG_LedStatus)
 
 class DeviceInfo98Linux26(BASE98IGD.DeviceInfo):
   """Implementation of tr-98 DeviceInfo for Linux."""
+  SpecVersion = tr.types.ReadOnlyString('1.0')
 
   def __init__(self, device_id):
     super(DeviceInfo98Linux26, self).__init__()
@@ -370,16 +370,15 @@ class DeviceInfo98Linux26(BASE98IGD.DeviceInfo):
     self.Unexport(params='EnabledOptions')
     self.Unexport(params='FirstUseDate')
     self.Unexport(params='ProvisioningCode')
-    self.Unexport(lists='VendorConfigFile')
-    self.VendorConfigFileNumberOfEntries = 0
-
-  @property
-  def SpecVersion(self):
-    return '1.0'
+    self.VendorConfigFileList = {}
 
   @property
   def UpTime(self):
     return _GetUptime()
+
+  @property
+  def VendorConfigFileNumberOfEntries(self):
+    return len(self.VendorConfigFileList)
 
   def __getattr__(self, name):
     if hasattr(self._device_id, name):

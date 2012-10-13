@@ -100,6 +100,8 @@ class MocaTest(unittest.TestCase):
     self.assertEqual(moca.NodeID, 2)
     self.assertTrue(moca.QAM256Capable)
     self.assertEqual(moca.PacketAggregationCapability, 10)
+    # Read-only parameter
+    self.assertRaises(AttributeError, setattr, moca, 'QAM256Capable', True)
 
   def testMocaInterfaceAlt(self):
     brcmmoca.PYNETIFCONF = MockPynet
@@ -172,6 +174,24 @@ class MocaTest(unittest.TestCase):
     self.assertEqual(ad.QAM256Capable, False)
     self.assertEqual(ad.PacketAggregationCapability, 7)
     self.assertEqual(ad.RxSNR, 38)
+    # read-only parameters
+    self.assertRaises(AttributeError, setattr, ad, 'MACAddress', 'foo')
+    self.assertRaises(AttributeError, setattr, ad, 'NodeID', 2)
+    self.assertRaises(AttributeError, setattr, ad, 'PreferredNC', False)
+    self.assertRaises(AttributeError, setattr, ad, 'PHYTxRate', 1)
+    self.assertRaises(AttributeError, setattr, ad, 'PHYRxRate', 1)
+    self.assertRaises(AttributeError, setattr, ad, 'TxPowerControlReduction', 1)
+    self.assertRaises(AttributeError, setattr, ad, 'RxPowerLevel', 1)
+    self.assertRaises(AttributeError, setattr, ad, 'TxBcastRate', 1)
+    self.assertRaises(AttributeError, setattr, ad, 'RxBcastPowerLevel', 1)
+    self.assertRaises(AttributeError, setattr, ad, 'TxPackets', 1)
+    self.assertRaises(AttributeError, setattr, ad, 'RxPackets', 1)
+    self.assertRaises(AttributeError, setattr, ad,
+        'RxErroredAndMissedPackets', 1)
+    self.assertRaises(AttributeError, setattr, ad, 'QAM256Capable', True)
+    self.assertRaises(AttributeError, setattr, ad,
+        'PacketAggregationCapability', 8)
+    self.assertRaises(AttributeError, setattr, ad, 'RxSNR', 39)
 
 
 class MockPynet(object):

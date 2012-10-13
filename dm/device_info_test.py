@@ -24,9 +24,9 @@ import os
 import unittest
 
 import google3
+import tornado.testing
 import tr.core
 import device_info
-import tornado.testing
 
 
 class TestDeviceId(device_info.DeviceIdMeta):
@@ -65,6 +65,8 @@ class TestDeviceId(device_info.DeviceIdMeta):
 
 
 fake_periodics = []
+
+
 class FakePeriodicCallback(object):
   def __init__(self, callback, callback_time, io_loop=None):
     self.callback = callback
@@ -116,10 +118,20 @@ class DeviceInfoTest(tornado.testing.AsyncTestCase):
     di = device_info.DeviceInfo98Linux26(TestDeviceId())
     di.ValidateExports()
 
-  def testUptimeSuccess(self):
+  def testDeviceInfo181Fields(self):
     device_info.PROC_UPTIME = 'testdata/device_info/uptime'
     di = device_info.DeviceInfo181Linux26(TestDeviceId())
     self.assertEqual(di.UpTime, '123')
+    self.assertEqual(di.VendorLogFileNumberOfEntries, 0)
+    self.assertEqual(di.VendorConfigFileNumberOfEntries, 0)
+    self.assertEqual(di.LocationNumberOfEntries, 0)
+
+  def testDeviceInfo98Fields(self):
+    device_info.PROC_UPTIME = 'testdata/device_info/uptime'
+    di = device_info.DeviceInfo98Linux26(TestDeviceId())
+    self.assertEqual(di.UpTime, '123')
+    self.assertEqual(di.SpecVersion, '1.0')
+    self.assertEqual(di.VendorConfigFileNumberOfEntries, 0)
 
   def testDeviceId(self):
     did = TestDeviceId()
@@ -136,6 +148,9 @@ class DeviceInfoTest(tornado.testing.AsyncTestCase):
     self.assertEqual(did.AdditionalSoftwareVersion,
                      di.AdditionalSoftwareVersion)
     self.assertEqual(did.ProductClass, di.ProductClass)
+    self.assertEqual(di.VendorConfigFileNumberOfEntries, 0)
+    self.assertRaises(AttributeError, setattr, di,
+                      'VendorConfigFileNumberOfEntries', 1)
 
   def testMemoryStatusSuccess(self):
     device_info.PROC_MEMINFO = 'testdata/device_info/meminfo'
@@ -181,23 +196,23 @@ class DeviceInfoTest(tornado.testing.AsyncTestCase):
     Process = device_info.BASE181DEVICE.DeviceInfo.ProcessStatus.Process
     fake_processes = {
         1: Process(PID=1, Command='init', Size=551,
-                     Priority=20, CPUTime=81970,
-                     State='Sleeping'),
+                   Priority=20, CPUTime=81970,
+                   State='Sleeping'),
         3: Process(PID=3, Command='migration/0', Size=0,
-                     Priority=-100, CPUTime=591510,
-                     State='Stopped'),
+                   Priority=-100, CPUTime=591510,
+                   State='Stopped'),
         5: Process(PID=5, Command='foobar', Size=0,
-                     Priority=-100, CPUTime=591510,
-                     State='Zombie'),
+                   Priority=-100, CPUTime=591510,
+                   State='Zombie'),
         17: Process(PID=17, Command='bar', Size=0,
-                      Priority=-100, CPUTime=591510,
-                      State='Uninterruptible'),
+                    Priority=-100, CPUTime=591510,
+                    State='Uninterruptible'),
         164: Process(PID=164, Command='udevd', Size=288,
-                       Priority=16, CPUTime=300,
-                       State='Running'),
+                     Priority=16, CPUTime=300,
+                     State='Running'),
         770: Process(PID=770, Command='automount', Size=6081,
-                       Priority=20, CPUTime=5515790,
-                       State='Uninterruptible')
+                     Priority=20, CPUTime=5515790,
+                     State='Uninterruptible')
         }
     device_info.SLASH_PROC = 'testdata/device_info/processes'
     ps = device_info.ProcessStatusLinux26(self.io_loop)
@@ -211,12 +226,12 @@ class DeviceInfoTest(tornado.testing.AsyncTestCase):
     device_info.SLASH_PROC = 'testdata/device_info/processes'
     ps = device_info.ProcessStatusLinux26(self.io_loop)
     proc = ps.GetProcess(1000)
-    self.assertEqual(proc.PID, 1000);
-    self.assertEqual(proc.Command, '<exited>');
-    self.assertEqual(proc.Size, 0);
-    self.assertEqual(proc.Priority, 0);
-    self.assertEqual(proc.CPUTime, 0);
-    self.assertEqual(proc.State, 'X_CATAWAMPUS-ORG_Exited');
+    self.assertEqual(proc.PID, 1000)
+    self.assertEqual(proc.Command, '<exited>')
+    self.assertEqual(proc.Size, 0)
+    self.assertEqual(proc.Priority, 0)
+    self.assertEqual(proc.CPUTime, 0)
+    self.assertEqual(proc.State, 'X_CATAWAMPUS-ORG_Exited')
 
   def testLedStatus(self):
     led = device_info.LedStatusReadFromFile(

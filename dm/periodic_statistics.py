@@ -45,7 +45,7 @@ class PeriodicStatistics(BASE157PS):
   """An implementation of tr157 PeriodicStatistics sampling."""
 
   def __init__(self):
-    BASE157PS.__init__(self)
+    super(PeriodicStatistics, self).__init__()
     self._root = None
     self._cpe = None
     self.sample_sets = dict()
@@ -113,14 +113,13 @@ class PeriodicStatistics(BASE157PS):
     """Implementation of PeriodicStatistics.SampleSet."""
 
     def __init__(self):
-      BASE157PS.SampleSet.__init__(self)
+      super(PeriodicStatistics.SampleSet, self).__init__()
       self.ParameterList = tr.core.AutoDict(
           'ParameterList', iteritems=self.IterParameters,
           getitem=self.GetParameter, setitem=self.SetParameter,
           delitem=self.DelParameter)
       self.Unexport('ForceSample')
       self.Name = ''
-      self.ParameterNumberOfEntries = 0
       self._parameter_list = dict()
       self._sample_times = []
       self._samples_collected = 0
@@ -148,6 +147,10 @@ class PeriodicStatistics(BASE157PS):
 
     def DelParameter(self, key):
       del self._parameter_list[key]
+
+    @property
+    def ParameterNumberOfEntries(self):
+      return len(self._parameter_list)
 
     @property
     def TimeReference(self):

@@ -10,15 +10,15 @@
 __author__ = 'jnewlin@google.com (John Newlin)'
 
 import datetime
-import mox
 import time
 import unittest
 
 import google3
-import periodic_statistics
+import mox
 import tornado.ioloop
 import tr.core
 import tr.http
+import periodic_statistics
 
 
 class FakeWLAN(tr.core.Exporter):
@@ -136,7 +136,6 @@ class PeriodicStatisticsTest(unittest.TestCase):
     m.VerifyAll()
 
 
-
 class SampleSetTest(unittest.TestCase):
   def setUp(self):
     self.ps = periodic_statistics.PeriodicStatistics()
@@ -157,12 +156,12 @@ class SampleSetTest(unittest.TestCase):
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
     param1 = periodic_statistics.PeriodicStatistics.SampleSet.Parameter()
     sample_set.ParameterList['0'] = param1
-    self.assertEqual(1, len(sample_set.ParameterList))
+    self.assertEqual(1, sample_set.ParameterNumberOfEntries)
     for key in sample_set.ParameterList:
       self.assertEqual(key, '0')
       self.assertEqual(sample_set.ParameterList[key], param1)
     del sample_set.ParameterList['0']
-    self.assertEqual(0, len(sample_set.ParameterList))
+    self.assertEqual(0, sample_set.ParameterNumberOfEntries)
 
   def testReportSamples(self):
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
@@ -186,14 +185,13 @@ class SampleSetTest(unittest.TestCase):
     self.assertEqual(1, len(sample_set._sample_times))
     self.assertTrue(start1_time <= sample_set._sample_times[0][0])
     self.assertTrue(end1_time >= sample_set._sample_times[0][1])
-    start1_time = time.time()
     sample_set.CollectSample()
-    end2_time = time.time()
     self.assertEqual(2, len(sample_set._sample_times))
     self.assertTrue(
         sample_set._sample_times[0][0] < sample_set._sample_times[1][0])
+    self.assertTrue(
+        sample_set._sample_times[0][1] < sample_set._sample_times[1][1])
     self.assertEqual(sample_set.SampleSeconds, '0,0')
-
 
   def testSampleTrigger(self):
     mock_ioloop = self.m.CreateMock(tornado.ioloop.IOLoop)
@@ -276,7 +274,6 @@ class SampleSetTest(unittest.TestCase):
     sample_set.Enable = 'True'
     sample_set._attributes['Notification'] = 1
     sample_set.CollectSample(20)
-    print "end testPassNotify"
 
   def testActiveNotify(self):
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()

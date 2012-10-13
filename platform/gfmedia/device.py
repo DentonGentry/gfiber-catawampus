@@ -401,18 +401,15 @@ class Moca(tr181.Device_v2_2.Device.MoCA):
 
 class FanReadGpio(CATA181DI.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
   """Implementation of Fan object, reading rev/sec from a file."""
+  Name = tr.types.ReadOnlyString('')
 
   def __init__(self, name='Fan', speed_filename='/tmp/gpio/fanspeed',
                percent_filename='/tmp/gpio/fanpercent'):
     super(FanReadGpio, self).__init__()
+    type(self).Name.Set(self, name)
     self.Unexport(params='DesiredRPM')
-    self._name = name
     self._speed_filename = speed_filename
     self._percent_filename = percent_filename
-
-  @property
-  def Name(self):
-    return self._name
 
   @property
   def RPM(self):
@@ -447,10 +444,28 @@ class Device(tr181.Device_v2_2.Device):
 
   def __init__(self, device_id, periodic_stats):
     super(Device, self).__init__()
+    self._UnexportStuff()
+    self.Export(objects=['DeviceInfo'])
+    self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
+    led = dm.device_info.LedStatusReadFromFile('LED', LEDSTATUS)
+    self.DeviceInfo.AddLedStatus(led)
+    self.Ethernet = Ethernet()
+    self.ManagementServer = tr.core.TODO()  # higher level code splices this in
+    self.MoCA = Moca()
+    self.Services = Services()
+    self.InterfaceStackList = {}
+    self.Export(objects=['PeriodicStatistics'])
+    self.PeriodicStatistics = periodic_stats
+    self._AddTemperatureStuff()
+
+  @property
+  def InterfaceStackNumberOfEntries(self):
+    return len(self.InterfaceStackList)
+
+  def _UnexportStuff(self):
     self.Unexport(objects='ATM')
     self.Unexport(objects='Bridging')
     self.Unexport(objects='CaptivePortal')
-    self.Export(objects=['DeviceInfo'])
     self.Unexport(objects='DHCPv4')
     self.Unexport(objects='DHCPv6')
     self.Unexport(objects='DNS')
@@ -478,21 +493,11 @@ class Device(tr181.Device_v2_2.Device):
     self.Unexport(objects='Users')
     self.Unexport(objects='WiFi')
 
-    self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
-    led = dm.device_info.LedStatusReadFromFile('LED', LEDSTATUS)
-    self.DeviceInfo.AddLedStatus(led)
-    self.Ethernet = Ethernet()
-    self.ManagementServer = tr.core.TODO()  # higher level code splices this in
-    self.MoCA = Moca()
-    self.Services = Services()
-    self.InterfaceStackList = {}
-    self.InterfaceStackNumberOfEntries = 0
-    self.Export(objects=['PeriodicStatistics'])
-    self.PeriodicStatistics = periodic_stats
-
+  def _AddTemperatureStuff(self):
     # GFHD100 & GFMS100 both monitor CPU temperature.
     # GFMS100 also monitors hard drive temperature.
     ts = self.DeviceInfo.TemperatureStatus
+    ts.AddFan(FanReadGpio())
     ts.AddSensor(name='CPU temperature',
                  sensor=dm.temperature.SensorReadFromFile(
                      '/tmp/gpio/cpu_temperature'))
@@ -504,7 +509,6 @@ class Device(tr181.Device_v2_2.Device):
       except OSError:
         pass
 
-    ts.AddFan(FanReadGpio())
 
 
 class LANDevice(BASE98IGD.LANDevice):
@@ -517,8 +521,6 @@ class LANDevice(BASE98IGD.LANDevice):
     self.Unexport(lists='LANEthernetInterfaceConfig')
     self.Unexport(objects='LANHostConfigManagement')
     self.Unexport(lists='LANUSBInterfaceConfig')
-    self.LANEthernetInterfaceNumberOfEntries = 0
-    self.LANUSBInterfaceNumberOfEntries = 0
     self.WLANConfigurationList = {}
     if self._has_wifi():
       wifi = dm.brcmwifi.BrcmWifiWlanConfiguration('eth2')
@@ -534,6 +536,14 @@ class LANDevice(BASE98IGD.LANDevice):
   @property
   def LANWLANConfigurationNumberOfEntries(self):
     return len(self.WLANConfigurationList)
+
+  @property
+  def LANEthernetInterfaceNumberOfEntries(self):
+    return 0
+
+  @property
+  def LANUSBInterfaceNumberOfEntries(self):
+    return 0
 
 
 class InternetGatewayDevice(BASE98IGD):
