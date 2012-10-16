@@ -131,7 +131,7 @@ class GFiberTv(BASETV):
           f.write('%s/nickname=%s\n' % (
               nn.SerialNumber, nn.config.nick_name.encode('unicode-escape')))
           serials.append(nn.SerialNumber)
-        f.write('SERIALS=%s\n' % ','.join(serials))
+        f.write('serials=%s\n' % ','.join(serials))
       os.rename(NICKFILE_TMP, NICKFILE)
 
   def CommitTransaction(self):
