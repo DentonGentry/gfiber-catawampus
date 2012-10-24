@@ -23,6 +23,7 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import binascii
 import collections
+import Cookie
 import datetime
 import os
 import random
@@ -364,7 +365,7 @@ class CPEStateMachine(object):
 
     headers = {}
     if self.session.cookies:
-      headers['Cookie'] = ';'.join(self.session.cookies)
+      headers['Cookie'] = self.session.cookies.output(attrs=[], header='', sep=';')
     if self.outstanding:
       headers['Content-Type'] = 'text/xml; charset="utf-8"'
       headers['SOAPAction'] = ''
@@ -391,10 +392,10 @@ class CPEStateMachine(object):
       print 'Session terminated, ignoring ACS message.'
       return
     if not response.error:
-      cookies = response.headers.get_list('Set-Cookie')
-      if cookies:
-        self.session.cookies = cookies
       print _Shorten(response.body, 768, 256, 2048)
+      self.session.cookies = Cookie.SimpleCookie()
+      for cookie in response.headers.get_list('Set-Cookie'):
+        self.session.cookies.load(cookie)
       if response.body:
         out = self.cpe_soap.Handle(response.body)
         if out is not None:
