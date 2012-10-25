@@ -122,7 +122,6 @@ class GfiberTvTests(unittest.TestCase):
     os.unlink(self.btnopair_fname)
     gfibertv.BTNOPAIRING = self.btnopair_fname
 
-
   def tearDown(self):
     xmlrpclib.ServerProxy('http://localhost:%d' % srv_port).Quit()
     self.server_thread.join()
@@ -218,7 +217,7 @@ class GfiberTvTests(unittest.TestCase):
 
     self.assertTrue('12345/nickname=testroom\n' in lines)
     self.assertTrue('56789/nickname=\u212cedroom!\n' in lines)
-    self.assertTrue(last_line.startswith('SERIALS='))
+    self.assertTrue(last_line.startswith('serials='))
     split1 = last_line.split('=')
     self.assertEqual(2, len(split1))
     split2 = split1[1].split(',')
