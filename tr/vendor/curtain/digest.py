@@ -71,7 +71,7 @@ class DigestAuthMixin(object):
         try:
             n = len("Digest ")
             authheader = authheader[n:].strip()
-            items = authheader.split(", ")
+            items = authheader.split(",")
             keyvalues = [i.split("=", 1) for i in items]
             keyvalues = [(k.strip(), v.strip().replace('"', '')) for k, v in keyvalues]
             self.params = dict(keyvalues)
