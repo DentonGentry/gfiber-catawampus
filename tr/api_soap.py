@@ -192,7 +192,7 @@ class SoapHandler(object):
       except KeyError as e:
         result = soap.SimpleFault(
             xml, cpefault=soap.CpeFault.INVALID_PARAM_NAME,
-            faultstring='No such parameter: %s' % e.args[0])
+            faultstring='No such parameter: %s' % str(e.args[0]))
       except IndexError as e:
         result = soap.SimpleFault(
             xml, cpefault=soap.CpeFault.INVALID_ARGUMENTS,
