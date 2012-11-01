@@ -58,7 +58,8 @@ class MainLoopTest(unittest.TestCase):
     self.handler = weakref.ref(lr)
 
   def _SendRequest(self, stream):
-    stream.write(REQUEST_STRING)
+    if stream:
+      stream.write(REQUEST_STRING)
 
   def testMainLoop(self):
     self.got = ''
