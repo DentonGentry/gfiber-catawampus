@@ -156,7 +156,7 @@ class LogicalVolumeLinux26(BASESTORAGE.LogicalVolume):
   @property
   def Capacity(self):
     vfs = self._GetStatVfs()
-    return vfs.f_blocks * vfs.f_bsize
+    return int(vfs.f_blocks * vfs.f_bsize / 1024 / 1024)
 
   @property
   def ThresholdReached(self):
@@ -169,7 +169,7 @@ class LogicalVolumeLinux26(BASESTORAGE.LogicalVolume):
   def UsedSpace(self):
     vfs = self._GetStatVfs()
     b_used = vfs.f_blocks - vfs.f_bavail
-    return b_used * vfs.f_bsize
+    return int(b_used * vfs.f_bsize / 1024 / 1024)
 
   @property
   def X_CATAWAMPUS_ORG_ReadOnly(self):
@@ -306,8 +306,9 @@ class FlashSubVolUbiLinux26(BASESTORAGE.X_CATAWAMPUS_ORG_FlashMedia.SubVolume):
     self.ubivol = ubivol
 
   @property
-  def DataBytes(self):
-    return IntFromFile(os.path.join(SYS_UBI, self.ubivol, 'data_bytes'))
+  def DataMBytes(self):
+    bytesiz = IntFromFile(os.path.join(SYS_UBI, self.ubivol, 'data_bytes'))
+    return int(bytesiz / 1024 / 1024)
 
   @property
   def Name(self):

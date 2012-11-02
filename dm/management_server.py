@@ -69,6 +69,15 @@ class ManagementServer181(BASEMGMT181):
     self.ManageableDeviceList = {}
     self.ManageableDeviceNumberOfEntries = 0
 
+  def StartTransaction(self):
+    self.mgmt.StartTransaction()
+
+  def AbandonTransaction(self):
+    self.mgmt.AbandonTransaction()
+
+  def CommitTransaction(self):
+    self.mgmt.CommitTransaction()
+
   @property
   def STUNEnable(self):
     return False
@@ -85,9 +94,9 @@ class ManagementServer181(BASEMGMT181):
 
   def __setattr__(self, name, value):
     if name in self.MGMTATTRS:
-      return setattr(self.mgmt, name, value)
+      setattr(self.mgmt, name, value)
     else:
-      return BASEMGMT181.__setattr__(self, name, value)
+      BASEMGMT181.__setattr__(self, name, value)
 
   def __delattr__(self, name):
     if name in self.MGMTATTRS:
@@ -137,6 +146,15 @@ class ManagementServer98(BASEMGMT98):
     self.EmbeddedDeviceList = {}
     self.ManageableDeviceList = {}
     self.VirtualDeviceList = {}
+
+  def StartTransaction(self):
+    self.mgmt.StartTransaction()
+
+  def AbandonTransaction(self):
+    self.mgmt.AbandonTransaction()
+
+  def CommitTransaction(self):
+    self.mgmt.CommitTransaction()
 
   @property
   def ManageableDeviceNumberOfEntries(self):

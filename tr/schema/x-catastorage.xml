@@ -102,8 +102,8 @@
           </string>
         </syntax>
       </parameter>
-      <parameter name="DataBytes" access="readOnly">
-        <description>The number of data bytes in this logical volume.</description>
+      <parameter name="DataMBytes" access="readOnly">
+        <description>The number of data megabytes in this logical volume.</description>
         <syntax>
           <unsignedInt/>
         </syntax>

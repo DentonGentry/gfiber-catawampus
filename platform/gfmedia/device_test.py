@@ -50,6 +50,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.old_CONFIGDIR = device.CONFIGDIR
     self.old_GINSTALL = device.GINSTALL
     self.old_HNVRAM = device.HNVRAM
+    self.old_LEDSTATUS = device.LEDSTATUS
     self.old_NAND_MB = device.NAND_MB
     self.old_PROC_CPUINFO = device.PROC_CPUINFO
     self.old_REBOOT = device.REBOOT
@@ -66,6 +67,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     device.CONFIGDIR = self.old_CONFIGDIR
     device.GINSTALL = self.old_GINSTALL
     device.HNVRAM = self.old_HNVRAM
+    device.LEDSTATUS = self.old_LEDSTATUS
     device.NAND_MB = self.old_NAND_MB
     device.PROC_CPUINFO = self.old_PROC_CPUINFO
     device.REBOOT = self.old_REBOOT
@@ -125,8 +127,15 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.assertEqual(did.HardwareVersion, '?')
 
   def testFanSpeed(self):
-    fan = device.FanReadGpio(filename='testdata/fanspeed')
+    fan = device.FanReadGpio(speed_filename='testdata/fanspeed',
+                    percent_filename='testdata/fanpercent')
+    fan.ValidateExports()
     self.assertEqual(fan.RPM, 1800)
+    self.assertEqual(fan.DesiredPercentage, 50)
+    fan = device.FanReadGpio(speed_filename='foo',
+                    percent_filename='bar')
+    self.assertEqual(fan.RPM, -1)
+    self.assertEqual(fan.DesiredPercentage, -1)
 
   def install_callback(self, faultcode, faultstring, must_reboot):
     self.install_cb_called = True
@@ -170,12 +179,25 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def testSetAcs(self):
     device.SET_ACS = 'testdata/device/set-acs'
+    scriptout = tempfile.NamedTemporaryFile()
+    os.environ['TESTOUTPUT'] = scriptout.name
     pc = device.PlatformConfig(ioloop=MockIoloop())
     self.assertEqual(pc.GetAcsUrl(), 'bar')
-    # just check that this does not raise an AttributeError
     pc.SetAcsUrl('foo')
+    self.assertEqual(scriptout.read().strip(), 'cwmp foo')
+
+  def testClearAcs(self):
+    device.SET_ACS = 'testdata/device/set-acs'
+    scriptout = tempfile.NamedTemporaryFile()
+    os.environ['TESTOUTPUT'] = scriptout.name
+    pc = device.PlatformConfig(ioloop=MockIoloop())
+    pc.SetAcsUrl('')
+    self.assertEqual(scriptout.read().strip(), 'cwmp clear')
 
   def testAcsAccess(self):
+    device.SET_ACS = 'testdata/device/set-acs'
+    scriptout = tempfile.NamedTemporaryFile()
+    os.environ['TESTOUTPUT'] = scriptout.name
     ioloop = MockIoloop()
     tmpdir = tempfile.mkdtemp()
     tmpfile = os.path.join(tmpdir, 'acsconnected')
@@ -185,15 +207,19 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     acsurl = 'this is the acs url'
 
     # Simulate ACS connection
-    pc.AcsAccess(acsurl)
+    pc.AcsAccessAttempt(acsurl)
+    pc.AcsAccessSuccess(acsurl)
     self.assertTrue(os.stat(tmpfile))
     self.assertEqual(open(tmpfile, 'r').read(), acsurl)
     self.assertTrue(ioloop.timeout)
     self.assertTrue(ioloop.callback)
 
     # Simulate timeout
+    pc.AcsAccessAttempt(acsurl)
+    scriptout.truncate()
     ioloop.callback()
     self.assertRaises(OSError, os.stat, tmpfile)
+    self.assertEqual(scriptout.read().strip(), 'timeout ' + acsurl)
 
     # cleanup
     shutil.rmtree(tmpdir)

@@ -257,9 +257,21 @@ class CPE(TR069Service):
         result.append((param, self._GetParameterValue(param)))
     return result
 
+  def _JoinParamPath(self, parameter_path, param):
+    if parameter_path:
+      return '.'.join([parameter_path, param])
+    else:
+      return param
+
   def GetParameterNames(self, parameter_path, next_level_only):
     """Get the names of parameters or objects (possibly recursively)."""
-    return self.root.ListExports(parameter_path, not next_level_only)
+    if not next_level_only:
+      # tr-69 A.3.2.3 If false, the response MUST contain the Parameter
+      # or object whose name exactly matches the ParameterPath argument...
+      yield parameter_path + '.'
+    exports = self.root.ListExports(parameter_path, not next_level_only)
+    for param in exports:
+      yield self._JoinParamPath(parameter_path, str(param))
 
   def _SetParameterAttribute(self, param, attr, attr_value):
     """Set an attribute of a parameter."""

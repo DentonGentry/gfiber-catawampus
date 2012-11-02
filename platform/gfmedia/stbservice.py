@@ -34,7 +34,7 @@ import tr.x_catawampus_videomonitoring_1_0 as vmonitor
 
 
 BASE135STB = tr.tr135_v1_2.STBService_v1_2.STBService
-BASEPROGMETADATA = vmonitor.X_CATAWAMPUS_ORG_STBVideoMonitoring_v1_0.STBService
+CATA135STB = vmonitor.X_CATAWAMPUS_ORG_STBVideoMonitoring_v1_0.STBService
 IGMPREGEX = re.compile('^\s+(\S+)\s+\d\s+\d:[0-9A-Fa-f]+\s+\d')
 IGMP6REGEX = re.compile(('^\d\s+\S+\s+([0-9A-Fa-f]{32})\s+\d\s+[0-9A-Fa-f]'
                          '+\s+\d'))
@@ -235,7 +235,6 @@ class HDMI(BASE135STB.Components.HDMI):
     self.Unexport('Name')
     self.DisplayDevice = HDMIDisplayDevice()
 
-  @property
   @cwmp_session.cache
   def _GetStats(self):
     data = dict()
@@ -262,7 +261,7 @@ class HDMI(BASE135STB.Components.HDMI):
 
   @property
   def ResolutionValue(self):
-    return self._GetStats.get('ResolutionValue', '')
+    return self._GetStats().get('ResolutionValue', '')
 
 
 class HDMIDisplayDevice(BASE135STB.Components.HDMI.DisplayDevice):
@@ -279,7 +278,6 @@ class HDMIDisplayDevice(BASE135STB.Components.HDMI.DisplayDevice):
     self.Export(params=['X_GOOGLE-COM_LastUpdateTimestamp'])
     self.Export(params=['X_GOOGLE-COM_EDIDExtensions'])
 
-  @property
   @cwmp_session.cache
   def _GetStats(self):
     data = dict()
@@ -336,63 +334,63 @@ class HDMIDisplayDevice(BASE135STB.Components.HDMI.DisplayDevice):
 
   @property
   def Status(self):
-    return self._GetStats.get('Status', 'None')
+    return self._GetStats().get('Status', 'None')
 
   @property
   def Name(self):
-    return self._GetStats.get('Name', '')
+    return self._GetStats().get('Name', '')
 
   @property
   def SupportedResolutions(self):
-    return self._GetStats.get('SupportedResolutions', '')
+    return self._GetStats().get('SupportedResolutions', '')
 
   @property
   def EEDID(self):
-    return self._GetStats.get('EEDID', '')
+    return self._GetStats().get('EEDID', '')
 
   @property
   def X_GOOGLE_COM_EDIDExtensions(self):
-    return self._GetStats.get('EDIDExtensions', '')
+    return self._GetStats().get('EDIDExtensions', '')
 
   @property
   def PreferredResolution(self):
-    return self._GetStats.get('PreferredResolution', '')
+    return self._GetStats().get('PreferredResolution', '')
 
   @property
   def VideoLatency(self):
-    return self._GetStats.get('VideoLatency', 0)
+    return self._GetStats().get('VideoLatency', 0)
 
   @property
   def AutoLipSyncSupport(self):
-    return self._GetStats.get('AutoLipSyncSupport', False)
+    return self._GetStats().get('AutoLipSyncSupport', False)
 
   @property
   def HDMI3DPresent(self):
-    return self._GetStats.get('HDMI3DPresent', False)
+    return self._GetStats().get('HDMI3DPresent', False)
 
   @property
   def X_GOOGLE_COM_NegotiationCount4(self):
-    return self._GetStats.get('Negotiations4hr', 0)
+    return self._GetStats().get('Negotiations4hr', 0)
 
   @property
   def X_GOOGLE_COM_NegotiationCount24(self):
-    return self._GetStats.get('Negotiations24hr', 0)
+    return self._GetStats().get('Negotiations24hr', 0)
 
   @property
   def X_GOOGLE_COM_VendorId(self):
-    return self._GetStats.get('VendorId', '')
+    return self._GetStats().get('VendorId', '')
 
   @property
   def X_GOOGLE_COM_ProductId(self):
-    return self._GetStats.get('ProductId', 0)
+    return self._GetStats().get('ProductId', 0)
 
   @property
   def X_GOOGLE_COM_MfgYear(self):
-    return self._GetStats.get('MfgYear', 1990)
+    return self._GetStats().get('MfgYear', 1990)
 
   @property
   def X_GOOGLE_COM_LastUpdateTimestamp(self):
-    return tr.cwmpdate.format(float(self._GetStats.get('LastUpdateTime', 0)))
+    return tr.cwmpdate.format(float(self._GetStats().get('LastUpdateTime', 0)))
 
 
 class ServiceMonitoring(BASE135STB.ServiceMonitoring):
@@ -422,9 +420,30 @@ class ServiceMonitoring(BASE135STB.ServiceMonitoring):
 
   def UpdateSvcMonitorStats(self):
     """Retrieve and aggregate stats from all related JSON stats files."""
+    streams = dict()
     for wildcard in CONT_MONITOR_FILES:
       for filename in glob.glob(wildcard):
-        self.DeserializeStats(filename)
+        self.DeserializeStats(filename, streams)
+
+    num_streams = len(streams)
+    new_main_stream_stats = dict()
+    old_main_stream_stats = self._MainStreamStats
+
+    # Existing stream_ids keep their instance number in self._MainStreamStats
+    for instance, old_stream in old_main_stream_stats.items():
+      stream_id = old_stream.stream_id
+      if stream_id in streams:
+        new_main_stream_stats[instance] = streams[stream_id]
+        del streams[stream_id]
+
+    # Remaining stream_ids claim an unused instance number in 1..num_streams
+    assigned = set(new_main_stream_stats.keys())
+    unassigned = set(range(1, num_streams + 1)) - assigned
+    for strm in streams.values():
+      instance = unassigned.pop()
+      new_main_stream_stats[instance] = strm
+
+    self._MainStreamStats = new_main_stream_stats
 
   def ReadJSONStats(self, fname):
     """Retrieves statistics from the service monitoring JSON file."""
@@ -433,17 +452,16 @@ class ServiceMonitoring(BASE135STB.ServiceMonitoring):
       d = json.load(f)
     return d
 
-  def DeserializeStats(self, fname):
+  def DeserializeStats(self, fname, new_streams):
     """Generate stats object from the JSON stats."""
     try:
       d = self.ReadJSONStats(fname)
       streams = d['STBService'][0]['MainStream']
       for i in range(len(streams)):
-        sid = streams[i]['StreamId']
-        if sid not in self._MainStreamStats.keys():
-          self._MainStreamStats[sid] = MainStream()
-        self._MainStreamStats[sid].UpdateMainstreamStats(streams[i])
-
+        stream_id = streams[i]['StreamId']
+        strm = new_streams.get(stream_id, MainStream(stream_id))
+        strm.UpdateMainstreamStats(streams[i])
+        new_streams[stream_id] = strm
     # IOError - Failed to open file or failed to read from file
     # ValueError - JSON file is malformed and cannot be decoded
     # KeyError - Decoded JSON file doesn't contain the required fields.
@@ -465,7 +483,7 @@ class ServiceMonitoring(BASE135STB.ServiceMonitoring):
 class MainStream(BASE135STB.ServiceMonitoring.MainStream):
   """STBService.{i}.ServiceMonitoring.MainStream."""
 
-  def __init__(self):
+  def __init__(self, stream_id):
     super(MainStream, self).__init__()
     self.Unexport('AVStream')
     self.Unexport('Enable')
@@ -477,13 +495,19 @@ class MainStream(BASE135STB.ServiceMonitoring.MainStream):
     self.Unexport('ChannelChangeFailureTimeout')
     self.Unexport('Alias')
     self.Unexport(objects='Sample')
+    self.Export(params=['X_GOOGLE-COM_StreamID'])
     self.Total = Total()
+    self.stream_id = stream_id
+
+  @property
+  def X_GOOGLE_COM_StreamID(self):
+    return self.stream_id
 
   def UpdateMainstreamStats(self, data):
     self.Total.UpdateTotalStats(data)
 
 
-class Total(BASE135STB.ServiceMonitoring.MainStream.Total):
+class Total(CATA135STB.ServiceMonitoring.MainStream.Total):
   """STBService.{i}.ServiceMonitoring.MainStream.{i}.Total."""
 
   def __init__(self):
@@ -498,6 +522,7 @@ class Total(BASE135STB.ServiceMonitoring.MainStream.Total):
     self.DejitteringStats = DejitteringStats()
     self.MPEG2TSStats = MPEG2TSStats()
     self.TCPStats = TCPStats()
+    self.X_CATAWAMPUS_ORG_MulticastStats = MulticastStats()
 
   def UpdateTotalStats(self, data):
     if 'DejitteringStats' in data.keys():
@@ -506,6 +531,8 @@ class Total(BASE135STB.ServiceMonitoring.MainStream.Total):
       self.MPEG2TSStats.UpdateMPEG2TSStats(data['MPEG2TSStats'])
     if 'TCPStats' in data.keys():
       self.TCPStats.UpdateTCPStats(data['TCPStats'])
+    if 'MulticastStats' in data.keys():
+      self.X_CATAWAMPUS_ORG_MulticastStats.UpdateMulticastStats(data['MulticastStats'])
 
 
 class DejitteringStats(BASE135STB.ServiceMonitoring.MainStream.Total.
@@ -606,7 +633,23 @@ class TCPStats(BASE135STB.ServiceMonitoring.MainStream.Total.TCPStats):
       self._packets_retransmitted = tcpstats['Packets Retransmitted']
 
 
-class ProgMetadata(BASEPROGMETADATA.X_CATAWAMPUS_ORG_ProgramMetadata):
+class MulticastStats(CATA135STB.ServiceMonitoring.MainStream.Total.X_CATAWAMPUS_ORG_MulticastStats):
+  """STBService.{i}.ServiceMonitoring.MainStream.{i}.Total.X_CATAWAMPUS_ORG_MulticastStats."""
+
+  def __init__(self):
+    super(MulticastStats, self).__init__()
+    self._multicast_group = ''
+
+  @property
+  def MulticastGroup(self):
+    return self._multicast_group
+
+  def UpdateMulticastStats(self, mcstats):
+    if 'MulticastGroup' in mcstats.keys():
+      self._multicast_group = mcstats['MulticastGroup']
+
+
+class ProgMetadata(CATA135STB.X_CATAWAMPUS_ORG_ProgramMetadata):
   """STBService.{i}.X_CATAWAMPUS_ORG_ProgramMetadata."""
 
   def __init__(self):
@@ -614,13 +657,12 @@ class ProgMetadata(BASEPROGMETADATA.X_CATAWAMPUS_ORG_ProgramMetadata):
     self.EPG = EPG()
 
 
-class EPG(BASEPROGMETADATA.X_CATAWAMPUS_ORG_ProgramMetadata.EPG):
+class EPG(CATA135STB.X_CATAWAMPUS_ORG_ProgramMetadata.EPG):
   """STBService.{i}.X_CATAWAMPUS_ORG_ProgramMetadata.EPG."""
 
   def __init__(self):
     super(EPG, self).__init__()
 
-  @property
   @cwmp_session.cache
   def _GetStats(self):
     """Generate stats object from the JSON stats."""
@@ -652,19 +694,19 @@ class EPG(BASEPROGMETADATA.X_CATAWAMPUS_ORG_ProgramMetadata.EPG):
 
   @property
   def MulticastPackets(self):
-    return self._GetStats.get('MulticastPackets', 0)
+    return self._GetStats().get('MulticastPackets', 0)
 
   @property
   def EPGErrors(self):
-    return self._GetStats.get('EPGErrors', 0)
+    return self._GetStats().get('EPGErrors', 0)
 
   @property
   def LastReceivedTime(self):
-    return tr.cwmpdate.format(float(self._GetStats.get('LastReceivedTime', 0)))
+    return tr.cwmpdate.format(float(self._GetStats().get('LastReceivedTime', 0)))
 
   @property
   def EPGExpireTime(self):
-    return tr.cwmpdate.format(float(self._GetStats.get('EPGExpireTime', 0)))
+    return tr.cwmpdate.format(float(self._GetStats().get('EPGExpireTime', 0)))
 
 
 def main():

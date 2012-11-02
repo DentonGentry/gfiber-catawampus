@@ -45,7 +45,7 @@ class TvPropertyRpcs(object):
   def GetProperty(self, name, node):
     return self.properties[node][name]
 
-  def SetProperty(self, name, node, value):
+  def SetProperty(self, name, value, node):
     self.properties[node][name] = value
     return ''
 
@@ -95,6 +95,32 @@ class GfiberTvTests(unittest.TestCase):
     os.close(tmp_file_handle)
     gfibertv.NICKFILE = self.nick_file_name
     gfibertv.NICKFILE_TMP = self.tmp_file_name
+
+    (btdevices_handle, self.btdevices_fname) = tempfile.mkstemp()
+    (btdevices_tmp_handle, self.btdevices_tmp_fname) = tempfile.mkstemp()
+    os.close(btdevices_handle)
+    os.close(btdevices_tmp_handle)
+    gfibertv.BTDEVICES = self.btdevices_fname
+    gfibertv.BTDEVICES_TMP = self.btdevices_tmp_fname
+
+    (bthhdevices_handle, self.bthhdevices_fname) = tempfile.mkstemp()
+    (bthhdevices_tmp_handle, self.bthhdevices_tmp_fname) = tempfile.mkstemp()
+    os.close(bthhdevices_handle)
+    os.close(bthhdevices_tmp_handle)
+    gfibertv.BTHHDEVICES = self.bthhdevices_fname
+    gfibertv.BTHHDEVICES_TMP = self.bthhdevices_tmp_fname
+
+    (btconfig_handle, self.btconfig_fname) = tempfile.mkstemp()
+    (btconfig_tmp_handle, self.btconfig_tmp_fname) = tempfile.mkstemp()
+    os.close(btconfig_handle)
+    os.close(btconfig_tmp_handle)
+    gfibertv.BTCONFIG = self.btconfig_fname
+    gfibertv.BTCONFIG_TMP = self.btconfig_tmp_fname
+
+    (btnopair_handle, self.btnopair_fname) = tempfile.mkstemp()
+    os.close(btnopair_handle)
+    os.unlink(self.btnopair_fname)
+    gfibertv.BTNOPAIRING = self.btnopair_fname
 
   def tearDown(self):
     xmlrpclib.ServerProxy('http://localhost:%d' % srv_port).Quit()
@@ -150,34 +176,34 @@ class GfiberTvTests(unittest.TestCase):
     self.assertEqual(tvrpc.NodeList, 'Node1, Node2')
 
   def testListManipulation(self):
-    gftv = gfibertv.GFiberTv('http://localhost:1000')
+    gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
     gftv.ValidateExports()
-    self.assertEqual(0, gftv.DeviceNickNameNumberOfEntries)
-    idx, newobj = gftv.AddExportObject('DeviceNickName', None)
+    self.assertEqual(0, gftv.DevicePropertiesNumberOfEntries)
+    idx, newobj = gftv.AddExportObject('DeviceProperties', None)
     idx = int(idx)
-    self.assertEqual(1, gftv.DeviceNickNameNumberOfEntries)
-    self.assertEqual(newobj, gftv.DeviceNickNameList[idx])
+    self.assertEqual(1, gftv.DevicePropertiesNumberOfEntries)
+    self.assertEqual(newobj, gftv.DevicePropertiesList[idx])
     gftv.StartTransaction()
-    gftv.DeviceNickNameList[idx].StartTransaction()
-    gftv.DeviceNickNameList[idx].NickName = 'testroom'
-    gftv.DeviceNickNameList[idx].SerialNumber = '12345'
-    gftv.DeviceNickNameList[idx].AbandonTransaction()
+    gftv.DevicePropertiesList[idx].StartTransaction()
+    gftv.DevicePropertiesList[idx].NickName = 'testroom'
+    gftv.DevicePropertiesList[idx].SerialNumber = '12345'
+    gftv.DevicePropertiesList[idx].AbandonTransaction()
     gftv.AbandonTransaction()
-    self.assertEqual('', gftv.DeviceNickNameList[idx].NickName)
+    self.assertEqual('', gftv.DevicePropertiesList[idx].NickName)
 
     gftv.StartTransaction()
-    idx2, newobj = gftv.AddExportObject('DeviceNickName', None)
+    idx2, newobj = gftv.AddExportObject('DeviceProperties', None)
     idx2 = int(idx2)
-    gftv.DeviceNickNameList[idx].StartTransaction()
-    gftv.DeviceNickNameList[idx].NickName = 'testroom'
-    gftv.DeviceNickNameList[idx].SerialNumber = '12345'
-    gftv.DeviceNickNameList[idx].CommitTransaction()
+    gftv.DevicePropertiesList[idx].StartTransaction()
+    gftv.DevicePropertiesList[idx].NickName = 'testroom'
+    gftv.DevicePropertiesList[idx].SerialNumber = '12345'
+    gftv.DevicePropertiesList[idx].CommitTransaction()
 
-    gftv.DeviceNickNameList[idx2].StartTransaction()
+    gftv.DevicePropertiesList[idx2].StartTransaction()
     uni_name = u'\u212ced\nroom\n\r!'.encode('utf-8')
-    gftv.DeviceNickNameList[idx2].NickName = uni_name
-    gftv.DeviceNickNameList[idx2].SerialNumber = '56789'
-    gftv.DeviceNickNameList[idx2].CommitTransaction()
+    gftv.DevicePropertiesList[idx2].NickName = uni_name
+    gftv.DevicePropertiesList[idx2].SerialNumber = '56789'
+    gftv.DevicePropertiesList[idx2].CommitTransaction()
 
     gftv.CommitTransaction()
 
@@ -191,13 +217,67 @@ class GfiberTvTests(unittest.TestCase):
 
     self.assertTrue('12345/nickname=testroom\n' in lines)
     self.assertTrue('56789/nickname=\u212cedroom!\n' in lines)
-    self.assertTrue(last_line.startswith('SERIALS='))
+    self.assertTrue(last_line.startswith('serials='))
     split1 = last_line.split('=')
     self.assertEqual(2, len(split1))
     split2 = split1[1].split(',')
     self.assertTrue('12345' in split2)
     self.assertTrue('56789' in split2)
     f.close()
+
+  def testBtFiles(self):
+    gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
+    gftv.ValidateExports()
+
+    def CheckNoTrashLeft():
+      self.assertEqual(None, gftv.config.bt_devices)
+      self.assertEqual(None, gftv.config.bt_hh_devices)
+      self.assertEqual(None, gftv.config.bt_hh_devices)
+
+    CheckNoTrashLeft()
+    self.assertEqual('', gftv.BtDevices)
+    self.assertEqual('', gftv.BtHHDevices)
+    self.assertEqual('', gftv.BtConfig)
+
+    devices1 = 'This is a test'
+    devices2 = 'devices test 2'
+    hhdevices = 'hhdevice str\nwith a newline'
+    config = 'btconfig str'
+
+    gftv.StartTransaction()
+    gftv.BtDevices = devices1
+    gftv.CommitTransaction()
+    self.assertEqual(devices1, gftv.BtDevices)
+    self.assertEqual('', gftv.BtHHDevices)
+    self.assertEqual('', gftv.BtConfig)
+    CheckNoTrashLeft()
+
+    gftv.StartTransaction()
+    gftv.BtDevices = devices2
+    gftv.BtHHDevices = hhdevices
+    gftv.BtConfig = config
+    gftv.CommitTransaction()
+    self.assertEqual(devices2, gftv.BtDevices)
+    self.assertEqual(hhdevices, gftv.BtHHDevices)
+    self.assertEqual(config, gftv.BtConfig)
+    CheckNoTrashLeft()
+
+  def testNoPairing(self):
+    gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
+    gftv.ValidateExports()
+    self.assertFalse(gftv.BtNoPairing)
+    gftv.BtNoPairing = True
+    self.assertTrue(gftv.BtNoPairing)
+
+    # Make sure setting to True works if it is already true.
+    gftv.BtNoPairing = True
+    self.assertTrue(gftv.BtNoPairing)
+
+    gftv.BtNoPairing = False
+    self.assertFalse(gftv.BtNoPairing)
+
+    gftv.BtNoPairing = False
+    self.assertFalse(gftv.BtNoPairing)
 
 
 if __name__ == '__main__':

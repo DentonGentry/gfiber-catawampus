@@ -17,6 +17,9 @@
             "Packets Received": 1000,
             "Bytes Received": 256000,
             "Packets Retransmitted": 1
+          },
+          "MulticastStats": {
+            "MulticastGroup": "225.0.0.1"
           }
         },
         {
@@ -34,6 +37,9 @@
             "Packets Received": 2000,
             "Bytes Received": 512000,
             "Packets Retransmitted": 3
+          },
+          "MulticastStats": {
+            "MulticastGroup": "225.0.0.2"
           }
         },
         {
@@ -51,6 +57,9 @@
             "Packets Received": 3000,
             "Bytes Received": 768000,
             "Packets Retransmitted": 2
+          },
+          "MulticastStats": {
+            "MulticastGroup": "225.0.0.3"
           }
         },
         {
@@ -68,6 +77,9 @@
             "Packets Received": 4000,
             "Bytes Received": 1024000,
             "Packets Retransmitted": 5
+          },
+          "MulticastStats": {
+            "MulticastGroup": "225.0.0.4"
           }
         },
         {
@@ -85,6 +97,9 @@
             "Packets Received": 5000,
             "Bytes Received": 1280000,
             "Packets Retransmitted": 4
+          },
+          "MulticastStats": {
+            "MulticastGroup": "225.0.0.5"
           }
         },
         {
@@ -102,6 +117,9 @@
             "Packets Received": 6000,
             "Bytes Received": 1536000,
             "Packets Retransmitted": 7
+          },
+          "MulticastStats": {
+            "MulticastGroup": "225.0.0.6"
           }
         },
         {
@@ -119,6 +137,9 @@
             "Packets Received": 7000,
             "Bytes Received": 1792000,
             "Packets Retransmitted": 6
+          },
+          "MulticastStats": {
+            "MulticastGroup": "225.0.0.7"
           }
         },
         {
@@ -136,6 +157,9 @@
             "Packets Received": 8000,
             "Bytes Received": 2048000,
             "Packets Retransmitted": 9
+          },
+          "MulticastStats": {
+            "MulticastGroup": "225.0.0.8"
           }
         }
       ]

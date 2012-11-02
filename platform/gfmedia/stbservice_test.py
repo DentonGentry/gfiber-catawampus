@@ -103,16 +103,20 @@ class STBServiceTest(unittest.TestCase):
     stbservice.CONT_MONITOR_FILES = self.CONT_MONITOR_FILES_ALT
     stb = stbservice.STBService()
     self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 4)
-    stream = stb.ServiceMonitoring.MainStreamList[3]
-    self.assertEqual(stream.Total.MPEG2TSStats.TSPacketsReceived, 600)
+    for stream in stb.ServiceMonitoring.MainStreamList.values():
+      if stream.X_GOOGLE_COM_StreamID == 3:
+        self.assertEqual(stream.Total.MPEG2TSStats.TSPacketsReceived, 600)
     self.assertRaises(KeyError,
                       lambda: stb.ServiceMonitoring.MainStreamList[6])
     # Change the underlying json file; The new one has more entries
-    # Note that the number of entries can only increase and cannot decrease
     stbservice.CONT_MONITOR_FILES = savedfnames
     self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
-    stream = stb.ServiceMonitoring.MainStreamList[6]
-    self.assertEqual(stream.Total.MPEG2TSStats.TSPacketsReceived, 300)
+    self.assertEqual(stream.Total.MPEG2TSStats.TSPacketsReceived, 600)
+    for stream in stb.ServiceMonitoring.MainStreamList.values():
+      if stream.X_GOOGLE_COM_StreamID == 3:
+        self.assertEqual(stream.Total.MPEG2TSStats.TSPacketsReceived, 600)
+      if stream.X_GOOGLE_COM_StreamID == 6:
+        self.assertEqual(stream.Total.MPEG2TSStats.TSPacketsReceived, 300)
 
   def testPartialUpdate(self):
     """Test whether a stats file with a subset of objects are deserialized."""
@@ -192,6 +196,43 @@ class STBServiceTest(unittest.TestCase):
     self.assertEqual(expected_pktsrcvd, actual_pktsrcvd)
     self.assertEqual(expected_bytesrcvd, actual_bytesrcvd)
     self.assertEqual(expected_pktsretran, actual_pktsretran)
+
+  def testMulticastStats(self):
+    """Test whether multicast stats are deserialized."""
+    stb = stbservice.STBService()
+    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
+    expected_mc = set(['225.0.0.1', '225.0.0.2', '225.0.0.3', '225.0.0.4',
+                       '225.0.0.5', '225.0.0.6', '225.0.0.7', '225.0.0.8'])
+    actual_mc = set()
+    for v in stb.ServiceMonitoring.MainStreamList.values():
+      mcstats = v.Total.X_CATAWAMPUS_ORG_MulticastStats
+      actual_mc.add(mcstats.MulticastGroup)
+    self.assertEqual(expected_mc, actual_mc)
+
+  def testInstancePersistance(self):
+    """Test whether MainStream instance numbers are persistent."""
+    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_strm1.json']
+    stb = stbservice.STBService()
+    m = stb.ServiceMonitoring
+    self.assertEqual(m.MainStreamNumberOfEntries, 1)
+    self.assertEqual(m.MainStreamList[1].X_GOOGLE_COM_StreamID, 1)
+    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_strm12.json']
+    self.assertEqual(m.MainStreamNumberOfEntries, 2)
+    self.assertEqual(m.MainStreamList[1].X_GOOGLE_COM_StreamID, 1)
+    self.assertEqual(m.MainStreamList[2].X_GOOGLE_COM_StreamID, 2)
+    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_strm123.json']
+    self.assertEqual(m.MainStreamNumberOfEntries, 3)
+    self.assertEqual(m.MainStreamList[1].X_GOOGLE_COM_StreamID, 1)
+    self.assertEqual(m.MainStreamList[2].X_GOOGLE_COM_StreamID, 2)
+    self.assertEqual(m.MainStreamList[3].X_GOOGLE_COM_StreamID, 3)
+    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_strm2.json']
+    self.assertEqual(m.MainStreamNumberOfEntries, 1)
+    self.assertEqual(m.MainStreamList[2].X_GOOGLE_COM_StreamID, 2)
+    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_strm23.json']
+    self.assertEqual(m.MainStreamNumberOfEntries, 2)
+    self.assertEqual(m.MainStreamList[1].X_GOOGLE_COM_StreamID, 3)
+    self.assertEqual(m.MainStreamList[2].X_GOOGLE_COM_StreamID, 2)
+    stb.ValidateExports()
 
   def testNonexistentHDMIStatsFile(self):
     """Test whether the absence of HDMI stats file is handled gracefully."""

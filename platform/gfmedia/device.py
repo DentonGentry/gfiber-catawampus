@@ -23,7 +23,9 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import datetime
 import fcntl
 import os
+import random
 import subprocess
+import traceback
 
 import google3
 
@@ -58,11 +60,13 @@ INTERNAL_ERROR = 9002
 
 # Unit tests can override these with fake data
 ACSCONNECTED = '/tmp/gpio/ledcontrol/acsconnected'
-ACSERRORTIME = 6*60*60
+ACSTIMEOUTMIN = 2*60*60
+ACSTIMEOUTMAX = 4*60*60
 CONFIGDIR = '/config/tr69'
 DOWNLOADDIR = '/tmp'
 GINSTALL = '/bin/ginstall.py'
 HNVRAM = '/usr/bin/hnvram'
+LEDSTATUS = '/tmp/gpio/ledstate'
 NAND_MB = '/proc/sys/dev/repartition/nand_size_mb'
 PROC_CPUINFO = '/proc/cpuinfo'
 REBOOT = '/bin/tr69_reboot'
@@ -78,6 +82,8 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
     platform_config.PlatformConfigMeta.__init__(self)
     self._ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self.acs_timeout = None
+    self.acs_timeout_interval = random.randrange(ACSTIMEOUTMIN, ACSTIMEOUTMAX)
+    self.acs_timeout_url = None
 
   def ConfigDir(self):
     return CONFIGDIR
@@ -91,28 +97,54 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
     return out if setacs.returncode == 0 else ''
 
   def SetAcsUrl(self, url):
-    rc = subprocess.call(args=[SET_ACS, 'cwmp', url])
+    set_acs_url = url if url else 'clear'
+    rc = subprocess.call(args=[SET_ACS, 'cwmp', set_acs_url.strip()])
     if rc != 0:
       raise AttributeError('set-acs failed')
+
+  def _AcsAccessClearTimeout(self):
+    if self.acs_timeout:
+      self._ioloop.remove_timeout(self.acs_timeout)
+      self.acs_timeout = None
 
   def _AcsAccessTimeout(self):
     """Timeout for AcsAccess.
 
-    There has been no successful connection to ACS in ACSERRORTIME seconds.
-    Remove the ACSCONNECTED file, which makes an error LED pattern light up.
+    There has been no successful connection to ACS in self.acs_timeout_interval
+    seconds.
     """
     try:
       os.remove(ACSCONNECTED)
-    except OSError:
+    except OSError as e:
+      if e.errno != errno.ENOENT:
+        raise
       pass  # No such file == harmless
 
-  def AcsAccess(self, url):
-    if self.acs_timeout:
-      self._ioloop.remove_timeout(self.acs_timeout)
-    self.acs_timeout = self._ioloop.add_timeout(
-        datetime.timedelta(seconds=ACSERRORTIME), self._AcsAccessTimeout)
+    try:
+      rc = subprocess.call(args=[SET_ACS, 'timeout', self.acs_timeout_url.strip()])
+    except OSError:
+      rc = -1
+
+    if rc != 0:
+      # Log the failure
+      print '%s timeout %s failed %d' % (SET_ACS, self.acs_timeout_url, rc)
+
+  def AcsAccessAttempt(self, url):
+    """Called when a connection to the ACS is attempted."""
+    if url != self.acs_timeout_url:
+      self._AcsAccessClearTimeout()  # new ACS, restart timer
+      self.acs_timeout_url = url
+    if not self.acs_timeout:
+      self.acs_timeout = self._ioloop.add_timeout(
+          datetime.timedelta(seconds=self.acs_timeout_interval),
+          self._AcsAccessTimeout)
+
+  def AcsAccessSuccess(self, url):
+    """Called when a session with the ACS successfully concludes."""
+    self._AcsAccessClearTimeout()
     # We only *need* to create a 0 byte file, but write URL for debugging
-    open(ACSCONNECTED, 'w').write(url)
+    with open(ACSCONNECTED, 'w') as f:
+      f.write(url)
 
 
 class DeviceId(dm.device_info.DeviceIdMeta):
@@ -362,10 +394,13 @@ class Moca(tr181.Device_v2_2.Device.MoCA):
 class FanReadGpio(CATA181DI.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
   """Implementation of Fan object, reading rev/sec from a file."""
 
-  def __init__(self, name='Fan', filename='/tmp/gpio/fanspeed'):
+  def __init__(self, name='Fan', speed_filename='/tmp/gpio/fanspeed',
+                  percent_filename='/tmp/gpio/fanpercent'):
     super(FanReadGpio, self).__init__()
+    self.Unexport(params='DesiredRPM')
     self._name = name
-    self._filename = filename
+    self._speed_filename = speed_filename
+    self._percent_filename = percent_filename
 
   @property
   def Name(self):
@@ -374,11 +409,30 @@ class FanReadGpio(CATA181DI.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
   @property
   def RPM(self):
     try:
-      rps2 = int(open(self._filename, 'r').read())
-      return rps2 * 30
-    except ValueError:
-      print 'FanReadGpio bad value %s' % self._filename
+      f = open(self._speed_filename, 'r')
+    except IOError as e:
+      print 'Fan speed file %r: %s' % (self._speed_filename, e)
       return -1
+    try:
+      rps2 = int(f.read())
+      return rps2 * 30
+    except ValueError as e:
+      print 'FanReadGpio RPM %r: %s' % (self._speed_filename, e)
+      return -1
+
+  @property
+  def DesiredPercentage(self):
+    try:
+      f = open(self._percent_filename, 'r')
+    except IOError as e:
+      print 'Fan percent file %r: %s' % (self._percent_filename, e)
+      return -1
+    try:
+      return int(f.read())
+    except ValueError as e:
+      print 'FanReadGpio DesiredPercentage %r: %s' % (self._percent_filename, e)
+      return -1
+
 
 
 class Device(tr181.Device_v2_2.Device):
@@ -418,6 +472,8 @@ class Device(tr181.Device_v2_2.Device):
     self.Unexport(objects='WiFi')
 
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
+    led = dm.device_info.LedStatusReadFromFile('LED', LEDSTATUS)
+    self.DeviceInfo.AddLedStatus(led)
     self.Ethernet = Ethernet()
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
     self.MoCA = Moca()

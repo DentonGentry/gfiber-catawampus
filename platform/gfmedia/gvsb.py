@@ -55,7 +55,7 @@ class Gvsb(tr.x_gvsb_1_0.X_GOOGLE_COM_GVSB_v1_1):
     obj.epgprimary = None
     obj.epgsecondary = None
     obj.gvsbserver = None
-    obj.gvsb_channel_lineup = None
+    obj.gvsb_channel_lineup = 0
     obj.gvsb_kick = None
     return obj
 

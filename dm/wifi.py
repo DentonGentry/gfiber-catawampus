@@ -106,6 +106,7 @@ class PreSharedKey98(tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDe
   def SetKeyPassphrase(self, value):
     self.passphrase = value
     self.key = None
+    self.key_pbkdf2 = None
 
   def GetKeyPassphrase(self):
     return self.passphrase

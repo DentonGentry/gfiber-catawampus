@@ -1,6 +1,14 @@
 #!/bin/sh
 
+if [ -n $TESTOUTPUT ]; then
+  echo $* >$TESTOUTPUT
+fi
+
 if [ $1 == 'cwmp' ] && [ $2 == 'foo' ]; then
+  exit 0
+fi
+
+if [ $1 == 'cwmp' ] && [ $2 == 'clear' ]; then
   exit 0
 fi
 

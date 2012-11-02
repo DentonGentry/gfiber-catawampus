@@ -23,7 +23,9 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import binascii
 import collections
+import Cookie
 import datetime
+import os
 import random
 import socket
 import sys
@@ -43,6 +45,32 @@ import helpers
 
 PROC_IF_INET6 = '/proc/net/if_inet6'
 MAX_EVENT_QUEUE_SIZE = 64
+
+
+def _Shorten(s, prefixofs, suffixofs, maxlen):
+  """Shorten the given string if its length is >= maxlen.
+
+  Note: maxlen should generally be considerably bigger than
+  prefixofs + suffixofs.  It's disconcerting to a reader when
+  you have a "..." to replace 10 bytes, but it feels fine when the
+  "..." replaces 500 bytes.
+
+  Args:
+    s: the string to shorten.
+    prefixofs: the number of chars to keep at the beginning of s.
+    suffixofs: the number of chars to keep at the end of s.
+    maxlen: if the string is longer than this, shorten it.
+  Returns:
+    A shortened version of the string.
+  """
+  s = str(s)
+  if len(s) >= maxlen and not os.environ.get('DONT_SHORTEN'):
+    # When the string exceeds the limit, we deliberately shorten it to
+    # considerably less than the limit, because it's disconcerting when
+    # you have a "..." to replace 10 bytes, but it feels right when the
+    # "..." replaces 500 bytes.
+    s = s[0:prefixofs] + '\n........\n' + s[-suffixofs:]
+  return s
 
 
 class LimitDeque(collections.deque):
@@ -314,7 +342,7 @@ class CPEStateMachine(object):
       print 'Idle CWMP session, terminating.'
       self.outstanding = None
       ping_received = self.session.close()
-      self.platform_config.AcsAccess(self.session.acs_url)
+      self.platform_config.AcsAccessSuccess(self.session.acs_url)
       self.session = None
       self.retry_count = 0  # Successful close
       if self._changed_parameters:
@@ -337,18 +365,19 @@ class CPEStateMachine(object):
 
     headers = {}
     if self.session.cookies:
-      headers['Cookie'] = ';'.join(self.session.cookies)
+      headers['Cookie'] = self.session.cookies.output(attrs=[], header='', sep=';')
     if self.outstanding:
       headers['Content-Type'] = 'text/xml; charset="utf-8"'
       headers['SOAPAction'] = ''
     else:
       # Empty message
       self.session.state_update(cpe_to_acs_empty=True)
+    self.platform_config.AcsAccessAttempt(self.session.acs_url)
     print('CPE POST (at {0!s}):\n'
           'ACS URL: {1!r}\n'
           '{2!s}\n'
           '{3!s}'.format(time.ctime(), self.session.acs_url,
-                         headers, self.outstanding))
+                         headers, _Shorten(self.outstanding, 768, 256, 2048)))
     req = tornado.httpclient.HTTPRequest(
         url=self.session.acs_url, method='POST', headers=headers,
         body=self.outstanding, follow_redirects=True, max_redirects=5,
@@ -363,10 +392,10 @@ class CPEStateMachine(object):
       print 'Session terminated, ignoring ACS message.'
       return
     if not response.error:
-      cookies = response.headers.get_list('Set-Cookie')
-      if cookies:
-        self.session.cookies = cookies
-      print response.body
+      print _Shorten(response.body, 768, 256, 2048)
+      self.session.cookies = Cookie.SimpleCookie()
+      for cookie in response.headers.get_list('Set-Cookie'):
+        self.session.cookies.load(cookie)
       if response.body:
         out = self.cpe_soap.Handle(response.body)
         if out is not None:

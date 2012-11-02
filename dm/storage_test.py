@@ -89,14 +89,14 @@ class StorageTest(unittest.TestCase):
   def testLogicalVolumeCapacity(self):
     stor = storage.LogicalVolumeLinux26('/fakepath', 'fstype')
     teststatvfs = OsStatVfs('/fakepath')
-    expected = teststatvfs.f_bsize * teststatvfs.f_blocks
+    expected = teststatvfs.f_bsize * teststatvfs.f_blocks / 1024 / 1024
     self.assertEqual(stor.Capacity, expected)
 
   def testUsedSpace(self):
     stor = storage.LogicalVolumeLinux26('/fakepath', 'fstype')
     teststatvfs = OsStatVfs('/fakepath')
     used = (teststatvfs.f_blocks - teststatvfs.f_bavail) * teststatvfs.f_bsize
-    self.assertEqual(stor.UsedSpace, used)
+    self.assertEqual(stor.UsedSpace, used / 1024 / 1024)
 
   def testLogicalVolumeThresholdReached(self):
     stor = storage.LogicalVolumeLinux26('/fakepath', 'fstype')
@@ -119,8 +119,9 @@ class StorageTest(unittest.TestCase):
       self.assertEqual(vol.Status, 'Online')
       self.assertTrue(vol.Enable)
       self.assertEqual(vol.FileSystem, expectedFs[vol.Name])
-      self.assertEqual(vol.Capacity, t.f_bsize * t.f_blocks)
-      self.assertEqual(vol.UsedSpace, t.f_bsize * (t.f_blocks - t.f_bavail))
+      self.assertEqual(vol.Capacity, t.f_bsize * t.f_blocks / 1024 / 1024)
+      expected = t.f_bsize * (t.f_blocks - t.f_bavail) / 1024 / 1024
+      self.assertEqual(vol.UsedSpace, expected)
       self.assertEqual(vol.X_CATAWAMPUS_ORG_ReadOnly, expectedRo[vol.Name])
 
   def testCapabilitiesNone(self):
@@ -219,12 +220,12 @@ class StorageTest(unittest.TestCase):
   def testFlashSubVolume(self):
     sv = storage.FlashSubVolUbiLinux26('ubi2_0')
     sv.ValidateExports()
-    self.assertEqual(sv.DataBytes, 388063232)
+    self.assertEqual(sv.DataMBytes, 370)
     self.assertEqual(sv.Name, 'subvol0')
     self.assertEqual(sv.Status, 'OK')
     sv = storage.FlashSubVolUbiLinux26('ubi2_1')
     sv.ValidateExports()
-    self.assertEqual(sv.DataBytes, 59301888)
+    self.assertEqual(sv.DataMBytes, 56)
     self.assertEqual(sv.Name, 'subvol1')
     self.assertEqual(sv.Status, 'Corrupted')
 
