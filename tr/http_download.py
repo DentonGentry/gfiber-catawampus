@@ -25,7 +25,6 @@ import sys
 import tempfile
 
 import google3
-import helpers
 import tornado
 import tornado.httpclient
 import tornado.ioloop
@@ -33,6 +32,8 @@ import tornado.web
 
 # Unit tests can override this to pass in a mock
 HTTPCLIENT = tornado.httpclient.AsyncHTTPClient
+PERCENT_COMPLETE_FILE = '/tmp/cwmp/download_percent'
+TEMPFILE = tempfile.NamedTemporaryFile
 
 # tr-69 fault codes
 DOWNLOAD_FAILED = 9010
@@ -63,9 +64,9 @@ def calc_http_digest(method, uripath, qop, nonce, cnonce, nc,
 class HttpDownload(object):
   def __init__(self, url, username=None, password=None,
                download_complete_cb=None, ioloop=None, download_dir=None):
-    self.url = str(url)
-    self.username = str(username)
-    self.password = str(password)
+    self.url = url
+    self.username = username
+    self.password = password
     self.download_complete_cb = download_complete_cb
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self.download_dir = download_dir
@@ -77,13 +78,20 @@ class HttpDownload(object):
     return self._start_download()
 
   def _start_download(self):
-    print 'starting (auth_header=%r)' % self.auth_header
+    print 'download: starting (auth_header=%r)' % self.auth_header
+    self.content_length = 0
+    self.downloaded_bytes = 0
+    self.file_percent_complete = 0
+    self.logged_percent_complete = 0
+    self.headers = dict()
     if not self.tempfile:
-      self.tempfile = tempfile.NamedTemporaryFile(delete=True,
-                                                  dir=self.download_dir)
+      self.tempfile = TEMPFILE(delete=True, dir=self.download_dir)
+    self.tempfile.truncate(0)
+    self.tempfile.seek(0)
     kwargs = dict(url=self.url,
                   request_timeout=3600.0,
-                  streaming_callback=self.tempfile.write,
+                  header_callback=self.header_callback,
+                  streaming_callback=self.streaming_callback,
                   use_gzip=True, allow_ipv6=True,
                   user_agent='catawampus-tr69')
     if self.auth_header:
@@ -95,8 +103,42 @@ class HttpDownload(object):
     self.http_client = HTTPCLIENT(io_loop=self.ioloop)
     self.http_client.fetch(req, self._async_fetch_callback)
 
+  def _IntOrZero(self, v):
+    try:
+      return int(v)
+    except ValueError:
+      return 0
+
+  def header_callback(self, header):
+    if ':' in header:
+      (k, v) = header.split(':', 1)
+      self.headers[k.strip()] = v.strip()
+      if k.lower().startswith('content-length'):
+        self.content_length = self._IntOrZero(v)
+
+  def _output_dl_percentage(self, percent_complete):
+    if percent_complete != self.file_percent_complete:
+      self.file_percent_complete = percent_complete
+      if PERCENT_COMPLETE_FILE:
+        try:
+          with open(PERCENT_COMPLETE_FILE, 'w+') as f:
+            f.write(str(percent_complete))
+        except IOError:
+          print 'download: ERROR unable to write ' + PERCENT_COMPLETE_FILE
+    if abs(percent_complete - self.logged_percent_complete) >= 10:
+      self.logged_percent_complete = percent_complete
+      print 'download: %d percent complete' % percent_complete
+
+  def streaming_callback(self, buf):
+    self.tempfile.write(buf)
+    self.downloaded_bytes += len(buf)
+    if self.content_length:
+      percent_complete = (self.downloaded_bytes * 100) / self.content_length
+      self._output_dl_percentage(percent_complete)
+
   def _calculate_auth_header(self, response):
     """HTTP Digest Authentication."""
+    response.headers.update(self.headers)
     h = response.headers.get('www-authenticate', None)
     if not h:
       return
@@ -107,8 +149,9 @@ class HttpDownload(object):
     params = {}
     for param in paramstr.split(','):
       name, value = param.split('=')
-      assert(value.startswith('"') and value.endswith('"'))
-      params[name] = value[1:-1]
+      if value.startswith('"') and value.endswith('"'):
+        value = value[1:-1]
+      params[name.strip()] = value
 
     uripath = _uri_path(self.url)
     nc = '00000001'
@@ -142,39 +185,72 @@ class HttpDownload(object):
     return 'Digest %s' % ','.join(returnlist)
 
   def _async_fetch_callback(self, response):
-    """Called for each chunk of data downloaded."""
+    """Called at the end of the transfer."""
     if (response.error and response.error.code == 401 and
         not self.auth_header and self.username and self.password):
-      print '401 error, attempting Digest auth'
+      print 'download: 401 fetching %s, attempting Digest auth' % self.url
+      print json.dumps(response.headers, indent=2)
       self.auth_header = self._calculate_auth_header(response)
       if self.auth_header:
         self._start_download()
+        print 'starting download again'
         return
 
-    self.tempfile.flush()
+    error_message = ''
+    try:
+      self.tempfile.flush()
+    except IOError as e:
+      error_message = 'download: ERROR flush failed %s' % str(e)
 
     if response.error:
-      print('Download failed: {0!r}'.format(response.error))
+      error_message = 'download: ERROR failed {0!r}'.format(response.error)
       print json.dumps(response.headers, indent=2)
-      self.tempfile.close()
-      self.download_complete_cb(
-          DOWNLOAD_FAILED,
-          'Download failed {0!s}'.format(response.error.code),
-          None)
+
+    if error_message:
+      try:
+        # We got here because of an error, possibly ENOSPC due to the
+        # filesystem being completely full. tempfile objects start
+        # to run into pathological failures when the filesystem is
+        # completely full, like failing to close() because fsync fails.
+        # The following sequence has been empirically tested, to make
+        # sure it deletes the file and releases the space.
+        os.unlink(self.tempfile.name)
+        self.tempfile = None
+      except (IOError, OSError):
+        print 'download: ERROR cannot clean up failed download.'
+        pass
+      self.download_complete_cb(DOWNLOAD_FAILED, error_message, None)
     else:
       self.download_complete_cb(0, '', self.tempfile)
-      print('Download success: {0}'.format(self.tempfile.name))
+      print('download: success {0}'.format(self.tempfile.name))
+
+
+def main_dl_complete(ioloop, _, msg, filename):
+  print msg
+  ioloop = ioloop or tornado.ioloop.IOLoop.instance()
+  ioloop.stop()
+
+
+def main_dl_start(url, username, password, ioloop=None):
+  tornado.httpclient.AsyncHTTPClient.configure(
+      'tornado.curl_httpclient.CurlAsyncHTTPClient')
+  import functools
+  ioloop = ioloop or tornado.ioloop.IOLoop.instance()
+  cb = functools.partial(main_dl_complete, ioloop)
+  print 'using URL: %s username: %s password: %s' % (url, username, password)
+  dl = HttpDownload(url=url, username=username, password=password,
+                    download_complete_cb=cb, ioloop=ioloop)
+  dl.fetch()
+  ioloop.start()
 
 
 def main():
-  ioloop = tornado.ioloop.IOLoop.instance()
-  dl = HttpDownload(ioloop)
   url = len(sys.argv) > 1 and sys.argv[1] or 'http://www.google.com/'
-  username = len(sys.argv) > 2 and sys.argv[2]
-  password = len(sys.argv) > 3 and sys.argv[3]
-  print 'using URL: %s' % url
-  dl.download(url=url, username=username, password=password, delay_seconds=0)
-  ioloop.start()
+  username = password = None
+  if len(sys.argv) > 3:
+    username = sys.argv[2]
+    password = sys.argv[3]
+  main_dl_start(url, username, password)
 
 if __name__ == '__main__':
   main()
