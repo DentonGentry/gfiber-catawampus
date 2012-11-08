@@ -35,6 +35,19 @@ class TestObject(object):
   e = tr.types.Enum(['one', 'two', 'three', 7, None])
   e2 = tr.types.Enum(['thing'])
 
+  v = tr.types.Unsigned()
+  @v.validator
+  def v(self, value):
+    return value * self.f
+
+  vv = tr.types.Int()
+  @vv.validator
+  def vv(self, value):
+    return -value
+  @vv.validator
+  def vv(self, value):
+    return value + 1
+
 
 class TriggerObject(object):
   def __init__(self):
@@ -54,8 +67,19 @@ class TriggerObject(object):
     self.xval = value
 
   a = tr.types.Trigger(tr.types.Attr())
-  b = tr.types.Trigger(tr.types.Bool())
-  i = tr.types.Trigger(tr.types.Int())
+  b = tr.types.TriggerBool()
+  i = tr.types.TriggerInt()
+
+  v = tr.types.TriggerFloat()
+  @v.validator
+  def v(self, value):
+    return value + 1
+
+  vv = tr.types.Float()
+  @vv.validator
+  def vv(self, value):
+    return 2 * value
+  vv = tr.types.Trigger(vv)
 
 
 class ReadOnlyObject(object):
@@ -141,6 +165,15 @@ class TypesTest(unittest.TestCase):
     obj.e2 = 'thing'
     self.assertRaises(ValueError, setattr, obj, 'e2', None)
 
+    obj.f = 11.5
+    self.assertEquals(tr.types.tryattr(obj, 'v', 3.4), int(int(3.4) * 11.5))
+    self.assertRaises(ValueError, setattr, obj, 'v', -1)
+    obj.v = 7.3
+    self.assertEquals(obj.v, int(int(7.3) * 11.5))
+
+    obj.vv = 5  # validator chain is: -((-5) + 1)
+    self.assertEquals(obj.vv, 4)
+
   def testTriggers(self):
     obj = TriggerObject()
     self.assertEquals(obj.xval, 7)
@@ -175,6 +208,22 @@ class TypesTest(unittest.TestCase):
     self.assertEquals(obj.triggers, 7)
     self.assertRaises(ValueError, setattr, obj, 'i', '1.2')
     self.assertEquals(obj.triggers, 7)
+
+    # test that validators get passed through, and triggering check happens
+    # *after* validation.
+    obj.v = 5
+    self.assertEquals(obj.v, 5 + 1)
+    self.assertEquals(type(obj.v), float)
+    self.assertEquals(obj.triggers, 8)
+    obj.v = 5
+    self.assertEquals(obj.triggers, 8)
+
+    obj.vv = 12
+    self.assertEquals(obj.vv, 2 * 12)
+    self.assertEquals(type(obj.vv), float)
+    self.assertEquals(obj.triggers, 9)
+    obj.vv = 12
+    self.assertEquals(obj.triggers, 9)
 
   def testReadOnly(self):
     obj = ReadOnlyObject()
