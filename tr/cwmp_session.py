@@ -21,6 +21,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import Cookie
 import functools
 import tornado.httpclient
 import tornado.ioloop
@@ -66,6 +67,7 @@ class CwmpSession(object):
     self.my_ip = None
     self.ping_received = False
     self.state = self.CONNECT
+    self.cookies = Cookie.SimpleCookie()
 
   def state_update(self, sent_inform=None, on_hold=None,
                    cpe_to_acs_empty=None, acs_to_cpe_empty=None):
