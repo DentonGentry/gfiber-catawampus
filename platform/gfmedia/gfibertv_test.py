@@ -82,7 +82,7 @@ class XmlRpcThread(threading.Thread):
 
 
 class GfiberTvTests(unittest.TestCase):
-  """Tests for gfibertv.py and tvxmlrpc.py."""
+  """Tests for gfibertv.py."""
 
   def setUp(self):
     srv_cv.acquire()
@@ -95,6 +95,7 @@ class GfiberTvTests(unittest.TestCase):
     os.close(tmp_file_handle)
     gfibertv.NICKFILE = self.nick_file_name
     gfibertv.NICKFILE_TMP = self.tmp_file_name
+    self.EASHEARTBEATFILE = gfibertv.EASHEARTBEATFILE
 
     (btdevices_handle, self.btdevices_fname) = tempfile.mkstemp()
     (btdevices_tmp_handle, self.btdevices_tmp_fname) = tempfile.mkstemp()
@@ -278,6 +279,15 @@ class GfiberTvTests(unittest.TestCase):
 
     gftv.BtNoPairing = False
     self.assertFalse(gftv.BtNoPairing)
+
+  def testEASHeartbeatTimestamp(self):
+    gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
+    gfibertv.EASHEARTBEATFILE = 'testdata/gfibertv/eas_heartbeat'
+    self.assertEqual(gftv.EASHeartbeatTimestamp, '2012-11-09T22:26:40Z')
+    gfibertv.EASHEARTBEATFILE = '/path/to/nonexistant'
+    self.assertEqual(gftv.EASHeartbeatTimestamp, '0001-01-01T00:00:00Z')
+    gfibertv.EASHEARTBEATFILE = 'testdata/gfibertv/eas_heartbeat.bad'
+    self.assertEqual(gftv.EASHeartbeatTimestamp, '0001-01-01T00:00:00Z')
 
 
 if __name__ == '__main__':

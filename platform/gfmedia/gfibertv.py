@@ -28,6 +28,7 @@ import xmlrpclib
 import google3
 import tr.core
 import tr.cwmpbool
+import tr.cwmpdate
 import tr.helpers
 import tr.x_gfibertv_1_0
 BASETV = tr.x_gfibertv_1_0.X_GOOGLE_COM_GFIBERTV_v1_0.X_GOOGLE_COM_GFIBERTV
@@ -41,6 +42,7 @@ BTHHDEVICES_TMP = '/user/bsa/bt_hh_devices.xml.tmp'
 BTCONFIG = '/user/bsa/bt_config.xml'
 BTCONFIG_TMP = '/user/bsa/bt_config.xml.tmp'
 BTNOPAIRING = '/usr/bsa/nopairing'
+EASHEARTBEATFILE = '/tmp/eas_heartbeat'
 
 
 class GFiberTvConfig(object):
@@ -184,10 +186,6 @@ class GFiberTv(BASETV):
       raise
 
   @property
-  def XX(self):
-    return True
-
-  @property
   def BtNoPairing(self):
     return os.access(BTNOPAIRING, os.R_OK)
 
@@ -233,6 +231,15 @@ class GFiberTv(BASETV):
   @BtConfig.setter
   def BtConfig(self, value):
     self.config.bt_config = value
+
+  @property
+  def EASHeartbeatTimestamp(self):
+    try:
+      with file(EASHEARTBEATFILE) as f:
+        secs = float(f.read())
+    except (IOError, OSError, ValueError):
+      secs = 0.0
+    return tr.cwmpdate.format(secs)
 
 
 class GFiberTvMailbox(BASETV.Mailbox):
