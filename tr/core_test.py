@@ -90,28 +90,30 @@ class CoreTest(unittest.TestCase):
                      ['Counter.', 'SubObj.', 'TestParam'])
     self.assertEqual(list(o.ListExports(recursive=True)),
                      ['Counter.',
-                      'Counter.0.', 'Counter.0.Count',
                       'Counter.1.', 'Counter.1.Count',
                       'Counter.2.', 'Counter.2.Count',
+                      'Counter.3.', 'Counter.3.Count',
                       'SubObj.', 'SubObj.Count', 'TestParam'])
 
     ds1 = core.DumpSchema(TestObject)
     ds2 = core.DumpSchema(o)
     self.assertEqual(ds1, ds2)
 
-    o.DeleteExportObject('Counter', 1)
+    o.DeleteExportObject('Counter', 2)
     self.assertEqual(list(o.ListExports(recursive=True)),
                      ['Counter.',
-                      'Counter.0.', 'Counter.0.Count',
-                      'Counter.2.', 'Counter.2.Count',
+                      'Counter.1.', 'Counter.1.Count',
+                      'Counter.3.', 'Counter.3.Count',
                       'SubObj.', 'SubObj.Count', 'TestParam'])
     self.assertEqual([(idx, i.Count) for idx, i in o.CounterList.items()],
-                     [(0, 2), (2, 4)])
+                     [(1, 2), (3, 4)])
+    # NOTE(jnewlin): Note that is actually outside the spec, the spec says that
+    # the index is an integer, but I guess it's neat that we can do this.
     idx, eo = o.AddExportObject('Counter', 'fred')
     eo.Count = 99
     print o.ListExports(recursive=True)
     self.assertEqual([(idx, i.Count) for idx, i in o.CounterList.items()],
-                     [(0, 2), (2, 4), ('fred', 99)])
+                     [(1, 2), (3, 4), ('fred', 99)])
     print core.Dump(o)
     o.ValidateExports()
 
@@ -126,7 +128,7 @@ class CoreTest(unittest.TestCase):
     (idx2, obj2) = o.AddExportObject('Counter')
     (idx3, obj3) = o.AddExportObject('Counter')
     name = o.GetCanonicalName(obj3)
-    self.assertEqual('Counter.2', name)
+    self.assertEqual('Counter.3', name)
 
   def testLifecycle(self):
     # AutoObject() regenerates its children, with a new count, every time

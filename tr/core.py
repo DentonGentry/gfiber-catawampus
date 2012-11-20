@@ -138,7 +138,9 @@ class Exporter(object):
     Args:
       defaults: (optional) a dictionary of attrs to set on the object.
     """
-    self.__lastindex = -1
+    # Setting __lastindex = 0, means the first AddObject will have an index
+    # of 1, which is what is called for in the spec.
+    self.__lastindex = 0
     self.export_params = set()
     self.export_objects = set()
     self.export_object_lists = set()
