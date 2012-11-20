@@ -264,7 +264,9 @@ class PeriodicStatistics(BASE157PS):
       """Return time until the next sample should be collected."""
       # The simple case, if TimeReference is not set, the time till next
       # sample is simply the SampleInterval.
-      if not self._time_reference:
+      # If we've already collected one sample, just keep incrementing
+      # at the sample interval, no need to realign with the clock each sample.
+      if self._samples_collected != 0 or not self._time_reference:
         return max(1, self._sample_interval)
 
       # self._time_reference is a datetime object.
@@ -375,7 +377,7 @@ class PeriodicStatistics(BASE157PS):
       """
       if attr == 'Notification':
         # Technically should not overwrite this unless we all see a
-        # 'NotificationChange' with a value of true.  Seems a bit retarded
+        # 'NotificationChange' with a value of true.  Seems redundant
         # though, why send a SetParametersAttribute with a new value but
         # NotificationChange set to False...
         self._attributes[attr] = int(value)
