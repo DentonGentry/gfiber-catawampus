@@ -27,6 +27,7 @@ import math
 import random
 import re
 import socket
+import sys
 import time
 import urlparse
 
@@ -40,12 +41,9 @@ import cwmpdate
 PERIODIC_CALLBACK = tornado.ioloop.PeriodicCallback
 
 
-class DefaultSetAcsUrl(object):
-  def SetAcsUrl(self, url):
-    return False
-
 class ServerParameters(object):
   """Class to hold parameters of CpeManagementServer."""
+
   def __init__(self):
     self.CWMPRetryMinimumWaitInterval = 5
     self.CWMPRetryIntervalMultiplier = 2000
@@ -58,10 +56,10 @@ class ServerParameters(object):
     self.ConnectionRequestUsername = 'catawampus'
     self.DefaultActiveNotificationThrottle = 0
     self.EnableCWMP = True
-    self._PeriodicInformEnable = True
+    self.PeriodicInformEnable = True
     # Once every 15 minutes plus or minus one minute (3 minute spread)
-    self._PeriodicInformInterval = (15 * 60) + random.randint(-60, 60)
-    self._PeriodicInformTime = 0
+    self.PeriodicInformInterval = (15 * 60) + random.randint(-60, 60)
+    self.PeriodicInformTime = 0
     self.Password = ''
     self.Username = ''
 
@@ -75,9 +73,6 @@ class CpeManagementServer(object):
                restrict_acs_hosts=None):
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self.restrict_acs_hosts = restrict_acs_hosts
-    self.ValidateAcsUrl(acs_url)
-    if platform_config:
-      self.ValidateAcsUrl(platform_config.GetAcsUrl())
     self.acs_url = acs_url
     self.platform_config = platform_config
     self.port = port
@@ -194,7 +189,31 @@ class CpeManagementServer(object):
     self.config.Username = value
 
   def GetURL(self):
-    return self.acs_url or self.platform_config.GetAcsUrl()
+    """Return the ACS URL to use."""
+    if self.acs_url:
+      try:
+        self.ValidateAcsUrl(self.acs_url)
+        return self.acs_url
+      except ValueError:
+        print 'Supplied acs_url: %s  is invalid.  Ignoring.' % self.acs_url
+
+    url = self.platform_config.GetAcsUrl()
+    max_attempts = 20
+    while url and max_attempts:
+      try:
+        self.ValidateAcsUrl(url)
+        return url
+      except ValueError:
+        print 'Invalidating url %s' % url
+        if not self.platform_config.InvalidateAcsUrl(url):
+          print ('set-acs failed to invalidate url!'
+                 'Something is extremely broken.')
+          sys.exit(100)
+        url = None
+      url = self.platform_config.GetAcsUrl()
+      max_attempts -= 1
+    # If we get here, there is no valid platform url.
+    return None
 
   def SetURL(self, value):
     self.ValidateAcsUrl(value)
@@ -239,10 +258,10 @@ class CpeManagementServer(object):
                           'tr-98/181 ManagementServer.ParameterKey')
 
   def GetPeriodicInformEnable(self):
-    return self.config._PeriodicInformEnable
+    return self.config.PeriodicInformEnable
 
   def SetPeriodicInformEnable(self, value):
-    self.config._PeriodicInformEnable = cwmpbool.parse(value)
+    self.config.PeriodicInformEnable = cwmpbool.parse(value)
     self.ConfigurePeriodicInform()
 
   PeriodicInformEnable = property(
@@ -250,10 +269,10 @@ class CpeManagementServer(object):
       'tr-98/181 ManagementServer.PeriodicInformEnable')
 
   def GetPeriodicInformInterval(self):
-    return self.config._PeriodicInformInterval
+    return self.config.PeriodicInformInterval
 
   def SetPeriodicInformInterval(self, value):
-    self.config._PeriodicInformInterval = int(value)
+    self.config.PeriodicInformInterval = int(value)
     self.ConfigurePeriodicInform()
 
   PeriodicInformInterval = property(
@@ -261,10 +280,10 @@ class CpeManagementServer(object):
       'tr-98/181 ManagementServer.PeriodicInformInterval')
 
   def GetPeriodicInformTime(self):
-    return self.config._PeriodicInformTime
+    return self.config.PeriodicInformTime
 
   def SetPeriodicInformTime(self, value):
-    self.config._PeriodicInformTime = value
+    self.config.PeriodicInformTime = value
     self.ConfigurePeriodicInform()
 
   PeriodicInformTime = property(
@@ -285,21 +304,21 @@ class CpeManagementServer(object):
       self._periodic_callback.stop()
       self._periodic_callback = None
 
-    if (self.config._PeriodicInformEnable and
-        self.config._PeriodicInformInterval > 0):
-      msec = self.config._PeriodicInformInterval * 1000
+    if (self.config.PeriodicInformEnable and
+        self.config.PeriodicInformInterval > 0):
+      msec = self.config.PeriodicInformInterval * 1000
       self._periodic_callback = PERIODIC_CALLBACK(self.start_periodic_session,
                                                   msec, self.ioloop)
-      if self.config._PeriodicInformTime:
+      if self.config.PeriodicInformTime:
         # PeriodicInformTime is just meant as an offset, not an actual time.
         # So if it's 25.5 hours in the future and the interval is 1 hour, then
         # the interesting part is the 0.5 hours, not the 25.
         #
         # timetuple might be in the past, but that's okay; the modulus
         # makes sure it's never negative.  (ie. (-3 % 5) == 2, in python)
-        timetuple = cwmpdate.parse(self.config._PeriodicInformTime).timetuple()
+        timetuple = cwmpdate.parse(self.config.PeriodicInformTime).timetuple()
         offset = ((time.mktime(timetuple) - time.time())
-                  % float(self.config._PeriodicInformInterval))
+                  % float(self.config.PeriodicInformInterval))
       else:
         offset = 0.0
       self._start_periodic_timeout = self.ioloop.add_timeout(
@@ -321,8 +340,8 @@ class CpeManagementServer(object):
     """
     if retry_count == 0:
       return 0
-    periodic_interval = self.config._PeriodicInformInterval
-    if self.config._PeriodicInformInterval <= 0:
+    periodic_interval = self.config.PeriodicInformInterval
+    if self.config.PeriodicInformInterval <= 0:
       periodic_interval = 30
     c = 10 if retry_count >= 10 else retry_count
     m = float(self.config.CWMPRetryMinimumWaitInterval)

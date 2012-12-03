@@ -45,7 +45,7 @@ class PeriodicStatistics(BASE157PS):
   """An implementation of tr157 PeriodicStatistics sampling."""
 
   def __init__(self):
-    BASE157PS.__init__(self)
+    super(PeriodicStatistics, self).__init__()
     self._root = None
     self._cpe = None
     self.sample_sets = dict()
@@ -113,14 +113,13 @@ class PeriodicStatistics(BASE157PS):
     """Implementation of PeriodicStatistics.SampleSet."""
 
     def __init__(self):
-      BASE157PS.SampleSet.__init__(self)
+      super(PeriodicStatistics.SampleSet, self).__init__()
       self.ParameterList = tr.core.AutoDict(
           'ParameterList', iteritems=self.IterParameters,
           getitem=self.GetParameter, setitem=self.SetParameter,
           delitem=self.DelParameter)
       self.Unexport('ForceSample')
       self.Name = ''
-      self.ParameterNumberOfEntries = 0
       self._parameter_list = dict()
       self._sample_times = []
       self._samples_collected = 0
@@ -148,6 +147,10 @@ class PeriodicStatistics(BASE157PS):
 
     def DelParameter(self, key):
       del self._parameter_list[key]
+
+    @property
+    def ParameterNumberOfEntries(self):
+      return len(self._parameter_list)
 
     @property
     def TimeReference(self):
@@ -261,7 +264,9 @@ class PeriodicStatistics(BASE157PS):
       """Return time until the next sample should be collected."""
       # The simple case, if TimeReference is not set, the time till next
       # sample is simply the SampleInterval.
-      if not self._time_reference:
+      # If we've already collected one sample, just keep incrementing
+      # at the sample interval, no need to realign with the clock each sample.
+      if self._samples_collected != 0 or not self._time_reference:
         return max(1, self._sample_interval)
 
       # self._time_reference is a datetime object.
@@ -372,7 +377,7 @@ class PeriodicStatistics(BASE157PS):
       """
       if attr == 'Notification':
         # Technically should not overwrite this unless we all see a
-        # 'NotificationChange' with a value of true.  Seems a bit retarded
+        # 'NotificationChange' with a value of true.  Seems redundant
         # though, why send a SetParametersAttribute with a new value but
         # NotificationChange set to False...
         self._attributes[attr] = int(value)

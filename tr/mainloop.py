@@ -25,8 +25,11 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import datetime
 import errno
+import logging
 import os
 import socket
+import sys
+import traceback
 import google3
 import tornado.ioloop
 import tornado.iostream  #pylint: disable-msg=W0404
@@ -148,13 +151,40 @@ class LineReader(object):
     self.stream.set_close_callback(None)
 
 
+class IOLoopWrapper(tornado.ioloop.IOLoop):
+  """Overload IOLoop so that we can catch their inner exceptions."""
+  def __init__(self):
+    super(IOLoopWrapper, self).__init__()
+
+  @staticmethod
+  def instance():
+    """Return an instance of IOLoopWrapper."""
+    if hasattr(IOLoopWrapper, '_instance'):
+      return IOLoopWrapper._instance
+
+    if tornado.ioloop.IOLoop.initialized():
+      logging.info('Tornado IOLoop already initialized...'
+                   'Not catching exceptions')
+      return tornado.ioloop.IOLoop.instance()
+
+    IOLoopWrapper._instance = IOLoopWrapper()
+    tornado.ioloop.IOLoop.install(IOLoopWrapper._instance)
+    return IOLoopWrapper._instance
+
+  def handle_callback_exception(self, callback):
+    print 'Exception in callback %r' % (callback,)
+    print traceback.format_exc()
+    print 'Catawampus exiting.'
+    sys.exit(1)
+
+
 class MainLoop(object):
   """A slightly more convenient wrapper for tornado.ioloop.IOLoop."""
 
   def __init__(self):
     self.loop_timeout = None
     self.ioloop = None
-    self.ioloop = tornado.ioloop.IOLoop.instance()
+    self.ioloop = IOLoopWrapper.instance()
 
   def __del__(self):
     # we have to do this so objects who have registered with the ioloop

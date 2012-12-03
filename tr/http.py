@@ -23,7 +23,6 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import binascii
 import collections
-import Cookie
 import datetime
 import os
 import random
@@ -377,7 +376,8 @@ class CPEStateMachine(object):
           'ACS URL: {1!r}\n'
           '{2!s}\n'
           '{3!s}'.format(time.ctime(), self.session.acs_url,
-                         headers, _Shorten(self.outstanding, 768, 256, 2048)))
+                         _Shorten(headers, 768, 256, 2048),
+                         _Shorten(self.outstanding, 768, 256, 2048)))
     req = tornado.httpclient.HTTPRequest(
         url=self.session.acs_url, method='POST', headers=headers,
         body=self.outstanding, follow_redirects=True, max_redirects=5,
@@ -392,8 +392,8 @@ class CPEStateMachine(object):
       print 'Session terminated, ignoring ACS message.'
       return
     if not response.error:
+      print _Shorten(response.headers, 768, 256, 2048)
       print _Shorten(response.body, 768, 256, 2048)
-      self.session.cookies = Cookie.SimpleCookie()
       for cookie in response.headers.get_list('Set-Cookie'):
         self.session.cookies.load(cookie)
       if response.body:
