@@ -71,9 +71,76 @@ class Attr(object):
         d[id(self)] = self.init
       return d[id(self)]
 
+  def validate(self, obj, value):
+    """Validate or convert a potential new value for this attribute.
+
+    Callers can check this function to see if the attribute *could* be
+    assigned a particular value, or if it were, what it would be converted
+    into, without actually setting the value (and thus triggering any
+    side effects of setting the attribute).  This is useful when implementing
+    simple transactions, because you can test each variable first to see if
+    it *could* be set to a particular value, and only if all of them can,
+    continue with the transaction.  The default validator just allows all
+    values.
+
+    Note: normally you will call the global tryattr() function, which calls
+    this for you.
+
+    Note2: This base class's validator just accepts any value and will always
+    do so.  You don't need to call the superclass's version if you override
+    it in a derived class.
+
+    Args:
+      obj: the object owning the attribute.
+      value: the value to test.
+    Returns:
+      value or a modified value (eg. typecast into a different type)
+    Raises:
+      Any exception.
+    """
+    # default implementation allows any value
+    return value
+
+  def validator(self, valfunc):
+    """An @wrapper for adding a level of validation to the current property.
+
+    Both the input *and* the output of the validator function are passed
+    through the pre-existing validator chain.  That is, if you add a
+    validator to an Int() object, the input to your function will already
+    be coerced to int (or rejected if it can't be converted to an int, in
+    which case your function is never called).  Then, the value returned by
+    your function will also be coerced to an int on the way out.  This makes
+    it easy to write type-safe functions.
+
+    You can safely use @x.validator more than once on a given property x,
+    and it will add a new level of validation each time.  Probably that
+    isn't actually useful however.
+
+    Example usage:
+      class X(object):
+        i = Int()
+        @i.validator
+        def i(self, value):
+          if i < 0:
+            raise ValueError('i must be >= 0')
+          elif i > 100:
+            return 100
+          else:
+            return i * 2.5
+
+      x = X()
+      x.i = 9.3
+      print x.i   # prints int(int(9.3) * 2.5) == 22
+    """
+    old_valfunc = self.validate
+    def fn(obj, value):
+      return old_valfunc(obj, valfunc(obj, old_valfunc(obj, value)))
+    self.validate = fn
+    return self
+
   def __set__(self, obj, value):
     d = self._MakeAttrs(obj)
-    d[id(self)] = value
+    d[id(self)] = self.validate(obj, value)
 
 
 class Bool(Attr):
@@ -83,12 +150,12 @@ class Bool(Attr):
   '0' or '1' or the numbers 0, 1, True, or False.
   """
 
-  def __set__(self, obj, value):
+  def validate(self, obj, value):
     s = str(value).lower()
     if s in ('true', '1'):
-      Attr.__set__(self, obj, True)
+      return True
     elif s in ('false', '0'):
-      Attr.__set__(self, obj, False)
+      return False
     else:
       raise ValueError('%r is not a valid boolean' % value)
 
@@ -96,35 +163,35 @@ class Bool(Attr):
 class Int(Attr):
   """An attribute that is always an integer."""
 
-  def __set__(self, obj, value):
-    Attr.__set__(self, obj, int(value))
+  def validate(self, obj, value):
+    return int(value)
 
 
 class Unsigned(Attr):
   """An attribute that is always an integer >= 0."""
 
-  def __set__(self, obj, value):
+  def validate(self, obj, value):
     v = int(value)
     if v < 0:
       raise ValueError('%r must be >= 0' % value)
-    Attr.__set__(self, obj, v)
+    return v
 
 
 class Float(Attr):
   """An attribute that is always a floating point number."""
 
-  def __set__(self, obj, value):
-    Attr.__set__(self, obj, float(value))
+  def validate(self, obj, value):
+    return float(value)
 
 
 class String(Attr):
   """An attribute that is always a string or None."""
 
-  def __set__(self, obj, value):
+  def validate(self, obj, value):
     if value is None:
-      Attr.__set__(self, obj, None)
+      return None
     else:
-      Attr.__set__(self, obj, str(value))
+      return str(value)
 
 
 class Enum(Attr):
@@ -137,11 +204,11 @@ class Enum(Attr):
     super(Enum, self).__init__(init=init)
     self.values = set(values)
 
-  def __set__(self, obj, value):
+  def validate(self, obj, value):
     if value not in self.values:
       raise ValueError('%r invalid; value values are %r'
                        % (value, self.values))
-    Attr.__set__(self, obj, value)
+    return value
 
 
 class Trigger(object):
@@ -184,6 +251,22 @@ class Trigger(object):
       return self
     return self.attr.__get__(obj, None)
 
+  def validate(self, obj, value):
+    f = getattr(self.attr, 'validate', None)
+    if f:
+      return f(obj, value)
+    else:
+      return value
+
+  def validator(self, valfunc):
+    v = getattr(self.attr, 'validator', None)
+    if v:
+      v(valfunc)
+      return self
+    else:
+      raise AttributeError('attribute %r does not support validators'
+                           % self.attr)
+
   def __set__(self, obj, value):
     old = self.__get__(obj, None)
     self.attr.__set__(obj, value)
@@ -203,11 +286,11 @@ def TriggerInt(*args, **kwargs):
 
 
 def TriggerUnsigned(*args, **kwargs):
-  return Trigger(Int(*args, **kwargs))
+  return Trigger(Unsigned(*args, **kwargs))
 
 
 def TriggerFloat(*args, **kwargs):
-  return Trigger(Int(*args, **kwargs))
+  return Trigger(Float(*args, **kwargs))
 
 
 def TriggerString(*args, **kwargs):
@@ -244,6 +327,10 @@ class ReadOnly(object):
       return self
     return self.attr.__get__(obj, None)
 
+  def validate(self, obj, _):
+    # this is the same exception raised by a read-only @property
+    raise AttributeError("can't set attribute")
+
   def __set__(self, obj, _):
     # this is the same exception raised by a read-only @property
     raise AttributeError("can't set attribute")
@@ -275,3 +362,36 @@ def ReadOnlyString(*args, **kwargs):
 
 def ReadOnlyEnum(*args, **kwargs):
   return ReadOnly(Enum(*args, **kwargs))
+
+
+def tryattr(obj, attrname, value):
+  """Like setattr(), but validates the value without actually setting it.
+
+  For attributes that exist but have no validator, acts as if the validator
+  function allows all values.  Note: just because tryattr() returns success
+  doesn't guarantee that setattr() would return success.  You need to still
+  be able to handle exceptions in setattr() (due to race conditions, missing
+  validators, or any other reason.)
+
+  Args:
+    obj: the object containing the attr.
+    attrname: the name of the attribute to set.
+    value: the value to try setting the attribute to.
+  Returns:
+    value, or a modified version of value as fixed up by the validator (eg.
+      to coerce the data type).
+  Raises:
+    Any exception the validator might raise.
+  """
+  try:
+    prop = getattr(type(obj), attrname)
+  except AttributeError:
+    if hasattr(obj, attrname):
+      return value  # just a plain value, definitely writable
+    else:
+      raise  # nonexistent
+  validator = getattr(prop, 'validate', None)
+  if validator:
+    return validator(obj, value)
+  else:
+    return value

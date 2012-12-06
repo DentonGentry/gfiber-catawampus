@@ -286,29 +286,33 @@ class Exporter(object):
   def AssertValidExport(self, name, path=None):
     if not self.IsValidExport(name):
       raise KeyError(name)
-    ename = self._GetExportName(self, name)
+    ename = self._FixExportName(self, name)
     if not hasattr(self, ename):
       if not path:
         path = ['root']
       fullname = '.'.join(path + [ename])
       raise SchemaError('%s is exported but does not exist' % fullname)
 
-  def _GetExportName(self, parent, name):
+  @staticmethod
+  def _FixExportName(parent, name):
     if name in parent.export_object_lists:
       return name.replace('-', '_') + 'List'
     else:
       # Vendor models contain a dash in the domain name.
       return name.replace('-', '_')
 
-  def _GetExport(self, parent, name):
+  @staticmethod
+  def _GetExport(parent, name):
     if hasattr(parent, 'IsValidExport') and not parent.IsValidExport(name):
       raise KeyError(name)
     if hasattr(parent, '_GetExport'):
-      return getattr(parent, self._GetExportName(parent, name))
-    elif _Int(name) in parent:
-      return parent[_Int(name)]
-    else:
-      return parent[name]
+      return getattr(parent, Exporter._FixExportName(parent, name))
+    iname = _Int(name)
+    try:
+      return parent[iname]
+    except KeyError:
+      pass
+    return parent[name]
 
   def FindExport(self, name, allow_create=False):
     """Navigate through the export hierarchy to find the parent of 'name'.
@@ -347,6 +351,43 @@ class Exporter(object):
     except KeyError:
       # re-raise the KeyError with the full name, not just the subname.
       raise KeyError(name)
+
+  def LookupExports(self, names):
+    """Look up a list of export objects inside this object.
+
+    This is like FindExport() except for a list of names instead of a
+    single one, and it makes a special effort to cache objects so it doesn't
+    have to walk the tree more often than necessary.
+
+    Args:
+      names: an iterable of dot-separated object names.  If a given name
+        ends in '.', it is an object or a list item; if it doesn't, it is
+        a parameter.
+    Yields:
+      a series of (obj, paramname) tuples.  For objects, paramname is
+      an empty string.  Otherwise it is the last element of the dot-separated
+      path, and you can do things like getattr(obj, paramname) or
+      setattr(obj, paramname, 'value').  The yielded list is guaranteed
+      to be in the same order as the input list of names.
+    """
+    cache = {}
+    cache[()] = self
+    for name in names:
+      if name == '.':
+        name = ''
+      parts = name.split('.')
+      parts, param = tuple(parts[:-1]), parts[-1]
+      o = self
+      for i in xrange(len(parts), -1, -1):
+        before, after = parts[:i], parts[i:]
+        o = cache.get(before, None)
+        if o is not None:
+          break
+      assert o is not None
+      for i in after:
+        before = tuple(list(before) + [i])
+        cache[before] = o = Exporter._GetExport(o, i)
+      yield o, param
 
   def SetExportParam(self, name, value):
     """Set the value of a parameter of this object.
@@ -390,8 +431,8 @@ class Exporter(object):
       raise KeyError(name)
     try:
       constructor = getattr(self, name)
-    except KeyError:
-      raise NotAddableError(name)
+    except KeyError, e:
+      raise NotAddableError('%s: %s' % (name, e))
     if idx is None:
       self.__lastindex += 1
       while str(self.__lastindex) in objlist:
@@ -402,8 +443,8 @@ class Exporter(object):
     newobj = constructor()
     try:
       newobj.ValidateExports()
-    except SchemaError:
-      raise NotAddableError(name)
+    except SchemaError, e:
+      raise NotAddableError('%s: %s' % (name, e))
     objlist[_Int(idx)] = newobj
     return idx, newobj
 
@@ -482,8 +523,6 @@ class Exporter(object):
     if name:
       obj = self.GetExport(name)
     if hasattr(obj, '_ListExports'):
-      if recursive:
-        obj.ValidateExports()
       #pylint: disable-msg=W0212
       return obj._ListExports(recursive=recursive)
     else:

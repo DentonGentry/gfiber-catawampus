@@ -28,6 +28,7 @@ import xmlrpclib
 import google3
 import tr.core
 import tr.cwmpbool
+import tr.cwmpdate
 import tr.helpers
 import tr.x_gfibertv_1_0
 BASETV = tr.x_gfibertv_1_0.X_GOOGLE_COM_GFIBERTV_v1_0.X_GOOGLE_COM_GFIBERTV
@@ -41,6 +42,7 @@ BTHHDEVICES_TMP = '/user/bsa/bt_hh_devices.xml.tmp'
 BTCONFIG = '/user/bsa/bt_config.xml'
 BTCONFIG_TMP = '/user/bsa/bt_config.xml.tmp'
 BTNOPAIRING = '/usr/bsa/nopairing'
+EASHEARTBEATFILE = '/tmp/eas_heartbeat'
 
 
 class GFiberTvConfig(object):
@@ -70,7 +72,6 @@ class GFiberTv(BASETV):
         iteritems=self.IterProperties, getitem=self.GetProperties,
         setitem=self.SetProperties, delitem=self.DelProperties)
 
-
   class DeviceProperties(BASETV.DeviceProperties):
     """Implementation of gfibertv.DeviceProperties."""
 
@@ -80,6 +81,7 @@ class GFiberTv(BASETV):
       # nick_name is a unicode string.
       self.config.nick_name = ''
       self.config.serial_number = ''
+      self.parent = None
 
     def StartTransaction(self):
       # NOTE(jnewlin): If an inner object is added, we need to do deepcopy.
@@ -91,6 +93,7 @@ class GFiberTv(BASETV):
 
     def CommitTransaction(self):
       self.config_old = None
+      self.parent.UpdateConfigFile()
 
     @property
     def NickName(self):
@@ -121,7 +124,7 @@ class GFiberTv(BASETV):
     self.config = self.config_old
     self.config_old = None
 
-  def CommitTransaction(self):
+  def UpdateConfigFile(self):
     """Write out the config file for Sage."""
     if self.config.nicknames:
       with file(NICKFILE_TMP, 'w') as f:
@@ -130,20 +133,24 @@ class GFiberTv(BASETV):
           f.write('%s/nickname=%s\n' % (
               nn.SerialNumber, nn.config.nick_name.encode('unicode-escape')))
           serials.append(nn.SerialNumber)
-        f.write('SERIALS=%s\n' % ','.join(serials))
+        f.write('serials=%s\n' % ','.join(serials))
       os.rename(NICKFILE_TMP, NICKFILE)
 
-    if self.config.bt_devices != None:
+  def CommitTransaction(self):
+    """Write out the config file for Sage."""
+    self.UpdateConfigFile()
+
+    if self.config.bt_devices is not None:
       tr.helpers.WriteFileAtomic(BTDEVICES_TMP, BTDEVICES,
                                  self.config.bt_devices)
       self.config.bt_devices = None
 
-    if self.config.bt_hh_devices != None:
+    if self.config.bt_hh_devices is not None:
       tr.helpers.WriteFileAtomic(BTHHDEVICES_TMP, BTHHDEVICES,
-                         self.config.bt_hh_devices)
+                                 self.config.bt_hh_devices)
       self.config.bt_hh_devices = None
 
-    if self.config.bt_config != None:
+    if self.config.bt_config is not None:
       tr.helpers.WriteFileAtomic(BTCONFIG_TMP, BTCONFIG, self.config.bt_config)
       self.config.bt_config = None
     self.config_old = None
@@ -158,8 +165,9 @@ class GFiberTv(BASETV):
   def GetProperties(self, key):
     return self.config.nicknames[key]
 
-  def SetProperties(self, key, value):
-    self.config.nicknames[key] = value
+  def SetProperties(self, key, child_object):
+    child_object.parent = self
+    self.config.nicknames[key] = child_object
 
   def DelProperties(self, key):
     del self.config.nicknames[key]
@@ -178,10 +186,6 @@ class GFiberTv(BASETV):
       raise
 
   @property
-  def XX(self):
-    return True
-
-  @property
   def BtNoPairing(self):
     return os.access(BTNOPAIRING, os.R_OK)
 
@@ -189,7 +193,7 @@ class GFiberTv(BASETV):
   def BtNoPairing(self, value):
     no_pairing = tr.cwmpbool.parse(value)
     if no_pairing:
-      with open(BTNOPAIRING, 'w') as f:
+      with open(BTNOPAIRING, 'w') as _:
         pass
     else:
       try:
@@ -227,6 +231,16 @@ class GFiberTv(BASETV):
   @BtConfig.setter
   def BtConfig(self, value):
     self.config.bt_config = value
+
+  @property
+  def EASHeartbeatTimestamp(self):
+    try:
+      with file(EASHEARTBEATFILE) as f:
+        secs = float(f.read())
+    except (IOError, OSError, ValueError):
+      secs = 0.0
+    return tr.cwmpdate.format(secs)
+
 
 class GFiberTvMailbox(BASETV.Mailbox):
   """Implementation of x-gfibertv.xml."""

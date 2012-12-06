@@ -27,6 +27,8 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import tr.core
 import tr.tr098_v1_4
 import tr.tr181_v2_2
+import tr.types
+
 
 BASEMGMT181 = tr.tr181_v2_2.Device_v2_2.Device.ManagementServer
 BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
@@ -67,7 +69,6 @@ class ManagementServer181(BASEMGMT181):
     self.Unexport('UDPConnectionRequestAddress')
 
     self.ManageableDeviceList = {}
-    self.ManageableDeviceNumberOfEntries = 0
 
   def StartTransaction(self):
     self.mgmt.StartTransaction()
@@ -77,6 +78,10 @@ class ManagementServer181(BASEMGMT181):
 
   def CommitTransaction(self):
     self.mgmt.CommitTransaction()
+
+  @property
+  def ManageableDeviceNumberOfEntries(self):
+    return len(self.ManageableDeviceList)
 
   @property
   def STUNEnable(self):
@@ -157,8 +162,16 @@ class ManagementServer98(BASEMGMT98):
     self.mgmt.CommitTransaction()
 
   @property
+  def EmbeddedDeviceNumberOfEntries(self):
+    return len(self.EmbeddedDeviceList)
+
+  @property
   def ManageableDeviceNumberOfEntries(self):
-    return 0
+    return len(self.ManageableDeviceList)
+
+  @property
+  def STUNEnable(self):
+    return False
 
   @property
   def UpgradesManaged(self):
@@ -166,7 +179,7 @@ class ManagementServer98(BASEMGMT98):
 
   @property
   def VirtualDeviceNumberOfEntries(self):
-    return 0
+    return len(self.VirtualDeviceList)
 
   def __getattr__(self, name):
     if name in self.MGMTATTRS:

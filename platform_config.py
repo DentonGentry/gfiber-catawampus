@@ -66,6 +66,26 @@ class PlatformConfigMeta(object):
     return None
 
   @abc.abstractmethod
+  def InvalidateAcsUrl(self, url):
+    """Removes the given URL from the set of ACS urls to choose from.
+
+    Args:
+      url: The URL to invalidate.
+
+    A URL may be found to be invalid if it doesn't match the restrict list.
+    For example, if the restrict list is set to '.foo.com' and the url
+    returned from GetAcsUrl is 'xxx.bar.com', the then InvalidateAcsUrl will
+    be called, and the platform code has a chance to return a different URL.
+    This can happen if for example the DHCP server is misconfigured, and
+    points to a server/domain that is not on the restrict list, and give the
+    platform code a chance to return a default URL, or a URL gotten by some
+    other means.
+
+    Returns: True on success.  False if there was an error invalidating.
+    """
+    return True
+
+  @abc.abstractmethod
   def AcsAccessAttempt(self, url):
     """Called before attempting to initiate a connection with the ACS.
 

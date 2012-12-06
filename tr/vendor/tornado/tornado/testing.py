@@ -236,7 +236,7 @@ class AsyncHTTPTestCase(AsyncTestCase):
         self._app = self.get_app()
         self.http_server = HTTPServer(self._app, io_loop=self.io_loop,
                                       **self.get_httpserver_options())
-        self.http_server.listen(self.get_http_port(), address="127.0.0.1")
+        self.http_server.listen(self.get_http_port(), address="localhost")
 
     def get_app(self):
         """Should be overridden by subclasses to return a

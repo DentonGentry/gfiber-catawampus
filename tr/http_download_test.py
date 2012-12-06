@@ -14,18 +14,21 @@
 # limitations under the License.
 
 # unittest requires method names starting in 'test'
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """Unit tests for http_download.py."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-from collections import namedtuple  #pylint: disable-msg=C6202
+from collections import namedtuple  # pylint: disable-msg=C6202
 import shutil
 import tempfile
 import unittest
 
 import google3
+from curtain import digest
+import tornado.testing
+import tornado.web
 import http_download
 
 
@@ -56,25 +59,93 @@ class MockIoloop(object):
   def __init__(self):
     self.time = None
     self.callback = None
+    self.started = False
+    self.stopped = False
 
   def add_timeout(self, time, callback):
     self.time = time
     self.callback = callback
 
+  def start(self):
+    self.started = True
 
-class HttpDownloadTest(unittest.TestCase):
+  def stop(self):
+    self.stopped = True
+
+
+class MockTempFileIOError(object):
+  def __init__(self, delete, dir):  # pylint: disable-msg=W0622
+    self.delete = delete
+    self.dir = dir
+    self.name = 'MockTempFileIOError'
+
+  def close(self):
+    raise IOError('close')
+
+  def flush(self):
+    raise IOError('flush')
+
+  def seek(self, offset):
+    pass
+
+  def truncate(self, siz):
+    pass
+
+  def write(self, buf):
+    # Note that you'll see a traceback in the test output from this line.
+    # That is normal, we're testing the handling of the IOError.
+    raise IOError('write')
+
+
+class DigestAuthHandler(digest.DigestAuthMixin, tornado.web.RequestHandler):
+  def getcredentials(self, username):
+    credentials = {'auth_username': 'user', 'auth_password': 'pass'}
+    if username == credentials['auth_username']:
+      return credentials
+
+  def get(self):
+    # Digest authentication handler
+    if self.get_authenticated_user(self.getcredentials, 'Authusers'):
+      print 'DigestAuthHandler'
+      self.write('DigestHandler')
+      return self.set_status(200)
+
+
+class SimpleHandler(tornado.web.RequestHandler):
+  def get(self):
+    self.write('SimpleHandler')
+    return self.set_status(200)
+
+
+class HttpDownloadTest(tornado.testing.AsyncHTTPTestCase):
   """tests for http_download.py HttpDownload."""
 
+  def get_app(self):
+    return tornado.web.Application(
+        [('/digest', DigestAuthHandler),
+         ('/simple', SimpleHandler)])
+
   def setUp(self):
+    super(HttpDownloadTest, self).setUp()
     self.tmpdir = tempfile.mkdtemp()
-    http_download.HTTPCLIENT = MockHttpClient
     self.dl_cb_faultcode = None
     self.dl_cb_faultstring = None
+    self.dl_cb_filename = None
+    self.old_httpclient = http_download.HTTPCLIENT
+    self.old_tempfile = http_download.TEMPFILE
+    self.old_percent_complete_file = http_download.PERCENT_COMPLETE_FILE
+    http_download.PERCENT_COMPLETE_FILE = None
     del mock_http_clients[:]
+    tornado.httpclient.AsyncHTTPClient.configure(
+        'tornado.curl_httpclient.CurlAsyncHTTPClient')
 
   def tearDown(self):
+    super(HttpDownloadTest, self).tearDown()
     shutil.rmtree(self.tmpdir)
     del mock_http_clients[:]
+    http_download.HTTPCLIENT = self.old_httpclient
+    http_download.PERCENT_COMPLETE_FILE = self.old_percent_complete_file
+    http_download.TEMPFILE = self.old_tempfile
 
   def testDigest(self):
     expected = '6629fae49393a05397450978507c4ef1'
@@ -90,12 +161,16 @@ class HttpDownloadTest(unittest.TestCase):
         realm='testrealm@host.com')
     self.assertEqual(expected, actual)
 
-  def downloadCallback(self, faultcode, faultstring, filename):
+  def downloadCallback(self, faultcode, faultstring, fileobj):
     self.dl_cb_faultcode = faultcode
     self.dl_cb_faultstring = faultstring
-    self.dl_cb_filename = filename
+    if fileobj:
+      self.dl_cb_filename = fileobj.name
+    self.stop()
 
-  def testFetch(self):
+  def testFetchMocked(self):
+    """Test arguments to a mocked HttpClient."""
+    http_download.HTTPCLIENT = MockHttpClient
     ioloop = MockIoloop()
     username = 'uname'
     password = 'pword'
@@ -117,6 +192,66 @@ class HttpDownloadTest(unittest.TestCase):
     self.assertEqual(self.dl_cb_faultcode, 9010)  # DOWNLOAD_FAILED
     self.assertTrue(self.dl_cb_faultstring)
     self.assertFalse(self.dl_cb_filename)
+
+  def testFetchFerRealz(self):
+    """Test a real HTTP fetch to a local server."""
+    url = self.get_url('/simple')
+    dl = http_download.HttpDownload(url, username=None, password=None,
+                                    download_complete_cb=self.downloadCallback,
+                                    ioloop=self.io_loop)
+    dl.fetch()
+    self.wait(timeout=1)
+    self.assertTrue(self.dl_cb_filename)
+    with open(self.dl_cb_filename) as f:
+      self.assertEqual(f.read(), 'SimpleHandler')
+
+  def testFetchDigestAuth(self):
+    """Fetch from a local server requiring digest auth."""
+    url = self.get_url('/digest')
+    dl = http_download.HttpDownload(url, username='user', password='pass',
+                                    download_complete_cb=self.downloadCallback,
+                                    ioloop=self.io_loop)
+    dl.fetch()
+    self.wait(timeout=1)
+    self.assertTrue(self.dl_cb_filename)
+    with open(self.dl_cb_filename) as f:
+      self.assertEqual(f.read(), 'DigestHandler')
+
+  def testFetchDiskFull(self):
+    """Fetch from a local server requiring digest auth."""
+    http_download.TEMPFILE = MockTempFileIOError
+    url = self.get_url('/simple')
+    dl = http_download.HttpDownload(url, username=None, password=None,
+                                    download_complete_cb=self.downloadCallback,
+                                    ioloop=self.io_loop)
+    dl.fetch()
+    self.wait(timeout=1)
+    self.assertEqual(self.dl_cb_faultcode, 9010)  # DOWNLOAD_FAILED
+
+  def testMainDownload(self):
+    """Check that main() still works."""
+    http_download.HTTPCLIENT = MockHttpClient
+    ioloop = MockIoloop()
+    url = 'http://www.google.com'
+    username = 'user'
+    password = 'pass'
+    # This won't actually fetch www.google.com, httpclient is mocked.
+    http_download.main_dl_start(url=url, username=username,
+                                password=password, ioloop=ioloop)
+    self.assertTrue(ioloop.started)
+    self.assertFalse(ioloop.stopped)
+
+    self.assertEqual(len(mock_http_clients), 1)
+    ht = mock_http_clients[0]
+    self.assertTrue(ht.did_fetch)
+    self.assertTrue(ht.request is not None)
+    self.assertEqual(ht.request.auth_username, username)
+    self.assertEqual(ht.request.auth_password, password)
+    self.assertEqual(ht.request.url, url)
+
+    resp = MockHttpResponse(418)
+    ht.callback(resp)
+    self.assertTrue(ioloop.stopped)
 
 
 if __name__ == '__main__':

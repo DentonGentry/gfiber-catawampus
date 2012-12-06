@@ -20,6 +20,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import cStringIO
 import datetime
 import mox
 import os
@@ -208,6 +209,31 @@ class HttpTest(tornado.testing.AsyncTestCase):
     retry = root.find(SOAPNS + 'Body/' + CWMPNS + 'Inform/RetryCount')
     self.assertTrue(retry is not None)
     self.assertEqual(retry.text, '1')
+
+  def testCookies(self):
+    SetMonotime(self.advanceTime)
+    cpe_machine = self.getCpe()
+    cpe_machine.Startup()
+    self.wait(timeout=20)
+
+    self.assertEqual(len(mock_http_clients), 1)
+    ht = mock_http_clients[0]
+    self.assertTrue(ht.fetch_called)
+
+    headers = tornado.httputil.HTTPHeaders()
+    headers.add('Set-Cookie', 'CWMPSID=0123456789abcdef; Secure')
+    headers.add('Set-Cookie', 'AnotherCookie=987654321; Domain=.example.com; Path=/; Expires=Wed, 20-Jan-2038 00:00:01 GMT; HttpOnly')
+    buffer = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">cwmpID</cwmp:ID><cwmp:HoldRequests soapenv:mustUnderstand="1">1</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:InformResponse><MaxEnvelopes>1</MaxEnvelopes></cwmp:InformResponse></soapenv:Body></soapenv:Envelope>'
+
+    httpresp = tornado.httpclient.HTTPResponse(ht.fetch_req, 200,
+                                               headers=headers,
+                                               buffer=cStringIO.StringIO(buffer))
+    ht.fetch_callback(httpresp)
+
+    self.advance_time += 10
+    self.wait(timeout=20)
+    self.assertEqual(ht.fetch_req.headers['Cookie'],
+                     ' AnotherCookie=987654321; CWMPSID=0123456789abcdef')
 
   def testNewPingSession(self):
     cpe_machine = self.getCpe()

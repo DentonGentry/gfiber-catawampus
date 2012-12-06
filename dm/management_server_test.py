@@ -56,7 +56,7 @@ class MockCpeManagementServer(object):
     del self.copy
 
   def AbandonTransaction(self):
-    for k,v in self.copy.__dict__.iteritems():
+    for k, v in self.copy.__dict__.iteritems():
       self.__dict__[k] = v
     del self.copy
 
@@ -70,6 +70,9 @@ class ManagementServerTest(unittest.TestCase):
     self.assertEqual(mgmt181.ParameterKey, mgmt.ParameterKey)
     self.assertEqual(mgmt181.EnableCWMP, mgmt.EnableCWMP)
     self.assertTrue(mgmt181.UpgradesManaged)
+    self.assertFalse(mgmt181.STUNEnable)
+    self.assertEqual(mgmt181.ManageableDeviceNumberOfEntries, 0)
+    mgmt181.ValidateExports()
 
   def testGetMgmt98(self):
     mgmt = MockCpeManagementServer()
@@ -77,6 +80,7 @@ class ManagementServerTest(unittest.TestCase):
     self.assertEqual(mgmt98.ParameterKey, mgmt.ParameterKey)
     self.assertEqual(mgmt98.EnableCWMP, mgmt.EnableCWMP)
     self.assertTrue(mgmt98.UpgradesManaged)
+    self.assertFalse(mgmt98.STUNEnable)
     mgmt98.ValidateExports()
 
   def testSetMgmt181(self):
@@ -87,7 +91,8 @@ class ManagementServerTest(unittest.TestCase):
     mgmt181.CWMPRetryIntervalMultiplier = 2
     self.assertEqual(mgmt.CWMPRetryIntervalMultiplier, 2)
     self.assertEqual(mgmt181.CWMPRetryIntervalMultiplier, 2)
-    mgmt181.ValidateExports()
+    self.assertRaises(AttributeError, setattr, mgmt181,
+                      'ManageableDeviceNumberOfEntries', 1)
 
   def testSetMgmt98(self):
     mgmt = MockCpeManagementServer()

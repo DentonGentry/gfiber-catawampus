@@ -82,7 +82,7 @@ class XmlRpcThread(threading.Thread):
 
 
 class GfiberTvTests(unittest.TestCase):
-  """Tests for gfibertv.py and tvxmlrpc.py."""
+  """Tests for gfibertv.py."""
 
   def setUp(self):
     srv_cv.acquire()
@@ -95,6 +95,7 @@ class GfiberTvTests(unittest.TestCase):
     os.close(tmp_file_handle)
     gfibertv.NICKFILE = self.nick_file_name
     gfibertv.NICKFILE_TMP = self.tmp_file_name
+    self.EASHEARTBEATFILE = gfibertv.EASHEARTBEATFILE
 
     (btdevices_handle, self.btdevices_fname) = tempfile.mkstemp()
     (btdevices_tmp_handle, self.btdevices_tmp_fname) = tempfile.mkstemp()
@@ -121,7 +122,6 @@ class GfiberTvTests(unittest.TestCase):
     os.close(btnopair_handle)
     os.unlink(self.btnopair_fname)
     gfibertv.BTNOPAIRING = self.btnopair_fname
-
 
   def tearDown(self):
     xmlrpclib.ServerProxy('http://localhost:%d' % srv_port).Quit()
@@ -218,7 +218,7 @@ class GfiberTvTests(unittest.TestCase):
 
     self.assertTrue('12345/nickname=testroom\n' in lines)
     self.assertTrue('56789/nickname=\u212cedroom!\n' in lines)
-    self.assertTrue(last_line.startswith('SERIALS='))
+    self.assertTrue(last_line.startswith('serials='))
     split1 = last_line.split('=')
     self.assertEqual(2, len(split1))
     split2 = split1[1].split(',')
@@ -279,6 +279,15 @@ class GfiberTvTests(unittest.TestCase):
 
     gftv.BtNoPairing = False
     self.assertFalse(gftv.BtNoPairing)
+
+  def testEASHeartbeatTimestamp(self):
+    gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
+    gfibertv.EASHEARTBEATFILE = 'testdata/gfibertv/eas_heartbeat'
+    self.assertEqual(gftv.EASHeartbeatTimestamp, '2012-11-09T22:26:40Z')
+    gfibertv.EASHEARTBEATFILE = '/path/to/nonexistant'
+    self.assertEqual(gftv.EASHeartbeatTimestamp, '0001-01-01T00:00:00Z')
+    gfibertv.EASHEARTBEATFILE = 'testdata/gfibertv/eas_heartbeat.bad'
+    self.assertEqual(gftv.EASHeartbeatTimestamp, '0001-01-01T00:00:00Z')
 
 
 if __name__ == '__main__':

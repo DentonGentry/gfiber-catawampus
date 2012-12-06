@@ -52,6 +52,12 @@
           <string/>
         </syntax>
       </parameter>
+      <parameter name="EASHeartbeatTimestamp" access="readOnly">
+        <description>Timestamp of the last received Emergency Alert System heartbeat.</description>
+        <syntax>
+          <dateTime/>
+        </syntax>
+      </parameter>
       <object name="DeviceProperties.{i}." access="readWrite" numEntriesParameter="DevicePropertiesNumberOfEntries" minEntries="0" maxEntries="16">
         <parameter name="SerialNumber" access="readWrite">
           <description>Serial number of the device.</description>

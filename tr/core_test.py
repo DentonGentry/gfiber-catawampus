@@ -21,6 +21,7 @@
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import unittest
+import weakref
 import core
 
 
@@ -42,6 +43,31 @@ class TestObject(core.Exporter):
       core.Exporter.__init__(self)
       self.Export(params=['Count'])
 
+      self.gcount[0] += 1
+      self.Count = self.gcount[0]
+
+
+class AutoObject(core.Exporter):
+  def __init__(self):
+    core.Exporter.__init__(self)
+    self.SubList = core.AutoDict('SubList',
+                                 iteritems=self._itersubs,
+                                 getitem=self._getsub)
+    self.Export(lists=['Sub'])
+
+  def _itersubs(self):
+    for i in range(3):
+      yield i, self.Sub(i)
+
+  def _getsub(self, key):
+    return self.Sub(int(key))
+
+  class Sub(core.Exporter):
+    gcount = [0]
+
+    def __init__(self, i):
+      core.Exporter.__init__(self)
+      self.Export(params=['Count'])
       self.gcount[0] += 1
       self.Count = self.gcount[0]
 
@@ -102,6 +128,91 @@ class CoreTest(unittest.TestCase):
     name = o.GetCanonicalName(obj3)
     self.assertEqual('Counter.2', name)
 
+  def testLifecycle(self):
+    # AutoObject() regenerates its children, with a new count, every time
+    # you look for them.  (This simulates a "virtual" hierarchy, such as
+    # a Unix process list, that is different every time you look at it.)
+    # However, we should expect that if we retrieve multiple values at once,
+    # they all refer to the same instance of an object.
+    #
+    # The Count parameter is generated sequentially each time AutoObject
+    # creates a child, and we can use that to confirm that the code doesn't
+    # do unnecessary tree traversals without caching intermediate objects.
+    root = AutoObject()
+    s0 = root.SubList[0]
+    self.assertEqual(s0.Count, 1)
+    self.assertEqual(s0.Count, 1)
+    self.assertEqual(root.SubList[0].Count, 2)
+    self.assertEqual(s0.Count, 1)  # old object still exists
+    w = weakref.ref(s0)
+    self.assertEqual(s0, w())
+    del s0
+    self.assertEqual(w(), None)  # all remaining refs are definitely gone
+    self.assertEqual(root.SubList[0].GetExport('Count'), 3)
+
+    # FindExport of Sub.0 shouldn't actually instantiate the .0
+    self.assertEqual(root.FindExport('Sub.0'), (root.SubList, '0'))
+    self.assertEqual(root.SubList[0].Count, 4)
+
+    # FindExport of Sub.0.Count should instantiate Sub.0 exactly once
+    s0, name = root.FindExport('Sub.0.Count')
+    self.assertEqual(name, 'Count')
+    self.assertEqual(s0.Count, 5)
+    self.assertEqual(s0.Count, 5)
+
+    self.assertEqual(root.SubList[0].GetExport('Count'), 6)
+    self.assertEqual(root.GetExport('Sub.0.Count'), 7)
+    self.assertEqual(root.GetExport('Sub.576.Count'), 8)
+
+
+    self.assertEqual(list(root.ListExports(recursive=False)),
+                     ['Sub.'])
+    self.assertEqual(root.SubList[0].Count, 9)
+
+    self.assertEqual(list(root.ListExports(recursive=True)),
+                     ['Sub.',
+                      'Sub.0.',
+                      'Sub.0.Count',
+                      'Sub.1.',
+                      'Sub.1.Count',
+                      'Sub.2.',
+                      'Sub.2.Count'])
+    self.assertEqual(root.SubList[0].Count, 13)
+
+    # LookupExports gives us a list of useful object pointers that
+    # should only generate each requested object once.
+    print 'lookup test'
+    out = list(root.LookupExports(['Sub.0.Count',
+                                   'Sub.1.Count',
+                                   'Sub.0.Count',
+                                   'Sub.1.',
+                                   'Sub.',
+                                   '.']))
+    s0 = out[0][0]
+    s1 = out[1][0]
+    self.assertEqual(out, [(s0, 'Count'),
+                           (s1, 'Count'),
+                           (s0, 'Count'),
+                           (s1, ''),
+                           (root.SubList, ''),
+                           (root, '')])
+    vals = [getattr(o, param) for o, param in out[0:3]]
+    self.assertEqual(vals, [14, 15, 14])
+    vals = [getattr(o, param) for o, param in out[0:3]]
+    self.assertEqual(vals, [14, 15, 14])
+
+    out = list(root.LookupExports(['Sub.1.Count',
+                                   'Sub.0.Count',
+                                   'Sub.1.Count']))
+    self.assertNotEqual(out[1][0], s0)
+    self.assertNotEqual(out[0][0], s1)
+    s0 = out[1][0]
+    s1 = out[0][0]
+    self.assertEqual([s0.Count, s1.Count], [17, 16])
+    for i, (o, param) in enumerate(out):
+      setattr(o, param, i * 1000)
+    vals = [getattr(o, param) for o, param in out]
+    self.assertEqual(vals, [2000, 1000, 2000])
 
 
 if __name__ == '__main__':
