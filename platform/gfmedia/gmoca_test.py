@@ -33,12 +33,12 @@ class GMoCATest(unittest.TestCase):
   """Tests for gmoca.py."""
 
   def testValidateExports(self):
-    gmoca.MOCACTL = 'testdata/device/mocactl'
+    gmoca.MOCAP = 'testdata/device/mocap'
     gm = gmoca.GMoCA()
     gm.ValidateExports()
 
   def testDebugOutput(self):
-    gmoca.MOCACTL = 'testdata/device/mocactl'
+    gmoca.MOCAP = 'testdata/device/mocap'
     gm = gmoca.GMoCA()
     out = gm.DebugOutput
     self.assertTrue(len(out) > 1024)

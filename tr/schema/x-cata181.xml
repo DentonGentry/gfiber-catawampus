@@ -98,5 +98,38 @@
             </syntax>
         </parameter>
     </object>
+    <object name="Device.MoCA.Interface.{i}.AssociatedDevice.{i}." access="readOnly"  numEntriesParameter="AssociatedDeviceNumberOfEntries" minEntries="0" maxEntries="unbounded">
+      <parameter name="X_CATAWAMPUS-ORG_RxPowerLevel_dBm" access="readOnly" dmr:previousParameter="RxPowerLevel">
+        <description>The RxPowerLevel in dBm.</description>
+        <syntax>
+          <float>
+            <units value="dBm"/>
+          </float>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_RxBcastPowerLevel_dBm" access="readOnly" dmr:previousParameter="RxBcastPowerLevel">
+        <description>The RxBcastPowerLevel in dBm.</description>
+        <syntax>
+          <float>
+            <units value="dBm"/>
+          </float>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_RxSNR_dB" access="readOnly" dmr:previousParameter="RxSNR">
+        <description>The Signal/Noise ratio in dB.</description>
+        <syntax>
+          <float>
+            <units value="dB"/>
+          </float>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_TxBitloading" access="readOnly" dmr:previousParameter="Active">
+        <description>A description of the signal quality of each subchannel, one character per subchannel.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+
+    </object>
   </model>
 </dm:document>

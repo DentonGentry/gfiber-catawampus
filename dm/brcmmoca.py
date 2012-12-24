@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """Implementation of tr-181 MoCA objects for Broadcom chipsets."""
 
@@ -27,55 +27,91 @@ import tr.core
 import tr.session
 import tr.tr181_v2_2
 import tr.types
+import tr.x_catawampus_tr181_2_0
 import netdev
 
 
 BASE181MOCA = tr.tr181_v2_2.Device_v2_2.Device.MoCA
-MOCACTL = 'mocactl'
+CATA181MOCA = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device.MoCA
+MOCAP = 'mocap'
 PYNETIFCONF = pynetlinux.ifconfig.Interface
 
 
-# Regexps to parse mocactl output
-MAC_RE = re.compile('^MAC Address\s+: ((?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})')
-PNC_RE = re.compile('Preferred NC\s+: (\d+)')
-PTX_RE = re.compile('\ATxUc.+?(\d+[.]?\d*)\s+dBm.*?(\d+)\s+bps')
-PRX_RE = re.compile('\ARxUc.+?(\d+[.]?\d*)\s+dBm.*?(\d+)\s+bps'
-                    '\s+(\d+[.]?\d*) dB')
-RXB_RE = re.compile('\ARxBc.+?(\d+[.]?\d*)\s+dBm.*?(\d+)\s+bps')
-QAM_RE = re.compile('256 QAM capable\s+:\s+(\d+)')
-AGG_RE = re.compile('Aggregated PDUs\s+:\s+(\d+)')
-
-TX_RE = re.compile('Unicast Tx Pkts To Node\s+: (\d+)')
-RX_RE = re.compile('Unicast Rx Pkts From Node\s+: (\d+)')
-E1_RE = re.compile('Rx CodeWord ErrorAndUnCorrected\s+: (\d+)')
-E2_RE = re.compile('Rx NoSync Errors\s+: (\d+)')
-
-NODE_RE = re.compile('\ANode\s*: (\d+)')
+# Regexps to parse mocap output
+EUI_RE = re.compile(r'^eui\s*:\s*((?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})')
+MAC_RE = re.compile(r'^Node\s+\d+\s+((?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})')
+MHZ_RE = re.compile(r'^rf_channel\s*:\s*\d+ - (\d+) MHz')
+TX_RE = re.compile(r'^tx_packets\s*:\s*(\d+)')
+RX_RE = re.compile(r'^rx_packets\s*:\s*(\d+)')
+E1_RE = re.compile(r'^rx_cw_uncorrected\s*:\s*(\d+)')
+E2_RE = re.compile(r'^rx_no_sync\s*:\s*(\d+)')
+RX_CRC_RE = re.compile(r'^rx_.*_crc_error\s*:\s*(\d+)')
+RX_TIMEOUT_RE = re.compile(r'^rx_.*_timeout_error\s*:\s*(\d+)')
+TX_POWER_RE = re.compile(r'^tx_power\s*:\s*(\d+[.]?\d*)\s+dBm')
+RX_POWER_RE = re.compile(r'^rx_power\s*:\s*(-?\d+[.]?\d*)\s+dBm')
+SNR_RE = re.compile(r'^avg_snr\s*:\s*(\d+[.]?\d*)')
+NBAS_RE = re.compile(r'^nbas\s*:\s*(\d+)')
+RATE_RE = re.compile(r'^phy_rate\s*:\s*(\d+)\s+Mbps')
+BITL_RE = re.compile(r'^\d+\s+-\s+\d+\s*:\s+([0-9a-fA-F]+)')
 
 
 def IntOrZero(arg):
   try:
     return int(arg)
-  except ValueError:
+  except (ValueError, TypeError):
     return 0
 
 
 def FloatOrZero(arg):
   try:
     return float(arg)
-  except ValueError:
+  except (ValueError, TypeError):
     return 0.0
+
+
+def _RegToMoCA(regval):
+  moca = {'16': '1.0', '17': '1.1', '32': '2.0', '33': '2.1'}
+  return moca.get(regval, '0.0')
+
+
+def _CombineBitloading(bitlines):
+  """Combine bitloading information into one string.
+
+  Args:
+    bitlines: a list of lines with ranges:
+    ['000 - 031:  000099aaaaaaaaaaaaaaaaaaaaaaaaaa',
+     '032 - 063:  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    ...
+     '480 - 511:  aaaaaaaaaaaaaaaaaaaaaaaaaaa99000']
+
+  Returns:
+    one contiguous string, '000099aaaaa...aaaa99000'
+  """
+
+  bitloading = []
+  for line in sorted(bitlines):
+    (_, bits) = line.split(':')
+    bitloading.append(bits.strip())
+  return ''.join(bitloading)
 
 
 class BrcmMocaInterface(BASE181MOCA.Interface):
   """An implementation of tr181 Device.MoCA.Interface for Broadcom chipsets."""
+  # TODO(dgentry) Supposed to be read/write, but we don't handle disabling.
+  Enable = tr.types.ReadOnlyBool(True)
   Name = tr.types.ReadOnlyString('')
   # In theory LowerLayers is writeable, but it is nonsensical to write to it.
   LowerLayers = tr.types.ReadOnlyString('')
+
+  MAX_NODES_MOCA1 = 8
+  MAX_NODES_MOCA2 = 16
+  MaxNodes = tr.types.ReadOnlyInt(0)
+
   Upstream = tr.types.ReadOnlyBool(False)
 
   def __init__(self, ifname, upstream=False):
     BASE181MOCA.Interface.__init__(self)
+    type(self).MaxNodes.Set(self, self.MAX_NODES_MOCA2)
     type(self).Name.Set(self, ifname)
     type(self).Upstream.Set(self, bool(upstream))
     self._pynet = PYNETIFCONF(ifname)
@@ -84,8 +120,6 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
     self.Unexport('MaxBitRate')
     self.Unexport('MaxIngressBW')
     self.Unexport('MaxEgressBW')
-    self.Unexport('MaxNodes')
-    self.Unexport('PreferredNC')
     self.Unexport('PrivacyEnabledSetting')
     self.Unexport('FreqCapabilityMask')
     self.Unexport('FreqCurrentMaskSetting')
@@ -109,52 +143,33 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
     return BrcmMocaInterfaceStatsLinux26(self.Name)
 
   @tr.session.cache
-  def _MocaCtlShowStatus(self):
-    """Return output of mocactl show --status."""
-    mc = subprocess.Popen([MOCACTL, 'show', '--status'], stdout=subprocess.PIPE)
+  def _MocapGet(self, args):
+    """Return output of mocap get --args."""
+    cmd = [MOCAP, 'get'] + args
+    mc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     out, _ = mc.communicate(None)
     return out.splitlines()
 
-  @tr.session.cache
-  def _MocaCtlShowInitParms(self):
-    """Return output of mocactl show --initparms."""
-    mc = subprocess.Popen([MOCACTL, 'show', '--initparms'],
-                          stdout=subprocess.PIPE)
-    out, _ = mc.communicate(None)
-    return out.splitlines()
-
-  @tr.session.cache
-  def _MocaCtlShowConfig(self):
-    """Return output of mocactl show --config."""
-    mc = subprocess.Popen([MOCACTL, 'show', '--config'], stdout=subprocess.PIPE)
-    out, _ = mc.communicate(None)
-    return out.splitlines()
-
-  def _MocaCtlGetField(self, outfcn, field):
-    """Look for one field in a mocactl command.
+  def _MocapGetField(self, lines, field):
+    """Look for one field in output from a command.
 
     ex: field='SwVersion' would return 5.6.789 from
     vendorId              : 999999999   HwVersion             : 0x12345678
     SwVersion             : 5.6.789     self MoCA Version     : 0x11
 
     Args:
-      outfcn: a function to call, which must return a list of text lines.
+      lines: lines of output to search
       field: the text string to look for.
     Returns:
       The value of the field, or None.
     """
 
-    m_re = re.compile(field + '\s*:\s+(\S+)')
-    for line in outfcn():
+    m_re = re.compile(field + r'\s*:\s+(\S+)')
+    for line in lines:
       mr = m_re.search(line)
       if mr is not None:
         return mr.group(1)
     return None
-
-  @property
-  def Enable(self):
-    # TODO(dgentry) Supposed to be read/write, but we don't disable yet.
-    return True
 
   @property
   def Status(self):
@@ -169,7 +184,8 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
   @property
   def LastChange(self):
     """Parse linkUpTime y:m:d:h:m:s, return seconds."""
-    up = self._MocaCtlGetField(self._MocaCtlShowStatus, 'linkUpTime').split(':')
+    up = self._MocapGetField(self._MocapGet(['--drv_info']),
+                             'link_uptime').split(':')
     secs = 0
     for t in up:
       # linkUpTime ex: '23h:41m:30s'
@@ -194,86 +210,99 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
 
   @property
   def FirmwareVersion(self):
-    ver = self._MocaCtlGetField(self._MocaCtlShowStatus, 'SwVersion')
-    return ver if ver else '0'
-
-  def _RegToMoCA(self, regval):
-    moca = {'0x10': '1.0', '0x11': '1.1', '0x20': '2.0', '0x21': '2.1'}
-    return moca.get(regval, '0.0')
+    lines = self._MocapGet(['--node_status'])
+    major = self._MocapGetField(lines, 'moca_sw_version_major')
+    minor = self._MocapGetField(lines, 'moca_sw_version_minor')
+    rev = self._MocapGetField(lines, 'moca_sw_version_rev')
+    if major and minor and rev:
+      return '.'.join([str(major), str(minor), str(rev)])
+    else:
+      return '0'
 
   @property
   def HighestVersion(self):
-    reg = self._MocaCtlGetField(self._MocaCtlShowStatus, 'self MoCA Version')
-    return self._RegToMoCA(reg)
+    reg = self._MocapGetField(self._MocapGet(['--node_status']),
+                              'self_moca_version')
+    return _RegToMoCA(reg)
 
   @property
   def CurrentVersion(self):
-    reg = self._MocaCtlGetField(self._MocaCtlShowStatus, 'networkVersionNumber')
-    return self._RegToMoCA(reg)
+    reg = self._MocapGetField(self._MocapGet(['--network_status']),
+                              'network_moca_version')
+    return _RegToMoCA(reg)
 
   @property
   def NetworkCoordinator(self):
-    nodeid = self._MocaCtlGetField(self._MocaCtlShowStatus, 'ncNodeId')
+    nodeid = self._MocapGetField(self._MocapGet(['--network_status']),
+                                 'nc_node_id')
     return IntOrZero(nodeid)
 
   @property
+  def PreferredNC(self):
+    prefer = self._MocapGetField(self._MocapGet(['--preferred_nc']),
+                                 'preferred_nc')
+    return True if prefer == '1' else False
+
+  @property
   def NodeID(self):
-    nodeid = self._MocaCtlGetField(self._MocaCtlShowStatus, 'nodeId')
+    nodeid = self._MocapGetField(self._MocapGet(['--network_status']),
+                                 'node_id')
     return IntOrZero(nodeid)
 
   @property
   def BackupNC(self):
-    bnc = nodeid = self._MocaCtlGetField(self._MocaCtlShowStatus, 'backupNcId')
-    return bnc if bnc else ''
+    bnc = self._MocapGetField(self._MocapGet(['--network_status']),
+                              'backup_nc_id')
+    return IntOrZero(bnc)
 
   @property
   def PrivacyEnabled(self):
-    private = self._MocaCtlGetField(self._MocaCtlShowInitParms, 'Privacy')
-    return True if private == 'enabled' else False
+    private = self._MocapGetField(self._MocapGet(['--privacy_en']),
+                                  'privacy_en')
+    return True if private == '1' else False
 
   @property
   def CurrentOperFreq(self):
-    freq = self._MocaCtlGetField(self._MocaCtlShowStatus, 'rfChannel')
-    if freq:
-      return IntOrZero(freq.split()[0])
+    lines = self._MocapGet(['--interface_status'])
+    for line in lines:
+      mhz = MHZ_RE.search(line)
+      if mhz is not None:
+        return int(mhz.group(1)) * 1000000
     return 0
 
   @property
   def LastOperFreq(self):
-    last = self._MocaCtlGetField(self._MocaCtlShowInitParms,
-                                 'Nv Params - Last Oper Freq')
-    if last:
-      return IntOrZero(last.split()[0])
-    return 0
+    lof = self._MocapGetField(self._MocapGet(['--lof']), 'lof')
+    return int(lof) * 1000000
 
   @property
   def QAM256Capable(self):
-    qam = self._MocaCtlGetField(self._MocaCtlShowInitParms, 'qam256Capability')
-    return True if qam == 'on' else False
+    qam = self._MocapGetField(self._MocapGet(['--node_status']),
+                              'qam_256_support')
+    return True if qam == '1' else False
 
   @property
   def PacketAggregationCapability(self):
-    # example: "maxPktAggr   : 10 pkts"
-    pkts = self._MocaCtlGetField(self._MocaCtlShowConfig, 'maxPktAggr')
-    if pkts:
-      return IntOrZero(pkts.split()[0])
-    return 0
+    pkts = self._MocapGetField(self._MocapGet(['--max_pkt_aggr']),
+                               'max_pkt_aggr')
+    return IntOrZero(pkts)
 
   @property
   def AssociatedDeviceNumberOfEntries(self):
     return len(self.AssociatedDeviceList)
 
-  def _MocaCtlGetNodeIDs(self):
+  def _MocaGetNodeIDs(self):
     """Return a list of active MoCA Node IDs."""
-    mc = subprocess.Popen([MOCACTL, 'showtbl', '--nodestats'],
-                          stdout=subprocess.PIPE)
-    out, _ = mc.communicate(None)
-    nodes = set()
-    for line in out.splitlines():
-      node = NODE_RE.search(line)
-      if node is not None:
-        nodes.add(int(node.group(1)))
-    return list(nodes)
+    nodes = list()
+    for i in range(16):
+      mc = subprocess.Popen([MOCAP, 'get', '--node_stats', str(i)],
+                            stdout=subprocess.PIPE)
+      out, _ = mc.communicate(None)
+      for line in out.splitlines():
+        mac = MAC_RE.search(line)
+        if mac is not None and mac.group(1) != '00:00:00:00:00:00':
+          nodes.append(i)
+    return nodes
 
   def GetAssociatedDevice(self, nodeid):
     """Get an AssociatedDevice object for the given NodeID."""
@@ -284,12 +313,12 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
 
   def IterAssociatedDevices(self):
     """Retrieves a list of all associated devices."""
-    mocanodes = self._MocaCtlGetNodeIDs()
+    mocanodes = self._MocaGetNodeIDs()
     for idx, nodeid in enumerate(mocanodes):
       yield idx, self.GetAssociatedDevice(nodeid)
 
   def GetAssociatedDeviceByIndex(self, index):
-    mocanodes = self._MocaCtlGetNodeIDs()
+    mocanodes = self._MocaGetNodeIDs()
     return self.GetAssociatedDevice(mocanodes[index])
 
 
@@ -302,77 +331,68 @@ class BrcmMocaInterfaceStatsLinux26(netdev.NetdevStatsLinux26,
     BASE181MOCA.Interface.Stats.__init__(self)
 
 
-class BrcmMocaAssociatedDevice(BASE181MOCA.Interface.AssociatedDevice):
+class BrcmMocaAssociatedDevice(CATA181MOCA.Interface.AssociatedDevice):
   """tr-181 Device.MoCA.Interface.AssociatedDevice for Broadcom chipsets."""
-  NodeID = tr.types.ReadOnlyInt(-1)
+  Active = tr.types.ReadOnlyBool(True)
   MACAddress = tr.types.ReadOnlyString('')
-  PreferredNC = tr.types.ReadOnlyBool(False)
-  PHYTxRate = tr.types.ReadOnlyInt(0)
+  NodeID = tr.types.ReadOnlyInt(-1)
   PHYRxRate = tr.types.ReadOnlyInt(0)
-  TxPowerControlReduction = tr.types.ReadOnlyInt(0)
-  RxPowerLevel = tr.types.ReadOnlyInt(0)
-  TxBcastRate = tr.types.ReadOnlyInt(0)
+  PHYTxRate = tr.types.ReadOnlyInt(0)
   RxBcastPowerLevel = tr.types.ReadOnlyInt(0)
-  TxPackets = tr.types.ReadOnlyInt(0)
-  RxPackets = tr.types.ReadOnlyInt(0)
   RxErroredAndMissedPackets = tr.types.ReadOnlyInt(0)
-  QAM256Capable = tr.types.ReadOnlyInt(0)
-  PacketAggregationCapability = tr.types.ReadOnlyInt(0)
+  RxPackets = tr.types.ReadOnlyInt(0)
+  RxPowerLevel = tr.types.ReadOnlyInt(0)
   RxSNR = tr.types.ReadOnlyInt(0)
+  TxBcastRate = tr.types.ReadOnlyInt(0)
+  TxPackets = tr.types.ReadOnlyInt(0)
+  X_CATAWAMPUS_ORG_RxBcastPowerLevel_dBm = tr.types.ReadOnlyFloat(0.0)
+  X_CATAWAMPUS_ORG_RxPowerLevel_dBm = tr.types.ReadOnlyFloat(0.0)
+  X_CATAWAMPUS_ORG_RxSNR_dB = tr.types.ReadOnlyFloat(0.0)
+  X_CATAWAMPUS_ORG_TxBitloading = tr.types.ReadOnlyString('')
+  X_CATAWAMPUS_ORG_RxBitloading = tr.types.ReadOnlyString('')
+
+  # mocap get --gen_node_ext_status <profile id>
+  MOCAP_EXT_RX_UNICAST = 0
+  MOCAP_EXT_RX_BROADCAST = 1
+  MOCAP_EXT_RX_MAP = 2
+  MOCAP_EXT_TX_UNICAST = 3
+  MOCAP_EXT_TX_BROADCAST = 4
+  MOCAP_EXT_TX_MAP = 5
+  MOCAP_EXT_RX_UNICAST_VLPER = 6
+  MOCAP_EXT_RX_UNICAST_NPER = 7
+  MOCAP_EXT_RX_BROADCAST_VLPER = 8
+  MOCAP_EXT_RX_BROADCAST_NPER = 9
+  MOCAP_EXT_RX_MAP_2_0 = 10
+  MOCAP_EXT_RX_OFDMA = 11
+  MOCAP_EXT_TX_UNICAST_VLPER = 12
+  MOCAP_EXT_TX_UNICAST_NPER = 13
+  MOCAP_EXT_TX_BROADCAST_VLPER = 14
+  MOCAP_EXT_TX_BROADCAST_NPER = 15
+  MOCAP_EXT_TX_MAP_2_0 = 16
+  MOCAP_EXT_TX_OFDMA = 17
 
   def __init__(self, nodeid):
-    BASE181MOCA.Interface.AssociatedDevice.__init__(self)
+    super(BrcmMocaAssociatedDevice, self).__init__()
     type(self).NodeID.Set(self, int(nodeid))
-    self.Unexport('Active')
     self.Unexport('HighestVersion')
+    self.Unexport('PacketAggregationCapability')
+    self.Unexport('PreferredNC')
+    self.Unexport('QAM256Capable')
+    self.Unexport('TxPowerControlReduction')
 
-    self.ParseNodeStatus()
-    self.ParseNodeStats()
+    self._ParseNodeStats()
+    self._ParseGenNodeExtStatus()
 
-  def ParseNodeStatus(self):
-    """Run mocactl show --nodestatus for this node, parse the output."""
-    mc = subprocess.Popen([MOCACTL, 'show', '--nodestatus', str(self.NodeID)],
-                          stdout=subprocess.PIPE)
-    out, _ = mc.communicate(None)
-    for line in out.splitlines():
-      mac = MAC_RE.search(line)
-      if mac is not None:
-        type(self).MACAddress.Set(self, mac.group(1))
-      pnc = PNC_RE.search(line)
-      if pnc is not None:
-        preferred = False if pnc.group(1) is '0' else True
-        type(self).PreferredNC.Set(self, preferred)
-      ptx = PTX_RE.search(line)
-      if ptx is not None:
-        type(self).PHYTxRate.Set(self, (IntOrZero(ptx.group(2)) / 1000000))
-        txpowercontrol = int(FloatOrZero(ptx.group(1)))
-        type(self).TxPowerControlReduction.Set(self, txpowercontrol)
-      prx = PRX_RE.search(line)
-      if prx is not None:
-        type(self).PHYRxRate.Set(self, (IntOrZero(prx.group(2)) / 1000000))
-        type(self).RxPowerLevel.Set(self, int(FloatOrZero(prx.group(1))))
-        # TODO(dgentry) This cannot be right. SNR should be dB, not an integer.
-        type(self).RxSNR.Set(self, int(FloatOrZero(prx.group(3))))
-      rxb = RXB_RE.search(line)
-      if rxb is not None:
-        type(self).TxBcastRate.Set(self, (IntOrZero(rxb.group(2)) / 1000000))
-        type(self).RxBcastPowerLevel.Set(self, int(FloatOrZero(rxb.group(1))))
-      qam = QAM_RE.search(line)
-      if qam is not None:
-        qam256 = False if qam.group(1) is '0' else True
-        type(self).QAM256Capable.Set(self, qam256)
-      agg = AGG_RE.search(line)
-      if agg is not None:
-        aggcapable = IntOrZero(agg.group(1))
-        type(self).PacketAggregationCapability.Set(self, aggcapable)
-
-  def ParseNodeStats(self):
-    """Run mocactl show --nodestats for this node, parse the output."""
-    mc = subprocess.Popen([MOCACTL, 'show', '--nodestats', str(self.NodeID)],
+  def _ParseNodeStats(self):
+    """Get stats for this node."""
+    mc = subprocess.Popen([MOCAP, 'get', '--node_stats', str(self.NodeID)],
                           stdout=subprocess.PIPE)
     out, _ = mc.communicate(None)
     rx_err = 0
     for line in out.splitlines():
+      mac = MAC_RE.search(line)
+      if mac is not None:
+        type(self).MACAddress.Set(self, str(mac.group(1)))
       tx = TX_RE.search(line)
       if tx is not None:
         type(self).TxPackets.Set(self, IntOrZero(tx.group(1)))
@@ -385,7 +405,85 @@ class BrcmMocaAssociatedDevice(BASE181MOCA.Interface.AssociatedDevice):
       e2 = E2_RE.search(line)
       if e2 is not None:
         rx_err += IntOrZero(e2.group(1))
+
+    mc = subprocess.Popen([MOCAP, 'get', '--node_stats_ext', str(self.NodeID)],
+                          stdout=subprocess.PIPE)
+    out, _ = mc.communicate(None)
+    for line in out.splitlines():
+      crc = RX_CRC_RE.search(line)
+      if crc is not None:
+        rx_err += IntOrZero(crc.group(1))
+      timeout = RX_TIMEOUT_RE.search(line)
+      if timeout is not None:
+        rx_err += IntOrZero(timeout.group(1))
+
     type(self).RxErroredAndMissedPackets.Set(self, rx_err)
+
+  def _ExtractGenNodeExtStatus(self, nodeid, profile):
+    """Parse mocap get --gen_node_ext_status to return relevant information.
+
+    Args:
+      nodeid: integer nodeid, should be 0-15 for MoCA 2.0.
+      profile: integer profile number. See MOCAP_EXT_* constants.
+
+    Returns:
+      a dictionary of extracted values.
+    """
+    rc = {'nbas': 0, 'phy_rate': 0,
+          'rx_power': 0.0, 'tx_power': 0.0,
+          'snr': 0.0, 'bitloading': ''}
+    bitl = list()
+    mc = subprocess.Popen([MOCAP, 'get', '--gen_node_ext_status', 'index',
+                           str(nodeid), 'profile_type', str(profile)],
+                          stdout=subprocess.PIPE)
+    out, _ = mc.communicate(None)
+    for line in out.splitlines():
+      txp_re = TX_POWER_RE.search(line)
+      if txp_re is not None:
+        rc['tx_power'] = FloatOrZero(txp_re.group(1))
+      rxp_re = RX_POWER_RE.search(line)
+      if rxp_re is not None:
+        rc['rx_power'] = FloatOrZero(rxp_re.group(1))
+      snr_re = SNR_RE.search(line)
+      if snr_re is not None:
+        rc['snr'] = FloatOrZero(snr_re.group(1))
+      nbas_re = NBAS_RE.search(line)
+      if nbas_re is not None:
+        rc['nbas'] = IntOrZero(nbas_re.group(1))
+      rate_re = RATE_RE.search(line)
+      if rate_re is not None:
+        rc['phy_rate'] = IntOrZero(rate_re.group(1))
+      bitl_re = BITL_RE.search(line)
+      if bitl_re is not None:
+        bitl.append(line)
+
+    rc['bitloading'] = '$BRCM$' + _CombineBitloading(bitl)
+    return rc
+
+  def _ParseGenNodeExtStatus(self):
+    """Check TX and RX profiles of mocap --gen_node_ext_status."""
+    rc = self._ExtractGenNodeExtStatus(self.NodeID,
+                                       self.MOCAP_EXT_TX_UNICAST_VLPER)
+    type(self).PHYTxRate.Set(self, rc['phy_rate'])
+    type(self).X_CATAWAMPUS_ORG_TxBitloading.Set(self, rc['bitloading'])
+
+    rc = self._ExtractGenNodeExtStatus(self.NodeID,
+                                       self.MOCAP_EXT_RX_UNICAST_VLPER)
+    type(self).PHYRxRate.Set(self, rc['phy_rate'])
+    type(self).RxPowerLevel.Set(self, abs(int(rc['rx_power'])))
+    type(self).RxSNR.Set(self, abs(int(rc['snr'])))
+    type(self).X_CATAWAMPUS_ORG_RxBitloading.Set(self, rc['bitloading'])
+    type(self).X_CATAWAMPUS_ORG_RxPowerLevel_dBm.Set(self, rc['rx_power'])
+    type(self).X_CATAWAMPUS_ORG_RxSNR_dB.Set(self, rc['snr'])
+
+    rc = self._ExtractGenNodeExtStatus(self.NodeID,
+                                       self.MOCAP_EXT_TX_BROADCAST_VLPER)
+    type(self).TxBcastRate.Set(self, rc['phy_rate'])
+
+    rc = self._ExtractGenNodeExtStatus(self.NodeID,
+                                       self.MOCAP_EXT_RX_BROADCAST_VLPER)
+    type(self).RxBcastPowerLevel.Set(self, abs(int(rc['rx_power'])))
+    type(self).X_CATAWAMPUS_ORG_RxBcastPowerLevel_dBm.Set(self, rc['rx_power'])
 
 
 class BrcmMoca(BASE181MOCA):
