@@ -5,7 +5,7 @@
         {
           "StreamId": 2,
           "MPEG2TSStats": {
-            "TSPacketsReceived": 700,
+            "TSPacketsReceived": 350,
             "PacketsDiscontinuityCounter": 70
           },
           "DejitteringStats": {

@@ -17,23 +17,12 @@
             "Packets Received": 7000,
             "Bytes Received": 1792000,
             "Packets Retransmitted": 6
-          }
-        },
-        {
-          "StreamId": 1,
-          "MPEG2TSStats": {
-            "TSPacketsReceived": 800,
-            "PacketsDiscontinuityCounter": 80
           },
-          "DejitteringStats": {
-            "EmptyBufferTime": 47,
-            "Overruns": 8,
-            "Underruns": 11
-          },
-          "TCPStats": {
-            "Packets Received": 8000,
-            "Bytes Received": 2048000,
-            "Packets Retransmitted": 9
+          "MulticastStats": {
+            "MulticastGroup": "225.0.0.7",
+            "StartupLagUsecs": 15000,
+            "StalledUsecs": 7000,
+            "bps": 7000000
           }
         }
       ]

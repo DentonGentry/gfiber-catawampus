@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # unittest requires method names starting in 'test'
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """Unit tests for stbservice.py implementation."""
 
@@ -26,31 +26,30 @@ import google3
 import stbservice
 
 
+def MockTime():
+  return 1357898400.0
+
+
 class STBServiceTest(unittest.TestCase):
   def setUp(self):
-    self.CONT_MONITOR_FILES_ALT = ['testdata/stbservice/stats_small.json']
-    self.CONT_MONITOR_FILES_P = ['testdata/stbservice/stats_small.json',
-                                 'testdata/stbservice/stats_p2.json',
-                                 'testdata/stbservice/stats_p1.json',
-                                 'testdata/stbservice/notexist.json']
-    self.CONT_MONITOR_FILES_P1 = ['testdata/stbservice/stats_p1.json']
-    self.STATS_FILES_NOEXST = ['testdata/stbservice/notexist.json']
-
+    self.STATS_FILES_NOEXST = ['testdata/stbservice/notexist%d.json']
     self.old_CONT_MONITOR_FILES = stbservice.CONT_MONITOR_FILES
     self.old_EPG_STATS_FILES = stbservice.EPG_STATS_FILES
     self.old_HDMI_DISP_DEVICE_STATS = stbservice.HDMI_DISPLAY_DEVICE_STATS_FILES
     self.old_HDMI_STATS_FILE = stbservice.HDMI_STATS_FILE
     self.old_PROCNETIGMP = stbservice.PROCNETIGMP
     self.old_PROCNETIGMP6 = stbservice.PROCNETIGMP6
+    self.old_TIMENOW = stbservice.TIMENOW
 
-    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_full.json']
+    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_full%d.json']
     stbservice.EPG_STATS_FILES = ['testdata/stbservice/epgstats.json']
     stbservice.HDMI_DISPLAY_DEVICE_STATS_FILES = [
-        'testdata/stbservice/hdmi_dispdev_stats*.json',
-        'testdata/stbservice/hdmi_dispdev_status*.json']
+        'testdata/stbservice/hdmi_dispdev_stats.json',
+        'testdata/stbservice/hdmi_dispdev_status.json']
     stbservice.HDMI_STATS_FILE = 'testdata/stbservice/hdmi_stats.json'
     stbservice.PROCNETIGMP = 'testdata/stbservice/igmp'
     stbservice.PROCNETIGMP6 = 'testdata/stbservice/igmp6'
+    stbservice.TIMENOW = MockTime
 
   def tearDown(self):
     stbservice.CONT_MONITOR_FILES = self.old_CONT_MONITOR_FILES
@@ -77,18 +76,67 @@ class STBServiceTest(unittest.TestCase):
       actual.add(igmp.ClientGroupList[i].GroupAddress)
     self.assertEqual(expected, actual)
 
+  def testClientGroupsStable(self):
+    stbservice.PROCNETIGMP = 'testdata/stbservice/igmp_stable1'
+    stbservice.PROCNETIGMP6 = 'testdata/stbservice/igmp6_stable1'
+    stb = stbservice.STBService()
+    igmp = stb.Components.FrontEndList['1'].IP.IGMP
+    self.assertEqual(len(igmp.ClientGroupList), 5)
+    # instances are sorted when possible
+    self.assertEqual(igmp.ClientGroupList[1].GroupAddress, '224.0.0.1')
+    self.assertEqual(igmp.ClientGroupList[2].GroupAddress, '225.0.1.3')
+    self.assertEqual(igmp.ClientGroupList[3].GroupAddress, '225.0.1.4')
+    self.assertEqual(igmp.ClientGroupList[4].GroupAddress, '225.0.1.5')
+    self.assertEqual(igmp.ClientGroupList[5].GroupAddress, '225.0.1.6')
+    stbservice.PROCNETIGMP = 'testdata/stbservice/igmp_stable2'
+    self.assertEqual(len(igmp.ClientGroupList), 5)
+    # instances retain stable numbering when possible
+    self.assertEqual(igmp.ClientGroupList[1].GroupAddress, '224.0.0.1')
+    self.assertEqual(igmp.ClientGroupList[2].GroupAddress, '225.0.1.3')
+    self.assertEqual(igmp.ClientGroupList[3].GroupAddress, '225.0.1.4')
+    self.assertEqual(igmp.ClientGroupList[4].GroupAddress, '225.0.1.7')
+    self.assertEqual(igmp.ClientGroupList[5].GroupAddress, '225.0.1.6')
+    stbservice.PROCNETIGMP = 'testdata/stbservice/igmp_stable3'
+    self.assertEqual(len(igmp.ClientGroupList), 6)
+    # instances retain stable numbering when possible
+    self.assertEqual(igmp.ClientGroupList[1].GroupAddress, '224.0.0.1')
+    self.assertEqual(igmp.ClientGroupList[2].GroupAddress, '225.0.1.3')
+    self.assertEqual(igmp.ClientGroupList[3].GroupAddress, '225.0.1.8')
+    self.assertEqual(igmp.ClientGroupList[4].GroupAddress, '225.0.1.7')
+    self.assertEqual(igmp.ClientGroupList[5].GroupAddress, '225.0.1.6')
+    self.assertEqual(igmp.ClientGroupList[6].GroupAddress, '225.0.1.9')
+
+  def checkMPEG2Zero(self, stream):
+    self.assertEqual(stream.Total.MPEG2TSStats.TSPacketsReceived, 0)
+    self.assertEqual(stream.Total.MPEG2TSStats.PacketDiscontinuityCounter, 0)
+
   def testNonexistentStatsFile(self):
     """Test whether the absence of stats file is handled gracefully."""
     stbservice.CONT_MONITOR_FILES = self.STATS_FILES_NOEXST
     stb = stbservice.STBService()
-    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 0)
+    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
+    self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[1])
+    self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[2])
+    self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[3])
+    self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[4])
+    self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[5])
+    self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[6])
+    self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[7])
+    self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[8])
 
   def testIncorrectStatsFileFormat(self):
     """Test whether a malformed stats file is handled gracefully."""
-    # stbservice.PROCNETIGMP is not a JSON file.
-    stbservice.CONT_MONITOR_FILES = [stbservice.PROCNETIGMP]
+    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_notjson%d.json']
     stb = stbservice.STBService()
-    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 0)
+    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
+    self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[1])
+    self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[2])
+    self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[3])
+    self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[4])
+    self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[5])
+    self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[6])
+    self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[7])
+    self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[8])
 
   def testIncorrectObjectListIndex(self):
     """Test whether incorrect indexing of the stream object is handled."""
@@ -99,103 +147,125 @@ class STBServiceTest(unittest.TestCase):
 
   def testDynamicUpdate(self):
     """Test whether the object stays consistent when the file is updated."""
-    savedfnames = stbservice.CONT_MONITOR_FILES
-    stbservice.CONT_MONITOR_FILES = self.CONT_MONITOR_FILES_ALT
+    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_small%d.json']
     stb = stbservice.STBService()
-    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 4)
-    for stream in stb.ServiceMonitoring.MainStreamList.values():
-      if stream.X_GOOGLE_COM_StreamID == 3:
-        self.assertEqual(stream.Total.MPEG2TSStats.TSPacketsReceived, 600)
-    self.assertRaises(KeyError,
-                      lambda: stb.ServiceMonitoring.MainStreamList[6])
-    # Change the underlying json file; The new one has more entries
-    stbservice.CONT_MONITOR_FILES = savedfnames
     self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
-    self.assertEqual(stream.Total.MPEG2TSStats.TSPacketsReceived, 600)
-    for stream in stb.ServiceMonitoring.MainStreamList.values():
-      if stream.X_GOOGLE_COM_StreamID == 3:
-        self.assertEqual(stream.Total.MPEG2TSStats.TSPacketsReceived, 600)
-      if stream.X_GOOGLE_COM_StreamID == 6:
-        self.assertEqual(stream.Total.MPEG2TSStats.TSPacketsReceived, 300)
+    ml = stb.ServiceMonitoring.MainStreamList
+    self.assertEqual(ml[1].Total.MPEG2TSStats.TSPacketsReceived, 400)
+    self.assertEqual(ml[2].Total.MPEG2TSStats.TSPacketsReceived, 350)
+    self.assertEqual(ml[3].Total.MPEG2TSStats.TSPacketsReceived, 300)
+    self.assertEqual(ml[4].Total.MPEG2TSStats.TSPacketsReceived, 0)
+    self.assertEqual(ml[5].Total.MPEG2TSStats.TSPacketsReceived, 0)
+    self.assertEqual(ml[6].Total.MPEG2TSStats.TSPacketsReceived, 0)
+    self.assertEqual(ml[7].Total.MPEG2TSStats.TSPacketsReceived, 0)
+    self.assertEqual(ml[8].Total.MPEG2TSStats.TSPacketsReceived, 50)
+    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_full%d.json']
+    self.assertEqual(ml[1].Total.MPEG2TSStats.TSPacketsReceived, 800)
+    self.assertEqual(ml[2].Total.MPEG2TSStats.TSPacketsReceived, 700)
+    self.assertEqual(ml[3].Total.MPEG2TSStats.TSPacketsReceived, 600)
+    self.assertEqual(ml[4].Total.MPEG2TSStats.TSPacketsReceived, 500)
+    self.assertEqual(ml[5].Total.MPEG2TSStats.TSPacketsReceived, 400)
+    self.assertEqual(ml[6].Total.MPEG2TSStats.TSPacketsReceived, 300)
+    self.assertEqual(ml[7].Total.MPEG2TSStats.TSPacketsReceived, 200)
+    self.assertEqual(ml[8].Total.MPEG2TSStats.TSPacketsReceived, 100)
 
   def testPartialUpdate(self):
-    """Test whether a stats file with a subset of objects are deserialized."""
-    stbservice.CONT_MONITOR_FILES = self.CONT_MONITOR_FILES_P1
+    """Test whether a stats file with a subset of objects is deserialized."""
+    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_p%d.json']
     stb = stbservice.STBService()
     self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
+    ml = stb.ServiceMonitoring.MainStreamList
+    self.assertEqual(ml[1].Total.MPEG2TSStats.TSPacketsReceived, 1)
+    self.assertEqual(ml[1].Total.MPEG2TSStats.PacketDiscontinuityCounter, 2)
+    self.assertEqual(ml[1].Total.TCPStats.PacketsReceived, 3)
+    self.assertEqual(ml[1].Total.TCPStats.BytesReceived, 4)
+    self.assertEqual(ml[1].Total.TCPStats.PacketsRetransmitted, 5)
     # Dejittering stats not present in file. Check whether the object is init'ed
-    expected_emptybuftime = set([0, 0, 0, 0, 0, 0, 0, 0])
-    expected_discont = set([10, 20, 30, 40, 50, 60, 70, 80])
-    actual_emptybuftime = set()
-    actual_discont = set()
-    for v in stb.ServiceMonitoring.MainStreamList.values():
-      actual_emptybuftime.add(v.Total.DejitteringStats.EmptyBufferTime)
-      actual_discont.add(v.Total.MPEG2TSStats.PacketDiscontinuityCounter)
-    self.assertEqual(expected_emptybuftime, actual_emptybuftime)
-    self.assertEqual(expected_discont, actual_discont)
-
-  def testAggregateUpdate(self):
-    """Test deserialization from multiple source files."""
-    stbservice.CONT_MONITOR_FILES = self.CONT_MONITOR_FILES_P
-    self.testTSStats()
-    self.testDejitteringStats()
-    self.testTCPStats()
+    self.assertEqual(ml[1].Total.DejitteringStats.EmptyBufferTime, 0)
+    self.assertEqual(ml[1].Total.DejitteringStats.Overruns, 0)
+    self.assertEqual(ml[1].Total.DejitteringStats.Underruns, 0)
 
   def testTSStats(self):
     """Test whether transport stream stats are deserialized."""
     stb = stbservice.STBService()
     self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
-    expected_discont = set([10, 20, 30, 40, 50, 60, 70, 80])
-    expected_pkts = set([100, 200, 300, 400, 500, 600, 700, 800])
-    actual_discont = set()
-    actual_pkts = set()
-    #using iterators to read the stream data. This should reduce the file reads.
-    for v in stb.ServiceMonitoring.MainStreamList.values():
-      tsstats = v.Total.MPEG2TSStats
-      actual_discont.add(tsstats.PacketDiscontinuityCounter)
-      actual_pkts.add(tsstats.TSPacketsReceived)
-    self.assertEqual(expected_discont, actual_discont)
-    self.assertEqual(expected_pkts, actual_pkts)
+    ml = stb.ServiceMonitoring.MainStreamList
+    self.assertEqual(ml[1].Total.MPEG2TSStats.TSPacketsReceived, 800)
+    self.assertEqual(ml[2].Total.MPEG2TSStats.TSPacketsReceived, 700)
+    self.assertEqual(ml[3].Total.MPEG2TSStats.TSPacketsReceived, 600)
+    self.assertEqual(ml[4].Total.MPEG2TSStats.TSPacketsReceived, 500)
+    self.assertEqual(ml[5].Total.MPEG2TSStats.TSPacketsReceived, 400)
+    self.assertEqual(ml[6].Total.MPEG2TSStats.TSPacketsReceived, 300)
+    self.assertEqual(ml[7].Total.MPEG2TSStats.TSPacketsReceived, 200)
+    self.assertEqual(ml[8].Total.MPEG2TSStats.TSPacketsReceived, 100)
+    self.assertEqual(ml[1].Total.MPEG2TSStats.PacketDiscontinuityCounter, 80)
+    self.assertEqual(ml[2].Total.MPEG2TSStats.PacketDiscontinuityCounter, 70)
+    self.assertEqual(ml[3].Total.MPEG2TSStats.PacketDiscontinuityCounter, 60)
+    self.assertEqual(ml[4].Total.MPEG2TSStats.PacketDiscontinuityCounter, 50)
+    self.assertEqual(ml[5].Total.MPEG2TSStats.PacketDiscontinuityCounter, 40)
+    self.assertEqual(ml[6].Total.MPEG2TSStats.PacketDiscontinuityCounter, 30)
+    self.assertEqual(ml[7].Total.MPEG2TSStats.PacketDiscontinuityCounter, 20)
+    self.assertEqual(ml[8].Total.MPEG2TSStats.PacketDiscontinuityCounter, 10)
 
   def testDejitteringStats(self):
     """Test whether Dejittering stats are deserialized."""
     stb = stbservice.STBService()
     self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
-    expected_emptybuftime = set([1, 5, 11, 17, 23, 31, 41, 47])
-    expected_overruns = set([1, 2, 3, 4, 5, 6, 7, 8])
-    expected_underruns = set([18, 17, 16, 15, 14, 13, 12, 11])
-    actual_emptybuftime = set()
-    actual_underruns = set()
-    actual_overruns = set()
-    for v in stb.ServiceMonitoring.MainStreamList.values():
-      djstats = v.Total.DejitteringStats
-      actual_emptybuftime.add(djstats.EmptyBufferTime)
-      actual_overruns.add(djstats.Overruns)
-      actual_underruns.add(djstats.Underruns)
-    self.assertEqual(expected_emptybuftime, actual_emptybuftime)
-    self.assertEqual(expected_underruns, actual_underruns)
-    self.assertEqual(expected_overruns, actual_overruns)
+    ml = stb.ServiceMonitoring.MainStreamList
+    self.assertEqual(ml[1].Total.DejitteringStats.EmptyBufferTime, 47)
+    self.assertEqual(ml[2].Total.DejitteringStats.EmptyBufferTime, 41)
+    self.assertEqual(ml[3].Total.DejitteringStats.EmptyBufferTime, 31)
+    self.assertEqual(ml[4].Total.DejitteringStats.EmptyBufferTime, 23)
+    self.assertEqual(ml[5].Total.DejitteringStats.EmptyBufferTime, 17)
+    self.assertEqual(ml[6].Total.DejitteringStats.EmptyBufferTime, 11)
+    self.assertEqual(ml[7].Total.DejitteringStats.EmptyBufferTime, 5)
+    self.assertEqual(ml[8].Total.DejitteringStats.EmptyBufferTime, 1)
+    self.assertEqual(ml[1].Total.DejitteringStats.Overruns, 8)
+    self.assertEqual(ml[2].Total.DejitteringStats.Overruns, 7)
+    self.assertEqual(ml[3].Total.DejitteringStats.Overruns, 6)
+    self.assertEqual(ml[4].Total.DejitteringStats.Overruns, 5)
+    self.assertEqual(ml[5].Total.DejitteringStats.Overruns, 4)
+    self.assertEqual(ml[6].Total.DejitteringStats.Overruns, 3)
+    self.assertEqual(ml[7].Total.DejitteringStats.Overruns, 2)
+    self.assertEqual(ml[8].Total.DejitteringStats.Overruns, 1)
+    self.assertEqual(ml[1].Total.DejitteringStats.Underruns, 11)
+    self.assertEqual(ml[2].Total.DejitteringStats.Underruns, 12)
+    self.assertEqual(ml[3].Total.DejitteringStats.Underruns, 13)
+    self.assertEqual(ml[4].Total.DejitteringStats.Underruns, 14)
+    self.assertEqual(ml[5].Total.DejitteringStats.Underruns, 15)
+    self.assertEqual(ml[6].Total.DejitteringStats.Underruns, 16)
+    self.assertEqual(ml[7].Total.DejitteringStats.Underruns, 17)
+    self.assertEqual(ml[8].Total.DejitteringStats.Underruns, 18)
 
   def testTCPStats(self):
     """Test whether TCP stats are deserialized."""
     stb = stbservice.STBService()
     self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
-    expected_pktsrcvd = set([1000, 2000, 3000, 4000, 5000, 6000, 7000,
-                             8000])
-    expected_bytesrcvd = set([256000, 512000, 768000, 1024000, 1280000, 1536000,
-                              1792000, 2048000])
-    expected_pktsretran = set([1, 3, 2, 5, 4, 7, 6, 9])
-    actual_pktsrcvd = set()
-    actual_bytesrcvd = set()
-    actual_pktsretran = set()
-    for v in stb.ServiceMonitoring.MainStreamList.values():
-      tcpstats = v.Total.TCPStats
-      actual_pktsrcvd.add(tcpstats.PacketsReceived)
-      actual_bytesrcvd.add(tcpstats.BytesReceived)
-      actual_pktsretran.add(tcpstats.PacketsRetransmitted)
-    self.assertEqual(expected_pktsrcvd, actual_pktsrcvd)
-    self.assertEqual(expected_bytesrcvd, actual_bytesrcvd)
-    self.assertEqual(expected_pktsretran, actual_pktsretran)
+    ml = stb.ServiceMonitoring.MainStreamList
+    self.assertEqual(ml[1].Total.TCPStats.PacketsReceived, 8000)
+    self.assertEqual(ml[1].Total.TCPStats.BytesReceived, 2048000)
+    self.assertEqual(ml[1].Total.TCPStats.PacketsRetransmitted, 9)
+    self.assertEqual(ml[2].Total.TCPStats.PacketsReceived, 7000)
+    self.assertEqual(ml[2].Total.TCPStats.BytesReceived, 1792000)
+    self.assertEqual(ml[2].Total.TCPStats.PacketsRetransmitted, 6)
+    self.assertEqual(ml[3].Total.TCPStats.PacketsReceived, 6000)
+    self.assertEqual(ml[3].Total.TCPStats.BytesReceived, 1536000)
+    self.assertEqual(ml[3].Total.TCPStats.PacketsRetransmitted, 7)
+    self.assertEqual(ml[4].Total.TCPStats.PacketsReceived, 5000)
+    self.assertEqual(ml[4].Total.TCPStats.BytesReceived, 1280000)
+    self.assertEqual(ml[4].Total.TCPStats.PacketsRetransmitted, 4)
+    self.assertEqual(ml[5].Total.TCPStats.PacketsReceived, 4000)
+    self.assertEqual(ml[5].Total.TCPStats.BytesReceived, 1024000)
+    self.assertEqual(ml[5].Total.TCPStats.PacketsRetransmitted, 5)
+    self.assertEqual(ml[6].Total.TCPStats.PacketsReceived, 3000)
+    self.assertEqual(ml[6].Total.TCPStats.BytesReceived, 768000)
+    self.assertEqual(ml[6].Total.TCPStats.PacketsRetransmitted, 2)
+    self.assertEqual(ml[7].Total.TCPStats.PacketsReceived, 2000)
+    self.assertEqual(ml[7].Total.TCPStats.BytesReceived, 512000)
+    self.assertEqual(ml[7].Total.TCPStats.PacketsRetransmitted, 3)
+    self.assertEqual(ml[8].Total.TCPStats.PacketsReceived, 1000)
+    self.assertEqual(ml[8].Total.TCPStats.BytesReceived, 256000)
+    self.assertEqual(ml[8].Total.TCPStats.PacketsRetransmitted, 1)
 
   def testMulticastStats(self):
     """Test whether multicast stats are deserialized."""
@@ -203,36 +273,26 @@ class STBServiceTest(unittest.TestCase):
     self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
     expected_mc = set(['225.0.0.1', '225.0.0.2', '225.0.0.3', '225.0.0.4',
                        '225.0.0.5', '225.0.0.6', '225.0.0.7', '225.0.0.8'])
+    expected_bps = {
+        '225.0.0.1': 1000000, '225.0.0.2': 2000000, '225.0.0.3': 3000000,
+        '225.0.0.4': 4000000, '225.0.0.5': 5000000, '225.0.0.6': 6000000,
+        '225.0.0.7': 7000000, '225.0.0.8': 8000000}
+    expected_stall = {
+        '225.0.0.1': 1, '225.0.0.2': 2, '225.0.0.3': 3, '225.0.0.4': 4,
+        '225.0.0.5': 5, '225.0.0.6': 6, '225.0.0.7': 7, '225.0.0.8': 8}
+    expected_startup = {
+        '225.0.0.1': 9, '225.0.0.2': 10, '225.0.0.3': 11, '225.0.0.4': 12,
+        '225.0.0.5': 13, '225.0.0.6': 14, '225.0.0.7': 15, '225.0.0.8': 16}
+
     actual_mc = set()
     for v in stb.ServiceMonitoring.MainStreamList.values():
       mcstats = v.Total.X_CATAWAMPUS_ORG_MulticastStats
-      actual_mc.add(mcstats.MulticastGroup)
+      group = mcstats.MulticastGroup
+      actual_mc.add(group)
+      self.assertEqual(expected_bps[group], mcstats.BPS)
+      self.assertEqual(expected_stall[group], mcstats.StallTime)
+      self.assertEqual(expected_startup[group], mcstats.StartupLatency)
     self.assertEqual(expected_mc, actual_mc)
-
-  def testInstancePersistance(self):
-    """Test whether MainStream instance numbers are persistent."""
-    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_strm1.json']
-    stb = stbservice.STBService()
-    m = stb.ServiceMonitoring
-    self.assertEqual(m.MainStreamNumberOfEntries, 1)
-    self.assertEqual(m.MainStreamList[1].X_GOOGLE_COM_StreamID, 1)
-    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_strm12.json']
-    self.assertEqual(m.MainStreamNumberOfEntries, 2)
-    self.assertEqual(m.MainStreamList[1].X_GOOGLE_COM_StreamID, 1)
-    self.assertEqual(m.MainStreamList[2].X_GOOGLE_COM_StreamID, 2)
-    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_strm123.json']
-    self.assertEqual(m.MainStreamNumberOfEntries, 3)
-    self.assertEqual(m.MainStreamList[1].X_GOOGLE_COM_StreamID, 1)
-    self.assertEqual(m.MainStreamList[2].X_GOOGLE_COM_StreamID, 2)
-    self.assertEqual(m.MainStreamList[3].X_GOOGLE_COM_StreamID, 3)
-    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_strm2.json']
-    self.assertEqual(m.MainStreamNumberOfEntries, 1)
-    self.assertEqual(m.MainStreamList[2].X_GOOGLE_COM_StreamID, 2)
-    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_strm23.json']
-    self.assertEqual(m.MainStreamNumberOfEntries, 2)
-    self.assertEqual(m.MainStreamList[1].X_GOOGLE_COM_StreamID, 3)
-    self.assertEqual(m.MainStreamList[2].X_GOOGLE_COM_StreamID, 2)
-    stb.ValidateExports()
 
   def testNonexistentHDMIStatsFile(self):
     """Test whether the absence of HDMI stats file is handled gracefully."""
@@ -307,7 +367,8 @@ class STBServiceTest(unittest.TestCase):
   def testPartialHDMIStatsFiles(self):
     """Test deserialization when a subset of files are not present."""
     stbservice.HDMI_DISPLAY_DEVICE_STATS_FILES = [
-        'testdata/stbservice/hdmi_dispdev_status.json']
+        'testdata/stbservice/hdmi_dispdev_status*.json',
+        'testdata/stbservice/nosuchfile*.json']
     stb = stbservice.STBService()
     self.assertEqual(stb.Components.HDMINumberOfEntries, 1)
     for v in stb.Components.HDMIList.values():
@@ -358,6 +419,26 @@ class STBServiceTest(unittest.TestCase):
     self.assertEqual(epgStats.EPGErrors, 2)
     self.assertEqual(epgStats.LastReceivedTime, '2012-07-25T01:50:37Z')
     self.assertEqual(epgStats.EPGExpireTime, '2012-07-30T01:50:37Z')
+
+  def testStallAlarm(self):
+    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_small%d.json']
+    stb = stbservice.STBService()
+    self.assertEqual(stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmTime,
+                     '0001-01-01T00:00:00Z')
+    stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmValue = 1
+    # small1 is not exceeding the AlarmValue
+    self.assertEqual(stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmTime,
+                     '0001-01-01T00:00:00Z')
+    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_full%d.json']
+    self.assertEqual(stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmTime,
+                     '2013-01-11T10:00:00Z')
+    # Alarm should stay asserted even when stalltime drops below threshold.
+    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_small%d.json']
+    self.assertEqual(stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmTime,
+                     '2013-01-11T10:00:00Z')
+    stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmTime = 0
+    self.assertEqual(stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmTime,
+                     '0001-01-01T00:00:00Z')
 
 
 if __name__ == '__main__':
