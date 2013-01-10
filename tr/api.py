@@ -26,11 +26,24 @@ API calls; it's just a python version of the API.
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import datetime
+
+import tornado.ioloop
+import tr.cwmpbool
+
 import download
+
+# Time in seconds to refetch the values that are being watched
+# for notifications.
+REFRESH_TIMEOUT = 60
+
+# TR69 constants for which notification method to use.
+PASSIVE_NOTIFY = 1
+ACTIVE_NOTIFY = 2
 
 
 class SetParameterErrors(Exception):
-  """A list of exceptions which occurred during a SetParameterValues transaction."""
+  """Exceptions which occurred during a SetParameterValues transaction."""
 
   def __init__(self, error_list, msg):
     Exception.__init__(self, msg)
@@ -91,8 +104,8 @@ class ACS(TR069Service):
     TR069Service.__init__(self)
     self.cpe = None
 
-  def Inform(self, cpe, root, events, max_envelopes,
-             current_time, retry_count, parameter_list):
+  def Inform(self, cpe, unused_root, unused_events, unused_max_envelopes,
+             unused_current_time, unused_retry_count, unused_parameter_list):
     """Called when the CPE first connects to the ACS."""
     print 'ACS.Inform'
     self.cpe = cpe
@@ -127,6 +140,123 @@ class ACS(TR069Service):
     raise NotImplementedError()
 
 
+class ParameterAttributes(object):
+  """This is a side object that contains all of the attribute settings.
+
+  TR69 defines the following parameters of which we really only
+  care about 'Notification':
+    Name (is the key)
+    NotificationChange (if set to True allow Notification to change)
+    Notification
+    AccessListChange
+    AccessList
+
+  AccessList is kept in the value dict just for tr69 compatibility, the
+  only allowed value in the spec is "Subscriber".
+
+  There is also one timer that fires every minute to check for attributes
+  that have triggered.
+  """
+
+  class Attributes(object):
+    """Helper class to hold tr69 parameter attributes."""
+
+    def __init__(self):
+      self.current_value = None
+      self.notification = 0
+      self.access_list = None
+
+  def __init__(self, root, ioloop):
+    self.ioloop = ioloop
+    self.params = dict()
+    self.root = root
+    self.timeout = self.ioloop.add_timeout(
+        datetime.timedelta(0, REFRESH_TIMEOUT), self.CheckForTriggers)
+
+  def SetParameterAttributes(self, attrs):
+    """Set Attributes for a parameter.
+
+    The only attributes that are supported are:
+      Notification
+      AccessList.
+
+    Args:
+      attrs: key/value pairs of attribute names and their values.
+    Returns:
+      None
+
+    Raises:
+      ValueError: if attrs doesn't contain a name.
+    """
+    if 'Name' not in attrs:
+      raise ValueError('SetParameterAttributes must have a "Name" attribute.')
+    name = attrs['Name']
+
+    if name not in self.params:
+      self.params[name] = ParameterAttributes.Attributes()
+
+    if ('Notification' in attrs and
+        'NotificationChange' in attrs and
+        tr.cwmpbool.parse(attrs['NotificationChange'])):
+      self.params[name].notification = int(attrs['Notification'])
+
+    if ('AccessList' in attrs and
+        'AccessListChange' in attrs and
+        tr.cwmpbool.parse(attrs['AccessListChange'])):
+      self.params[name].access_list = str(attrs['AccessList'])
+
+    # Finally store the initial value so changes can be watched for.
+    self.params[name].current_value = self.root.GetExport(name)
+
+  def GetParameterAttribute(self, name, attr):
+    """Retrieve the given attribute for the parameter name."""
+    if name not in self.params:
+      self.params[name] = dict()
+    if attr == 'Notification':
+      return self.params[name].Notification
+    if attr == 'AccessList':
+      return self.params[name].AccessList
+    raise ValueError('Attribute %s is not supported.' % attr)
+
+  def CheckForTriggers(self):
+    """Checks if a notification needs to be sent to the ACS."""
+    for (canonical_name, (obj, paramname)) in zip(
+        self.params.keys(), self.root.ListExports(self.params.keys())):
+
+      if not paramname:
+        # paramname being empty means that obj is an Object, and
+        # not a leaf parameter, and those can't have attributes
+        # since they can't have values.  I think that is the case anyhow.
+        # TODO(jnewlin): Should this raise an exception?
+        pass
+
+      # TODO(jnewlin): Looking at GetExport and _GetExport it's not
+      # clear that it is safe to just call getattr(obj, paramname)
+      value = obj.GetExport(paramname)
+      attrs = self.params[paramname]
+
+      # This checks that the Notification attribute is set, and if it
+      # is 1 (passive notification) or 2(active notification) sets the
+      # parameter data to inform the ACS with.
+      # And if the Notification is 2 (active) it will start a new session
+      # with the ACS.
+      # It is okay to call the set_notification_parameters_cb multiple
+      # times, the caller will build up a list of all the parameters to
+      # inform with.
+      if ((attrs.Notification == PASSIVE_NOTIFY or
+           attrs.Notification == ACTIVE_NOTIFY) and
+          value != attrs.current_value and
+          self.cpe.set_notification_parameters_cb):
+        self.cpe.set_notification_parameters_cb([(canonical_name, 'Trigger')])
+        if (self.cpe.new_value_change_session_cb and
+            attrs.notification == ACTIVE_NOTIFY):
+          self.cpe.new_value_change_session_cb()
+      attrs.current_value = value
+    self.ioloop.remove_timeout(self.timeout)
+    self.timeout = self.ioloop.add_timeout(
+        datetime.timedelta(0, REFRESH_TIMEOUT), self.CheckForTriggers)
+
+
 class CPE(TR069Service):
   """Represents a TR-069 CPE (Customer Premises Equipment)."""
 
@@ -137,13 +267,25 @@ class CPE(TR069Service):
     self.download_manager = download.DownloadManager()
     self.transfer_complete_received_cb = None
     self.inform_response_received_cb = None
+    self.set_notification_parameters_cb = None
+    self.new_value_change_session_cb = None
+    self.parameter_attrs = ParameterAttributes(
+        root, tornado.ioloop.IOLoop.instance())
 
+  # There's some magic here, functions that start with a capital letter
+  # are assumed to be ACS invokable, for example 'SetParameterAttributes'
+  # so this helper starts with a lower case letter.
+  # pylint: disable-msg=g-bad-name
   def setCallbacks(self, send_transfer_complete,
                    transfer_complete_received,
-                   inform_response_received):
+                   inform_response_received,
+                   set_notification_parameters,
+                   new_value_change_session):
     self.download_manager.send_transfer_complete = send_transfer_complete
     self.transfer_complete_received_cb = transfer_complete_received
     self.inform_response_received_cb = inform_response_received
+    self.set_notification_parameters_cb = set_notification_parameters
+    self.new_value_change_session_cb = new_value_change_session
 
   def startup(self):
     """Handle any initialization after reboot."""
@@ -154,18 +296,6 @@ class CPE(TR069Service):
 
   def getParameterKey(self):
     return self._last_parameter_key
-
-  def _SplitParameterName(self, name):
-    """Split a name like Top.Object.1.Name into (Top.Object.1, Name)."""
-    result = name.rsplit('.', 1)
-    if len(result) == 2:
-      return result[0], result[1]
-    elif len(result) == 1:
-      return None, result[0]
-    elif not result:
-      return None
-    else:
-      assert False
 
   def _SetParameterValue(self, name, value):
     """Given a parameter (which can include an object), set its value."""
@@ -182,7 +312,8 @@ class CPE(TR069Service):
       objects: list of dirty objects to commit
       do_commit: call CommitTransaction if True, else AbandonTransaction
 
-    Returns: the response code to return
+    Returns:
+      The response code to return to ACS.
 
     SetParameterValues is an atomic transaction, all parameters are set or
     none of them are. We set obj.dirty and call obj.StartTransaction on
@@ -273,17 +404,22 @@ class CPE(TR069Service):
     for param in exports:
       yield self._JoinParamPath(parameter_path, str(param))
 
-  def _SetParameterAttribute(self, param, attr, attr_value):
-    """Set an attribute of a parameter."""
-    (param, unused_param_name) = self._SplitParameterName(param)
-    self.root.SetExportAttr(param, attr, attr_value)
+  def SetParameterAttributes(self, attrs):
+    """Set attributes (access control, notifications) on some parameters.
 
-  def SetParameterAttributes(self, parameter_list):
-    """Set attributes (access control, notifications) on some parameters."""
-    param_name = parameter_list['Name']
-    for attr, attr_value in parameter_list.iteritems():
-      if attr != 'Name':
-        self._SetParameterAttribute(param_name, attr, attr_value)
+    The 'Name' parameter can either be the name for a single parameter
+    or an object.  Alternatively this can be be a partial path name and
+    indicates that all child parameters should have these parameters set.
+
+    Args:
+      attrs: A dcit of paramters to set.
+    """
+    param = attrs['Name']
+    print "attrs=%s" % (attrs,)
+    print "param=%s" % (param,)
+    if not self.root.SetExportAttrs(param, attrs):
+      # TODO(jnewlin): Handle the case with the partial path.
+      self.parameter_attrs.SetParameterAttributes(attrs)
 
   def GetParameterAttributes(self, parameter_names):
     """Get attributes (access control, notifications) on some parameters."""

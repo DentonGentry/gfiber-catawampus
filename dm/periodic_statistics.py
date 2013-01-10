@@ -369,26 +369,33 @@ class PeriodicStatistics(BASE157PS):
       """A comma separarted string of unsigned integers."""
       return _MakeSampleSeconds(self._sample_times)
 
-    def SetAttribute(self, attr, value):
-      """Sets an attribute on this object.  Currently can be anything.
+    def SetAttributes(self, attrs):
+      """Sets attributes on this object.  The following attributes are
+      supported:
+        Notification: boolean.  Only takes affect if NotificationChange is
+                      also sent and True.
+        AccessList: Array of zero or more entities for which write access
+                    is granted.  Only the special value "Subscriber" can
+                    be included.  Only takes affect if AccessListChange is
+                    also present and True.
 
-      NOTE(jnewlin):
-      This should probably throw an exception for unsupported attributes
-      and the list of attributes should come for the tr xml spec files
-      somewhere, but it's not clear to me how to do this.
+        NOTE(jnewlin):
+        This should probably throw an exception for unsupported attributes.
+        The list of attributes should come for the tr xml spec files,
+        but it's not clear to me how to do this.
 
       Args:
-        attr: the name of the attribute to set.
-        value: the value of the attribute
+        attrs: key/value pair of attributes to set.
       """
-      if attr == 'Notification':
-        # Technically should not overwrite this unless we all see a
-        # 'NotificationChange' with a value of true.  Seems redundant
-        # though, why send a SetParametersAttribute with a new value but
-        # NotificationChange set to False...
-        self._attributes[attr] = int(value)
-      elif attr == 'AccessList':
-        self._attributes[attr] = value
+      if ('Notification' in attrs and
+          'NotificationChange' in attrs and
+          tr.cwmpbool.parse(attrs['NotificationChange'])):
+        self._attributes['Notification'] = int(attrs['Notification'])
+
+      if ('AccessList' in attrs and
+          'AccessListChange' in attrs and
+          tr.cwmpbool.parse(attrs['AccessListChange'])):
+        self._attributes['AccessList'] = str(attrs['AccessList'])
 
     class Parameter(BASE157PS.SampleSet.Parameter):
       """Implementation of PeriodicStatistics.SampleSet.Parameter."""
@@ -414,7 +421,7 @@ class PeriodicStatistics(BASE157PS):
 
       @CalculationMode.setter
       def CalculationMode(self, value):
-        if not value in CALC_MODES:
+        if value not in CALC_MODES:
           raise ValueError('Bad value sent for CalculationMode.')
         self._calculation_mode = value
 
