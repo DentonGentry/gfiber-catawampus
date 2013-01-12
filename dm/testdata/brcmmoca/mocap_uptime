@@ -1,0 +1,16 @@
+#!/bin/sh
+
+if [ "$1" == get ] && [ "$2" == --drv_info ]; then
+echo '== drv_info  ========================================== '
+echo 'version     : 262144  ( 0x40000 )'
+echo 'build_number: 538055201  ( 0x20121221 )'
+echo 'hw_rev      : 8192  ( 0x2000 )'
+echo 'uptime      : 03y:36w:05d '
+echo 'link_uptime : 03y:41w:03d '
+echo 'core_uptime : 06y:23w:06d '
+echo 'ifname[16]  : foo0'
+echo 'devname[64] : ?'
+echo 'rf_band     : 0  ( 0x0 )'
+echo 'chip_id     : 1948582066  ( 0x742500b2 )'
+echo '== end drv_info  ======================================'
+fi

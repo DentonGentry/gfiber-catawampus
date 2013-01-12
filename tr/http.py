@@ -39,8 +39,8 @@ import tornado.web
 
 import api_soap
 import cpe_management_server
-import cwmp_session
 import helpers
+import session
 
 PROC_IF_INET6 = '/proc/net/if_inet6'
 MAX_EVENT_QUEUE_SIZE = 64
@@ -428,7 +428,7 @@ class CPEStateMachine(object):
   def _SessionWaitTimer(self):
     """Handler for the CWMP Retry timer, to start a new session."""
     self.start_session_timeout = None
-    self.session = cwmp_session.CwmpSession(
+    self.session = session.CwmpSession(
         acs_url=self.cpe_management_server.URL, ioloop=self.ioloop)
     self.Run()
 
@@ -443,7 +443,7 @@ class CPEStateMachine(object):
     if not self.session:
       self._CancelSessionRetries()
       self.event_queue.appendleft((reason, None))
-      self.session = cwmp_session.CwmpSession(
+      self.session = session.CwmpSession(
           acs_url=self.cpe_management_server.URL, ioloop=self.ioloop)
       self.Run()
 

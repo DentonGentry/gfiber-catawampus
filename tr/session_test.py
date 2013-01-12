@@ -16,7 +16,7 @@
 # unittest requires method names starting in 'test'
 #pylint: disable-msg=C6409
 
-"""Unit tests for cwmp_session.py."""
+"""Unit tests for session.py."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
@@ -24,14 +24,14 @@ import time
 import unittest
 
 import google3
-import cwmp_session
+import session
 
 
 class CwmpSessionTest(unittest.TestCase):
   """tests for CwmpSession."""
 
   def testStateConnect(self):
-    cs = cwmp_session.CwmpSession('')
+    cs = session.CwmpSession('')
 
     self.assertTrue(cs.inform_required())
     self.assertFalse(cs.request_allowed())
@@ -60,7 +60,7 @@ class CwmpSessionTest(unittest.TestCase):
     self.assertTrue(cs.response_allowed())
 
   def testActive(self):
-    cs = cwmp_session.CwmpSession('')
+    cs = session.CwmpSession('')
     cs.state_update(sent_inform=True)
     self.assertFalse(cs.inform_required())
     self.assertTrue(cs.request_allowed())
@@ -95,7 +95,7 @@ class CwmpSessionTest(unittest.TestCase):
     self.assertTrue(cs.response_allowed())
 
   def testOnHold(self):
-    cs = cwmp_session.CwmpSession('')
+    cs = session.CwmpSession('')
     cs.state_update(sent_inform=True)
     cs.state_update(on_hold=True)
     self.assertFalse(cs.inform_required())
@@ -130,7 +130,7 @@ class CwmpSessionTest(unittest.TestCase):
     self.assertTrue(cs.response_allowed())
 
   def testNoMore(self):
-    cs = cwmp_session.CwmpSession('')
+    cs = session.CwmpSession('')
 
     # transition to NOMORE
     cs.state_update(sent_inform=True)
@@ -157,7 +157,7 @@ class CwmpSessionTest(unittest.TestCase):
     self.assertFalse(cs.response_allowed())
 
   def testDone(self):
-    cs = cwmp_session.CwmpSession('')
+    cs = session.CwmpSession('')
     cs.state_update(sent_inform=True)
     cs.state_update(cpe_to_acs_empty=True)
     cs.state_update(acs_to_cpe_empty=True)
@@ -191,16 +191,16 @@ class SimpleCacheObject(object):
     self.cache_this_function_n = 0
     self.cache_this_function_args_n = 0
 
-  @cwmp_session.cache
+  @session.cache
   def cache_this_function(self):
     self.cache_this_function_n += 1
 
-  @cwmp_session.cache
+  @session.cache
   def cache_function_with_args(self, arg1, arg2):  #pylint: disable-msg=W0613
     self.cache_this_function_args_n += 1
 
 
-@cwmp_session.cache
+@session.cache
 def SimpleCacheFunction():
   return time.time()
 
@@ -219,7 +219,7 @@ class SessionCacheTest(unittest.TestCase):
     self.assertEqual(t1.cache_this_function_n, 1)
     self.assertEqual(t2.cache_this_function_n, 1)
     self.assertEqual(t3.cache_this_function_n, 1)
-    cwmp_session.cache.flush()
+    session.cache.flush()
     for _ in range(101):
       t1.cache_this_function()
       t2.cache_this_function()
@@ -231,7 +231,7 @@ class SessionCacheTest(unittest.TestCase):
     t = SimpleCacheFunction()
     for _ in range(1000):
       self.assertEqual(t, SimpleCacheFunction())
-    cwmp_session.cache.flush()
+    session.cache.flush()
     self.assertNotEqual(t, SimpleCacheFunction())
 
   def testCacheFunctionArgs(self):

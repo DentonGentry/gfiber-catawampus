@@ -54,27 +54,26 @@ class NetdevStatsLinux26(object):
     if ifstats:
       self.BroadcastPacketsReceived = None
       self.BroadcastPacketsSent = None
-      self.BytesReceived = ifstats[self._RX_BYTES]
-      self.BytesSent = ifstats[self._TX_BYTES]
-      self.DiscardPacketsReceived = ifstats[self._RX_DROP]
-      self.DiscardPacketsSent = ifstats[self._TX_DROP]
+      self.BytesReceived = int(ifstats[self._RX_BYTES])
+      self.BytesSent = int(ifstats[self._TX_BYTES])
+      self.DiscardPacketsReceived = int(ifstats[self._RX_DROP])
+      self.DiscardPacketsSent = int(ifstats[self._TX_DROP])
 
-      err = int(ifstats[self._RX_ERRS]) + int(ifstats[self._RX_FRAME])
-      self.ErrorsReceived = str(err)
+      self.ErrorsReceived = int(ifstats[self._RX_ERRS]) + int(ifstats[self._RX_FRAME])
 
-      self.ErrorsSent = ifstats[self._TX_FIFO]
-      self.MulticastPacketsReceived = ifstats[self._RX_MCAST]
+      self.ErrorsSent = int(ifstats[self._TX_FIFO])
+      self.MulticastPacketsReceived = int(ifstats[self._RX_MCAST])
       self.MulticastPacketsSent = None
-      self.PacketsReceived = ifstats[self._RX_PKTS]
-      self.PacketsSent = ifstats[self._TX_PKTS]
+      self.PacketsReceived = int(ifstats[self._RX_PKTS])
+      self.PacketsSent = int(ifstats[self._TX_PKTS])
 
       rx = int(ifstats[self._RX_PKTS]) - int(ifstats[self._RX_MCAST])
-      self.UnicastPacketsReceived = str(rx)
+      self.UnicastPacketsReceived = rx
 
       # Linux doesn't break out transmit uni/multi/broadcast, but we don't
       # want to return None for all of them. So we return all transmitted
       # packets as unicast, though some were surely multicast or broadcast.
-      self.UnicastPacketsSent = ifstats[self._TX_PKTS]
+      self.UnicastPacketsSent = int(ifstats[self._TX_PKTS])
       self.UnknownProtoPacketsReceived = None
 
   def _ReadProcNetDev(self, ifname):

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#/usr/bin/python
 # Copyright 2012 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,7 +28,9 @@ import os.path
 import re
 import subprocess
 import tr.core
+import tr.session
 import tr.tr140_v1_1
+import tr.types
 import tr.x_catawampus_storage_1_0
 
 
@@ -104,8 +106,8 @@ def _GetFieldFromOutput(prefix, output, default=''):
 def _ReadOneLine(filename, default):
   """Read one line from a file. Return default if anything fails."""
   try:
-    f = open(filename, 'r')
-    return f.readline().strip()
+    with open(filename) as f:
+      return f.readline().strip()
   except IOError:
     return default
 
@@ -122,10 +124,16 @@ def IntFromFile(filename):
 class LogicalVolumeLinux26(BASESTORAGE.LogicalVolume):
   """Implementation of tr-140 StorageService.LogicalVolume for Linux FS."""
 
+  Enable = tr.types.ReadOnlyBool(True)
+  FileSystem = tr.types.ReadOnlyString('')
+  Name = tr.types.ReadOnlyString('')
+  Status = tr.types.ReadOnlyString('Online')
+
   def __init__(self, rootpath, fstype):
     BASESTORAGE.LogicalVolume.__init__(self)
+    type(self).Name.Set(self, rootpath)
     self.rootpath = rootpath
-    self.fstype = fstype
+    type(self).FileSystem.Set(self, fstype)
     self.Unexport('Alias')
     self.Unexport('Encrypted')
     self.Unexport('ThresholdReached')
@@ -133,23 +141,7 @@ class LogicalVolumeLinux26(BASESTORAGE.LogicalVolume):
     self.FolderList = {}
     self.ThresholdLimit = 0
 
-  @property
-  def Name(self):
-    return self.rootpath
-
-  @property
-  def Status(self):
-    return 'Online'
-
-  @property
-  def Enable(self):
-    return True
-
-  @property
-  def FileSystem(self):
-    return self.fstype
-
-  # TODO(dgentry) need @sessioncache decorator
+  @tr.session.cache
   def _GetStatVfs(self):
     return STATVFS(self.rootpath)
 
@@ -192,6 +184,9 @@ class PhysicalMediumDiskLinux26(BASESTORAGE.PhysicalMedium):
        'Ultra2 SCSI', 'Ultra2 Wide SCSI', 'Ultra3 SCSI', 'Ultra-320 SCSI',
        'Ultra-640 SCSI', 'SSA', 'SSA-40', 'Fibre Channel'])
 
+  ConnectionType = tr.types.ReadOnlyString('')
+  Removable = tr.types.ReadOnlyBool(False)
+
   def __init__(self, dev, conn_type=None):
     BASESTORAGE.PhysicalMedium.__init__(self)
     self.dev = dev
@@ -209,9 +204,9 @@ class PhysicalMediumDiskLinux26(BASESTORAGE.PhysicalMedium):
       # Provide a hint to the platform code: use a valid enumerated string,
       # or define a vendor extension. Don't just make something up.
       assert conn_type[0:1] == 'X_' or conn_type in self.CONNECTION_TYPES
-    self.conn_type = conn_type
+    type(self).ConnectionType.Set(self, conn_type)
 
-  # TODO(dgentry) need @sessioncache decorator
+  @tr.session.cache
   def _GetSmartctlOutput(self):
     """Return smartctl info and health output."""
     dev = SLASHDEV + self.dev
@@ -251,14 +246,6 @@ class PhysicalMediumDiskLinux26(BASESTORAGE.PhysicalMedium):
     return _GetFieldFromOutput(prefix='Firmware Version:',
                                output=self._GetSmartctlOutput(),
                                default='')
-
-  @property
-  def ConnectionType(self):
-    return self.conn_type
-
-  @property
-  def Removable(self):
-    return False
 
   @property
   def Capacity(self):
@@ -323,15 +310,17 @@ class FlashSubVolUbiLinux26(BASESTORAGE.X_CATAWAMPUS_ORG_FlashMedia.SubVolume):
 class FlashMediumUbiLinux26(BASESTORAGE.X_CATAWAMPUS_ORG_FlashMedia):
   """Catawampus Storage FlashMedium implementation for UBI volumes."""
 
+  Name = tr.types.ReadOnlyString('')
+
   def __init__(self, ubiname):
     BASESTORAGE.X_CATAWAMPUS_ORG_FlashMedia.__init__(self)
-    self.ubiname = ubiname
+    type(self).Name.Set(self, ubiname)
     self.SubVolumeList = {}
     num = 0
     for i in range(128):
-      subvolname = ubiname + '_' + str(i)
+      subvolname = self.Name + '_' + str(i)
       try:
-        if os.stat(os.path.join(SYS_UBI, self.ubiname, subvolname)):
+        if os.stat(os.path.join(SYS_UBI, self.Name, subvolname)):
           self.SubVolumeList[str(num)] = FlashSubVolUbiLinux26(subvolname)
           num += 1
       except OSError:
@@ -339,74 +328,59 @@ class FlashMediumUbiLinux26(BASESTORAGE.X_CATAWAMPUS_ORG_FlashMedia):
 
   @property
   def BadEraseBlocks(self):
-    return IntFromFile(os.path.join(SYS_UBI, self.ubiname, 'bad_peb_count'))
+    return IntFromFile(os.path.join(SYS_UBI, self.Name, 'bad_peb_count'))
 
   @property
   def CorrectedErrors(self):
-    mtdnum = IntFromFile(os.path.join(SYS_UBI, self.ubiname, 'mtd_num'))
+    mtdnum = IntFromFile(os.path.join(SYS_UBI, self.Name, 'mtd_num'))
     ecc = GETMTDSTATS(os.path.join(SLASHDEV, 'mtd' + str(mtdnum)))
-    return ecc.corrected
+    return int(ecc.corrected)
 
   @property
   def EraseBlockSize(self):
-    return IntFromFile(os.path.join(SYS_UBI, self.ubiname, 'eraseblock_size'))
+    return IntFromFile(os.path.join(SYS_UBI, self.Name, 'eraseblock_size'))
 
   @property
   def IOSize(self):
-    return IntFromFile(os.path.join(SYS_UBI, self.ubiname, 'min_io_size'))
+    return IntFromFile(os.path.join(SYS_UBI, self.Name, 'min_io_size'))
 
   @property
   def MaxEraseCount(self):
-    return IntFromFile(os.path.join(SYS_UBI, self.ubiname, 'max_ec'))
+    return IntFromFile(os.path.join(SYS_UBI, self.Name, 'max_ec'))
 
   @property
   def SubVolumeNumberOfEntries(self):
     return len(self.SubVolumeList)
 
   @property
-  def Name(self):
-    return self.ubiname
-
-  @property
   def ReservedEraseBlocks(self):
-    return IntFromFile(os.path.join(SYS_UBI, self.ubiname, 'reserved_for_bad'))
+    return IntFromFile(os.path.join(SYS_UBI, self.Name, 'reserved_for_bad'))
 
   @property
   def TotalEraseBlocks(self):
-    return IntFromFile(os.path.join(SYS_UBI, self.ubiname, 'total_eraseblocks'))
+    return IntFromFile(os.path.join(SYS_UBI, self.Name, 'total_eraseblocks'))
 
   @property
   def UncorrectedErrors(self):
-    mtdnum = IntFromFile(os.path.join(SYS_UBI, self.ubiname, 'mtd_num'))
+    mtdnum = IntFromFile(os.path.join(SYS_UBI, self.Name, 'mtd_num'))
     ecc = GETMTDSTATS(os.path.join(SLASHDEV, 'mtd' + str(mtdnum)))
-    return ecc.failed
+    return int(ecc.failed)
 
 
 class CapabilitiesNoneLinux26(BASESTORAGE.Capabilities):
   """Trivial tr-140 StorageService.Capabilities, all False."""
 
+  FTPCapable = tr.types.ReadOnlyBool(False)
+  HTTPCapable = tr.types.ReadOnlyBool(False)
+  HTTPSCapable = tr.types.ReadOnlyBool(False)
+  HTTPWritable = tr.types.ReadOnlyBool(False)
+  SFTPCapable = tr.types.ReadOnlyBool(False)
+  SupportedNetworkProtocols = tr.types.ReadOnlyString('')
+  SupportedRaidTypes = tr.types.ReadOnlyString('')
+  VolumeEncryptionCapable = tr.types.ReadOnlyBool(False)
+
   def __init__(self):
     BASESTORAGE.Capabilities.__init__(self)
-
-  @property
-  def FTPCapable(self):
-    return False
-
-  @property
-  def HTTPCapable(self):
-    return False
-
-  @property
-  def HTTPSCapable(self):
-    return False
-
-  @property
-  def HTTPWritable(self):
-    return False
-
-  @property
-  def SFTPCapable(self):
-    return False
 
   @property
   def SupportedFileSystemTypes(self):
@@ -419,28 +393,16 @@ class CapabilitiesNoneLinux26(BASESTORAGE.Capabilities):
       a string of comma-separated filesystem types.
     """
     fslist = set()
-    f = open(PROC_FILESYSTEMS)
-    for line in f:
-      if line.find('nodev') >= 0:
-        # rule of thumb to skip internal, non-interesting filesystems
-        continue
-      fstype = line.strip()
-      if _IsSillyFilesystem(fstype):
-        continue
-      fslist.add(_FsType(fstype))
+    with open(PROC_FILESYSTEMS) as f:
+      for line in f:
+        if line.find('nodev') >= 0:
+          # rule of thumb to skip internal, non-interesting filesystems
+          continue
+        fstype = line.strip()
+        if _IsSillyFilesystem(fstype):
+          continue
+        fslist.add(_FsType(fstype))
     return ','.join(sorted(fslist, key=str.lower))
-
-  @property
-  def SupportedNetworkProtocols(self):
-    return ''
-
-  @property
-  def SupportedRaidTypes(self):
-    return ''
-
-  @property
-  def VolumeEncryptionCapable(self):
-    return False
 
 
 class StorageServiceLinux26(BASESTORAGE):
@@ -449,6 +411,9 @@ class StorageServiceLinux26(BASESTORAGE):
   This class implements no network file services, it only exports
   the LogicalVolume information.
   """
+
+  # TODO(dgentry): tr-140 says this is supposed to be writable
+  Enable = tr.types.ReadOnlyBool(True)
 
   def __init__(self):
     BASESTORAGE.__init__(self)
@@ -468,11 +433,6 @@ class StorageServiceLinux26(BASESTORAGE):
     self.UserAccountList = {}
     self.UserGroupList = {}
     self.X_CATAWAMPUS_ORG_FlashMediaList = {}
-
-  @property
-  def Enable(self):
-    # TODO(dgentry): tr-140 says this is supposed to be writable
-    return True
 
   @property
   def PhysicalMediumNumberOfEntries(self):
@@ -502,20 +462,20 @@ class StorageServiceLinux26(BASESTORAGE):
     """Return list of (mount point, filesystem type) tuples."""
     mounts = dict()
     try:
-      f = open(PROC_MOUNTS)
+      with open(PROC_MOUNTS) as f:
+        for line in f:
+          fields = line.split()
+          # ex: /dev/mtdblock9 / squashfs ro,relatime 0 0
+          if len(fields) < 6:
+            continue
+          fsname = fields[0]
+          mountpoint = fields[1]
+          fstype = fields[2]
+          if fsname == 'none' or _IsSillyFilesystem(fstype):
+            continue
+          mounts[mountpoint] = _FsType(fstype)
     except IOError:
       return []
-    for line in f:
-      fields = line.split()
-      # ex: /dev/mtdblock9 / squashfs ro,relatime 0 0
-      if len(fields) < 6:
-        continue
-      fsname = fields[0]
-      mountpoint = fields[1]
-      fstype = fields[2]
-      if fsname == 'none' or _IsSillyFilesystem(fstype):
-        continue
-      mounts[mountpoint] = _FsType(fstype)
     return sorted(mounts.items())
 
   def GetLogicalVolume(self, fstuple):
