@@ -14,8 +14,8 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409
-#pylint: disable-msg=W0404
+# pylint: disable-msg=C6409
+# pylint: disable-msg=W0404
 #
 """Implement handling for the X_GOOGLE-COM_GFIBERTV vendor data model."""
 
@@ -36,13 +36,13 @@ BASETV = tr.x_gfibertv_1_0.X_GOOGLE_COM_GFIBERTV_v1_0.X_GOOGLE_COM_GFIBERTV
 NICKFILE = '/tmp/nicknames'
 NICKFILE_TMP = '/tmp/nicknames.tmp'
 BTDEVICES = '/user/bsa/bt_devices.xml'
-BTDEVICES_TMP = '/user/bsa/bt_devices.xml.tmp'
 BTHHDEVICES = '/user/bsa/bt_hh_devices.xml'
-BTHHDEVICES_TMP = '/user/bsa/bt_hh_devices.xml.tmp'
 BTCONFIG = '/user/bsa/bt_config.xml'
-BTCONFIG_TMP = '/user/bsa/bt_config.xml.tmp'
 BTNOPAIRING = '/usr/bsa/nopairing'
+EASADDRFILE = '/tmp/eas_service_address'
+EASFIPSFILE = '/tmp/eas_fips'
 EASHEARTBEATFILE = '/tmp/eas_heartbeat'
+EASPORTFILE = '/tmp/eas_service_port'
 
 
 class GFiberTvConfig(object):
@@ -67,6 +67,10 @@ class GFiberTv(BASETV):
     self.config.bt_devices = None
     self.config.bt_hh_devices = None
     self.config.bt_config = None
+    self.config.bt_nopairing = None
+    self.config.eas_code = None
+    self.config.eas_service_addr = None
+    self.config.eas_service_port = None
     self.DevicePropertiesList = tr.core.AutoDict(
         'X_GOOGLE_COM_GFIBERTV.DevicePropertiesList',
         iteritems=self.IterProperties, getitem=self.GetProperties,
@@ -93,7 +97,7 @@ class GFiberTv(BASETV):
 
     def CommitTransaction(self):
       self.config_old = None
-      self.parent.UpdateConfigFile()
+      self.parent.WriteNicknamesFile()
 
     @property
     def NickName(self):
@@ -124,8 +128,8 @@ class GFiberTv(BASETV):
     self.config = self.config_old
     self.config_old = None
 
-  def UpdateConfigFile(self):
-    """Write out the config file for Sage."""
+  def WriteNicknamesFile(self):
+    """Write out the nicknames file for Sage."""
     if self.config.nicknames:
       with file(NICKFILE_TMP, 'w') as f:
         serials = []
@@ -136,23 +140,49 @@ class GFiberTv(BASETV):
         f.write('serials=%s\n' % ','.join(serials))
       os.rename(NICKFILE_TMP, NICKFILE)
 
+  def _WriteOrRemove(self, filename, content):
+    if content:
+      tr.helpers.WriteFileAtomic(filename, content)
+    else:
+      # interpret empty content as "remove the file"
+      tr.helpers.Unlink(filename)
+
   def CommitTransaction(self):
-    """Write out the config file for Sage."""
-    self.UpdateConfigFile()
+    """Write out the {Bluetooth, EAS} config files for Sage."""
+    self.WriteNicknamesFile()
 
     if self.config.bt_devices is not None:
-      tr.helpers.WriteFileAtomic(BTDEVICES_TMP, BTDEVICES,
-                                 self.config.bt_devices)
+      self._WriteOrRemove(filename=BTDEVICES, content=self.config.bt_devices)
       self.config.bt_devices = None
 
     if self.config.bt_hh_devices is not None:
-      tr.helpers.WriteFileAtomic(BTHHDEVICES_TMP, BTHHDEVICES,
-                                 self.config.bt_hh_devices)
+      self._WriteOrRemove(filename=BTHHDEVICES,
+                          content=self.config.bt_hh_devices)
       self.config.bt_hh_devices = None
 
     if self.config.bt_config is not None:
-      tr.helpers.WriteFileAtomic(BTCONFIG_TMP, BTCONFIG, self.config.bt_config)
+      self._WriteOrRemove(filename=BTCONFIG, content=self.config.bt_config)
       self.config.bt_config = None
+
+    if self.config.bt_nopairing is not None:
+      content = 'nopair' if self.config.bt_nopairing else ''
+      self._WriteOrRemove(filename=BTNOPAIRING, content=content)
+      self.config.bt_nopairing = None
+
+    if self.config.eas_code is not None:
+      self._WriteOrRemove(filename=EASFIPSFILE, content=self.config.eas_code)
+      self.config.eas_code = None
+
+    if self.config.eas_service_addr is not None:
+      self._WriteOrRemove(filename=EASADDRFILE,
+                          content=self.config.eas_service_addr)
+      self.config.eas_service_addr = None
+
+    if self.config.eas_service_port is not None:
+      self._WriteOrRemove(filename=EASPORTFILE,
+                          content=self.config.eas_service_port)
+      self.config.eas_service_port = None
+
     self.config_old = None
 
   @property
@@ -172,10 +202,10 @@ class GFiberTv(BASETV):
   def DelProperties(self, key):
     del self.config.nicknames[key]
 
-  @property
-  def BtDevices(self):
+  def _ReadShortFile(self, filename):
+    """Read a file into memory, return empty string if ENOEXIST."""
     try:
-      with file(BTDEVICES, 'r') as f:
+      with file(filename) as f:
         return f.read()
     except IOError as e:
       # If the file doesn't exist for some reason, just return an empty
@@ -186,21 +216,16 @@ class GFiberTv(BASETV):
       raise
 
   @property
+  def BtDevices(self):
+    return self._ReadShortFile(BTDEVICES)
+
+  @property
   def BtNoPairing(self):
     return os.access(BTNOPAIRING, os.R_OK)
 
   @BtNoPairing.setter
   def BtNoPairing(self, value):
-    no_pairing = tr.cwmpbool.parse(value)
-    if no_pairing:
-      with open(BTNOPAIRING, 'w') as _:
-        pass
-    else:
-      try:
-        os.unlink(BTNOPAIRING)
-      except OSError as e:
-        if e.errno != errno.ENOENT:
-          raise
+    self.config.bt_nopairing = tr.cwmpbool.parse(value)
 
   @BtDevices.setter
   def BtDevices(self, value):
@@ -208,12 +233,7 @@ class GFiberTv(BASETV):
 
   @property
   def BtHHDevices(self):
-    try:
-      with file(BTHHDEVICES, 'r') as f:
-        return f.read()
-    # IOError is thrown if the file doesn't exist.
-    except IOError:
-      return ''
+    return self._ReadShortFile(BTHHDEVICES)
 
   @BtHHDevices.setter
   def BtHHDevices(self, value):
@@ -221,16 +241,35 @@ class GFiberTv(BASETV):
 
   @property
   def BtConfig(self):
-    try:
-      with file(BTCONFIG, 'r') as f:
-        return f.read()
-    # IOError is thrown if the file doesn't exist.
-    except IOError:
-      return ''
+    return self._ReadShortFile(BTCONFIG)
 
   @BtConfig.setter
   def BtConfig(self, value):
     self.config.bt_config = value
+
+  @property
+  def EASFipsCode(self):
+    return self._ReadShortFile(EASFIPSFILE)
+
+  @EASFipsCode.setter
+  def EASFipsCode(self, value):
+    self.config.eas_code = str(value)
+
+  @property
+  def EASServiceAddress(self):
+    return self._ReadShortFile(EASADDRFILE)
+
+  @EASServiceAddress.setter
+  def EASServiceAddress(self, value):
+    self.config.eas_service_addr = str(value)
+
+  @property
+  def EASServicePort(self):
+    return self._ReadShortFile(EASPORTFILE)
+
+  @EASServicePort.setter
+  def EASServicePort(self, value):
+    self.config.eas_service_port = str(value)
 
   @property
   def EASHeartbeatTimestamp(self):

@@ -58,6 +58,25 @@
           <dateTime/>
         </syntax>
       </parameter>
+      <parameter name="EASFipsCode" access="readWrite">
+        <description>FIPS Code for the Emergency Alert System.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="EASServiceAddress" access="readWrite">
+        <description>Multicast address to monitor for the the Emergency Alert System.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="EASServicePort" access="readWrite">
+        <description>UDP Port number to monitor for the the Emergency Alert System.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+
       <object name="DeviceProperties.{i}." access="readWrite" numEntriesParameter="DevicePropertiesNumberOfEntries" minEntries="0" maxEntries="16">
         <parameter name="SerialNumber" access="readWrite">
           <description>Serial number of the device.</description>
