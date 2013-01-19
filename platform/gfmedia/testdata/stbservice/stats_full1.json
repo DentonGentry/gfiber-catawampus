@@ -17,6 +17,12 @@
             "Packets Received": 8000,
             "Bytes Received": 2048000,
             "Packets Retransmitted": 9
+          },
+          "MulticastStats": {
+            "MulticastGroup": "225.0.0.8",
+            "StartupLagUsecs": 16000,
+            "StalledUsecs": 8000,
+            "bps": 8000000
           }
         }
       ]

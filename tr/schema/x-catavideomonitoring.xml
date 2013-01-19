@@ -49,12 +49,92 @@
         </syntax>
       </parameter>
     </object>
+    <object name="STBService.{i}.ServiceMonitoring." access="readOnly" minEntries="1" maxEntries="1">
+      <parameter name="X_CATAWAMPUS-ORG_StallAlarmTime" access="readOnly">
+        <description>Initial time at which {{param|X_CATAWAMPUS-ORG_StallAlarmValue}} was encountered. This value is only set the first time the alarm is seen and not changed until the next reset. The Unknown Time value, as defined in {{bibref|TR-106a2}}, indicates that an alarm has not been encountered since the last reset.</description>
+        <syntax><dateTime/></syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_StallAlarmValue" access="readWrite">
+        <description>Threshold for {{param|X_CATAWAMPUS-ORG_StallAlarmTime}}, in {{units}}. If a MainStream instance goes this long without receiving data, {{param|X_CATAWAMPUS-ORG_StallAlarmTime}} will be set.</description>
+        <syntax>
+          <unsignedInt>
+            <units value="milliseconds"/>
+          </unsignedInt>
+        </syntax>
+      </parameter>
+    </object>
     <object name="STBService.{i}.ServiceMonitoring.MainStream.{i}.Total.X_CATAWAMPUS-ORG_MulticastStats." access="readOnly" minEntries="1" maxEntries="1">
       <description>Total IP Multicast statistics for this ''ServiceMonitoring'' main stream instance.</description>
       <parameter name="MulticastGroup" access="readOnly">
         <description>The Multicast IP group (if any) associated with this MainStream.</description>
         <syntax>
           <string/>
+        </syntax>
+      </parameter>
+      <parameter name="StallTime" access="readOnly">
+        <description>The amount of time since data last arrived, in {{units}}}. Note that for efficiency, this value is generally snapshotted. It won't be seen to continuously increase.</description>
+        <syntax>
+          <unsignedInt>
+            <units value="milliseconds"/>
+          </unsignedInt>
+        </syntax>
+      </parameter>
+      <parameter name="StartupLatency" access="readOnly">
+        <description>The time from when the application joined the multicast group until the first data arrived, in {{units}}.</description>
+        <syntax>
+          <unsignedInt>
+            <units value="milliseconds"/>
+          </unsignedInt>
+        </syntax>
+      </parameter>
+      <parameter name="BPS" access="readOnly">
+        <description>The traffic received from this stream in bits per second.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+    </object>
+    <object name="STBService.{i}.Components.HDMI.{i}.DisplayDevice." access="readOnly" minEntries="0" maxEntries="1" >
+      <parameter name="X_GOOGLE-COM_NegotiationCount4" access="readOnly">
+        <description>Number of times the HDMI/HDCP connection has renegotiated in the last 4 hours.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="X_GOOGLE-COM_NegotiationCount24" access="readOnly">
+        <description>Number of times the HDMI/HDCP connection has renegotiated in the last 24 hours.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="X_GOOGLE-COM_VendorId" access="readOnly">
+        <description>Short identifier of the vendor which manufactured this DisplayDevice.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="X_GOOGLE-COM_ProductId" access="readOnly">
+        <description>Short identifier of the model name of this DisplayDevice.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="X_GOOGLE-COM_MfgYear" access="readOnly">
+        <description>Year this DisplayDevice was manfactured (for example: 2008).</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="X_GOOGLE-COM_LastUpdateTimestamp" access="readOnly">
+        <description>Time the HDMI connection was last initialized.</description>
+        <syntax>
+          <dateTime/>
+        </syntax>
+      </parameter>
+      <parameter name="X_GOOGLE-COM_EDIDExtensions" access="readOnly">
+        <description>Vendor extensions to the E-EDID retrieved from the connected HDMI device.</description>
+        <syntax>
+          <hexBinary><size maxLength="256"></size></hexBinary>
         </syntax>
       </parameter>
     </object>
