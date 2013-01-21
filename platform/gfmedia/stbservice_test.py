@@ -237,7 +237,28 @@ class STBServiceTest(unittest.TestCase):
     self.assertEqual(ml[7].Total.DejitteringStats.Underruns, 17)
     self.assertEqual(ml[8].Total.DejitteringStats.Underruns, 18)
 
-  def testTCPStats(self):
+  def testTCPStatsAll(self):
+    """Test whether all TCP stats are deserialized."""
+    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_tcp%d.json']
+    stb = stbservice.STBService()
+    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
+    tcp = stb.ServiceMonitoring.MainStreamList[1].Total.TCPStats
+    self.assertEqual(tcp.BytesReceived, 1)
+    self.assertEqual(tcp.X_CATAWAMPUS_ORG_BytesSent, 2)
+    self.assertEqual(tcp.PacketsReceived, 3)
+    self.assertEqual(tcp.X_CATAWAMPUS_ORG_Cwnd, 5)
+    self.assertEqual(tcp.X_CATAWAMPUS_ORG_SlowStartThreshold, 6)
+    self.assertEqual(tcp.X_CATAWAMPUS_ORG_Unacked, 7)
+    self.assertEqual(tcp.X_CATAWAMPUS_ORG_Sacked, 8)
+    self.assertEqual(tcp.X_CATAWAMPUS_ORG_Lost, 9)
+    self.assertEqual(tcp.X_CATAWAMPUS_ORG_Rtt, 10)
+    self.assertEqual(tcp.X_CATAWAMPUS_ORG_RttVariance, 11)
+    self.assertEqual(tcp.X_CATAWAMPUS_ORG_ReceiveRTT, 12)
+    self.assertEqual(tcp.X_CATAWAMPUS_ORG_ReceiveSpace, 13)
+    self.assertEqual(tcp.X_CATAWAMPUS_ORG_RetransmitTimeout, 14)
+    self.assertEqual(tcp.PacketsRetransmitted, 15)
+
+  def testTCPStatsMultiple(self):
     """Test whether TCP stats are deserialized."""
     stb = stbservice.STBService()
     self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)

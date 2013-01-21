@@ -34,7 +34,7 @@ def Soapify(value):
     return (value.xsitype, str(value))
   elif isinstance(value, bool):
     return ('xsd:boolean', cwmpbool.format(value))
-  elif isinstance(value, int):
+  elif isinstance(value, int) or isinstance(value, long):
     return ('xsd:unsignedInt', str(value))
   elif isinstance(value, float):
     return ('xsd:double', str(value))

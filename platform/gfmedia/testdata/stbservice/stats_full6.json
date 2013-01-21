@@ -14,9 +14,9 @@
             "Underruns": 16
           },
           "TCPStats": {
-            "Packets Received": 3000,
-            "Bytes Received": 768000,
-            "Packets Retransmitted": 2
+            "PacketsReceived": 3000,
+            "BytesReceived": 768000,
+            "TotalRetransmits": 2
           },
           "MulticastStats": {
             "MulticastGroup": "225.0.0.3",

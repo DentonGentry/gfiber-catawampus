@@ -94,6 +94,74 @@
         </syntax>
       </parameter>
     </object>
+    <object name="STBService.{i}.ServiceMonitoring.MainStream.{i}.Total.TCPStats." access="readOnly" minEntries="1" maxEntries="1" dmr:previousObject="STBService.{i}.ServiceMonitoring.MainStream.{i}.Total.DejitteringStats.">
+      <parameter name="X_CATAWAMPUS-ORG_BytesSent" access="readOnly" activeNotify="canDeny">
+        <description>Total number of bytes sent for this AV stream.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_Cwnd" access="readOnly" activeNotify="canDeny">
+        <description>Current congestion window, in units of the MSS.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_SlowStartThreshold" access="readOnly" activeNotify="canDeny">
+        <description>Current slow start threshold, in units of the MSS.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_Unacked" access="readOnly" activeNotify="canDeny">
+        <description>Current number of TCP segments outstanding, which have been sent but not acknowledged.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_Sacked" access="readOnly" activeNotify="canDeny">
+        <description>Current number of TCP segments for which a selective acknowledgement has been received, but are awaiting retransmission of an earlier frame before being delivered.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_Lost" access="readOnly" activeNotify="canDeny">
+        <description>Current estimate by the sender of the number of frames which were lost before reaching the receiver.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_Rtt" access="readOnly" activeNotify="canDeny">
+        <description>Current estimate of round trip time to this destination.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_RttVariance" access="readOnly" activeNotify="canDeny">
+        <description>Expected variance in RTT. A measured ound trip between RTT +/- RTTVariance is considered normal. Outside of this range will trigger TCP to recompute its parameters for this connection.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_ReceiveRTT" access="readOnly" activeNotify="canDeny">
+        <description>Receiver's notion of the round trip time from the sender.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_ReceiveSpace" access="readOnly" activeNotify="canDeny">
+        <description>Current space remaining in bytes in the TCP receive queue.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_RetransmitTimeout" access="readOnly" activeNotify="canDeny">
+        <description>Timeout before retransmission?</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+    </object>
     <object name="STBService.{i}.Components.HDMI.{i}.DisplayDevice." access="readOnly" minEntries="0" maxEntries="1" >
       <parameter name="X_GOOGLE-COM_NegotiationCount4" access="readOnly">
         <description>Number of times the HDMI/HDCP connection has renegotiated in the last 4 hours.</description>

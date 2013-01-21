@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # unittest requires method names starting in 'test'
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """Unit tests for api_soap.py."""
 
@@ -74,6 +74,7 @@ class ApiSoapTest(unittest.TestCase):
 
   class ThisHasXsiType(object):
     xsitype = 'xsd:foo'
+
     def __str__(self):
       return 'foo'
 
@@ -83,11 +84,15 @@ class ApiSoapTest(unittest.TestCase):
     self.assertEqual(api_soap.Soapify(True), ('xsd:boolean', '1'))
     self.assertEqual(api_soap.Soapify(False), ('xsd:boolean', '0'))
     self.assertEqual(api_soap.Soapify(100), ('xsd:unsignedInt', '100'))
+    self.assertEqual(api_soap.Soapify(100000000000000L),
+                     ('xsd:unsignedInt', '100000000000000'))
     self.assertEqual(api_soap.Soapify(3.14159), ('xsd:double', '3.14159'))
     dt = datetime.datetime(1999, 12, 31, 23, 59, 58, 999999)
-    self.assertEqual(api_soap.Soapify(dt), ('xsd:dateTime', '1999-12-31T23:59:58.999999Z'))
+    self.assertEqual(api_soap.Soapify(dt),
+                     ('xsd:dateTime', '1999-12-31T23:59:58.999999Z'))
     dt2 = datetime.datetime(1999, 12, 31, 23, 59, 58)
-    self.assertEqual(api_soap.Soapify(dt2), ('xsd:dateTime', '1999-12-31T23:59:58Z'))
+    self.assertEqual(api_soap.Soapify(dt2),
+                     ('xsd:dateTime', '1999-12-31T23:59:58Z'))
 
 
 if __name__ == '__main__':

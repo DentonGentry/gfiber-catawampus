@@ -45,7 +45,8 @@ PROCNETIGMP6 = '/proc/net/igmp6'
 
 CONT_MONITOR_FILES = [
     '/tmp/cwmp/monitoring/ts/tr_135_total_tsstats%d.json',
-    '/tmp/cwmp/monitoring/dejittering/tr_135_total_djstats%d.json']
+    '/tmp/cwmp/monitoring/dejittering/tr_135_total_djstats%d.json',
+    '/tmp/cwmp/monitoring/tcp/tr_135_total_tcpstats%d.json']
 
 EPG_STATS_FILES = ['/tmp/cwmp/monitoring/epg/tr_135_epg_stats*.json']
 HDMI_STATS_FILE = '/tmp/cwmp/monitoring/hdmi/tr_135_hdmi_stats*.json'
@@ -410,6 +411,8 @@ class ServiceMonitoring(CATA135STB.ServiceMonitoring):
     self.MainStreamList = {}
     for x in range(1, 9):
       self.MainStreamList[x] = MainStream(x)
+    # client-only MainStreams.
+    self.MainStreamList[256] = MainStream(256)
 
   @property
   def MainStreamNumberOfEntries(self):
@@ -556,7 +559,7 @@ class MPEG2TSStats(BASE135STB.ServiceMonitoring.MainStream.Total.MPEG2TSStats):
     return int(self.data.get('TSPacketsReceived', 0))
 
 
-class TCPStats(BASE135STB.ServiceMonitoring.MainStream.Total.TCPStats):
+class TCPStats(CATA135STB.ServiceMonitoring.MainStream.Total.TCPStats):
   """STBService.{i}.ServiceMonitoring.MainStream.{i}.Total.TCPStats."""
 
   def __init__(self, data):
@@ -566,15 +569,59 @@ class TCPStats(BASE135STB.ServiceMonitoring.MainStream.Total.TCPStats):
 
   @property
   def BytesReceived(self):
-    return int(self.data.get('Bytes Received', 0))
+    return long(self.data.get('BytesReceived', 0))
 
   @property
   def PacketsReceived(self):
-    return int(self.data.get('Packets Received', 0))
+    return long(self.data.get('PacketsReceived', 0))
 
   @property
   def PacketsRetransmitted(self):
-    return int(self.data.get('Packets Retransmitted', 0))
+    return long(self.data.get('TotalRetransmits', 0))
+
+  @property
+  def X_CATAWAMPUS_ORG_BytesSent(self):
+    return long(self.data.get('BytesSent', 0))
+
+  @property
+  def X_CATAWAMPUS_ORG_Cwnd(self):
+    return long(self.data.get('Cwnd', 0))
+
+  @property
+  def X_CATAWAMPUS_ORG_SlowStartThreshold(self):
+    return long(self.data.get('SSThresh', 0))
+
+  @property
+  def X_CATAWAMPUS_ORG_Unacked(self):
+    return long(self.data.get('Unacked', 0))
+
+  @property
+  def X_CATAWAMPUS_ORG_Sacked(self):
+    return long(self.data.get('Sacked', 0))
+
+  @property
+  def X_CATAWAMPUS_ORG_Lost(self):
+    return long(self.data.get('Lost', 0))
+
+  @property
+  def X_CATAWAMPUS_ORG_Rtt(self):
+    return long(self.data.get('Rtt', 0))
+
+  @property
+  def X_CATAWAMPUS_ORG_RttVariance(self):
+    return long(self.data.get('RttVariance', 0))
+
+  @property
+  def X_CATAWAMPUS_ORG_ReceiveRTT(self):
+    return long(self.data.get('ReceiveRTT', 0))
+
+  @property
+  def X_CATAWAMPUS_ORG_ReceiveSpace(self):
+    return long(self.data.get('ReceiveSpace', 0))
+
+  @property
+  def X_CATAWAMPUS_ORG_RetransmitTimeout(self):
+    return long(self.data.get('RetransTimeout', 0))
 
 
 class MulticastStats(CATA135STBTOTAL.X_CATAWAMPUS_ORG_MulticastStats):

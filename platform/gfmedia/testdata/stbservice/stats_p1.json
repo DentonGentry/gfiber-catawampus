@@ -9,9 +9,9 @@
             "PacketsDiscontinuityCounter": 2
           },
           "TCPStats": {
-            "Packets Received": 3,
-            "Bytes Received": 4,
-            "Packets Retransmitted": 5
+            "PacketsReceived": 3,
+            "BytesReceived": 4,
+            "TotalRetransmits": 5
           }
         }
       ]
