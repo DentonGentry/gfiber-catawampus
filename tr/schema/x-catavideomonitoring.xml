@@ -93,6 +93,18 @@
           <unsignedInt/>
         </syntax>
       </parameter>
+      <parameter name="UdpRxQueue" access="readOnly">
+        <description>The number of bytes in the receive queue for this group.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="UdpDrops" access="readOnly">
+        <description>The number of bytes from this group dropped by the UDP module.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
     </object>
     <object name="STBService.{i}.ServiceMonitoring.MainStream.{i}.Total.TCPStats." access="readOnly" minEntries="1" maxEntries="1" dmr:previousObject="STBService.{i}.ServiceMonitoring.MainStream.{i}.Total.DejitteringStats.">
       <parameter name="X_CATAWAMPUS-ORG_BytesSent" access="readOnly" activeNotify="canDeny">

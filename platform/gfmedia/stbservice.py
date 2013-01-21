@@ -42,6 +42,7 @@ IGMP6REGEX = re.compile((r'^\d\s+\S+\s+([0-9A-Fa-f]{32})\s+\d\s+[0-9A-Fa-f]'
                          r'+\s+\d'))
 PROCNETIGMP = '/proc/net/igmp'
 PROCNETIGMP6 = '/proc/net/igmp6'
+PROCNETUDP = '/proc/net/udp'
 
 CONT_MONITOR_FILES = [
     '/tmp/cwmp/monitoring/ts/tr_135_total_tsstats%d.json',
@@ -56,6 +57,26 @@ HDMI_DISPLAY_DEVICE_STATS_FILES = [
 
 
 TIMENOW = time.time
+
+
+def UnpackAlanCoxIP(packed):
+  """Convert hex IP addresses to strings.
+
+  /proc/net/igmp and /proc/net/udp both contain IP addresses printed as
+  a hex string, _without_ calling ntohl() first.
+
+  Example from /proc/net/udp on a little endian machine:
+  sl  local_address rem_address   st tx_queue rx_queue ...
+  464: 010002E1:07D0 00000000:0000 07 00000000:00000000 ...
+
+  On a big-endian machine:
+  sl  local_address rem_address   st tx_queue rx_queue ...
+  464: E1020001:07D0 00000000:0000 07 00000000:00000000 ...
+
+  Args: the hex thingy.
+  Returns: the more conventional dotted quad IP address encoding.
+  """
+  return socket.inet_ntop(socket.AF_INET, struct.pack('=L', int(packed, 16)))
 
 
 class STBService(BASE135STB):
@@ -192,8 +213,7 @@ class IGMP(BASE135STB.Components.FrontEnd.IP.IGMP):
         result = IGMPREGEX.match(line)
         if result is not None:
           igmp = result.group(1).strip()
-          igmp4s.add(socket.inet_ntop(
-              socket.AF_INET, struct.pack('<L', int(igmp, 16))))
+          igmp4s.add(UnpackAlanCoxIP(igmp))
     with open(PROCNETIGMP6, 'r') as f:
       for line in f:
         result = IGMP6REGEX.match(line)
@@ -205,7 +225,7 @@ class IGMP(BASE135STB.Components.FrontEnd.IP.IGMP):
               socket.AF_INET6, socket.inet_pton(socket.AF_INET6, ip6)))
     return sorted(list(igmp4s)) + sorted(list(igmp6s))
 
-  def UpdateClientGroups(self):
+  def _UpdateClientGroups(self):
     """Maintain stable instance numbers for ClientGroups."""
     igmps = self._ParseProcIgmp()
     num_igmps = len(igmps)
@@ -232,13 +252,13 @@ class IGMP(BASE135STB.Components.FrontEnd.IP.IGMP):
 
   def IterClientGroups(self):
     """Retrieves an iterable list of ClientGroups."""
-    self.UpdateClientGroups()
+    self._UpdateClientGroups()
     for key, ipaddr in self._ClientGroups.items():
       yield str(key), self.GetClientGroup(ipaddr)
 
   def GetClientGroupByIndex(self, index):
     """Directly access the value corresponding to a given key."""
-    self.UpdateClientGroups()
+    self._UpdateClientGroups()
     return self.GetClientGroup(self._ClientGroups[index])
 
 
@@ -263,9 +283,9 @@ class HDMI(BASE135STB.Components.HDMI):
     self.Unexport('Enable')
     self.Unexport('Name')
     self.Unexport('Status')
-    self.UpdateStats()
+    self._UpdateStats()
 
-  def UpdateStats(self):
+  def _UpdateStats(self):
     """Read data in from JSON files."""
     data = dict()
     try:
@@ -289,7 +309,7 @@ class HDMI(BASE135STB.Components.HDMI):
 
   @property
   def ResolutionValue(self):
-    self.UpdateStats()
+    self._UpdateStats()
     return self.data.get('ResolutionValue', '')
 
 
@@ -472,30 +492,52 @@ class Total(CATA135STBTOTAL):
     self.Unexport(objects='VideoDecoderStats')
     self.Unexport(objects='VideoResponseStats')
     self.data = {}
+    self.udp = {}
 
   @property
   def DejitteringStats(self):
-    self.UpdateTotalStats()
+    self._UpdateStats()
     return DejitteringStats(self.data.get('DejitteringStats', {}))
 
   @property
   def MPEG2TSStats(self):
-    self.UpdateTotalStats()
+    self._UpdateStats()
     return MPEG2TSStats(self.data.get('MPEG2TSStats', {}))
 
   @property
   def TCPStats(self):
-    self.UpdateTotalStats()
+    self._UpdateStats()
     return TCPStats(self.data.get('TCPStats', {}))
 
   @property
   def X_CATAWAMPUS_ORG_MulticastStats(self):
-    self.UpdateTotalStats()
-    return MulticastStats(self.data.get('MulticastStats', {}))
+    self._UpdateStats()
+    return MulticastStats(self.data.get('MulticastStats', {}), self.udp)
 
-  def UpdateTotalStats(self):
+  def _UpdateProcNetUDP(self, udp):
+    """Parse /proc/net/udp.
+
+      sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt
+      464: 010002E1:07D0 00000000:0000 07 00000000:00000000 00:00000000 00000000
+
+      uid  timeout inode ref pointer drops
+      0        0 6187 2 b1f64e00 0
+    """
+    with open(PROCNETUDP) as f:
+      for line in f:
+        try:
+          line = ' '.join(line.split())
+          fields = re.split('[ :]', line)
+          ip = UnpackAlanCoxIP(fields[2])
+          port = int(fields[3], 16)
+          key = '%s:%d' % (ip, port)
+          udp[key] = (int(fields[8], 16), int(fields[17]))  # rxq, drops
+        except (ValueError, IndexError):
+          # comment line, or something
+          continue
+
+  def _UpdateTotalStats(self, data):
     """Read stats in from JSON files."""
-    data = {}
     for pattern in CONT_MONITOR_FILES:
       filename = pattern % self.idx
       try:
@@ -510,7 +552,12 @@ class Total(CATA135STBTOTAL):
         # KeyError - Decoded JSON file doesn't contain the required fields.
         print('ServiceMonitoring: Failed to read stats from file {0}, '
               'error = {1}'.format(filename, e))
-    self.data = data
+
+  def _UpdateStats(self):
+    self.data = {}
+    self._UpdateTotalStats(self.data)
+    self.udp = {}
+    self._UpdateProcNetUDP(self.udp)
 
 
 class DejitteringStats(BASE135STB.ServiceMonitoring.MainStream.Total.
@@ -627,9 +674,10 @@ class TCPStats(CATA135STB.ServiceMonitoring.MainStream.Total.TCPStats):
 class MulticastStats(CATA135STBTOTAL.X_CATAWAMPUS_ORG_MulticastStats):
   """ServiceMonitoring.MainStream.{i}.Total.X_CATAWAMPUS_ORG_MulticastStats."""
 
-  def __init__(self, data):
+  def __init__(self, data, udp):
     super(MulticastStats, self).__init__()
     self.data = data
+    self.udp = udp
 
   @property
   def BPS(self):
@@ -648,6 +696,16 @@ class MulticastStats(CATA135STBTOTAL.X_CATAWAMPUS_ORG_MulticastStats):
   def StartupLatency(self):
     latency = long(self.data.get('StartupLagUsecs', 0))
     return int(latency / 1000)
+
+  @property
+  def UdpRxQueue(self):
+    (rxq, drops) = self.udp.get(self.MulticastGroup, (0, 0))
+    return rxq
+
+  @property
+  def UdpDrops(self):
+    (rxq, drops) = self.udp.get(self.MulticastGroup, (0, 0))
+    return drops
 
 
 class ProgMetadata(CATA135STB.X_CATAWAMPUS_ORG_ProgramMetadata):

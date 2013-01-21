@@ -19,7 +19,7 @@
             "TotalRetransmits": 4
           },
           "MulticastStats": {
-            "MulticastGroup": "225.0.0.5",
+            "MulticastGroup": "225.0.0.5:5",
             "StartupLagUsecs": 13000,
             "StalledUsecs": 5000,
             "bps": 5000000

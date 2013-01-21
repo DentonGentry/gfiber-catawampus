@@ -20,6 +20,8 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import socket
+import struct
 import unittest
 
 import google3
@@ -39,6 +41,7 @@ class STBServiceTest(unittest.TestCase):
     self.old_HDMI_STATS_FILE = stbservice.HDMI_STATS_FILE
     self.old_PROCNETIGMP = stbservice.PROCNETIGMP
     self.old_PROCNETIGMP6 = stbservice.PROCNETIGMP6
+    self.old_PROCNETUDP = stbservice.PROCNETUDP
     self.old_TIMENOW = stbservice.TIMENOW
 
     stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_full%d.json']
@@ -49,6 +52,7 @@ class STBServiceTest(unittest.TestCase):
     stbservice.HDMI_STATS_FILE = 'testdata/stbservice/hdmi_stats.json'
     stbservice.PROCNETIGMP = 'testdata/stbservice/igmp'
     stbservice.PROCNETIGMP6 = 'testdata/stbservice/igmp6'
+    stbservice.PROCNETUDP = 'testdata/stbservice/udp'
     stbservice.TIMENOW = MockTime
 
   def tearDown(self):
@@ -58,6 +62,7 @@ class STBServiceTest(unittest.TestCase):
     stbservice.HDMI_STATS_FILE = self.old_HDMI_STATS_FILE
     stbservice.PROCNETIGMP = self.old_PROCNETIGMP
     stbservice.PROCNETIGMP6 = self.old_PROCNETIGMP6
+    stbservice.PROCNETUDP = self.old_PROCNETUDP
 
   def testValidateExports(self):
     stb = stbservice.STBService()
@@ -292,18 +297,28 @@ class STBServiceTest(unittest.TestCase):
     """Test whether multicast stats are deserialized."""
     stb = stbservice.STBService()
     self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
-    expected_mc = set(['225.0.0.1', '225.0.0.2', '225.0.0.3', '225.0.0.4',
-                       '225.0.0.5', '225.0.0.6', '225.0.0.7', '225.0.0.8'])
+    expected_mc = set(['225.0.0.1:1', '225.0.0.2:2', '225.0.0.3:3',
+                       '225.0.0.4:4', '225.0.0.5:5', '225.0.0.6:6',
+                       '225.0.0.7:7', '225.0.0.8:8'])
     expected_bps = {
-        '225.0.0.1': 1000000, '225.0.0.2': 2000000, '225.0.0.3': 3000000,
-        '225.0.0.4': 4000000, '225.0.0.5': 5000000, '225.0.0.6': 6000000,
-        '225.0.0.7': 7000000, '225.0.0.8': 8000000}
+        '225.0.0.1:1': 1000000, '225.0.0.2:2': 2000000, '225.0.0.3:3': 3000000,
+        '225.0.0.4:4': 4000000, '225.0.0.5:5': 5000000, '225.0.0.6:6': 6000000,
+        '225.0.0.7:7': 7000000, '225.0.0.8:8': 8000000}
     expected_stall = {
-        '225.0.0.1': 1, '225.0.0.2': 2, '225.0.0.3': 3, '225.0.0.4': 4,
-        '225.0.0.5': 5, '225.0.0.6': 6, '225.0.0.7': 7, '225.0.0.8': 8}
+        '225.0.0.1:1': 1, '225.0.0.2:2': 2, '225.0.0.3:3': 3, '225.0.0.4:4': 4,
+        '225.0.0.5:5': 5, '225.0.0.6:6': 6, '225.0.0.7:7': 7, '225.0.0.8:8': 8}
     expected_startup = {
-        '225.0.0.1': 9, '225.0.0.2': 10, '225.0.0.3': 11, '225.0.0.4': 12,
-        '225.0.0.5': 13, '225.0.0.6': 14, '225.0.0.7': 15, '225.0.0.8': 16}
+        '225.0.0.1:1': 9, '225.0.0.2:2': 10, '225.0.0.3:3': 11,
+        '225.0.0.4:4': 12, '225.0.0.5:5': 13, '225.0.0.6:6': 14,
+        '225.0.0.7:7': 15, '225.0.0.8:8': 16}
+    expected_rxq = {
+        '225.0.0.1:1': 0xa77, '225.0.0.2:2': 0, '225.0.0.3:3': 0,
+        '225.0.0.4:4': 0, '225.0.0.5:5': 0, '225.0.0.6:6': 0, '225.0.0.7:7': 0,
+        '225.0.0.8:8': 0}
+    expected_drops = {
+        '225.0.0.1:1': 1000, '225.0.0.2:2': 0, '225.0.0.3:3': 0,
+        '225.0.0.4:4': 0, '225.0.0.5:5': 0, '225.0.0.6:6': 0, '225.0.0.7:7': 0,
+        '225.0.0.8:8': 0}
 
     actual_mc = set()
     for v in stb.ServiceMonitoring.MainStreamList.values():
@@ -312,7 +327,8 @@ class STBServiceTest(unittest.TestCase):
       actual_mc.add(group)
       self.assertEqual(expected_bps[group], mcstats.BPS)
       self.assertEqual(expected_stall[group], mcstats.StallTime)
-      self.assertEqual(expected_startup[group], mcstats.StartupLatency)
+      self.assertEqual(expected_rxq[group], mcstats.UdpRxQueue)
+      self.assertEqual(expected_drops[group], mcstats.UdpDrops)
     self.assertEqual(expected_mc, actual_mc)
 
   def testNonexistentHDMIStatsFile(self):
@@ -460,6 +476,12 @@ class STBServiceTest(unittest.TestCase):
     stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmTime = 0
     self.assertEqual(stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmTime,
                      '0001-01-01T00:00:00Z')
+
+  def testAlanCoxIP(self):
+    saddr = socket.inet_pton(socket.AF_INET, '1.2.3.4')
+    num = struct.unpack('=L', saddr)[0]
+    snum = hex(num)[2:]  # 1020304 on BE host, 4030201 on LE.
+    self.assertEqual(stbservice.UnpackAlanCoxIP(snum), '1.2.3.4')
 
 
 if __name__ == '__main__':
