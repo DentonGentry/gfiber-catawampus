@@ -6,7 +6,7 @@
           "StreamId": 1,
           "MPEG2TSStats": {
             "TSPacketsReceived": 1,
-            "PacketsDiscontinuityCounter": 2
+            "PacketDiscontinuityCounter": 2
           },
           "TCPStats": {
             "PacketsReceived": 3,

@@ -73,8 +73,10 @@ def UnpackAlanCoxIP(packed):
   sl  local_address rem_address   st tx_queue rx_queue ...
   464: E1020001:07D0 00000000:0000 07 00000000:00000000 ...
 
-  Args: the hex thingy.
-  Returns: the more conventional dotted quad IP address encoding.
+  Args:
+    The hex thingy.
+  Returns:
+    A conventional dotted quad IP address encoding.
   """
   return socket.inet_ntop(socket.AF_INET, struct.pack('=L', int(packed, 16)))
 
@@ -522,6 +524,9 @@ class Total(CATA135STBTOTAL):
 
       uid  timeout inode ref pointer drops
       0        0 6187 2 b1f64e00 0
+
+    Args:
+      a dict to store the parsed (rxq, drops) fields in.
     """
     with open(PROCNETUDP) as f:
       for line in f:
@@ -599,7 +604,7 @@ class MPEG2TSStats(BASE135STB.ServiceMonitoring.MainStream.Total.MPEG2TSStats):
 
   @property
   def PacketDiscontinuityCounter(self):
-    return int(self.data.get('PacketsDiscontinuityCounter', 0))
+    return int(self.data.get('PacketDiscontinuityCounter', 0))
 
   @property
   def TSPacketsReceived(self):
@@ -699,12 +704,12 @@ class MulticastStats(CATA135STBTOTAL.X_CATAWAMPUS_ORG_MulticastStats):
 
   @property
   def UdpRxQueue(self):
-    (rxq, drops) = self.udp.get(self.MulticastGroup, (0, 0))
+    (rxq, _) = self.udp.get(self.MulticastGroup, (0, 0))
     return rxq
 
   @property
   def UdpDrops(self):
-    (rxq, drops) = self.udp.get(self.MulticastGroup, (0, 0))
+    (_, drops) = self.udp.get(self.MulticastGroup, (0, 0))
     return drops
 
 

@@ -119,7 +119,7 @@ class STBServiceTest(unittest.TestCase):
     """Test whether the absence of stats file is handled gracefully."""
     stbservice.CONT_MONITOR_FILES = self.STATS_FILES_NOEXST
     stb = stbservice.STBService()
-    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
+    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 9)
     self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[1])
     self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[2])
     self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[3])
@@ -128,12 +128,13 @@ class STBServiceTest(unittest.TestCase):
     self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[6])
     self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[7])
     self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[8])
+    self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[256])
 
   def testIncorrectStatsFileFormat(self):
     """Test whether a malformed stats file is handled gracefully."""
     stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_notjson%d.json']
     stb = stbservice.STBService()
-    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
+    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 9)
     self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[1])
     self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[2])
     self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[3])
@@ -142,11 +143,12 @@ class STBServiceTest(unittest.TestCase):
     self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[6])
     self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[7])
     self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[8])
+    self.checkMPEG2Zero(stb.ServiceMonitoring.MainStreamList[256])
 
   def testIncorrectObjectListIndex(self):
     """Test whether incorrect indexing of the stream object is handled."""
     stb = stbservice.STBService()
-    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
+    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 9)
     self.assertRaises(KeyError,
                       lambda: stb.ServiceMonitoring.MainStreamList[9])
 
@@ -154,7 +156,7 @@ class STBServiceTest(unittest.TestCase):
     """Test whether the object stays consistent when the file is updated."""
     stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_small%d.json']
     stb = stbservice.STBService()
-    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
+    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 9)
     ml = stb.ServiceMonitoring.MainStreamList
     self.assertEqual(ml[1].Total.MPEG2TSStats.TSPacketsReceived, 400)
     self.assertEqual(ml[2].Total.MPEG2TSStats.TSPacketsReceived, 350)
@@ -178,7 +180,7 @@ class STBServiceTest(unittest.TestCase):
     """Test whether a stats file with a subset of objects is deserialized."""
     stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_p%d.json']
     stb = stbservice.STBService()
-    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
+    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 9)
     ml = stb.ServiceMonitoring.MainStreamList
     self.assertEqual(ml[1].Total.MPEG2TSStats.TSPacketsReceived, 1)
     self.assertEqual(ml[1].Total.MPEG2TSStats.PacketDiscontinuityCounter, 2)
@@ -193,7 +195,7 @@ class STBServiceTest(unittest.TestCase):
   def testTSStats(self):
     """Test whether transport stream stats are deserialized."""
     stb = stbservice.STBService()
-    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
+    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 9)
     ml = stb.ServiceMonitoring.MainStreamList
     self.assertEqual(ml[1].Total.MPEG2TSStats.TSPacketsReceived, 800)
     self.assertEqual(ml[2].Total.MPEG2TSStats.TSPacketsReceived, 700)
@@ -215,7 +217,7 @@ class STBServiceTest(unittest.TestCase):
   def testDejitteringStats(self):
     """Test whether Dejittering stats are deserialized."""
     stb = stbservice.STBService()
-    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
+    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 9)
     ml = stb.ServiceMonitoring.MainStreamList
     self.assertEqual(ml[1].Total.DejitteringStats.EmptyBufferTime, 47)
     self.assertEqual(ml[2].Total.DejitteringStats.EmptyBufferTime, 41)
@@ -246,7 +248,7 @@ class STBServiceTest(unittest.TestCase):
     """Test whether all TCP stats are deserialized."""
     stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_tcp%d.json']
     stb = stbservice.STBService()
-    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
+    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 9)
     tcp = stb.ServiceMonitoring.MainStreamList[1].Total.TCPStats
     self.assertEqual(tcp.BytesReceived, 1)
     self.assertEqual(tcp.X_CATAWAMPUS_ORG_BytesSent, 2)
@@ -266,7 +268,7 @@ class STBServiceTest(unittest.TestCase):
   def testTCPStatsMultiple(self):
     """Test whether TCP stats are deserialized."""
     stb = stbservice.STBService()
-    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
+    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 9)
     ml = stb.ServiceMonitoring.MainStreamList
     self.assertEqual(ml[1].Total.TCPStats.PacketsReceived, 8000)
     self.assertEqual(ml[1].Total.TCPStats.BytesReceived, 2048000)
@@ -296,7 +298,7 @@ class STBServiceTest(unittest.TestCase):
   def testMulticastStats(self):
     """Test whether multicast stats are deserialized."""
     stb = stbservice.STBService()
-    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 8)
+    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 9)
     expected_mc = set(['225.0.0.1:1', '225.0.0.2:2', '225.0.0.3:3',
                        '225.0.0.4:4', '225.0.0.5:5', '225.0.0.6:6',
                        '225.0.0.7:7', '225.0.0.8:8'])
@@ -324,11 +326,13 @@ class STBServiceTest(unittest.TestCase):
     for v in stb.ServiceMonitoring.MainStreamList.values():
       mcstats = v.Total.X_CATAWAMPUS_ORG_MulticastStats
       group = mcstats.MulticastGroup
-      actual_mc.add(group)
-      self.assertEqual(expected_bps[group], mcstats.BPS)
-      self.assertEqual(expected_stall[group], mcstats.StallTime)
-      self.assertEqual(expected_rxq[group], mcstats.UdpRxQueue)
-      self.assertEqual(expected_drops[group], mcstats.UdpDrops)
+      if group:
+        actual_mc.add(group)
+        self.assertEqual(expected_bps[group], mcstats.BPS)
+        self.assertEqual(expected_stall[group], mcstats.StallTime)
+        self.assertEqual(expected_rxq[group], mcstats.UdpRxQueue)
+        self.assertEqual(expected_drops[group], mcstats.UdpDrops)
+        self.assertEqual(expected_startup[group], mcstats.StartupLatency)
     self.assertEqual(expected_mc, actual_mc)
 
   def testNonexistentHDMIStatsFile(self):
