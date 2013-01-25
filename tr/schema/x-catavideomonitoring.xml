@@ -93,6 +93,12 @@
           <unsignedInt/>
         </syntax>
       </parameter>
+      <parameter name="MissedSchedule" access="readOnly">
+        <description>Number of times the disk could not keep up with the incoming data for this stream. This causes packets to back up in the UdpRxQueue, which will eventually fill and turn into UdpDrops.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
       <parameter name="UdpRxQueue" access="readOnly">
         <description>The number of bytes in the receive queue for this group.</description>
         <syntax>

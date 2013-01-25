@@ -321,6 +321,10 @@ class STBServiceTest(unittest.TestCase):
         '225.0.0.1:1': 1000, '225.0.0.2:2': 0, '225.0.0.3:3': 0,
         '225.0.0.4:4': 0, '225.0.0.5:5': 0, '225.0.0.6:6': 0, '225.0.0.7:7': 0,
         '225.0.0.8:8': 0}
+    expected_missed = {
+        '225.0.0.1:1': 10, '225.0.0.2:2': 20, '225.0.0.3:3': 30,
+        '225.0.0.4:4': 40, '225.0.0.5:5': 50, '225.0.0.6:6': 60,
+        '225.0.0.7:7': 70, '225.0.0.8:8': 80}
 
     actual_mc = set()
     for v in stb.ServiceMonitoring.MainStreamList.values():
@@ -333,6 +337,7 @@ class STBServiceTest(unittest.TestCase):
         self.assertEqual(expected_rxq[group], mcstats.UdpRxQueue)
         self.assertEqual(expected_drops[group], mcstats.UdpDrops)
         self.assertEqual(expected_startup[group], mcstats.StartupLatency)
+        self.assertEqual(expected_missed[group], mcstats.MissedSchedule)
     self.assertEqual(expected_mc, actual_mc)
 
   def testNonexistentHDMIStatsFile(self):

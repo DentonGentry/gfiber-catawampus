@@ -703,6 +703,11 @@ class MulticastStats(CATA135STBTOTAL.X_CATAWAMPUS_ORG_MulticastStats):
     return int(latency / 1000)
 
   @property
+  def MissedSchedule(self):
+    schedule = int(self.data.get('MissingSchedule', 0))
+    return schedule
+
+  @property
   def UdpRxQueue(self):
     (rxq, _) = self.udp.get(self.MulticastGroup, (0, 0))
     return rxq

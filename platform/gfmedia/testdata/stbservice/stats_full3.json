@@ -22,7 +22,8 @@
             "MulticastGroup": "225.0.0.6:6",
             "StartupLagUsecs": 14000,
             "StalledUsecs": 6000,
-            "bps": 6000000
+            "bps": 6000000,
+            "MissingSchedule": 60
           }
         }
       ]
