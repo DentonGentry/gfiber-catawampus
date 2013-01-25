@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """tr-181 Device implementations for supported platforms."""
 
@@ -97,8 +97,14 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
     return out if setacs.returncode == 0 else ''
 
   def SetAcsUrl(self, url):
-    set_acs_url = url if url else 'clear'
-    rc = subprocess.call(args=[SET_ACS, 'cwmp', set_acs_url.strip()])
+    set_acs_url = url.strip() or 'clear'
+    rc = subprocess.call(args=[SET_ACS, 'cwmp', set_acs_url])
+    if rc != 0:
+      raise AttributeError('set-acs failed')
+
+  def _BlessAcsUrl(self, url):
+    set_acs_url = url.strip() or 'clear'
+    rc = subprocess.call(args=[SET_ACS, 'bless', set_acs_url])
     if rc != 0:
       raise AttributeError('set-acs failed')
 
@@ -153,6 +159,7 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
     # We only *need* to create a 0 byte file, but write URL for debugging
     with open(ACSCONNECTED, 'w') as f:
       f.write(url)
+    self._BlessAcsUrl(url)
 
 
 class DeviceId(dm.device_info.DeviceIdMeta):
@@ -510,7 +517,6 @@ class Device(tr181.Device_v2_2.Device):
         pass
 
 
-
 class LANDevice(BASE98IGD.LANDevice):
   """tr-98 InternetGatewayDevice for Google Fiber media platforms."""
 
@@ -583,6 +589,7 @@ class InternetGatewayDevice(BASE98IGD):
     return 0
 
 
+# pylint: disable-msg=unused-argument
 def PlatformInit(name, device_model_root):
   """Create platform-specific device models and initialize platform."""
   tr.download.INSTALLER = Installer

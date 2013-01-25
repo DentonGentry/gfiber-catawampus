@@ -4,17 +4,10 @@ if [ -n $TESTOUTPUT ]; then
   echo $* >$TESTOUTPUT
 fi
 
-if [ $1 == 'cwmp' ] && [ $2 == 'foo' ]; then
-  exit 0
-fi
-
-if [ $1 == 'cwmp' ] && [ $2 == 'clear' ]; then
-  exit 0
-fi
-
-if [ $1 == 'print' ]; then
-  echo -n 'bar'
-  exit 0
-fi
-
-exit 1
+case "$1-$2" in
+  cwmp-foo) exit 0 ;;
+  cwmp-clear) exit 0 ;;
+  bless-*) exit 0 ;;
+  print-) echo -n 'bar'; exit 0 ;;
+  *) exit 1 ;;
+esac
