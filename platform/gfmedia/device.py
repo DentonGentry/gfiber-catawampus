@@ -94,7 +94,7 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
   def GetAcsUrl(self):
     setacs = subprocess.Popen([SET_ACS, 'print'], stdout=subprocess.PIPE)
     out, _ = setacs.communicate(None)
-    return out if setacs.returncode == 0 else ''
+    return setacs.returncode == 0 and out.strip() or ''
 
   def SetAcsUrl(self, url):
     set_acs_url = url.strip() or 'clear'

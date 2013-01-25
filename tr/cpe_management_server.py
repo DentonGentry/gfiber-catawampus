@@ -107,7 +107,7 @@ class CpeManagementServer(object):
     # Require https for the url scheme.
     split_url = urlparse.urlsplit(value)
     if split_url.scheme != 'https':
-      raise ValueError('The ACS Host must be https: %s' % str(value))
+      raise ValueError('The ACS Host must be https: %r' % (value,))
 
     # Iterate over the restrict domain name list and see if one of
     # the restricted domain names matches the supplied url host name.
@@ -126,7 +126,7 @@ class CpeManagementServer(object):
         return
 
     # If we don't find a valid host, raise an exception.
-    raise ValueError('The ACS Host is not permissible: %s' % str(value))
+    raise ValueError('The ACS Host is not permissible: %r' % (value,))
 
   @property
   def CWMPRetryMinimumWaitInterval(self):
@@ -194,8 +194,8 @@ class CpeManagementServer(object):
       try:
         self.ValidateAcsUrl(self.acs_url)
         return self.acs_url
-      except ValueError:
-        print 'Supplied acs_url: %s  is invalid.  Ignoring.' % self.acs_url
+      except ValueError as e:
+        print 'Supplied acs_url %r is invalid (%s)' % (self.acs_url, e)
 
     url = self.platform_config.GetAcsUrl()
     max_attempts = 20
@@ -203,8 +203,8 @@ class CpeManagementServer(object):
       try:
         self.ValidateAcsUrl(url)
         return url
-      except ValueError:
-        print 'Invalidating url %s' % url
+      except ValueError as e:
+        print 'Invalidating url %r (%s)' % (url, e)
         if not self.platform_config.InvalidateAcsUrl(url):
           print ('set-acs failed to invalidate url!'
                  'Something is extremely broken.')
