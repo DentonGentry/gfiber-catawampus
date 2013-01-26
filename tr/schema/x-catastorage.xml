@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  TR-140 catawampus.org vendor extension: a PhysicalMedia for Flash volumes.
+  TR-140 catawampus.org vendor extensions.
 -->
 <dm:document xmlns:dm="urn:broadband-forum-org:cwmp:datamodel-1-3"
              xmlns:dmr="urn:broadband-forum-org:cwmp:datamodel-report-0-1"
@@ -129,5 +129,400 @@
       </parameter>
     </object>
 
+    <object name="StorageService.{i}.PhysicalMedium.{i}." access="readOnly" minEntries="0" maxEntries="unbounded" numEntriesParameter="PhysicalMediumNumberOfEntries">
+    </object>
+    <object name="StorageService.{i}.PhysicalMedium.{i}.X_CATAWAMPUS-ORG_SmartAttributes." access="readOnly" minEntries="1" maxEntries="1">
+      <description>Detailed information about drive health obtained via SMART. In all cases a negative value means the drive does not support the parameter in question. Descriptions of the SMART fields provided by Wikipedia: http://en.wikipedia.org/wiki/S.M.A.R.T.#Known_ATA_S.M.A.R.T._attributes</description>
+      <parameter name="RawReadErrorRate" access="readOnly">
+        <description>The rate of hardware read errors that occurred when reading data from a disk surface. The raw value has different structure for different vendors and is often not meaningful as a decimal number. Monitoring it for changes can predict drive failure; the lower the value, the better.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="ThroughputPerformance" access="readOnly">
+        <description>Overall (general) throughput performance of a hard disk drive. If the value of this attribute is decreasing there is a high probability that there is a problem with the disk.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="SpinUpTime" access="readOnly">
+        <description>Average time of spindle spin up from zero RPM to fully operational, in {{units}}.</description>
+        <syntax>
+          <int>
+           <units value="milliseconds"/>
+          </int>
+        </syntax>
+      </parameter>
+      <parameter name="SpinUpTimeLatest" access="readOnly">
+        <description>Most recently measured time of spindle spin up from zero RPM to fully operational, in {{units}}.</description>
+        <syntax>
+          <int>
+           <units value="milliseconds"/>
+          </int>
+        </syntax>
+      </parameter>
+      <parameter name="StartStopCount" access="readOnly">
+        <description>A tally of spindle start/stop cycles. The spindle turns on, and hence the count is increased, both when the hard disk is turned on after having before been turned entirely off (disconnected from power source) and when the hard disk returns from having previously been put to sleep mode.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="ReallocatedSectorsCount" access="readOnly">
+        <description>Count of reallocated sectors. When the hard drive finds a read/write/verification error, it marks that sector as "reallocated" and transfers data to a special reserved area (spare area). This process is also known as remapping, and reallocated sectors are called "remaps". The raw value normally represents a count of the bad sectors that have been found and remapped. Thus, the higher the attribute value, the more sectors the drive has had to reallocate. This allows a drive with bad sectors to continue operation; however, a drive which has had any reallocations at all is significantly more likely to fail in the near future.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="ReadChannelMargin" access="readOnly">
+        <description>Margin of a channel while reading data. The function of this attribute is not specified.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="SeekErrorRate" access="readOnly">
+        <description>Rate of seek errors of the magnetic heads. If there is a partial failure in the mechanical positioning system, then seek errors will arise. Such a failure may be due to numerous factors, such as damage to a servo, or thermal widening of the hard disk. The raw value has different structure for different vendors and is often not meaningful as a decimal number. It can be monitored for changes.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="SeekTimePerformance" access="readOnly">
+        <description>Average performance of seek operations of the magnetic heads. If this attribute is decreasing, it is a sign of problems in the mechanical subsystem.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="PowerOnHours" access="readOnly">
+        <description>Count of hours in power-on state. The raw value of this attribute shows total count of hours (or minutes, or seconds, depending on manufacturer) in power-on state. On some pre-2005 drives, this raw value may advance erratically and/or wrap around (reset to zero periodically).</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="SpinRetryCount" access="readOnly">
+        <description>Count of retry of spin start attempts. This attribute stores a total count of the spin start attempts to reach the fully operational speed (under the condition that the first attempt was unsuccessful). An increase of this attribute value is a sign of problems in the hard disk mechanical subsystem.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="CalibrationRetryCount" access="readOnly">
+        <description>This attribute indicates the count that recalibration was requested (under the condition that the first attempt was unsuccessful). An increase of this attribute value is a sign of problems in the hard disk mechanical subsystem.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="PowerCycleCount" access="readOnly">
+        <description>This attribute indicates the count of full hard disk power on/off cycles.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="PowerOffRetractCount" access="readOnly">
+        <description>Count of times the heads are loaded off the media. Heads can be unloaded without actually powering off.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="LoadCycleCount" access="readOnly">
+        <description>Count of load/unload cycles into head landing zone position.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="TemperatureCelsius" access="readOnly">
+        <description>Current internal temperature in {{units}}.</description>
+        <syntax>
+          <int>
+            <units value="degrees celsius"/>
+          </int>
+        </syntax>
+      </parameter>
+      <parameter name="TemperatureCelsiusMin" access="readOnly">
+        <description>Minimum internal temperature ever recorded, in {{units}}.</description>
+        <syntax>
+          <int>
+            <units value="degrees celsius"/>
+        </int>
+        </syntax>
+      </parameter>
+      <parameter name="TemperatureCelsiusMax" access="readOnly">
+        <description>Maximum internal temperature ever recorded, in {{units}}.</description>
+        <syntax>
+          <int>
+            <units value="degrees celsius"/>
+          </int>
+        </syntax>
+      </parameter>
+      <parameter name="HardwareEccRecovered" access="readOnly">
+        <description>Interpretation of this value is vendor specific.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="ReallocatedEventCount" access="readOnly">
+        <description>Count of remap operations. The raw value of this attribute shows the total count of attempts to transfer data from reallocated sectors to a spare area. Both successful and unsuccessful attempts are counted.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="ReallocatedEventCount" access="readOnly">
+        <description>Count of remap operations. The raw value of this attribute shows the total count of attempts to transfer data from reallocated sectors to a spare area. Both successful and unsuccessful attempts are counted.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="CurrentPendingSector" access="readOnly">
+        <description>Count of "unstable" sectors (waiting to be remapped, because of unrecoverable read errors). If an unstable sector is subsequently read successfully, this value is decreased and the sector is not remapped. Read errors on a sector will not remap the sector immediately (since the correct value cannot be read and so the value to remap is not known, and also it might become readable later); instead, the drive firmware remembers that the sector needs to be remapped, and will remap it the next time it is written. However some drives will not immediately remap such sectors when written; instead the drive will first attempt to write to the problem sector and if the write operation is successful then the sector will be marked good (in this case, the "Reallocation Event Count" (0xC4) will not be increased). This is a serious shortcoming, for if such a drive contains marginal sectors that consistently fail only after some time has passed following a successful write operation, then the drive will never remap these problem sectors.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="OfflineUncorrectable" access="readOnly">
+        <description>The total count of uncorrectable errors when reading/writing a sector. A rise in the value of this attribute indicates defects of the disk surface and/or problems in the mechanical subsystem.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="UdmaCrcErrorCount" access="readOnly">
+        <description>The count of errors in data transfer via the interface cable as determined by ICRC (Interface Cyclic Redundancy Check).</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="MultiZoneErrorRate" access="readOnly">
+        <description>The count of errors found when writing a sector. The higher the value, the worse the disk mechanical condition is.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="SoftReadErrorRate" access="readOnly">
+        <description>Count of off-track errors.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="TaIncreaseCount" access="readOnly">
+        <description>Count of Data Address Mark errors (or vendor-specific).</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="RunOutCancel" access="readOnly">
+        <description>Invalid error correction checksum found during error correction.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="ShockCountWriteOperation" access="readOnly">
+        <description>No description available.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="ShockRateWriteOperation" access="readOnly">
+        <description>No description available.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="FlyingHeight" access="readOnly">
+        <description>Height of heads above the disk surface. A flying height that is too low increases the chances of a head crash while a flying height that is too high increases the chances of a read/write error.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="SpinHighCurrent" access="readOnly">
+        <description>Amount of surge current used to spin up the drive.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="SpinBuzz" access="readOnly">
+        <description>The number of retries during spin up because of low current available.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="OfflineSeekPerformance" access="readOnly">
+        <description>Drive seek performance during its internal tests.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+    </object>
+    <object name="StorageService.{i}.PhysicalMedium.{i}.X_CATAWAMPUS-ORG_DrivePerformance." access="readOnly" minEntries="1" maxEntries="1">
+      <description>Detailed information about drive performance.</description>
+      <parameter name="ReadsCompleted" access="readOnly">
+        <description>Number of reads completed since boot.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="ReadsMerged" access="readOnly">
+        <description>Number of reads merged into a single operation since boot.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="ReadSectors" access="readOnly">
+        <description>Number of sectors read since boot.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="ReadMilliseconds" access="readOnly">
+        <description>Number of {{units}} spent reading since boot.</description>
+        <syntax>
+          <unsignedInt>
+            <units value="milliseconds"/>
+          </unsignedInt>
+        </syntax>
+      </parameter>
+      <parameter name="WritesCompleted" access="readOnly">
+        <description>Number of writes completed since boot.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="WritesMerged" access="readOnly">
+        <description>Number of writes merged into a single operation since boot.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="WriteSectors" access="readOnly">
+        <description>Number of sectors written since boot.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="WriteMilliseconds" access="readOnly">
+        <description>Number of {{units}} spent writing since boot.</description>
+        <syntax>
+          <unsignedInt>
+            <units value="milliseconds"/>
+          </unsignedInt>
+        </syntax>
+      </parameter>
+      <parameter name="IoInProgress" access="readOnly">
+        <description>Number of I/O operations currently in progress.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="IoMilliseconds" access="readOnly">
+        <description>Number of {{units}} spent performing I/O since boot.</description>
+        <syntax>
+          <unsignedInt>
+            <units value="milliseconds"/>
+          </unsignedInt>
+        </syntax>
+      </parameter>
+      <parameter name="WeightedIoMilliseconds" access="readOnly">
+        <description>Number of {{units}} spent performing I/O since boot, weighted by the number of operations simultaneously pending.</description>
+        <syntax>
+          <unsignedInt>
+            <units value="milliseconds"/>
+          </unsignedInt>
+        </syntax>
+      </parameter>
+    </object>
+    <object name="StorageService.{i}.PhysicalMedium.{i}.X_CATAWAMPUS-ORG_SataPHY." access="readOnly" minEntries="1" maxEntries="1">
+      <description>Detailed information about SATA Interface behavior. In all cases a negative value means the drive does not support the parameter in question. Descriptions of the fields are from http://www.hgst.com/tech/techlib.nsf/techdocs/97658A4D8F278E2C882579D7007AAC5B/$file/HGST_US7K4000_OEMSpec_v11i.pdf</description>
+      <parameter name="CmdFailedICRC" access="readOnly">
+        <description>Command failed and ICRC bit set to one in Error register (register 0x001).</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="RErrDataFis" access="readOnly">
+        <description>R_ERR response for Data FIS (register 0x002).</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="RErrDeviceToHostDataFis" access="readOnly">
+        <description>R_ERR response for Device-to-Host Data FIS (register 0x003).</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="RErrHostToDeviceDataFis" access="readOnly">
+        <description>R_ERR response for Host-To-Device Data FIS (register 0x004).</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="RErrNonDataFis" access="readOnly">
+        <description>R_ERR response for Non-Data FIS (regiser 0x005). Retries of non-Data FISes are included in this count.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="RErrDeviceToHostNonDataFis" access="readOnly">
+        <description>R_ERR response for Device-To-Host Non-Data FIS (register 0x006). Retries of non-Data FISes are included in this count.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="RErrHostToDeviceNonDataFis" access="readOnly">
+        <description>R_ERR response for Host-To-Device Non-Data FIS (register 0x007). Retries of non-Data FISes are included in this count.</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="DeviceToHostNonDataRetries" access="readOnly">
+        <description>Device-To-Host Non-Data Retries (register 0x008). </description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="PhyRdyToPhyNRdy" access="readOnly">
+        <description>Transitions from drive PhyRdy to drive PhyNRdy, including but not limited to asynchronous signal events, power management events, and COMRESET events. If interface power management is enabled, then this counter may be incremented due to interface power management transitions (register 0x009).</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="RegisterFisComreset" access="readOnly">
+        <description>Signature Device-to-Host Register FISes sent due to a COMRESET, which were successfully followed by an R_OK from the host (register 0x00A).</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="HostToDeviceCrcErrors" access="readOnly">
+        <description>CRC errors within a Host-to-Device FIS (register 0x00B).</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="HostToDeviceNonCrcErrors" access="readOnly">
+        <description>Non-CRC errors within a Host-to-Device FIS (register 0x00D).</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="RErrHostToDeviceDataFisCrc" access="readOnly">
+        <description>R_ERR response for Host-to-Device Data FIS due to CRC errors (register 0x00F).</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="RErrHostToDeviceDataFisNonCrc" access="readOnly">
+        <description>R_ERR response for Host-to-Device Data FIS due to Non-CRC errors (register 0x010).</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="RErrHostToDeviceNonDataFisCrc" access="readOnly">
+        <description>R_ERR response for Host-to-Device Non-Data FIS due to CRC errors (register 0x012).</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+      <parameter name="RErrHostToDeviceNonDataFisNonCrc" access="readOnly">
+        <description>R_ERR response for Host-to-Device Non-Data FIS due to Non-CRC errors (register 0x013).</description>
+        <syntax>
+          <int/>
+        </syntax>
+      </parameter>
+    </object>
   </model>
 </dm:document>

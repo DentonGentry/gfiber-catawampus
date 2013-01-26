@@ -27,6 +27,68 @@ SMART overall-health self-assessment test result: PASSED
 "
 fi
 
+if [[ $1 == "--attributes" ]]; then
+# All of the RAW_VALUEs have been adjusted for ease of unit testing.
+# These are not typical values for real drives.
+echo "=== START OF READ SMART DATA SECTION ===
+SMART Attributes Data Structure revision number: 16
+Vendor Specific SMART Attributes with Thresholds:
+ID# ATTRIBUTE_NAME          FLAG     VALUE WORST THRESH TYPE      UPDATED  WHEN_FAILED RAW_VALUE
+  1 Raw_Read_Error_Rate     0x000b   100   100   016    Pre-fail  Always       -       10
+  2 Throughput_Performance  0x0005   133   133   054    Pre-fail  Offline      -       20
+  3 Spin_Up_Time            0x0007   253   253   024    Pre-fail  Always       -       30 (Average 35)
+  4 Start_Stop_Count        0x0012   100   100   000    Old_age   Always       -       40
+  5 Reallocated_Sector_Ct   0x0033   100   100   005    Pre-fail  Always       -       50
+  6 Read_Channel_Margin     0x0001   253   253   100    Pre-fail  Offline      -       60
+  7 Seek_Error_Rate         0x000b   100   100   067    Pre-fail  Always       -       70
+  8 Seek_Time_Performance   0x0005   133   133   020    Pre-fail  Offline      -       80
+  9 Power_On_Hours          0x0012   100   100   000    Old_age   Always       -       90
+ 10 Spin_Retry_Count        0x0013   100   100   060    Pre-fail  Always       -       100
+ 11 Calibration_Retry_Count 0x002b   253   252   223    Pre-fail  Always       -       110
+ 12 Power_Cycle_Count       0x0032   100   100   000    Old_age   Always       -       120
+192 Power-Off_Retract_Count 0x0032   100   100   000    Old_age   Always       -       1920
+193 Load_Cycle_Count        0x0012   100   100   000    Old_age   Always       -       1930
+194 Temperature_Celsius     0x0002   109   109   000    Old_age   Always       -       1942 (Min/Max 1940/1944)
+195 Hardware_ECC_Recovered  0x001a   047   045   000    Old_age   Always       -       1950
+196 Reallocated_Event_Count 0x0032   100   100   000    Old_age   Always       -       1960
+197 Current_Pending_Sector  0x0022   100   100   000    Old_age   Always       -       1970
+198 Offline_Uncorrectable   0x0008   100   100   000    Old_age   Offline      -       1980
+199 UDMA_CRC_Error_Count    0x000a   200   200   000    Old_age   Always       -       1990
+200 Multi_Zone_Error_Rate   0x000a   253   252   000    Old_age   Always       -       2000
+201 Soft_Read_Error_Rate    0x000a   253   252   000    Old_age   Always       -       2010
+202 TA_Increase_Count       0x000a   253   252   000    Old_age   Always       -       2020
+203 Run_Out_Cancel          0x000b   253   252   180    Pre-fail  Always       -       2030
+204 Shock_Count_Write_Opern 0x000a   253   252   000    Old_age   Always       -       2040
+205 Shock_Rate_Write_Opern  0x000a   253   252   000    Old_age   Always       -       2050
+206 Flying_Height           0x0000   001   000   000    Old_age   Offline      -       2060
+207 Spin_High_Current       0x002a   253   252   000    Old_age   Always       -       2070
+208 Spin_Buzz               0x002a   253   252   000    Old_age   Always       -       2080
+209 Offline_Seek_Performnce 0x0024   188   184   000    Old_age   Offline      -       2090
+"
+fi
+
+if [[ $1 == "--log=sataphy" ]]; then
+echo "SATA Phy Event Counters (GP Log 0x11)
+ID      Size     Value  Description
+0x0001  2           10  Command failed due to ICRC error
+0x0002  2           20  R_ERR response for data FIS
+0x0003  2           30  R_ERR response for device-to-host data FIS
+0x0004  2           40  R_ERR response for host-to-device data FIS
+0x0005  2           50  R_ERR response for non-data FIS
+0x0006  2           60  R_ERR response for device-to-host non-data FIS
+0x0007  2           70  R_ERR response for host-to-device non-data FIS
+0x0008  2           80  Device-to-host non-data FIS retries
+0x0009  2           90  Transition from drive PhyRdy to drive PhyNRdy
+0x000a  2          100  Device-to-host register FISes sent due to a COMRESET
+0x000b  2          110  CRC errors within host-to-device FIS
+0x000d  2          130  Non-CRC errors within host-to-device FIS
+0x000f  2          150  R_ERR response for host-to-device data FIS, CRC
+0x0010  2          160  R_ERR response for host-to-device data FIS, non-CRC
+0x0012  2          180  R_ERR response for host-to-device non-data FIS, CRC
+0x0013  2          190  R_ERR response for host-to-device non-data FIS, non-CRC
+"
+fi
+
 shift
 
 done
