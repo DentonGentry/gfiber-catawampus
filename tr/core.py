@@ -411,22 +411,21 @@ class Exporter(object):
     setattr(parent, subname, value)
     return parent
 
-  def SetExportAttrs(self, param, attrs):
-    """Set the attributes of a given parameter.
+  def SetExportAttr(self, param, attr, value):
+    """Set the attribute of a given parameter.
 
     Args:
       param: the parameter whose attribute is going to be set.
-      attr: dict of key/value pairs of attributes and
-            the values to set
+      attr: the attribute to set on the parameter.
+      value: the value of the attribute being set.
     Returns:
-      True:  If the object handled setting the attribute.
-      False:  If the object does not hanlde setting the attribute.
+      the object whose attribute was modified.
+    Raises:
+      KeyError: if the param is not exported.
     """
     obj = self.GetExport(param)
-    if not hasattr(obj, 'SetAttributes'):
-      return False
-    obj.SetAttributes(attrs)
-    return True
+    obj.SetAttribute(attr, value)
+    return obj
 
   def _AddExportObject(self, name, idx):
     objlist = self._GetExport(self, name)
