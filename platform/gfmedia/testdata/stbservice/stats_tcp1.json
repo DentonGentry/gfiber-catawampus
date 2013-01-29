@@ -1,0 +1,27 @@
+{
+  "STBService": [
+    {
+      "MainStream": [
+        {
+          "TCPStats": {
+            "BytesReceived": 1,
+            "BytesSent": 2,
+            "PacketsReceived": 3,
+            "PacketsSent": 4,
+            "Cwnd": 5,
+            "SSThresh": 6,
+            "Unacked": 7,
+            "Sacked": 8,
+            "Lost": 9,
+            "Rtt": 10,
+            "RttVariance": 11,
+            "ReceiveRTT": 12,
+            "ReceiveSpace": 13,
+            "RetransTimeout": 14,
+            "TotalRetransmits": 15
+          }
+        }
+      ]
+    }
+  ]
+}

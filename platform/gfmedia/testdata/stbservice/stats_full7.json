@@ -1,0 +1,31 @@
+{
+  "STBService": [
+    {
+      "MainStream": [
+        {
+          "StreamId": 7,
+          "MPEG2TSStats": {
+            "TSPacketsReceived": 200,
+            "PacketDiscontinuityCounter": 20
+          },
+          "DejitteringStats": {
+            "EmptyBufferTime": 5,
+            "Overruns": 2,
+            "Underruns": 17
+          },
+          "TCPStats": {
+            "PacketsReceived": 2000,
+            "BytesReceived": 512000,
+            "TotalRetransmits": 3
+          },
+          "MulticastStats": {
+            "MulticastGroup": "225.0.0.2:2",
+            "StartupLagUsecs": 10000,
+            "StalledUsecs": 2000,
+            "bps": 2000000
+          }
+        }
+      ]
+    }
+  ]
+}

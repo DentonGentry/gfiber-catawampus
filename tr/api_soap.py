@@ -34,7 +34,7 @@ def Soapify(value):
     return (value.xsitype, str(value))
   elif isinstance(value, bool):
     return ('xsd:boolean', cwmpbool.format(value))
-  elif isinstance(value, int):
+  elif isinstance(value, int) or isinstance(value, long):
     return ('xsd:unsignedInt', str(value))
   elif isinstance(value, float):
     return ('xsd:double', str(value))
@@ -307,8 +307,8 @@ class CPE(SoapHandler):
     # (Name, InternetGatewayDevice.PeriodicStatistics.SampleSet.0.Status)
     # (Notification, true)
     # (NotificationChange, true)
-    for param in req.ParameterList:
-      self.impl.SetParameterAttributes(param)
+    self.impl.SetParameterAttributes(
+        dict(req.ParameterList.SetParameterAttributesStruct.iteritems()))
     xml['cwmp:SetParameterAttributesResponse'](None)
     return xml
 

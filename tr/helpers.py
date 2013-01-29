@@ -26,12 +26,12 @@ import tornado.util
 def Unlink(filename):
   """Like os.unlink, but doesn't raise exception if file was missing already.
 
-  After all, you want the file gone.  It's gone.  Stop complaining.
+  After all, you want the file gone.  Its gone.  Stop complaining.
 
   Args:
     filename: the filename to delete
   Raises:
-    OSError: if os.unlink() failes with other than ENOENT.
+    OSError: if os.unlink() fails with other than ENOENT.
   """
   try:
     os.unlink(filename)
@@ -40,8 +40,10 @@ def Unlink(filename):
       raise
 
 
-def WriteFileAtomic(tmp_file_name, final_file_name, data):
+def WriteFileAtomic(final_file_name, data, tmp_file_name=None):
   """Writes data to tmp file, then moves it to the final file atomically."""
+  if not tmp_file_name:
+    tmp_file_name = final_file_name + '.tmp'
   with file(tmp_file_name, 'w') as f:
     f.write(data)
   os.rename(tmp_file_name, final_file_name)

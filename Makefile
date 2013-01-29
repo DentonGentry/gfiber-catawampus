@@ -34,6 +34,7 @@ lint: all
 
 DSTDIR?=/tmp/catawampus/
 INSTALL=install
+PYTHON?=python
 
 install:
 	$(INSTALL) -d $(DSTDIR) $(DSTDIR)/tr  $(DSTDIR)/tr/vendor \
@@ -66,7 +67,7 @@ install:
 	$(INSTALL) -D -m 0644 tr/vendor/tornado/tornado/platform/*.py $(DSTDIR)/tr/vendor/tornado/tornado/platform
 	$(INSTALL) -D -m 0644 tr/vendor/xmlwitch.py $(DSTDIR)/tr/vendor
 	$(INSTALL) -D -m 0644 tr/vendor/pbkdf2/* $(DSTDIR)/tr/vendor/pbkdf2
-	python -mcompileall $(DSTDIR)
+	$(PYTHON) -mcompileall $(DSTDIR)
 
 # Subdir rules
 %/all:; $(MAKE) -C $* all

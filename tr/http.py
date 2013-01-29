@@ -566,9 +566,12 @@ def Listen(ip, port, ping_path, acs, cpe, cpe_listener, platform_config,
                                 restrict_acs_hosts=restrict_acs_hosts,
                                 acs_url=acs_url, ping_ip6dev=ping_ip6dev,
                                 fetch_args=fetch_args, ioloop=ioloop)
-  cpe.setCallbacks(cpe_machine.SendTransferComplete,
-                   cpe_machine.TransferCompleteReceived,
-                   cpe_machine.InformResponseReceived)
+  cpe.setCallbacks(
+      send_transfer_complete=cpe_machine.SendTransferComplete,
+      transfer_complete_received=cpe_machine.TransferCompleteReceived,
+      inform_response_received=cpe_machine.InformResponseReceived,
+      set_notification_parameters=cpe_machine.SetNotificationParameters,
+      new_value_change_session=cpe_machine.NewValueChangeSession)
   handlers = []
   if acs:
     acshandler = api_soap.ACS(acs).Handle
