@@ -217,7 +217,21 @@ class Installer(tr.download.Installer):
                           'Unsupported file_type {0}'.format(ftype[0]))
       return False
     self._install_cb = callback
-    os.rename(self.filename, 'download.tgz')
+
+    if not os.path.exists(self.filename):
+      self._call_callback(INTERNAL_ERROR,
+                          'Installer: file %r does not exist.' % self.filename)
+      return False
+
+    #TODO(zixia): leave for GINSTALL
+
+    cmd = [GINSTALL]
+    try:
+      self._ginstall = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    except OSError:
+      self._call_callback(INTERNAL_ERROR, 'Unable to start installer process')
+      return False
+
     self._call_callback(0, '')
     return True
 

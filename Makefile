@@ -7,7 +7,7 @@ GPYLINT=gpylint --disable=W0403,W0613 \
 
 all: tr/all
 
-test: all tr/test dm/test platform/*/test *_test.py
+test: all tr/test dm/test platform/gfmedia/test platform/gfonu/test *_test.py
 	set -e; \
 	for d in $(filter %_test.py,$^); do \
 		echo; \
