@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # unittest requires method names starting in 'test'
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """Unit tests for storage.py implementation."""
 
@@ -24,8 +24,8 @@ import collections
 import unittest
 
 import google3
-import storage
 import tr.session
+import storage
 
 
 statvfsstruct = collections.namedtuple(
@@ -54,11 +54,13 @@ def OsStatVfs(rootpath):
 def GetMtdStats(mtdpath):
   global test_mtdpath
   test_mtdpath = mtdpath
-  return storage.MtdEccStats(corrected=10, failed=20, badblocks=30, bbtblocks=40)
+  return storage.MtdEccStats(corrected=10, failed=20,
+                             badblocks=30, bbtblocks=40)
 
 
 class StorageTest(unittest.TestCase):
   def setUp(self):
+    self.old_DISKSTAT = storage.DISKSTAT
     self.old_GETMTDSTATS = storage.GETMTDSTATS
     self.old_PROC_FILESYSTEMS = storage.PROC_FILESYSTEMS
     self.old_PROC_MOUNTS = storage.PROC_MOUNTS
@@ -66,6 +68,7 @@ class StorageTest(unittest.TestCase):
     self.old_STATVFS = storage.STATVFS
     self.old_SYS_BLOCK = storage.SYS_BLOCK
     self.old_SYS_UBI = storage.SYS_UBI
+    storage.DISKSTAT = 'testdata/storage/sys/'
     storage.GETMTDSTATS = GetMtdStats
     storage.SMARTCTL = 'testdata/storage/smartctl'
     storage.STATVFS = OsStatVfs
@@ -73,6 +76,7 @@ class StorageTest(unittest.TestCase):
     tr.session.cache.flush()
 
   def tearDown(self):
+    storage.DISKSTAT = self.old_DISKSTAT
     storage.GETMTDSTATS = self.old_GETMTDSTATS
     storage.PROC_FILESYSTEMS = self.old_PROC_FILESYSTEMS
     storage.PROC_MOUNTS = self.old_PROC_MOUNTS
@@ -166,6 +170,7 @@ class StorageTest(unittest.TestCase):
     self.assertTrue(pm.SMARTCapable)
     self.assertEqual(pm.Health, 'OK')
     self.assertFalse(pm.Removable)
+    self.assertEqual(pm.Uptime, 90)
 
   def testNotSmartCapable(self):
     storage.SMARTCTL = 'testdata/storage/smartctl_disabled'
@@ -234,6 +239,79 @@ class StorageTest(unittest.TestCase):
     self.assertEqual(sv.DataMBytes, 56)
     self.assertEqual(sv.Name, 'subvol1')
     self.assertEqual(sv.Status, 'Corrupted')
+
+  def testAttributes(self):
+    attr = storage.SmartAttributes('sda')
+    attr.ValidateExports()
+    self.assertEqual(attr.RawReadErrorRate, 10)
+    self.assertEqual(attr.ThroughputPerformance, 20)
+    self.assertEqual(attr.SpinUpTime, 35)
+    self.assertEqual(attr.SpinUpTimeLatest, 30)
+    self.assertEqual(attr.StartStopCount, 40)
+    self.assertEqual(attr.ReallocatedSectorsCount, 50)
+    self.assertEqual(attr.ReadChannelMargin, 60)
+    self.assertEqual(attr.SeekErrorRate, 70)
+    self.assertEqual(attr.SeekTimePerformance, 80)
+    self.assertEqual(attr.PowerOnHours, 90)
+    self.assertEqual(attr.SpinRetryCount, 100)
+    self.assertEqual(attr.CalibrationRetryCount, 110)
+    self.assertEqual(attr.PowerCycleCount, 120)
+    self.assertEqual(attr.PowerOffRetractCount, 1920)
+    self.assertEqual(attr.LoadCycleCount, 1930)
+    self.assertEqual(attr.LoadCycleCount, 1930)
+    self.assertEqual(attr.TemperatureCelsius, 1942)
+    self.assertEqual(attr.TemperatureCelsiusMin, 1940)
+    self.assertEqual(attr.TemperatureCelsiusMax, 1944)
+    self.assertEqual(attr.HardwareEccRecovered, 1950)
+    self.assertEqual(attr.ReallocatedEventCount, 1960)
+    self.assertEqual(attr.CurrentPendingSector, 1970)
+    self.assertEqual(attr.OfflineUncorrectable, 1980)
+    self.assertEqual(attr.UdmaCrcErrorCount, 1990)
+    self.assertEqual(attr.MultiZoneErrorRate, 2000)
+    self.assertEqual(attr.SoftReadErrorRate, 2010)
+    self.assertEqual(attr.TaIncreaseCount, 2020)
+    self.assertEqual(attr.RunOutCancel, 2030)
+    self.assertEqual(attr.ShockCountWriteOperation, 2040)
+    self.assertEqual(attr.ShockRateWriteOperation, 2050)
+    self.assertEqual(attr.FlyingHeight, 2060)
+    self.assertEqual(attr.SpinHighCurrent, 2070)
+    self.assertEqual(attr.SpinBuzz, 2080)
+    self.assertEqual(attr.OfflineSeekPerformance, 2090)
+
+  def testDrivePerformance(self):
+    perf = storage.DrivePerformance(dev='sda')
+    perf.ValidateExports()
+    self.assertEqual(perf.ReadsCompleted, 1)
+    self.assertEqual(perf.ReadsMerged, 2)
+    self.assertEqual(perf.ReadSectors, 3)
+    self.assertEqual(perf.ReadMilliseconds, 4)
+    self.assertEqual(perf.WritesCompleted, 5)
+    self.assertEqual(perf.WritesMerged, 6)
+    self.assertEqual(perf.WriteSectors, 7)
+    self.assertEqual(perf.WriteMilliseconds, 8)
+    self.assertEqual(perf.IoInProgress, 9)
+    self.assertEqual(perf.IoMilliseconds, 10)
+    self.assertEqual(perf.WeightedIoMilliseconds, 11)
+
+  def testSataPhy(self):
+    sata = storage.SataPHY(dev='sda')
+    sata.ValidateExports()
+    self.assertEqual(sata.CmdFailedICRC, 10)
+    self.assertEqual(sata.RErrDataFis, 20)
+    self.assertEqual(sata.RErrDeviceToHostDataFis, 30)
+    self.assertEqual(sata.RErrHostToDeviceDataFis, 40)
+    self.assertEqual(sata.RErrNonDataFis, 50)
+    self.assertEqual(sata.RErrDeviceToHostNonDataFis, 60)
+    self.assertEqual(sata.RErrHostToDeviceNonDataFis, 70)
+    self.assertEqual(sata.DeviceToHostNonDataRetries, 80)
+    self.assertEqual(sata.PhyRdyToPhyNRdy, 90)
+    self.assertEqual(sata.RegisterFisComreset, 100)
+    self.assertEqual(sata.HostToDeviceCrcErrors, 110)
+    self.assertEqual(sata.HostToDeviceNonCrcErrors, 130)
+    self.assertEqual(sata.RErrHostToDeviceDataFisCrc, 150)
+    self.assertEqual(sata.RErrHostToDeviceDataFisNonCrc, 160)
+    self.assertEqual(sata.RErrHostToDeviceNonDataFisCrc, 180)
+    self.assertEqual(sata.RErrHostToDeviceNonDataFisNonCrc, 190)
 
 
 if __name__ == '__main__':
