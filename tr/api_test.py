@@ -74,28 +74,5 @@ class ApiTest(unittest.TestCase):
     self.assertEqual(result[0], ('SomeParam', 'SomeParamValue'))
 
 
-class ParameterAttrsTest(unittest.TestCase):
-  def testSetAttr(self):
-    class FakeAttrs(dict):
-      def __getattr__(self, item):
-        return self[item]
-      def __setattr__(self, item, value):
-        self[item] = value
-
-    cpe = api.CPE(TestSimpleRoot())
-    f = FakeAttrs()
-    f.Name = 'SomeParam'
-    f.Notification = 2
-    cpe.SetParameterAttributes(f)
-    self.assertEqual(len(cpe.parameter_attrs.params), 1)
-    self.assertEqual(cpe.parameter_attrs.params['SomeParam'].notification, 0)
-
-    f.Name = 'SomeParam'
-    f.Notification = 2
-    f.NotificationChange = 'true'
-    cpe.SetParameterAttributes(f)
-    self.assertEqual(len(cpe.parameter_attrs.params), 1)
-    self.assertEqual(2, cpe.parameter_attrs.params['SomeParam'].notification)
-
 if __name__ == '__main__':
   unittest.main()

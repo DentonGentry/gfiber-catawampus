@@ -307,8 +307,8 @@ class CPE(SoapHandler):
     # (Name, InternetGatewayDevice.PeriodicStatistics.SampleSet.0.Status)
     # (Notification, true)
     # (NotificationChange, true)
-    self.impl.SetParameterAttributes(
-        dict(req.ParameterList.SetParameterAttributesStruct.iteritems()))
+    for param in req.ParameterList:
+      self.impl.SetParameterAttributes(param)
     xml['cwmp:SetParameterAttributesResponse'](None)
     return xml
 
