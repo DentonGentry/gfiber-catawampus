@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """Implementation of tr-181 MoCA objects for Broadcom chipsets."""
 
@@ -27,55 +27,95 @@ import tr.core
 import tr.session
 import tr.tr181_v2_2
 import tr.types
+import tr.x_catawampus_tr181_2_0
 import netdev
 
 
 BASE181MOCA = tr.tr181_v2_2.Device_v2_2.Device.MoCA
+CATA181MOCA = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device.MoCA
 MOCACTL = 'mocactl'
 PYNETIFCONF = pynetlinux.ifconfig.Interface
 
 
 # Regexps to parse mocactl output
-MAC_RE = re.compile('^MAC Address\s+: ((?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})')
-PNC_RE = re.compile('Preferred NC\s+: (\d+)')
-PTX_RE = re.compile('\ATxUc.+?(\d+[.]?\d*)\s+dBm.*?(\d+)\s+bps')
-PRX_RE = re.compile('\ARxUc.+?(\d+[.]?\d*)\s+dBm.*?(\d+)\s+bps'
-                    '\s+(\d+[.]?\d*) dB')
-RXB_RE = re.compile('\ARxBc.+?(\d+[.]?\d*)\s+dBm.*?(\d+)\s+bps')
-QAM_RE = re.compile('256 QAM capable\s+:\s+(\d+)')
-AGG_RE = re.compile('Aggregated PDUs\s+:\s+(\d+)')
+MAC_RE = re.compile(r'^MAC Address\s+: ((?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})')
+PNC_RE = re.compile(r'Preferred NC\s+: (\d+)')
+PTX_RE = re.compile(r'\ATxUc.+?(\d+[.]?\d*)\s+dBm.*?(\d+)\s+bps')
+PRX_RE = re.compile(r'\ARxUc.+?(\d+[.]?\d*)\s+dBm.*?(\d+)\s+bps'
+                    r'\s+(\d+[.]?\d*) dB')
+RXB_RE = re.compile(r'\ARxBc.+?(\d+[.]?\d*)\s+dBm.*?(\d+)\s+bps')
+QAM_RE = re.compile(r'256 QAM capable\s+:\s+(\d+)')
+AGG_RE = re.compile(r'Aggregated PDUs\s+:\s+(\d+)')
+BTL_RE = re.compile(r'\s*([0-9a-fA-F]{32})\s+([0-9a-fA-F]{32})')
 
-TX_RE = re.compile('Unicast Tx Pkts To Node\s+: (\d+)')
-RX_RE = re.compile('Unicast Rx Pkts From Node\s+: (\d+)')
-E1_RE = re.compile('Rx CodeWord ErrorAndUnCorrected\s+: (\d+)')
-E2_RE = re.compile('Rx NoSync Errors\s+: (\d+)')
+TX_RE = re.compile(r'Unicast Tx Pkts To Node\s+: (\d+)')
+RX_RE = re.compile(r'Unicast Rx Pkts From Node\s+: (\d+)')
+E1_RE = re.compile(r'Rx CodeWord ErrorAndUnCorrected\s+: (\d+)')
+E2_RE = re.compile(r'Rx NoSync Errors\s+: (\d+)')
 
-NODE_RE = re.compile('\ANode\s*: (\d+)')
+NODE_RE = re.compile(r'\ANode\s*: (\d+)')
 
 
 def IntOrZero(arg):
   try:
     return int(arg)
-  except ValueError:
+  except (ValueError, TypeError):
     return 0
 
 
 def FloatOrZero(arg):
   try:
     return float(arg)
-  except ValueError:
+  except (ValueError, TypeError):
     return 0.0
+
+
+def _CombineBitloading(bitlines):
+  """Combine bitloading information into one string.
+
+  Args:
+    bitlines: a list of lines of bitloading info:
+    00008888888888888888888888888888     00008888888888888888888888888888
+    88888888888888888888888888888888     88888888888888888888888888888888
+    88888888888888888888888888888888     88888888888888888888888888888888
+    88888888888888888888000000000000     88888888888888888888000000000000
+    00000000000008888888888888888888     00000000000008888888888888888888
+    88888888888888888888888888888888     88888888888888888888888888888888
+    88888888888888888888888888888888     88888888888888888888888888888888
+    88888888888888888888888888888000     88888888888888888888888888888000
+
+  Returns:
+    a tuple of two contiguous strings, '00008888888...888888000',
+    for the left-hand and right-hand bitloading.
+  """
+
+  left = []
+  right = []
+  for line in bitlines:
+    (l, r) = line.split()
+    left.append(l.strip())
+    right.append(r.strip())
+  return (''.join(left), ''.join(right))
 
 
 class BrcmMocaInterface(BASE181MOCA.Interface):
   """An implementation of tr181 Device.MoCA.Interface for Broadcom chipsets."""
+
+  # TODO(dgentry) Supposed to be read/write, but we don't disable yet.
+  Enable = tr.types.ReadOnlyBool(True)
   Name = tr.types.ReadOnlyString('')
   # In theory LowerLayers is writeable, but it is nonsensical to write to it.
   LowerLayers = tr.types.ReadOnlyString('')
+
+  MAX_NODES_MOCA1 = 8
+  MAX_NODES_MOCA2 = 16
+  MaxNodes = tr.types.ReadOnlyInt(0)
+
   Upstream = tr.types.ReadOnlyBool(False)
 
   def __init__(self, ifname, upstream=False):
     BASE181MOCA.Interface.__init__(self)
+    type(self).MaxNodes.Set(self, self.MAX_NODES_MOCA1)
     type(self).Name.Set(self, ifname)
     type(self).Upstream.Set(self, bool(upstream))
     self._pynet = PYNETIFCONF(ifname)
@@ -84,7 +124,6 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
     self.Unexport('MaxBitRate')
     self.Unexport('MaxIngressBW')
     self.Unexport('MaxEgressBW')
-    self.Unexport('MaxNodes')
     self.Unexport('PreferredNC')
     self.Unexport('PrivacyEnabledSetting')
     self.Unexport('FreqCapabilityMask')
@@ -144,17 +183,12 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
       The value of the field, or None.
     """
 
-    m_re = re.compile(field + '\s*:\s+(\S+)')
+    m_re = re.compile(field + r'\s*:\s+(\S+)')
     for line in outfcn():
       mr = m_re.search(line)
       if mr is not None:
         return mr.group(1)
     return None
-
-  @property
-  def Enable(self):
-    # TODO(dgentry) Supposed to be read/write, but we don't disable yet.
-    return True
 
   @property
   def Status(self):
@@ -302,28 +336,33 @@ class BrcmMocaInterfaceStatsLinux26(netdev.NetdevStatsLinux26,
     BASE181MOCA.Interface.Stats.__init__(self)
 
 
-class BrcmMocaAssociatedDevice(BASE181MOCA.Interface.AssociatedDevice):
+class BrcmMocaAssociatedDevice(CATA181MOCA.Interface.AssociatedDevice):
   """tr-181 Device.MoCA.Interface.AssociatedDevice for Broadcom chipsets."""
-  NodeID = tr.types.ReadOnlyInt(-1)
+  Active = tr.types.ReadOnlyBool(True)
   MACAddress = tr.types.ReadOnlyString('')
-  PreferredNC = tr.types.ReadOnlyBool(False)
+  NodeID = tr.types.ReadOnlyInt(-1)
+  PacketAggregationCapability = tr.types.ReadOnlyInt(0)
   PHYTxRate = tr.types.ReadOnlyInt(0)
   PHYRxRate = tr.types.ReadOnlyInt(0)
-  TxPowerControlReduction = tr.types.ReadOnlyInt(0)
-  RxPowerLevel = tr.types.ReadOnlyInt(0)
-  TxBcastRate = tr.types.ReadOnlyInt(0)
-  RxBcastPowerLevel = tr.types.ReadOnlyInt(0)
-  TxPackets = tr.types.ReadOnlyInt(0)
-  RxPackets = tr.types.ReadOnlyInt(0)
-  RxErroredAndMissedPackets = tr.types.ReadOnlyInt(0)
+  PreferredNC = tr.types.ReadOnlyBool(False)
   QAM256Capable = tr.types.ReadOnlyInt(0)
-  PacketAggregationCapability = tr.types.ReadOnlyInt(0)
+  RxBcastPowerLevel = tr.types.ReadOnlyInt(0)
+  RxErroredAndMissedPackets = tr.types.ReadOnlyInt(0)
+  RxPackets = tr.types.ReadOnlyInt(0)
+  RxPowerLevel = tr.types.ReadOnlyInt(0)
   RxSNR = tr.types.ReadOnlyInt(0)
+  TxBcastRate = tr.types.ReadOnlyInt(0)
+  TxPackets = tr.types.ReadOnlyInt(0)
+  TxPowerControlReduction = tr.types.ReadOnlyInt(0)
+  X_CATAWAMPUS_ORG_RxBcastPowerLevel_dBm = tr.types.ReadOnlyFloat(0.0)
+  X_CATAWAMPUS_ORG_RxPowerLevel_dBm = tr.types.ReadOnlyFloat(0.0)
+  X_CATAWAMPUS_ORG_RxSNR_dB = tr.types.ReadOnlyFloat(0.0)
+  X_CATAWAMPUS_ORG_RxBitloading = tr.types.ReadOnlyString('')
+  X_CATAWAMPUS_ORG_TxBitloading = tr.types.ReadOnlyString('')
 
   def __init__(self, nodeid):
-    BASE181MOCA.Interface.AssociatedDevice.__init__(self)
+    super(BrcmMocaAssociatedDevice, self).__init__()
     type(self).NodeID.Set(self, int(nodeid))
-    self.Unexport('Active')
     self.Unexport('HighestVersion')
 
     self.ParseNodeStatus()
@@ -334,6 +373,8 @@ class BrcmMocaAssociatedDevice(BASE181MOCA.Interface.AssociatedDevice):
     mc = subprocess.Popen([MOCACTL, 'show', '--nodestatus', str(self.NodeID)],
                           stdout=subprocess.PIPE)
     out, _ = mc.communicate(None)
+    bitloading = [[], []]
+    bitloadidx = 0
     for line in out.splitlines():
       mac = MAC_RE.search(line)
       if mac is not None:
@@ -350,13 +391,18 @@ class BrcmMocaAssociatedDevice(BASE181MOCA.Interface.AssociatedDevice):
       prx = PRX_RE.search(line)
       if prx is not None:
         type(self).PHYRxRate.Set(self, (IntOrZero(prx.group(2)) / 1000000))
-        type(self).RxPowerLevel.Set(self, int(FloatOrZero(prx.group(1))))
-        # TODO(dgentry) This cannot be right. SNR should be dB, not an integer.
-        type(self).RxSNR.Set(self, int(FloatOrZero(prx.group(3))))
+        rxpower = FloatOrZero(prx.group(1))
+        type(self).RxPowerLevel.Set(self, abs(int(rxpower)))
+        type(self).X_CATAWAMPUS_ORG_RxPowerLevel_dBm.Set(self, rxpower)
+        rxsnr = FloatOrZero(prx.group(3))
+        type(self).RxSNR.Set(self, abs(int(rxsnr)))
+        type(self).X_CATAWAMPUS_ORG_RxSNR_dB.Set(self, rxsnr)
       rxb = RXB_RE.search(line)
       if rxb is not None:
         type(self).TxBcastRate.Set(self, (IntOrZero(rxb.group(2)) / 1000000))
-        type(self).RxBcastPowerLevel.Set(self, int(FloatOrZero(rxb.group(1))))
+        rxbpower = FloatOrZero(rxb.group(1))
+        type(self).RxBcastPowerLevel.Set(self, abs(int(rxbpower)))
+        type(self).X_CATAWAMPUS_ORG_RxBcastPowerLevel_dBm.Set(self, rxbpower)
       qam = QAM_RE.search(line)
       if qam is not None:
         qam256 = False if qam.group(1) is '0' else True
@@ -365,6 +411,16 @@ class BrcmMocaAssociatedDevice(BASE181MOCA.Interface.AssociatedDevice):
       if agg is not None:
         aggcapable = IntOrZero(agg.group(1))
         type(self).PacketAggregationCapability.Set(self, aggcapable)
+      if 'Unicast Bit Loading Info' in line:
+        bitloadidx = 0
+      if 'Broadcast Bit Loading Info' in line:
+        bitloadidx = 1
+      btl = BTL_RE.search(line)
+      if btl is not None:
+        bitloading[bitloadidx].append(line)
+    (txbitl, rxbitl) = _CombineBitloading(bitloading[0])
+    type(self).X_CATAWAMPUS_ORG_RxBitloading.Set(self, '$BRCM1$' + rxbitl)
+    type(self).X_CATAWAMPUS_ORG_TxBitloading.Set(self, '$BRCM1$' + txbitl)
 
   def ParseNodeStats(self):
     """Run mocactl show --nodestats for this node, parse the output."""

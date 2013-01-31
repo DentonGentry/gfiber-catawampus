@@ -1,0 +1,229 @@
+#!/bin/sh
+
+if [ "$1" == get ] && [ "$2" == --drv_info ]; then
+echo "== drv_info  ========================================== "
+echo "version     : 262144  ( 0x40000 )"
+echo "build_number: 538055201  ( 0x20121221 )"
+echo "hw_rev      : 8192  ( 0x2000 )"
+echo "uptime      : 09h:46m:35s "
+echo "link_uptime : 01h:41m:30s "
+echo "core_uptime : 06h:53m:50s "
+echo "ifname[16]  : foo0"
+echo "devname[64] : ?"
+echo "rf_band     : 0  ( 0x0 )"
+echo "chip_id     : 1948582066  ( 0x742500b2 )"
+echo "== end drv_info  ======================================"
+fi
+
+if [ "$1" == get ] && [ "$2" == --node_status ]; then
+echo "== node_status  ======================================= "
+echo "vendor_id            : 32  ( 0x20 )"
+echo "moca_hw_version      : 856760322  ( 0x33112002 )"
+echo "moca_sw_version_major: 5  ( 0x5 )"
+echo "moca_sw_version_minor: 6  ( 0x6 )"
+echo "moca_sw_version_rev  : 789  ( 0x315 )"
+echo "self_moca_version    : 32  ( 0x20 )"
+echo "qam_256_support      : 1  ( 0x1 )"
+echo "== end node_status  =================================== "
+fi
+
+if [ "$1" == get ] && [ "$2" == --network_status ]; then
+echo "== network_status  ==================================== "
+echo "network_moca_version: 32  ( 0x20 )"
+echo "connected_nodes     : 0  (bitmask 0x0)"
+echo "node_id             : 2  ( 0x2 )"
+echo "nc_node_id          : 1  ( 0x1 )"
+echo "backup_nc_id        : 5  ( 0x5 )"
+echo "bw_status           : 0  ( 0x0 )"
+echo "nodes_usable_bitmask: 0  ( 0x0 )"
+echo "network_taboo_mask  : 0  ( 0x0 )"
+echo "network_taboo_start : 0  ( 0x0 )"
+echo "== end network_status  ================================ "
+fi
+
+if [ "$1" == get ] && [ "$2" == --privacy_en ]; then
+echo "privacy_en: 0  ( 0x0 )"
+fi
+
+if [ "$1" == get ] && [ "$2" == --max_pkt_aggr ]; then
+echo "max_pkt_aggr: 20  ( 0x14 )"
+fi
+
+if [ "$1" == get ] && [ "$2" == --lof ]; then
+echo "lof: 575  ( 0x23f )"
+fi
+
+if [ "$1" == get ] && [ "$2" == --interface_status ]; then
+echo "== interface_status  ================================== "
+echo "link_status      : Up (1)"
+echo "rf_channel       : 23 - 575 MHz"
+echo "primary_channel  : 23 - 575 MHz"
+echo "secondary_channel:  0 - 0 MHz"
+echo "== end interface_status  ============================== "
+fi
+
+if [ "$1" == get ] && [ "$2" == --preferred_nc ]; then
+echo "preferred_nc: 0  ( 0x0 )"
+fi
+
+# --------------- Node 1 ------------------------
+
+if [ "$1" == get ] && [ "$2" == --node_stats ] && [ "$3" == 1 ]; then
+echo "Node 1  00:01:00:11:23:33"
+echo "== node_stats  ======================================== "
+echo "tx_packets       : 1"
+echo "rx_packets       : 2"
+echo "rx_cw_unerror    : 3"
+echo "rx_cw_corrected  : 4"
+echo "rx_cw_uncorrected: 5"
+echo "rx_no_sync       : 6"
+echo "== end node_stats  ==================================== "
+fi
+
+if [ "$1" == get ] && [ "$2" == --gen_node_ext_status ] && [ "$3" == index ] \
+    && [ "$4" == 1 ] && [ "$5" == profile_type ] && [ "$6" == 12 ]; then
+echo "== gen_node_ext_status =============================== "
+echo "node           : 1  00:01:00:11:23:33"
+echo "profile_type   : TX Unicast VLPER"
+echo "nbas           : 4592  ( 0x11f0 )"
+echo "preamble_type  : 6  ( 0x6 )"
+echo "cp             : 26  ( 0x1a )"
+echo "tx_power       : -27 dBm "
+echo "rx_power       : 0.000 dBm"
+echo "bit_loading[64]: "
+echo "256 - 287:  99999999999999999999999999999999"
+echo "288 - 319:  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+echo "320 - 351:  bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+echo "352 - 383:  cccccccccccccccccccccccccccccccc"
+echo "384 - 415:  dddddddddddddddddddddddddddddddd"
+echo "416 - 447:  eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+echo "448 - 479:  ffffffffffffffffffffffffffffffff"
+echo "480 - 511:  00002222222222222222222222222222"
+echo "000 - 031:  00001111111111111111111111111111"
+echo "032 - 063:  22222222222222222222222222222222"
+echo "064 - 095:  33333333333333333333333333333333"
+echo "096 - 127:  44444444444444444444444444444444"
+echo "128 - 159:  55555555555555555555555555555555"
+echo "160 - 191:  66666666666666666666666666666666"
+echo "192 - 223:  77777777777777777777777777777777"
+echo "224 - 255:  88888888888888888888888888888888"
+echo "avg_snr        : 0.000 "
+echo "phy_rate       : 690 Mbps "
+echo "turbo_status   : 0  ( 0x0 )"
+echo "== end gen_node_ext_status =========================== "
+fi
+
+if [ "$1" == get ] && [ "$2" == --gen_node_ext_status ] && [ "$3" == index ] \
+    && [ "$4" == 1 ] && [ "$5" == profile_type ] && [ "$6" == 6 ]; then
+echo "== gen_node_ext_status =============================== "
+echo "node           : 1  00:01:00:11:23:33"
+echo "profile_type   : RX Unicast VLPER "
+echo "nbas           : 4592  ( 0x11f0 )"
+echo "preamble_type  : 6  ( 0x6 )"
+echo "cp             : 26  ( 0x1a )"
+echo "tx_power       : 0 dBm "
+echo "rx_power       : -25.250 dBm"
+echo "bit_loading[64]: "
+echo "256 - 287:  99999999999999999999999999990000"
+echo "288 - 319:  aaaaaaaaaaaaaaaaaaaaaaaaaaaa0000"
+echo "320 - 351:  bbbbbbbbbbbbbbbbbbbbbbbbbbbb0000"
+echo "352 - 383:  cccccccccccccccccccccccccccc0000"
+echo "384 - 415:  dddddddddddddddddddddddddddd0000"
+echo "416 - 447:  eeeeeeeeeeeeeeeeeeeeeeeeeeee0000"
+echo "448 - 479:  ffffffffffffffffffffffffffff0000"
+echo "480 - 511:  00000000000000000000000000001111"
+echo "000 - 031:  11111111111111111111111111110000"
+echo "032 - 063:  22222222222222222222222222220000"
+echo "064 - 095:  33333333333333333333333333330000"
+echo "096 - 127:  44444444444444444444444444440000"
+echo "128 - 159:  55555555555555555555555555550000"
+echo "160 - 191:  66666666666666666666666666660000"
+echo "192 - 223:  77777777777777777777777777770000"
+echo "224 - 255:  88888888888888888888888888880000"
+echo "avg_snr        : 38.063 "
+echo "phy_rate       : 680 Mbps"
+echo "turbo_status   : 0  ( 0x0 )"
+echo "== end gen_node_ext_status ==========================="
+fi
+
+if [ "$1" == get ] && [ "$2" == --gen_node_ext_status ] && [ "$3" == index ] \
+    && [ "$4" == 1 ] && [ "$5" == profile_type ] && [ "$6" == 14 ]; then
+echo "== gen_node_ext_status =============================== "
+echo "node           : 1  00:01:00:11:23:33"
+echo "profile_type   : TX Broadcast VLPER "
+echo "nbas           : 4592  ( 0x11f0 )"
+echo "preamble_type  : 9  ( 0x9 )"
+echo "cp             : 26  ( 0x1a )"
+echo "tx_power       : -27 dBm "
+echo "rx_power       : 0.000 dBm"
+echo "bit_loading[64]: "
+echo "256 - 287:  00000000000007777778778888888888"
+echo "288 - 319:  88888888889999999999999999999999"
+echo "320 - 351:  9999a9aaa9aaaaaaaaaaaaaaaaaaaaaa"
+echo "352 - 383:  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+echo "384 - 415:  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+echo "416 - 447:  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+echo "448 - 479:  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+echo "480 - 511:  aaaaaaaaaaaaaaaaaaaaaaaaaaa99000"
+echo "000 - 031:  0000999999999999999999999aaaaaaa"
+echo "032 - 063:  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+echo "064 - 095:  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+echo "096 - 127:  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+echo "128 - 159:  9aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+echo "160 - 191:  aaaaaaaaaaaaaaaaaaaaaa99aaaa9999"
+echo "192 - 223:  99999999999999999999999988888888"
+echo "224 - 255:  88888888888888878777000000000000"
+echo "avg_snr        : 0.000 "
+echo "phy_rate       : 670 Mbps "
+echo "turbo_status   : 0  ( 0x0 )"
+echo "== end gen_node_ext_status =========================== "
+fi
+
+if [ "$1" == get ] && [ "$2" == --gen_node_ext_status ] && [ "$3" == index ] \
+    && [ "$4" == 1 ] && [ "$5" == profile_type ] && [ "$6" == 8 ]; then
+echo "== gen_node_ext_status =============================== "
+echo "node           : 1  00:01:00:11:23:33"
+echo "profile_type   : RX Broadcast VLPER"
+echo "nbas           : 4592  ( 0x11f0 )"
+echo "preamble_type  : 9  ( 0x9 )"
+echo "cp             : 26  ( 0x1a )"
+echo "tx_power       : 0 dBm "
+echo "rx_power       : -25.100 dBm"
+echo "bit_loading[64]: "
+echo "256 - 287:  00000000000007777788888888888888"
+echo "288 - 319:  88888888898999999999999999999999"
+echo "320 - 351:  99999aaaa9aaaaaaaaaaaaaaaaaaaaaa"
+echo "352 - 383:  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+echo "384 - 415:  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+echo "416 - 447:  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+echo "448 - 479:  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+echo "480 - 511:  aaaaaaaaaaaaaaaaaaaaaaaa9a999000"
+echo "000 - 031:  00009999999999999999999aaaaaaaaa"
+echo "032 - 063:  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+echo "064 - 095:  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+echo "096 - 127:  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+echo "128 - 159:  9aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+echo "160 - 191:  aaaaaaaaaaaaaaaaa9aaa99999a99999"
+echo "192 - 223:  99999999999999999999999998988888"
+echo "224 - 255:  88888888888888887777000000000000"
+echo "avg_snr        : 37.188 "
+echo "phy_rate       : 690 Mbps "
+echo "turbo_status   : 0  ( 0x0 )"
+echo "== end gen_node_ext_status ==========================="
+fi
+
+# --------------- Node 4 ------------------------
+
+if [ "$1" == get ] && [ "$2" == --node_stats ] && [ "$3" == 4 ]; then
+echo "Node 4  00:01:00:11:23:44"
+echo "== node_stats  ======================================== "
+echo "tx_packets       : 7"
+echo "rx_packets       : 8"
+echo "rx_cw_unerror    : 9"
+echo "rx_cw_corrected  : 10"
+echo "rx_cw_uncorrected: 11"
+echo "rx_no_sync       : 12"
+echo "== end node_stats  ==================================== "
+fi
+
+exit 0

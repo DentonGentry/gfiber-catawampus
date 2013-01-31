@@ -23,27 +23,29 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import unittest
 import google3
 import tr.session
-import brcmmoca
+import brcmmoca2
 import netdev
 
 
 class MocaTest(unittest.TestCase):
-  """Tests for brcmmoca.py."""
+  """Tests for brcmmoca2.py."""
 
   def setUp(self):
-    self.old_MOCACTL = brcmmoca.MOCACTL
-    self.old_PYNETIFCONF = brcmmoca.PYNETIFCONF
+    self.old_MOCAP = brcmmoca2.MOCAP
+    self.old_PYNETIFCONF = brcmmoca2.PYNETIFCONF
     self.old_PROC_NET_DEV = netdev.PROC_NET_DEV
+    brcmmoca2.MOCAP = 'testdata/brcmmoca2/mocap'
+    brcmmoca2.PYNETIFCONF = MockPynet
+    netdev.PROC_NET_DEV = 'testdata/brcmmoca2/proc/net/dev'
     tr.session.cache.flush()
 
   def tearDown(self):
-    brcmmoca.MOCACTL = self.old_MOCACTL
-    brcmmoca.PYNETIFCONF = self.old_PYNETIFCONF
+    brcmmoca2.MOCAP = self.old_MOCAP
+    brcmmoca2.PYNETIFCONF = self.old_PYNETIFCONF
     netdev.PROC_NET_DEV = self.old_PROC_NET_DEV
 
   def testMocaInterfaceStatsGood(self):
-    netdev.PROC_NET_DEV = 'testdata/brcmmoca/proc/net/dev'
-    moca = brcmmoca.BrcmMocaInterfaceStatsLinux26('foo0')
+    moca = brcmmoca2.BrcmMocaInterfaceStatsLinux26('foo0')
     moca.ValidateExports()
 
     self.assertEqual(moca.BroadcastPacketsReceived, None)
@@ -63,8 +65,7 @@ class MocaTest(unittest.TestCase):
     self.assertEqual(moca.UnknownProtoPacketsReceived, None)
 
   def testMocaInterfaceStatsNonexistent(self):
-    netdev.PROC_NET_DEV = 'testdata/brcmmoca/proc/net/dev'
-    moca = brcmmoca.BrcmMocaInterfaceStatsLinux26('doesnotexist0')
+    moca = brcmmoca2.BrcmMocaInterfaceStatsLinux26('doesnotexist0')
     exception_raised = False
     try:
       moca.ErrorsReceived
@@ -73,16 +74,14 @@ class MocaTest(unittest.TestCase):
     self.assertTrue(exception_raised)
 
   def testMocaInterface(self):
-    brcmmoca.PYNETIFCONF = MockPynet
-    brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl'
-    netdev.PROC_NET_DEV = 'testdata/brcmmoca/proc/net/dev'
-    moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=False)
+    moca = brcmmoca2.BrcmMocaInterface(ifname='foo0', upstream=False)
     moca.ValidateExports()
     self.assertEqual(moca.Name, 'foo0')
     self.assertEqual(moca.LowerLayers, '')
     self.assertFalse(moca.Upstream)
     self.assertEqual(moca.MACAddress, MockPynet.v_mac)
-    moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=True)
+    self.assertEqual(moca.MaxNodes, 16)
+    moca = brcmmoca2.BrcmMocaInterface(ifname='foo0', upstream=True)
     self.assertTrue(moca.Upstream)
     MockPynet.v_is_up = True
     MockPynet.v_link_up = True
@@ -92,131 +91,118 @@ class MocaTest(unittest.TestCase):
     MockPynet.v_is_up = False
     self.assertEqual(moca.Status, 'Down')
     self.assertEqual(moca.FirmwareVersion, '5.6.789')
-    self.assertEqual(moca.HighestVersion, '1.1')
-    self.assertEqual(moca.CurrentVersion, '1.1')
-    self.assertEqual(moca.BackupNC, '5')
+    self.assertEqual(moca.HighestVersion, '2.0')
+    self.assertEqual(moca.CurrentVersion, '2.0')
+    self.assertEqual(moca.BackupNC, 5)
+    self.assertEqual(moca.LastChange, 6090)
+    self.assertEqual(moca.PreferredNC, False)
     self.assertFalse(moca.PrivacyEnabled)
-    self.assertEqual(moca.CurrentOperFreq, 999)
-    self.assertEqual(moca.LastOperFreq, 899)
+    self.assertEqual(moca.CurrentOperFreq, 575000000)
+    self.assertEqual(moca.LastOperFreq, 575000000)
     self.assertEqual(moca.NetworkCoordinator, 1)
     self.assertEqual(moca.NodeID, 2)
     self.assertTrue(moca.QAM256Capable)
-    self.assertEqual(moca.PacketAggregationCapability, 10)
+    self.assertEqual(moca.PacketAggregationCapability, 20)
     # Read-only parameter
     self.assertRaises(AttributeError, setattr, moca, 'QAM256Capable', True)
 
-  def testMocaInterfaceCache(self):
-    brcmmoca.PYNETIFCONF = MockPynet
-    brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl'
-    netdev.PROC_NET_DEV = 'testdata/brcmmoca/proc/net/dev'
-    moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=False)
-    self.assertEqual(moca.FirmwareVersion, '5.6.789')
-    self.assertEqual(moca.HighestVersion, '1.1')
-    self.assertEqual(moca.CurrentVersion, '1.1')
-    self.assertFalse(moca.PrivacyEnabled)
-    self.assertEqual(moca.CurrentOperFreq, 999)
-
   def testMocaInterfaceAlt(self):
-    brcmmoca.PYNETIFCONF = MockPynet
-    brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl_alt'
-    moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=False)
+    brcmmoca2.MOCAP = 'testdata/brcmmoca2/mocap_alt'
+    moca = brcmmoca2.BrcmMocaInterface(ifname='foo0', upstream=False)
     self.assertEqual(moca.HighestVersion, '1.0')
-    self.assertEqual(moca.CurrentVersion, '2.0')
-    self.assertEqual(moca.BackupNC, '2')
+    self.assertEqual(moca.CurrentVersion, '1.0')
+    self.assertEqual(moca.BackupNC, 2)
+    self.assertEqual(moca.PreferredNC, True)
     self.assertTrue(moca.PrivacyEnabled)
     self.assertFalse(moca.QAM256Capable)
     self.assertEqual(moca.PacketAggregationCapability, 7)
 
   def testMocaInterfaceMocaCtlFails(self):
-    brcmmoca.PYNETIFCONF = MockPynet
-    brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl_fail'
-    moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=False)
+    brcmmoca2.MOCAP = 'testdata/brcmmoca2/mocap_fail'
+    moca = brcmmoca2.BrcmMocaInterface(ifname='foo0', upstream=False)
     self.assertEqual(moca.FirmwareVersion, '0')
     self.assertEqual(moca.HighestVersion, '0.0')
     self.assertEqual(moca.CurrentVersion, '0.0')
-    self.assertEqual(moca.BackupNC, '')
+    self.assertEqual(moca.BackupNC, 0)
     self.assertFalse(moca.PrivacyEnabled)
     self.assertFalse(moca.QAM256Capable)
     self.assertEqual(moca.PacketAggregationCapability, 0)
 
   def testLastChange(self):
-    brcmmoca.PYNETIFCONF = MockPynet
-    moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=False)
-    brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl_up1'
-    self.assertEqual(moca.LastChange, 6090)
+    moca = brcmmoca2.BrcmMocaInterface(ifname='foo0', upstream=False)
+    brcmmoca2.MOCAP = 'testdata/brcmmoca2/mocap_uptime'
+    self.assertEqual(moca.LastChange, 119728800)
 
   def testAssociatedDevice(self):
-    brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl'
-    moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=False)
+    moca = brcmmoca2.BrcmMocaInterface(ifname='foo0', upstream=False)
     self.assertEqual(2, moca.AssociatedDeviceNumberOfEntries)
 
-    ad = moca.GetAssociatedDevice(0)
+    ad = moca.GetAssociatedDevice(1)
     ad.ValidateExports()
+    self.assertTrue(ad.Active)
     self.assertEqual(ad.MACAddress, '00:01:00:11:23:33')
-    self.assertEqual(ad.NodeID, 0)
-    self.assertEqual(ad.PreferredNC, False)
-    self.assertEqual(ad.PHYTxRate, 293)
-    self.assertEqual(ad.PHYRxRate, 291)
-    self.assertEqual(ad.TxPowerControlReduction, 3)
-    self.assertEqual(ad.RxPowerLevel, 4)
-    self.assertEqual(ad.X_CATAWAMPUS_ORG_RxPowerLevel_dBm, 4.5)
-    self.assertEqual(ad.TxBcastRate, 290)
-    self.assertEqual(ad.RxBcastPowerLevel, 2)
-    self.assertEqual(ad.X_CATAWAMPUS_ORG_RxBcastPowerLevel_dBm, 2.5)
+    self.assertEqual(ad.NodeID, 1)
+    self.assertEqual(ad.PHYTxRate, 690)
+    self.assertEqual(ad.PHYRxRate, 680)
+    self.assertEqual(ad.RxPowerLevel, 25)
+    self.assertEqual(ad.X_CATAWAMPUS_ORG_RxPowerLevel_dBm, -25.250)
+    self.assertEqual(ad.TxBcastRate, 670)
+    self.assertEqual(ad.RxBcastPowerLevel, 25)
+    self.assertEqual(ad.X_CATAWAMPUS_ORG_RxBcastPowerLevel_dBm, -25.100)
     self.assertEqual(ad.TxPackets, 1)
     self.assertEqual(ad.RxPackets, 2)
     self.assertEqual(ad.RxErroredAndMissedPackets, 11)
-    self.assertEqual(ad.QAM256Capable, True)
-    self.assertEqual(ad.PacketAggregationCapability, 10)
-    self.assertEqual(ad.RxSNR, 39)
-    self.assertEqual(ad.X_CATAWAMPUS_ORG_RxSNR_dB, 39.5)
+    self.assertEqual(ad.RxSNR, 38)
+    self.assertEqual(ad.X_CATAWAMPUS_ORG_RxSNR_dB, 38.063)
     self.assertEqual(
         ad.X_CATAWAMPUS_ORG_TxBitloading,
-        '$BRCM1$'
-        '11111111111111111111111111111111'
+        '$BRCM2$'
+        '00001111111111111111111111111111'
         '22222222222222222222222222222222'
         '33333333333333333333333333333333'
         '44444444444444444444444444444444'
-        '66666666666666666666666666666666'
         '55555555555555555555555555555555'
+        '66666666666666666666666666666666'
         '77777777777777777777777777777777'
-        '88888888888888888888888888888888')
-    self.assertEqual(
-        ad.X_CATAWAMPUS_ORG_RxBitloading,
-        '$BRCM1$'
+        '88888888888888888888888888888888'
         '99999999999999999999999999999999'
         'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
         'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
         'cccccccccccccccccccccccccccccccc'
-        'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
         'dddddddddddddddddddddddddddddddd'
+        'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
         'ffffffffffffffffffffffffffffffff'
         '00002222222222222222222222222222')
+    self.assertEqual(
+        ad.X_CATAWAMPUS_ORG_RxBitloading,
+        '$BRCM2$'
+        '11111111111111111111111111110000'
+        '22222222222222222222222222220000'
+        '33333333333333333333333333330000'
+        '44444444444444444444444444440000'
+        '55555555555555555555555555550000'
+        '66666666666666666666666666660000'
+        '77777777777777777777777777770000'
+        '88888888888888888888888888880000'
+        '99999999999999999999999999990000'
+        'aaaaaaaaaaaaaaaaaaaaaaaaaaaa0000'
+        'bbbbbbbbbbbbbbbbbbbbbbbbbbbb0000'
+        'cccccccccccccccccccccccccccc0000'
+        'dddddddddddddddddddddddddddd0000'
+        'eeeeeeeeeeeeeeeeeeeeeeeeeeee0000'
+        'ffffffffffffffffffffffffffff0000'
+        '00000000000000000000000000001111')
 
-    ad = moca.GetAssociatedDevice(1)
+    ad = moca.GetAssociatedDevice(4)
     ad.ValidateExports()
+    self.assertTrue(ad.Active)
     self.assertEqual(ad.MACAddress, '00:01:00:11:23:44')
-    self.assertEqual(ad.NodeID, 1)
-    self.assertEqual(ad.PreferredNC, True)
-    self.assertEqual(ad.PHYTxRate, 283)
-    self.assertEqual(ad.PHYRxRate, 281)
-    self.assertEqual(ad.TxPowerControlReduction, 2)
-    self.assertEqual(ad.RxPowerLevel, 3)
-    self.assertEqual(ad.TxBcastRate, 280)
-    self.assertEqual(ad.RxBcastPowerLevel, 1)
-    self.assertEqual(ad.TxPackets, 7)
-    self.assertEqual(ad.RxPackets, 8)
-    self.assertEqual(ad.RxErroredAndMissedPackets, 23)
-    self.assertEqual(ad.QAM256Capable, False)
-    self.assertEqual(ad.PacketAggregationCapability, 7)
-    self.assertEqual(ad.RxSNR, 38)
+    self.assertEqual(ad.NodeID, 4)
     # read-only parameters
     self.assertRaises(AttributeError, setattr, ad, 'MACAddress', 'foo')
     self.assertRaises(AttributeError, setattr, ad, 'NodeID', 2)
-    self.assertRaises(AttributeError, setattr, ad, 'PreferredNC', False)
     self.assertRaises(AttributeError, setattr, ad, 'PHYTxRate', 1)
     self.assertRaises(AttributeError, setattr, ad, 'PHYRxRate', 1)
-    self.assertRaises(AttributeError, setattr, ad, 'TxPowerControlReduction', 1)
     self.assertRaises(AttributeError, setattr, ad, 'RxPowerLevel', 1)
     self.assertRaises(AttributeError, setattr, ad, 'TxBcastRate', 1)
     self.assertRaises(AttributeError, setattr, ad, 'RxBcastPowerLevel', 1)
@@ -224,10 +210,13 @@ class MocaTest(unittest.TestCase):
     self.assertRaises(AttributeError, setattr, ad, 'RxPackets', 1)
     self.assertRaises(AttributeError, setattr, ad,
                       'RxErroredAndMissedPackets', 1)
-    self.assertRaises(AttributeError, setattr, ad, 'QAM256Capable', True)
-    self.assertRaises(AttributeError, setattr, ad,
-                      'PacketAggregationCapability', 8)
     self.assertRaises(AttributeError, setattr, ad, 'RxSNR', 39)
+
+  def testCombineBitloading(self):
+    bitlines = ['008 - 015:  22222222', '000 - 007:  11111111',
+                '024 - 031:  44444444', '016 - 023:  33333333']
+    self.assertEqual(brcmmoca2._CombineBitloading(bitlines),
+                     '11111111222222223333333344444444')
 
 
 class MockPynet(object):
