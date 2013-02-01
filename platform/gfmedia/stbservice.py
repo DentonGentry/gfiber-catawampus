@@ -47,7 +47,9 @@ PROCNETUDP = '/proc/net/udp'
 CONT_MONITOR_FILES = [
     '/tmp/cwmp/monitoring/ts/tr_135_total_tsstats%d.json',
     '/tmp/cwmp/monitoring/dejittering/tr_135_total_djstats%d.json',
-    '/tmp/cwmp/monitoring/tcp/tr_135_total_tcpstats%d.json']
+    '/tmp/cwmp/monitoring/dejittering/tr_135_total_decoderstats%d.json',
+    '/tmp/cwmp/monitoring/tcp/tr_135_total_tcpstats%d.json',
+    ]
 
 EPG_STATS_FILES = ['/tmp/cwmp/monitoring/epg/tr_135_epg_stats*.json']
 HDMI_STATS_FILE = '/tmp/cwmp/monitoring/hdmi/tr_135_hdmi_stats*.json'
@@ -74,7 +76,7 @@ def UnpackAlanCoxIP(packed):
   464: E1020001:07D0 00000000:0000 07 00000000:00000000 ...
 
   Args:
-    The hex thingy.
+    packed: the hex thingy.
   Returns:
     A conventional dotted quad IP address encoding.
   """
@@ -516,6 +518,11 @@ class Total(CATA135STBTOTAL):
     self._UpdateStats()
     return MulticastStats(self.data.get('MulticastStats', {}), self.udp)
 
+  @property
+  def X_CATAWAMPUS_ORG_DecoderStats(self):
+    self._UpdateStats()
+    return DecoderStats(self.data.get('DecoderStats', {}))
+
   def _UpdateProcNetUDP(self, udp):
     """Parse /proc/net/udp.
 
@@ -526,7 +533,7 @@ class Total(CATA135STBTOTAL):
       0        0 6187 2 b1f64e00 0
 
     Args:
-      a dict to store the parsed (rxq, drops) fields in.
+      udp: a dict to store the parsed (rxq, drops) fields in.
     """
     with open(PROCNETUDP) as f:
       for line in f:
@@ -727,6 +734,94 @@ class ProgMetadata(CATA135STB.X_CATAWAMPUS_ORG_ProgramMetadata):
   @property
   def EPG(self):
     return EPG()
+
+
+class DecoderStats(CATA135STBTOTAL.X_CATAWAMPUS_ORG_DecoderStats):
+  """ServiceMonitoring.MainStream.{i}.Total.X_CATAWAMPUS_ORG_DecoderStats."""
+
+  def __init__(self, data):
+    super(DecoderStats, self).__init__()
+    self.data = data
+
+  @property
+  def VideoBytesDecoded(self):
+    return long(self.data.get('VideoBytesDecoded', 0))
+
+  @property
+  def DecodeDrops(self):
+    return long(self.data.get('DecodeDrops', 0))
+
+  @property
+  def VideoDecodeErrors(self):
+    return long(self.data.get('VideoDecodeErrors', 0))
+
+  @property
+  def DecodeOverflows(self):
+    return long(self.data.get('DecodeOverflows', 0))
+
+  @property
+  def DecodedPictures(self):
+    return long(self.data.get('DecodedPictures', 0))
+
+  @property
+  def DisplayDrops(self):
+    return long(self.data.get('DisplayDrops', 0))
+
+  @property
+  def DisplayErrors(self):
+    return long(self.data.get('DisplayErrors', 0))
+
+  @property
+  def DisplayUnderflows(self):
+    return long(self.data.get('DisplayUnderflows', 0))
+
+  @property
+  def DisplayedPictures(self):
+    return long(self.data.get('DisplayedPictures', 0))
+
+  @property
+  def ReceivedPictures(self):
+    return long(self.data.get('ReceivedPictures', 0))
+
+  @property
+  def VideoWatchdogs(self):
+    return long(self.data.get('VideoWatchdogs', 0))
+
+  @property
+  def VideoPtsStcDifference(self):
+    return long(self.data.get('VideoPtsStcDifference', 0))
+
+  @property
+  def AudioDecodedFrames(self):
+    return long(self.data.get('AudioDecodedFrames', 0))
+
+  @property
+  def AudioDecodeErrors(self):
+    return long(self.data.get('AudioDecodeErrors', 0))
+
+  @property
+  def AudioDummyFrames(self):
+    return long(self.data.get('AudioDummyFrames', 0))
+
+  @property
+  def AudioFifoOverflows(self):
+    return long(self.data.get('AudioFifoOverflows', 0))
+
+  @property
+  def AudioFifoUnderflows(self):
+    return long(self.data.get('AudioFifoUnderflows', 0))
+
+  @property
+  def AudioWatchdogs(self):
+    return long(self.data.get('AudioWatchdogs', 0))
+
+  @property
+  def AudioBytesDecoded(self):
+    return long(self.data.get('AudioBytesDecoded', 0))
+
+  @property
+  def AudioPtsStcDifference(self):
+    return long(self.data.get('AudioPtsStcDifference', 0))
 
 
 class EPG(CATA135STB.X_CATAWAMPUS_ORG_ProgramMetadata.EPG):

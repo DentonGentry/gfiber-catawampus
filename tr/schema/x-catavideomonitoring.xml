@@ -180,6 +180,129 @@
         </syntax>
       </parameter>
     </object>
+    <object name="STBService.{i}.ServiceMonitoring.MainStream.{i}.Total.X_CATAWAMPUS-ORG_DecoderStats." access="readOnly" minEntries="1" maxEntries="1" dmr:previousObject="STBService.{i}.ServiceMonitoring.MainStream.{i}.Total.TCPStats.">
+      <description>Statistics from the Decoder for this ''ServiceMonitoring'' main stream instance.</description>
+      <parameter name="ReceivedPictures" access="readOnly" activeNotify="canDeny">
+        <description>Total number of pictures the decoder has received, whether they were ultimately displayed or not.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="DecodedPictures" access="readOnly" activeNotify="canDeny">
+        <description>Total number of pictures decoded.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="VideoDecodeErrors" access="readOnly" activeNotify="canDeny">
+        <description>Total number of pictures which could not be decoded.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="DecodeOverflows" access="readOnly" activeNotify="canDeny">
+        <description>Total number of times the input queue to the decoder overflowed and pictures were lost.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="DecodeDrops" access="readOnly" activeNotify="canDeny">
+        <description>Total number of pictures dropped by the decoder.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="DisplayedPictures" access="readOnly" activeNotify="canDeny">
+        <description>Total number of pictures actually displayed.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="DisplayErrors" access="readOnly" activeNotify="canDeny">
+        <description>Total number of pictures which could not be displayed, likely resulting in glitching.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="DisplayDrops" access="readOnly" activeNotify="canDeny">
+        <description>Total number of pictures dropped before being displayed.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="DisplayUnderflows" access="readOnly" activeNotify="canDeny">
+        <description>Total number of times the display queue underflowed, resulting in freezing or stuttering.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="VideoWatchdogs" access="readOnly" activeNotify="canDeny">
+        <description>Total number of video watchdog events for this device. (No, we do not know what this means either.)</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="VideoBytesDecoded" access="readOnly" activeNotify="canDeny">
+        <description>Total number of bytes decoded.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="VideoPtsStcDifference" access="readOnly" activeNotify="canDeny">
+        <description>Current PTS-STC difference, including lipsync adjustments.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="AudioDecodedFrames" access="readOnly" activeNotify="canDeny">
+        <description>Total number of audio frames decoded.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="AudioDecodeErrors" access="readOnly" activeNotify="canDeny">
+        <description>Total number of errors in decoding audio frames.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="AudioDummyFrames" access="readOnly" activeNotify="canDeny">
+          <description>Total number of dummy frames filled by the decoder.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="AudioFifoOverflows" access="readOnly" activeNotify="canDeny">
+          <description>Total number of FIFO overflows.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="AudioFifoUnderflows" access="readOnly" activeNotify="canDeny">
+          <description>Total number of FIFO underflows.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="AudioWatchdogs" access="readOnly" activeNotify="canDeny">
+          <description>Total number of watchdog events for the audio decoder.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="AudioBytesDecoded" access="readOnly" activeNotify="canDeny">
+          <description>Total number of elementary stream bytes decoded.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="AudioPtsStcDifference" access="readOnly" activeNotify="canDeny">
+          <description>Current PTS-STC difference including lipsync adjustments.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+    </object>
     <object name="STBService.{i}.Components.HDMI.{i}.DisplayDevice." access="readOnly" minEntries="0" maxEntries="1" >
       <parameter name="X_GOOGLE-COM_NegotiationCount4" access="readOnly">
         <description>Number of times the HDMI/HDCP connection has renegotiated in the last 4 hours.</description>

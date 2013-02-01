@@ -365,6 +365,56 @@ class STBServiceTest(unittest.TestCase):
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_LastUpdateTimestamp,
                        '0001-01-01T00:00:00Z')
 
+  def testDecoderStats(self):
+    """Test whether Decoder stats are deserialized."""
+    stb = stbservice.STBService()
+    self.assertEqual(stb.ServiceMonitoring.MainStreamNumberOfEntries, 9)
+    ml = stb.ServiceMonitoring.MainStreamList
+    for i in range(1, 7):
+      stats = ml[i].Total.X_CATAWAMPUS_ORG_DecoderStats
+      self.assertEqual(stats.VideoBytesDecoded, 13)
+      self.assertEqual(stats.DecodeDrops, 7)
+      self.assertEqual(stats.VideoDecodeErrors, 5)
+      self.assertEqual(stats.DecodeOverflows, 6)
+      self.assertEqual(stats.DecodedPictures, 4)
+      self.assertEqual(stats.DisplayErrors, 9)
+      self.assertEqual(stats.DisplayDrops, 10)
+      self.assertEqual(stats.DisplayUnderflows, 11)
+      self.assertEqual(stats.DisplayedPictures, 8)
+      self.assertEqual(stats.ReceivedPictures, 3)
+      self.assertEqual(stats.VideoWatchdogs, 12)
+      self.assertEqual(stats.VideoPtsStcDifference, 14)
+      self.assertEqual(stats.AudioDecodedFrames, 15)
+      self.assertEqual(stats.AudioDecodeErrors, 16)
+      self.assertEqual(stats.AudioDummyFrames, 17)
+      self.assertEqual(stats.AudioFifoOverflows, 18)
+      self.assertEqual(stats.AudioFifoUnderflows, 19)
+      self.assertEqual(stats.AudioWatchdogs, 20)
+      self.assertEqual(stats.AudioBytesDecoded, 21)
+      self.assertEqual(stats.AudioPtsStcDifference, 22)
+    for i in range(7, 9):
+      stats = ml[i].Total.X_CATAWAMPUS_ORG_DecoderStats
+      self.assertEqual(stats.VideoBytesDecoded, 0)
+      self.assertEqual(stats.DecodeDrops, 0)
+      self.assertEqual(stats.VideoDecodeErrors, 0)
+      self.assertEqual(stats.DecodeOverflows, 0)
+      self.assertEqual(stats.DecodedPictures, 0)
+      self.assertEqual(stats.DisplayErrors, 0)
+      self.assertEqual(stats.DisplayDrops, 0)
+      self.assertEqual(stats.DisplayUnderflows, 0)
+      self.assertEqual(stats.DisplayedPictures, 0)
+      self.assertEqual(stats.ReceivedPictures, 0)
+      self.assertEqual(stats.VideoWatchdogs, 0)
+      self.assertEqual(stats.VideoPtsStcDifference, 0)
+      self.assertEqual(stats.AudioDecodedFrames, 0)
+      self.assertEqual(stats.AudioDecodeErrors, 0)
+      self.assertEqual(stats.AudioDummyFrames, 0)
+      self.assertEqual(stats.AudioFifoOverflows, 0)
+      self.assertEqual(stats.AudioFifoUnderflows, 0)
+      self.assertEqual(stats.AudioWatchdogs, 0)
+      self.assertEqual(stats.AudioBytesDecoded, 0)
+      self.assertEqual(stats.AudioPtsStcDifference, 0)
+
   def testHDMIStatsAll(self):
     """Test deserialization of all HDMI stats parameters."""
     stb = stbservice.STBService()
