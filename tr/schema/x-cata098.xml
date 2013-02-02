@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  TR-181 catawampus.org vendor extension
+-->
+
+<dm:document xmlns:dm="urn:broadband-forum-org:cwmp:datamodel-1-3" 
+    xmlns:dmr="urn:broadband-forum-org:cwmp:datamodel-report-0-1" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xsi:schemaLocation="urn:broadband-forum-org:cwmp:datamodel-1-3 cwmp-datamodel-1-3.xsd 
+                        urn:broadband-forum-org:cwmp:datamodel-report-0-1 cwmp-datamodel-report.xsd" 
+    spec="urn:catawampus-org:x-catawampus-tr098-1-0">
+  <description>InternetGatewayDevice data model (Catawampus additions).</description>
+
+  <import file="tr-098-1-6.xml" spec="urn:broadband-forum-org:tr-098-1-6">
+    <model name="InternetGatewayDevice:1.12"/>
+  </import>
+
+  <model name="X_CATAWAMPUS-ORG_InternetGatewayDevice:1.0" base="InternetGatewayDevice:1.12">
+    <object base="InternetGatewayDevice.LANDevice.{i}.WLANConfiguration.{i}.AssociatedDevice.{i}." access="readOnly" minEntries="0" maxEntries="unbounded" numEntriesParameter="TotalAssociations">
+      <parameter name="X_CATAWAMPUS-ORG_LastDataDownlinkRate" access="readOnly" activeNotify="canDeny">
+        <description>The data transmit rate in {{units}} that was most recently used for transmission from the access point to the associated device. (Taken from tr-181-2-0).</description>
+        <syntax>
+          <unsignedInt>
+            <range minInclusive="1000" maxInclusive="600000"/>
+            <units value="kbps"/>
+          </unsignedInt>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_LastDataUplinkRate" access="readOnly" activeNotify="canDeny">
+        <description>The data transmit rate in {{units}} that was most recently used for transmission from the associated device to the access point. (Taken from tr-181-2-0).</description>
+        <syntax>
+          <unsignedInt>
+            <range minInclusive="1000" maxInclusive="600000"/>
+            <units value="kbps"/>
+          </unsignedInt>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_Active" access="readOnly">
+        <description>Whether or not this node is currently present in the WiFi AccessPoint network.
+The ability to list inactive nodes is OPTIONAL. If the CPE includes inactive nodes in this table, {{param}} MUST be set to {{false}} for each inactive node. The length of time an inactive node remains listed in this table is a local matter to the CPE. (Taken from tr-181-2-0).</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+
+    </object>
+  </model>
+</dm:document>

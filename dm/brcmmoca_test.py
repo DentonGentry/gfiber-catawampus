@@ -46,8 +46,8 @@ class MocaTest(unittest.TestCase):
     moca = brcmmoca.BrcmMocaInterfaceStatsLinux26('foo0')
     moca.ValidateExports()
 
-    self.assertEqual(moca.BroadcastPacketsReceived, None)
-    self.assertEqual(moca.BroadcastPacketsSent, None)
+    self.assertEqual(moca.BroadcastPacketsReceived, 0)
+    self.assertEqual(moca.BroadcastPacketsSent, 0)
     self.assertEqual(moca.BytesReceived, 1)
     self.assertEqual(moca.BytesSent, 9)
     self.assertEqual(moca.DiscardPacketsReceived, 4)
@@ -55,12 +55,12 @@ class MocaTest(unittest.TestCase):
     self.assertEqual(moca.ErrorsReceived, 9)
     self.assertEqual(moca.ErrorsSent, 12)
     self.assertEqual(moca.MulticastPacketsReceived, 8)
-    self.assertEqual(moca.MulticastPacketsSent, None)
+    self.assertEqual(moca.MulticastPacketsSent, 0)
     self.assertEqual(moca.PacketsReceived, 100)
     self.assertEqual(moca.PacketsSent, 10)
     self.assertEqual(moca.UnicastPacketsReceived, 92)
     self.assertEqual(moca.UnicastPacketsSent, 10)
-    self.assertEqual(moca.UnknownProtoPacketsReceived, None)
+    self.assertEqual(moca.UnknownProtoPacketsReceived, 0)
 
   def testMocaInterfaceStatsNonexistent(self):
     netdev.PROC_NET_DEV = 'testdata/brcmmoca/proc/net/dev'

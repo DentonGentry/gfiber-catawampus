@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # unittest requires method names starting in 'test'
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """Unit tests for tr-181 Ethernet.* implementation."""
 
@@ -46,8 +46,8 @@ class EthernetTest(unittest.TestCase):
     eth = ethernet.EthernetInterfaceStatsLinux26('foo0')
     eth.ValidateExports()
 
-    self.assertEqual(eth.BroadcastPacketsReceived, None)
-    self.assertEqual(eth.BroadcastPacketsSent, None)
+    self.assertEqual(eth.BroadcastPacketsReceived, 0)
+    self.assertEqual(eth.BroadcastPacketsSent, 0)
     self.assertEqual(eth.BytesReceived, 1)
     self.assertEqual(eth.BytesSent, 9)
     self.assertEqual(eth.DiscardPacketsReceived, 4)
@@ -55,12 +55,12 @@ class EthernetTest(unittest.TestCase):
     self.assertEqual(eth.ErrorsReceived, 9)
     self.assertEqual(eth.ErrorsSent, 12)
     self.assertEqual(eth.MulticastPacketsReceived, 8)
-    self.assertEqual(eth.MulticastPacketsSent, None)
+    self.assertEqual(eth.MulticastPacketsSent, 0)
     self.assertEqual(eth.PacketsReceived, 100)
     self.assertEqual(eth.PacketsSent, 10)
     self.assertEqual(eth.UnicastPacketsReceived, 92)
     self.assertEqual(eth.UnicastPacketsSent, 10)
-    self.assertEqual(eth.UnknownProtoPacketsReceived, None)
+    self.assertEqual(eth.UnknownProtoPacketsReceived, 0)
 
   def testInterfaceStatsNonexistent(self):
     netdev.PROC_NET_DEV = 'testdata/ethernet/net_dev'

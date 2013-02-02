@@ -1,6 +1,0 @@
-#!/bin/sh
-
-if [ x"$3" = "xinterference" ] ; then
-  echo "All interference mitigation is disabled. (mode 0)"
-fi
-exit 0
