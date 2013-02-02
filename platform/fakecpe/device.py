@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """Device Models for a simulated CPE."""
 
@@ -32,6 +32,8 @@ import tornado.ioloop
 import tr.core
 import tr.download
 import tr.tr181_v2_2 as tr181
+import fakewifi
+
 
 FAKECPEINSTANCE = None
 INTERNAL_ERROR = 9002
@@ -221,7 +223,7 @@ class InternetGatewayDeviceFakeCPE(BASE98IGD):
     self.Unexport(objects='DownloadDiagnostics')
     self.Unexport(objects='IPPingDiagnostics')
     self.Unexport(objects='LANConfigSecurity')
-    self.Unexport(lists='LANDevice')
+    self.LANDeviceList = {'1': LANDevice()}
     self.Unexport(objects='LANInterfaces')
     self.Unexport(objects='Layer2Bridging')
     self.Unexport(objects='Layer3Forwarding')
@@ -241,10 +243,36 @@ class InternetGatewayDeviceFakeCPE(BASE98IGD):
 
   @property
   def LANDeviceNumberOfEntries(self):
-    return 0
+    return len(self.LANDeviceList)
 
   @property
   def WANDeviceNumberOfEntries(self):
+    return 0
+
+
+class LANDevice(BASE98IGD.LANDevice):
+  """tr-98 InternetGatewayDevice for FakeCPE platforms."""
+
+  def __init__(self):
+    super(LANDevice, self).__init__()
+    self.Unexport('Alias')
+    self.Unexport(objects='Hosts')
+    self.Unexport(lists='LANEthernetInterfaceConfig')
+    self.Unexport(objects='LANHostConfigManagement')
+    self.Unexport(lists='LANUSBInterfaceConfig')
+    wifi = fakewifi.FakeWifiWlanConfiguration()
+    self.WLANConfigurationList = {'1': wifi}
+
+  @property
+  def LANWLANConfigurationNumberOfEntries(self):
+    return len(self.WLANConfigurationList)
+
+  @property
+  def LANEthernetInterfaceNumberOfEntries(self):
+    return 0
+
+  @property
+  def LANUSBInterfaceNumberOfEntries(self):
     return 0
 
 
