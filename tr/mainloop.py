@@ -140,7 +140,11 @@ class LineReader(object):
     except EOFError:
       self.stream.close()
       return
-    self._StartRead()
+
+    try:
+      self._StartRead()
+    except IOError:
+      self.stream.close()
 
   def Write(self, bytestring):
     return self.stream.write(bytestring)
