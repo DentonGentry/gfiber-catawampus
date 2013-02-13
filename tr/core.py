@@ -417,12 +417,12 @@ class Exporter(object):
     Args:
       param: the parameter whose attribute is going to be set.
       attr: dict of key/value pairs of attributes and
-            the values to set
+            the values to set.
     Returns:
       True:  If the object handled setting the attribute.
       False:  If the object does not hanlde setting the attribute.
     """
-    obj = self.GetExport(param)
+    obj, name = self.FindExport(param)
     if not hasattr(obj, 'SetAttributes'):
       return False
     obj.SetAttributes(attrs)

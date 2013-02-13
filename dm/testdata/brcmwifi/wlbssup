@@ -1,6 +1,0 @@
-#!/bin/sh
-
-if [ x"$3" = "xbss" ] ; then
-  echo "up"
-fi
-exit 0

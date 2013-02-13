@@ -69,13 +69,13 @@ class TemperatureTest(unittest.TestCase):
   """Tests for temperature.py."""
 
   def setUp(self):
-    self.old_HDPARM = temperature.HDPARM
+    self.old_HDDTEMPERATURE = temperature.HDDTEMPERATURE
     self.old_PERIODICCALL = temperature.PERIODICCALL
     self.old_TIMENOW = temperature.TIMENOW
-    temperature.HDPARM = 'testdata/temperature/hdparm-H'
+    temperature.HDDTEMPERATURE = 'testdata/temperature/hdd-temperature'
 
   def tearDown(self):
-    temperature.HDPARM = self.old_HDPARM
+    temperature.HDDTEMPERATURE = self.old_HDDTEMPERATURE
     temperature.PERIODICCALL = self.old_PERIODICCALL
     temperature.TIMENOW = self.old_TIMENOW
 

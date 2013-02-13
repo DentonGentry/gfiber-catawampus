@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """Implementation of tr-98/181 WLAN objects for Broadcom Wifi chipsets.
 
@@ -38,11 +38,15 @@ import tr.core
 import tr.cwmpbool
 import tr.session
 import tr.tr098_v1_4
+import tr.x_catawampus_tr098_1_0
 import netdev
 import wifi
 
 BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
 BASE98WIFI = BASE98IGD.LANDevice.WLANConfiguration
+CATA98 = tr.x_catawampus_tr098_1_0.X_CATAWAMPUS_ORG_InternetGatewayDevice_v1_0
+CATA98WIFI = CATA98.InternetGatewayDevice.LANDevice.WLANConfiguration
+
 
 # Supported Encryption Modes
 EM_NONE = 0
@@ -67,13 +71,17 @@ BASICENCRYPTIONS = frozenset(['None', 'WEPEncryption'])
 BASICAUTHMODES = frozenset(['None', 'SharedAuthentication'])
 WPAAUTHMODES = frozenset(['PSKAuthentication'])
 
+# regular expressions
+TX_RE = re.compile(r'rate of last tx pkt: (\d+) kbps')
+RX_RE = re.compile(r'rate of last rx pkt: (\d+) kbps')
+IDLE_RE = re.compile(r'idle (\d+) seconds')
 
-def IsInteger(value):
+
+def IntOrZero(value):
   try:
-    int(value)
-  except:  #pylint: disable-msg=W0702
-    return False
-  return True
+    return int(value)
+  except ValueError:
+    return 0
 
 
 class WifiConfig(object):
@@ -89,7 +97,8 @@ class Wl(object):
 
   This object cannot retain any state about the Wifi configuration, as
   both tr-98 and tr-181 can have instances of this object. It has to
-  consult the wl utility for all state information."""
+  consult the wl utility for all state information.
+  """
 
   def __init__(self, interface):
     self._if = interface
@@ -104,18 +113,19 @@ class Wl(object):
     return out
 
   def GetWlCounters(self):
+    """Returns a dict() with the value of every 'wl counters' stat."""
     out = self._SubprocessWithOutput(['counters'])
 
     # match three different types of stat output:
     # rxuflo: 1 2 3 4 5 6
     # rxfilter 1
     # d11_txretrie
-    st = re.compile('(\w+:?(?: \d+)*)')
+    st = re.compile(r'(\w+:?(?: \d+)*)')
 
     stats = st.findall(out)
-    r1 = re.compile('(\w+): (.+)')
-    r2 = re.compile('(\w+) (\d+)')
-    r3 = re.compile('(\w+)')
+    r1 = re.compile(r'(\w+): (.+)')
+    r2 = re.compile(r'(\w+) (\d+)')
+    r3 = re.compile(r'(\w+)')
     sdict = dict()
     for stat in stats:
       p1 = r1.match(stat)
@@ -159,7 +169,7 @@ class Wl(object):
   def GetAssociatedDevices(self):
     """Return a list of MAC addresses of associated STAs."""
     out = self._SubprocessWithOutput(['assoclist'])
-    stamac_re = re.compile('((?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})')
+    stamac_re = re.compile(r'((?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})')
     stations = list()
     for line in out.splitlines():
       sta = stamac_re.search(line)
@@ -177,30 +187,35 @@ class Wl(object):
       An AssociatedDevice namedtuple.
     """
     ad = collections.namedtuple(
-        'AssociatedDevice', ('AssociatedDeviceMACAddress '
-                             'AssociatedDeviceAuthenticationState '
-                             'LastDataTransmitRate'))
-    ad.AssociatedDeviceMACAddress = mac
-    ad.AssociatedDeviceAuthenticationState = False
-    ad.LastDataTransmitRate = '0'
+        'AssociatedDevice', ('MACAddress'
+                             'AuthenticationState'
+                             'LastTransmitKbps',
+                             'LastReceiveKbps',
+                             'IdleSeconds'))
+    ad.MACAddress = mac
+    ad.AuthenticationState = False
+    ad.LastTransmitKbps = 0
+    ad.LastReceiveKbps = 0
+    ad.IdleSeconds = 0
     out = self._SubprocessWithOutput(['sta_info', mac.upper()])
-    tx_re = re.compile('rate of last tx pkt: (\d+) kbps')
     for line in out.splitlines():
-      if line.find('AUTHENTICATED') >= 0:
-        ad.AssociatedDeviceAuthenticationState = True
-      tx_rate = tx_re.search(line)
+      if 'AUTHENTICATED' in line:
+        ad.AuthenticationState = True
+      tx_rate = TX_RE.search(line)
       if tx_rate is not None:
-        try:
-          mbps = int(tx_rate.group(1)) / 1000
-        except ValueError:
-          mbps = 0
-        ad.LastDataTransmitRate = str(mbps)
+        ad.LastTransmitKbps = IntOrZero(tx_rate.group(1))
+      rx_rate = RX_RE.search(line)
+      if rx_rate is not None:
+        ad.LastReceiveKbps = IntOrZero(rx_rate.group(1))
+      idle = IDLE_RE.search(line)
+      if idle is not None:
+        ad.IdleSeconds = IntOrZero(idle.group(1))
     return ad
 
   def GetAutoRateFallBackEnabled(self):
     """Return WLANConfiguration.AutoRateFallBackEnabled as a boolean."""
     out = self._SubprocessWithOutput(['interference'])
-    mode_re = re.compile('\(mode (\d)\)')
+    mode_re = re.compile(r'\(mode (\d)\)')
     result = mode_re.search(out)
     mode = -1
     if result is not None:
@@ -214,12 +229,12 @@ class Wl(object):
 
   def GetBasicDataTransmitRates(self):
     out = self._SubprocessWithOutput(['rateset'])
-    basic_re = re.compile('([0123456789]+(?:\.[0123456789]+)?)\(b\)')
+    basic_re = re.compile(r'([0123456789]+(?:\.[0123456789]+)?)\(b\)')
     return ','.join(basic_re.findall(out))
 
   def GetBSSID(self):
     out = self._SubprocessWithOutput(['bssid'])
-    bssid_re = re.compile('((?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})')
+    bssid_re = re.compile(r'((?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})')
     for line in out.splitlines():
       bssid = bssid_re.match(line)
       if bssid is not None:
@@ -233,7 +248,7 @@ class Wl(object):
     lower = value.lower()
     if lower == '00:00:00:00:00:00' or lower == 'ff:ff:ff:ff:ff:ff':
       return False
-    bssid_re = re.compile('((?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})')
+    bssid_re = re.compile(r'((?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})')
     if bssid_re.search(value) is None:
       return False
     return True
@@ -254,7 +269,7 @@ class Wl(object):
 
   def GetChannel(self):
     out = self._SubprocessWithOutput(['channel'])
-    chan_re = re.compile('current mac channel(?:\s+)(\d+)')
+    chan_re = re.compile(r'current mac channel(?:\s+)(\d+)')
     for line in out.splitlines():
       mr = chan_re.match(line)
       if mr is not None:
@@ -262,21 +277,20 @@ class Wl(object):
     return 0
 
   def SetChannel(self, value):
-    self._SubprocessCall(['channel', value])
+    self._SubprocessCall(['channel', str(value)])
 
   def ValidateChannel(self, value):
-    if not IsInteger(value):
-      return False
-    iv = int(value)
-    if iv in range(1, 14):
+    """Check for a valid Wifi channel number."""
+    if value in range(1, 14):
       return True  # 2.4 GHz. US allows 1-11, Japan allows 1-13.
-    if iv in range(36, 144, 4):
+    if value in range(36, 144, 4):
       return True  # 5 GHz lower bands
-    if iv in range(149, 169, 4):
+    if value in range(149, 169, 4):
       return True  # 5 GHz upper bands
     return False
 
   def EM_StringToBitmap(self, enum):
+    """Return bitmap suitable for 'wl crypto' for EncryptionModes."""
     wsec = {'X_CATAWAMPUS-ORG_None': EM_NONE,
             'None': EM_NONE,
             'WEPEncryption': EM_WEP,
@@ -289,6 +303,7 @@ class Wl(object):
     return wsec.get(enum, EM_NONE)
 
   def EM_BitmapToString(self, bitmap):
+    """Return string description of a 'wl crypto' bitmap."""
     bmap = {EM_NONE: 'X_CATAWAMPUS-ORG_None',
             EM_WEP: 'WEPEncryption',
             EM_TKIP: 'TKIPEncryption',
@@ -324,7 +339,7 @@ class Wl(object):
 
   def GetOperationalDataTransmitRates(self):
     out = self._SubprocessWithOutput(['rateset'])
-    oper_re = re.compile('([0123456789]+(?:\.[0123456789]+)?)')
+    oper_re = re.compile(r'([0123456789]+(?:\.[0123456789]+)?)')
     if out:
       line1 = out.splitlines()[0]
     else:
@@ -382,7 +397,7 @@ class Wl(object):
   def GetSSID(self):
     """Return current Wifi SSID."""
     out = self._SubprocessWithOutput(['ssid'])
-    ssid_re = re.compile('Current SSID: "(.*)"')
+    ssid_re = re.compile(r'Current SSID: "(.*)"')
     for line in out.splitlines():
       ssid = ssid_re.match(line)
       if ssid is not None:
@@ -415,15 +430,12 @@ class Wl(object):
 
   def GetTransmitPower(self):
     out = self._SubprocessWithOutput(['pwr_percent'])
-    return out.strip()
+    return int(out.strip())
 
   def SetTransmitPower(self, value):
-    self._SubprocessCall(['pwr_percent', value])
+    self._SubprocessCall(['pwr_percent', str(value)])
 
-  def ValidateTransmitPower(self, value):
-    if not IsInteger(value):
-      return False
-    percent = int(value)
+  def ValidateTransmitPower(self, percent):
     if percent < 0 or percent > 100:
       return False
     return True
@@ -463,7 +475,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   """An implementation of tr98 WLANConfiguration for Broadcom Wifi chipsets."""
 
   def __init__(self, ifname):
-    BASE98WIFI.__init__(self)
+    super(BrcmWifiWlanConfiguration, self).__init__()
     self._ifname = ifname
     self.wl = Wl(ifname)
 
@@ -654,9 +666,10 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     return self.wl.GetChannel()
 
   def SetChannel(self, value):
-    if not self.wl.ValidateChannel(value):
-      raise ValueError('Invalid Channel: %s' % value)
-    self.config.p_channel = value
+    ivalue = int(value)
+    if not self.wl.ValidateChannel(ivalue):
+      raise ValueError('Invalid Channel: %d' % ivalue)
+    self.config.p_channel = ivalue
     self.config.p_auto_channel_enable = False
 
   Channel = property(GetChannel, SetChannel, None, 'WLANConfiguration.Channel')
@@ -789,9 +802,10 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     return self.wl.GetTransmitPower()
 
   def SetTransmitPower(self, value):
-    if not self.wl.ValidateTransmitPower(value):
-      raise ValueError('Invalid TransmitPower: %s' % value)
-    self.config.p_transmit_power = value
+    percent = int(value)
+    if not self.wl.ValidateTransmitPower(percent):
+      raise ValueError('Invalid TransmitPower: %d' % percent)
+    self.config.p_transmit_power = percent
 
   TransmitPower = property(GetTransmitPower, SetTransmitPower, None,
                            'WLANConfiguration.TransmitPower')
@@ -813,7 +827,6 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
 
   def GetWPAAuthenticationMode(self):
     auth = self.wl.GetWpaAuth().split()
-    psk = True if 'WPA-PSK' in auth else False
     eap = True if 'WPA-802.1x' in auth else False
     if eap:
       return 'EAPAuthentication'
@@ -908,10 +921,10 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     # to me, it just doesn't work if you do it before setting SSID.)
     for idx, wep in self.WEPKeyList.items():
       key = wep.WEPKey
-      if key is None:
-        self.wl.ClrWepKey(idx-1)
-      else:
+      if key:
         self.wl.SetWepKey(idx-1, key)
+      else:
+        self.wl.ClrWepKey(idx-1)
     self.wl.SetWepKeyIndex(self.config.p_wepkeyindex)
 
   @tr.session.cache
@@ -972,23 +985,42 @@ class BrcmWlanConfigurationStats(netdev.NetdevStatsLinux26, BASE98WIFI.Stats):
     BASE98WIFI.Stats.__init__(self)
 
 
-class BrcmWlanAssociatedDevice(BASE98WIFI.AssociatedDevice):
+class BrcmWlanAssociatedDevice(CATA98WIFI.AssociatedDevice):
   """Implementation of tr98 AssociatedDevice for Broadcom Wifi chipsets."""
 
-  def __init__(self, device):
-    BASE98WIFI.AssociatedDevice.__init__(self)
-    self._device = device
+  def __init__(self, assoc):
+    super(BrcmWlanAssociatedDevice, self).__init__()
+    self._assoc = assoc
     self.Unexport('AssociatedDeviceIPAddress')
     self.Unexport('LastPMKId')
     self.Unexport('LastRequestedUnicastCipher')
     self.Unexport('LastRequestedMulticastCipher')
 
-  def __getattr__(self, name):
-    if hasattr(self._device, name):
-      return getattr(self._device, name)
-    else:
-      raise AttributeError
+  @property
+  def AssociatedDeviceMACAddress(self):
+    return self._assoc.MACAddress
 
+  @property
+  def AssociatedDeviceAuthenticationState(self):
+    return self._assoc.AuthenticationState
+
+  @property
+  def LastDataTransmitRate(self):
+    mbps = self._assoc.LastTransmitKbps / 1000
+    # tr-098-1-6 defines this as a string(4). Bizarre.
+    return str(mbps)
+
+  @property
+  def X_CATAWAMPUS_ORG_LastDataDownlinkRate(self):
+    return self._assoc.LastTransmitKbps
+
+  @property
+  def X_CATAWAMPUS_ORG_LastDataUplinkRate(self):
+    return self._assoc.LastReceiveKbps
+
+  @property
+  def X_CATAWAMPUS_ORG_Active(self):
+    return True if self._assoc.IdleSeconds < 120 else False
 
 def main():
   print tr.core.DumpSchema(BrcmWifiWlanConfiguration)

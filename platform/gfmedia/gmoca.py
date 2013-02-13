@@ -30,14 +30,21 @@ import tr.x_gmoca_1_0
 
 
 # Unit tests can override these.
-MOCAP = 'mocap'
+MOCACTL = '/bin/mocactl'
 
 
 class GMoCA(tr.x_gmoca_1_0.X_GOOGLE_COM_GMOCA_v1_0):
   """Implementation of x-gmoca.xml."""
 
-  MOCACMDS = [['get', '--groupall'],
-              ['get', '--srcaddr']]
+  MOCACMDS = [['show', '--status'],
+              ['show', '--config'],
+              ['show', '--initparms'],
+              ['show', '--stats'],
+              ['showtbl', '--nodestatus'],
+              ['showtbl', '--nodestats'],
+              ['showtbl', '--ucfwd'],
+              ['showtbl', '--mcfwd'],
+              ['showtbl', '--srcaddr']]
 
   def __init__(self):
     super(GMoCA, self).__init__()
@@ -50,7 +57,7 @@ class GMoCA(tr.x_gmoca_1_0.X_GOOGLE_COM_GMOCA_v1_0):
       cdata.write(compr.compress('X_GOOGLE-COM_GMOCA --------------------\n'))
       cdata.write(compr.compress(' '.join(cmd) + '\n'))
       try:
-        mc = subprocess.Popen([MOCAP] + cmd, stdout=subprocess.PIPE)
+        mc = subprocess.Popen([MOCACTL] + cmd, stdout=subprocess.PIPE)
         out, _ = mc.communicate(None)
         cdata.write(compr.compress(out))
       except IOError:

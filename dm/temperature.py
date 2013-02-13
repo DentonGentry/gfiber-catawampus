@@ -43,7 +43,7 @@ NUMBER = re.compile(r'(\d+(?:\.\d+)?)')
 BADCELSIUS = -274
 
 # Unit tests can override these with fake data
-HDPARM = 'hdparm'
+HDDTEMPERATURE = 'hdd-temperature'
 PERIODICCALL = tornado.ioloop.PeriodicCallback
 TIMENOW = datetime.datetime.now
 
@@ -277,13 +277,12 @@ class SensorHdparm(object):
     self._dev = dev if dev[0] == '/' else '/dev/' + dev
 
   def GetTemperature(self):
-    hd = subprocess.Popen([HDPARM, '-H', self._dev], stdout=subprocess.PIPE)
+    hd = subprocess.Popen([HDDTEMPERATURE, self._dev], stdout=subprocess.PIPE)
     out, _ = hd.communicate(None)
-    for line in out.splitlines():
-      result = self.DRIVETEMP.search(line)
-      if result is not None:
-        return int(round(float(result.group(1))))
-    return BADCELSIUS
+    try:
+      return int(out)
+    except ValueError:
+      return BADCELSIUS
 
 
 class SensorReadFromFile(object):

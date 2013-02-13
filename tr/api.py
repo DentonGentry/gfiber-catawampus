@@ -170,6 +170,8 @@ class ParameterAttributes(object):
     self.ioloop = ioloop
     self.params = dict()
     self.root = root
+    self.set_notification_cb = None
+    self.new_value_change_session_cb = None
     self.timeout = self.ioloop.add_timeout(
         datetime.timedelta(0, REFRESH_TIMEOUT), self.CheckForTriggers)
 
@@ -211,28 +213,18 @@ class ParameterAttributes(object):
   def GetParameterAttribute(self, name, attr):
     """Retrieve the given attribute for the parameter name."""
     if name not in self.params:
-      self.params[name] = dict()
+      self.params[name] = ParameterAttributes.Attributes()
+
     if attr == 'Notification':
-      return self.params[name].Notification
+      return self.params[name].notification
     if attr == 'AccessList':
-      return self.params[name].AccessList
+      return self.params[name].access_list
     raise ValueError('Attribute %s is not supported.' % attr)
 
   def CheckForTriggers(self):
     """Checks if a notification needs to be sent to the ACS."""
-    for (canonical_name, (obj, paramname)) in zip(
-        self.params.keys(), self.root.ListExports(self.params.keys())):
-
-      if not paramname:
-        # paramname being empty means that obj is an Object, and
-        # not a leaf parameter, and those can't have attributes
-        # since they can't have values.  I think that is the case anyhow.
-        # TODO(jnewlin): Should this raise an exception?
-        pass
-
-      # TODO(jnewlin): Looking at GetExport and _GetExport it's not
-      # clear that it is safe to just call getattr(obj, paramname)
-      value = obj.GetExport(paramname)
+    for paramname in self.params.keys():
+      value = self.root.GetExport(paramname)
       attrs = self.params[paramname]
 
       # This checks that the Notification attribute is set, and if it
@@ -243,14 +235,14 @@ class ParameterAttributes(object):
       # It is okay to call the set_notification_parameters_cb multiple
       # times, the caller will build up a list of all the parameters to
       # inform with.
-      if ((attrs.Notification == PASSIVE_NOTIFY or
-           attrs.Notification == ACTIVE_NOTIFY) and
+      if ((attrs.notification == PASSIVE_NOTIFY or
+           attrs.notification == ACTIVE_NOTIFY) and
           value != attrs.current_value and
-          self.cpe.set_notification_parameters_cb):
-        self.cpe.set_notification_parameters_cb([(canonical_name, 'Trigger')])
-        if (self.cpe.new_value_change_session_cb and
+          self.set_notification_parameters_cb):
+        self.set_notification_parameters_cb([(paramname, 'Trigger')])
+        if (self.new_value_change_session_cb and
             attrs.notification == ACTIVE_NOTIFY):
-          self.cpe.new_value_change_session_cb()
+          self.new_value_change_session_cb()
       attrs.current_value = value
     self.ioloop.remove_timeout(self.timeout)
     self.timeout = self.ioloop.add_timeout(
@@ -267,8 +259,6 @@ class CPE(TR069Service):
     self.download_manager = download.DownloadManager()
     self.transfer_complete_received_cb = None
     self.inform_response_received_cb = None
-    self.set_notification_parameters_cb = None
-    self.new_value_change_session_cb = None
     self.parameter_attrs = ParameterAttributes(
         root, tornado.ioloop.IOLoop.instance())
 
@@ -284,8 +274,9 @@ class CPE(TR069Service):
     self.download_manager.send_transfer_complete = send_transfer_complete
     self.transfer_complete_received_cb = transfer_complete_received
     self.inform_response_received_cb = inform_response_received
-    self.set_notification_parameters_cb = set_notification_parameters
-    self.new_value_change_session_cb = new_value_change_session
+    self.parameter_attrs.set_notification_parameters_cb = (
+        set_notification_parameters)
+    self.parameter_attrs.new_value_change_session_cb = new_value_change_session
 
   def startup(self):
     """Handle any initialization after reboot."""
@@ -412,11 +403,9 @@ class CPE(TR069Service):
     indicates that all child parameters should have these parameters set.
 
     Args:
-      attrs: A dcit of paramters to set.
+      attrs: A dict of parameters to set.
     """
     param = attrs['Name']
-    print "attrs=%s" % (attrs,)
-    print "param=%s" % (param,)
     if not self.root.SetExportAttrs(param, attrs):
       # TODO(jnewlin): Handle the case with the partial path.
       self.parameter_attrs.SetParameterAttributes(attrs)
@@ -428,7 +417,7 @@ class CPE(TR069Service):
   def AddObject(self, object_name, parameter_key):
     """Create a new object with default parameters."""
     assert object_name.endswith('.')
-    #pylint: disable-msg=W0612
+    # pylint: disable-msg=W0612
     (idx, obj) = self.root.AddExportObject(object_name[:-1])
     self._SetParameterKey(parameter_key)
     return (idx, 0)  # successfully created
@@ -443,7 +432,7 @@ class CPE(TR069Service):
 
   def Download(self, command_key, file_type, url, username, password,
                file_size, target_filename, delay_seconds,
-               success_url, failure_url):  #pylint: disable-msg=W0613
+               success_url, failure_url):  # pylint: disable-msg=W0613
     """Initiate a download immediately or after a delay."""
     return self.download_manager.NewDownload(
         command_key=command_key,

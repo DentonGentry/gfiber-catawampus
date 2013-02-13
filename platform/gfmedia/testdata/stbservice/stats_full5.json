@@ -22,7 +22,31 @@
             "MulticastGroup": "225.0.0.4:4",
             "StartupLagUsecs": 12000,
             "StalledUsecs": 4000,
-            "bps": 4000000
+            "bps": 4000000,
+            "MissingSchedule": 40
+          },
+          "DecoderStats": {
+            "SessionId": 2,
+            "ReceivedPictures": 3,
+            "DecodedPictures": 4,
+            "VideoDecodeErrors": 5,
+            "DecodeOverflows": 6,
+            "DecodeDrops": 7,
+            "DisplayedPictures": 8,
+            "DisplayErrors": 9,
+            "DisplayDrops": 10,
+            "DisplayUnderflows": 11,
+            "VideoWatchdogs": 12,
+            "VideoBytesDecoded": 13,
+            "VideoPtsStcDifference": 14,
+            "AudioDecodedFrames": 15,
+            "AudioDecodeErrors": 16,
+            "AudioDummyFrames": 17,
+            "AudioFifoOverflows": 18,
+            "AudioFifoUnderflows": 19,
+            "AudioWatchdogs": 20,
+            "AudioBytesDecoded": 21,
+            "AudioPtsStcDifference": 22
           }
         }
       ]

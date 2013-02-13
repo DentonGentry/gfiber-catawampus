@@ -1,6 +1,0 @@
-#!/bin/sh
-
-if [ x"$3" = "xwsec" ] ; then
-  echo "0"
-fi
-exit 0

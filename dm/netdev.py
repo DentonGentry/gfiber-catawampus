@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """Implementation of network device support used in a number of data models."""
 
@@ -52,18 +52,20 @@ class NetdevStatsLinux26(object):
     """
     ifstats = self._ReadProcNetDev(ifname)
     if ifstats:
-      self.BroadcastPacketsReceived = None
-      self.BroadcastPacketsSent = None
+      self.BroadcastPacketsReceived = 0
+      self.BroadcastPacketsSent = 0
       self.BytesReceived = int(ifstats[self._RX_BYTES])
       self.BytesSent = int(ifstats[self._TX_BYTES])
       self.DiscardPacketsReceived = int(ifstats[self._RX_DROP])
       self.DiscardPacketsSent = int(ifstats[self._TX_DROP])
 
-      self.ErrorsReceived = int(ifstats[self._RX_ERRS]) + int(ifstats[self._RX_FRAME])
+      rxerr = int(ifstats[self._RX_ERRS])
+      rxframe = int(ifstats[self._RX_FRAME])
+      self.ErrorsReceived = rxerr + rxframe
 
       self.ErrorsSent = int(ifstats[self._TX_FIFO])
       self.MulticastPacketsReceived = int(ifstats[self._RX_MCAST])
-      self.MulticastPacketsSent = None
+      self.MulticastPacketsSent = 0
       self.PacketsReceived = int(ifstats[self._RX_PKTS])
       self.PacketsSent = int(ifstats[self._TX_PKTS])
 
@@ -71,10 +73,10 @@ class NetdevStatsLinux26(object):
       self.UnicastPacketsReceived = rx
 
       # Linux doesn't break out transmit uni/multi/broadcast, but we don't
-      # want to return None for all of them. So we return all transmitted
+      # want to return 0 for all of them. So we return all transmitted
       # packets as unicast, though some were surely multicast or broadcast.
       self.UnicastPacketsSent = int(ifstats[self._TX_PKTS])
-      self.UnknownProtoPacketsReceived = None
+      self.UnknownProtoPacketsReceived = 0
 
   def _ReadProcNetDev(self, ifname):
     """Return the /proc/net/dev entry for ifname.

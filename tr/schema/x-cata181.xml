@@ -129,7 +129,12 @@
           <string/>
         </syntax>
       </parameter>
-
+      <parameter name="X_CATAWAMPUS-ORG_RxBitloading" access="readOnly">
+        <description>A description of the signal quality of each subchannel, one character per subchannel.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
     </object>
   </model>
 </dm:document>

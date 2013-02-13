@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """Implementations of platform-independant tr-98/181 WLAN objects."""
 
@@ -22,6 +22,10 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import pbkdf2
 import tr.tr098_v1_4
+
+
+IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
+WLANDEV = IGD.LANDevice.WLANConfiguration
 
 
 def ContiguousRanges(seq):
@@ -56,7 +60,7 @@ def ContiguousRanges(seq):
   return ''.join(output)
 
 
-class PreSharedKey98(tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice.LANDevice.WLANConfiguration.PreSharedKey):
+class PreSharedKey98(WLANDEV.PreSharedKey):
   """InternetGatewayDevice.WLANConfiguration.{i}.PreSharedKey.{i}."""
 
   def __init__(self):
@@ -66,7 +70,7 @@ class PreSharedKey98(tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDe
     self.passphrase = None
     self.key_pbkdf2 = None
     self.salt = None
-    self.AssociatedDeviceMACAddress = None
+    self.AssociatedDeviceMACAddress = ''
 
   def GetKey(self, salt):
     """Return the key to program into the Wifi chipset.
@@ -97,7 +101,7 @@ class PreSharedKey98(tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDe
     self.key_pbkdf2 = None
 
   def GetPreSharedKey(self):
-    return self.key
+    return self.key if self.key is not None else ''
 
   PreSharedKey = property(
       GetPreSharedKey, SetPreSharedKey, None,
@@ -109,20 +113,20 @@ class PreSharedKey98(tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDe
     self.key_pbkdf2 = None
 
   def GetKeyPassphrase(self):
-    return self.passphrase
+    return self.passphrase if self.passphrase is not None else ''
 
   KeyPassphrase = property(
       GetKeyPassphrase, SetKeyPassphrase, None,
       'WLANConfiguration.{i}.PreSharedKey.{i}.KeyPassphrase')
 
 
-class WEPKey98(tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice.LANDevice.WLANConfiguration.WEPKey):
+class WEPKey98(WLANDEV.WEPKey):
   """InternetGatewayDevice.WLANConfiguration.{i}.WEPKey.{i}."""
 
   def __init__(self):
     super(WEPKey98, self).__init__()
     self.Unexport('Alias')
-    self.WEPKey = None
+    self.WEPKey = ''
 
 
 def main():
