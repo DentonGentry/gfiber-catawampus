@@ -174,6 +174,25 @@ class TypesTest(unittest.TestCase):
     obj.vv = 5  # validator chain is: -((-5) + 1)
     self.assertEquals(obj.vv, 4)
 
+  def testTypeCoercion(self):
+    obj = TestObject()
+    obj.b = True
+    obj.i = 7
+    obj.f = 3.14
+    obj.s = '5'
+    obj.u = 2
+    # Mostly we're checking that no ValueError is raised.
+    self.assertEquals(int(obj.b), 1)
+    self.assertEquals(float(obj.b), 1.0)
+    self.assertEquals(int(obj.i), 7)
+    self.assertEquals(float(obj.i), 7.0)
+    self.assertEquals(int(obj.f), 3)
+    self.assertEquals(float(obj.f), 3.14)
+    self.assertEquals(int(obj.s), 5)
+    self.assertEquals(float(obj.s), 5.0)
+    self.assertEquals(int(obj.u), 2)
+    self.assertEquals(float(obj.u), 2.0)
+
   def testTriggers(self):
     obj = TriggerObject()
     self.assertEquals(obj.xval, 7)

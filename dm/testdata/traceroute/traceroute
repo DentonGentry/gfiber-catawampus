@@ -1,0 +1,31 @@
+#!/bin/bash
+
+target=${BASH_ARGV[1]}
+
+if [ "$target" = "of.times" ] ; then
+echo "traceroute to twocities.com (1.1.1.1), 30 hops max, 60 byte packets
+1  it.was (12.34.56.78)  0.471 ms  0.537 ms  0.595 ms
+2  the.best (34.56.78.90)  0.407 ms  0.504 ms  0.564 ms
+3  of.times (56.78.90.12)  1.140 ms  1.216 ms  1.274 ms
+4  it.was (78.90.12.34)  0.246 ms  0.271 ms  0.298 ms
+5  the.worst (90.12.34.56)  1.136 ms  1.131 ms  1.150 ms
+6  of.times (12.34.56.79)  1.163 ms  1.155 ms  1.512 ms
+"
+exit 0
+fi
+
+if [ $target = "this-name-does-not-exist" ] ; then
+echo "this-name-does-not-exist: Name or service not known
+Cannot handle \"host\" cmdline arg \'this-name-does-not-exist\' on position 1 (argc 1)
+"
+exit 2
+fi
+
+if [ $target = 127.0.0.1 ] ; then
+echo "traceroute to 127.0.0.1 (127.0.0.1), 30 hops max, 60 byte packets
+ 1  localhost (127.0.0.1)  0.016 ms  0.005 ms  0.004 ms
+"
+exit 0
+fi
+
+exit 1
