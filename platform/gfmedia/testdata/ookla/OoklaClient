@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if [ "$1" = '--right' ]; then
+  echo 'Speedtest output'
+fi
+
+if [ "$1" = '--wrong' ]; then
+  exit 1
+fi
+
+exit 0

@@ -33,6 +33,7 @@ import sys
 import google3
 import tornado.ioloop
 import tr.core
+import tr.mainloop
 import tr.tr181_v2_6
 import tr.types
 
@@ -69,6 +70,7 @@ class TraceRoute(BASE_TRACEROUTE):
     self.buffer = ''
     self.Host = None
     self.response_time = 0
+    self.requested = False
     self.RouteHopsList = {}
 
   @property
@@ -96,7 +98,7 @@ class TraceRoute(BASE_TRACEROUTE):
       self.error = State.ERROR_MAX_HOP_COUNT_EXCEEDED
 
   def _GetState(self):
-    if self.subproc:
+    if self.requested or self.subproc:
       return State.REQUESTED
     elif self.error:
       return self.error
@@ -108,6 +110,7 @@ class TraceRoute(BASE_TRACEROUTE):
   def _SetState(self, value):
     if value != State.REQUESTED:
       raise ValueError('DiagnosticsState can only be set to "Requested"')
+    self.requested = True
     self._StartProc()
 
   # pylint: disable-msg=W1001
@@ -125,11 +128,13 @@ class TraceRoute(BASE_TRACEROUTE):
         self.error = State.ERROR_CANNOT_RESOLVE_HOSTNAME
       self.subproc = None
 
+  @tr.mainloop.WaitUntilIdle
   def _StartProc(self):
     self._EndProc()
     self._ClearHops()
     self.error = None
     self.response_time = 0
+    self.requested = False
     print 'traceroute starting.'
     if not self.Host:
       raise ValueError('TraceRoute.Host is not set')
@@ -168,7 +173,6 @@ class TraceRoute(BASE_TRACEROUTE):
 
   def _GotLine(self, line):
     # TODO(apenwarr): find out how traceroute reports host-unreachable/etc
-    # TODO(apenwarr): check that traceroute output is same on OpenWRT
     print 'traceroute line: %r' % (line,)
     g = re.match(r'^\s*(\d+)\s+(\S+) \(([\d:.]+)\)((\s+[\d.]+ ms)+)', line)
     if g:

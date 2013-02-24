@@ -49,11 +49,12 @@ import tr.x_catawampus_tr181_2_0
 
 import gfibertv
 import gvsb
+import ookla
 import stbservice
 
 
 BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
-CATA181DI = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.DeviceInfo
+CATA181 = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
 PYNETIFCONF = pynetlinux.ifconfig.Interface
 
 # tr-69 error codes
@@ -407,7 +408,7 @@ class Moca(tr181.Device_v2_2.Device.MoCA):
     return len(self.InterfaceList)
 
 
-class FanReadGpio(CATA181DI.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
+class FanReadGpio(CATA181.DeviceInfo.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
   """Implementation of Fan object, reading rev/sec from a file."""
   Name = tr.types.ReadOnlyString('')
 
@@ -473,13 +474,14 @@ class IP(tr181.Device_v2_2.Device.IP):
     return len(self.ActivePortList)
 
 
-class IPDiagnostics(tr181.Device_v2_2.Device.IP.Diagnostics):
+class IPDiagnostics(CATA181.Device.IP.Diagnostics):
   """tr-181 Device.IP.Diagnostics implementation for Google Fiber media platforms."""
 
   def __init__(self):
     super(IPDiagnostics, self).__init__()
     self.Unexport(objects='IPPing')
     self.TraceRoute = dm.traceroute.TraceRoute()
+    self.X_CATAWAMPUS_ORG_Speedtest = ookla.Speedtest()
 
 
 class Device(tr181.Device_v2_2.Device):
