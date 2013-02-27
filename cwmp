@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 #
 """Command-line client for tr/rcommand.py."""
 
@@ -32,7 +32,7 @@ import tr.mainloop
 import tr.quotedblock
 
 try:
-  import readline  #pylint: disable-msg=C6204
+  import readline  # pylint: disable-msg=C6204
 except ImportError:
   readline = None
 
@@ -58,6 +58,8 @@ def Log(s, *args):
 
 
 _want_verbose = False
+
+
 def Verbose(s, *args):
   if _want_verbose:
     Log(s, *args)
@@ -207,16 +209,17 @@ class Client(object):
         if is_param and qtype:
           new_last_slash += qtype
         return new_last_slash
-    except Exception, e:  #pylint: disable-msg=W0703
+    except Exception, e:  # pylint: disable-msg=W0703
       Log('\n')
       try:
         traceback.print_tb(sys.exc_traceback)
-      except Exception, e2:  #pylint: disable-msg=W0703
+      except Exception, e2:  # pylint: disable-msg=W0703
         Log('Error printing traceback: %s\n' % e2)
     Log('\nError in completion: %s\n' % e)
 
 
 def DoCmd(client, words):
+  words = [i.decode('utf-8') for i in words]
   cmd, args = (words[0].lower(), words[1:])
   if cmd in ('cd', 'ls', 'list', 'rlist', 'add', 'del', 'get', 'set'):
     if not args:
@@ -249,7 +252,7 @@ def Interactive(client):
       if not word:
         break
       line += raw_input('%*s> ' % (len(client.cwd), '')) + '\n'
-    #pylint: disable-msg=W0612
+    # pylint: disable-msg=W0612
     words = [word for (idx, word) in bup.shquote.quotesplit(line)]
     if not words:
       continue
@@ -259,12 +262,12 @@ def Interactive(client):
 
 def main():
   o = bup.options.Options(optspec)
-  (opt, flags, extra) = o.parse(sys.argv[1:])  #pylint: disable-msg=W0612
+  (opt, flags, extra) = o.parse(sys.argv[1:])  # pylint: disable-msg=W0612
 
   if readline and os.path.exists(HISTORY_FILE):
     readline.read_history_file(HISTORY_FILE)
   client = None
-  try:  #pylint: disable-msg=C6405
+  try:  # pylint: disable-msg=C6405
     loop = tr.mainloop.MainLoop()
     if opt.ip is not None:
       connector = lambda err: loop.ConnectInet((opt.ip, opt.port), err)

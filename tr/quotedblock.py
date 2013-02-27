@@ -12,7 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+#
+# pylint: disable-msg=anomalous-backslash-in-string
 """Protocol helpers for multiline sh-style-quoted blocks.
 
 Blocks are formatted as lines, separated by newline characters, each
@@ -86,13 +87,13 @@ class QuotedBlockProtocol(object):
       None or a string that should be returned to the remote.
     """
     line = self.partial_line + data
-    #pylint: disable-msg=W0612
+    # pylint: disable-msg=W0612
     firstchar, word = bup.shquote.unfinished_word(line)
     if word:
       self.partial_line = line
     else:
       self.partial_line = ''
-      return self.GotLine(line)
+      return self.GotLine(line.decode('utf-8'))
 
   def GotLine(self, line):
     """Call this method every time you receive a parseable line of data.
@@ -109,7 +110,7 @@ class QuotedBlockProtocol(object):
     if line.strip():
       # a new line in this block
       parts = bup.shquote.quotesplit(line)
-      #pylint: disable-msg=W0612
+      # pylint: disable-msg=W0612
       self.lines.append([word for offset, word in parts])
     else:
       # blank line means end of block
@@ -126,8 +127,8 @@ class QuotedBlockProtocol(object):
     out = []
     lines = lines or []
     for line in lines:
-      line = [str(word) for word in line]
-      out.append(bup.shquote.quotify_list(line) + '\r\n')
+      line = [unicode(word) for word in line]
+      out.append(bup.shquote.quotify_list(line).encode('utf-8') + '\r\n')
     out.append('\r\n')
     return ''.join(out)
 

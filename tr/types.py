@@ -14,11 +14,16 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409,W0212
+# pylint: disable-msg=C6409,W0212
 #
 """Type descriptors for common TR-069 data types."""
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
+
+import datetime
+import errno
+import cwmpdate
+import helpers
 
 
 class Attr(object):
@@ -36,7 +41,7 @@ class Attr(object):
     x = X()
     x.a = object()
     x.b = '0'    # actually gets set to integer 0
-    x.s = [1,2]  # gets set to the string str([1, 2])
+    x.s = [1,2]  # gets set to the string unicode([1, 2])
     x.i = '9'    # auto-converts to a real int
     x.e = 'Stinky'  # raises exception since it's not an allowed value
   """
@@ -71,7 +76,7 @@ class Attr(object):
         d[id(self)] = self.init
       return d[id(self)]
 
-  def validate(self, obj, value):
+  def validate(self, obj, value):  # pylint: disable-msg=unused-argument
     """Validate or convert a potential new value for this attribute.
 
     Callers can check this function to see if the attribute *could* be
@@ -131,8 +136,14 @@ class Attr(object):
       x = X()
       x.i = 9.3
       print x.i   # prints int(int(9.3) * 2.5) == 22
+
+    Args:
+      valfunc: a function(obj, value) that returns a validated value.
+    Returns:
+      A new type descriptor that validates when you try to set the value.
     """
     old_valfunc = self.validate
+
     def fn(obj, value):
       return old_valfunc(obj, valfunc(obj, old_valfunc(obj, value)))
     self.validate = fn
@@ -151,27 +162,50 @@ class Bool(Attr):
   """
 
   def validate(self, obj, value):
+    if value is None:
+      return value
     s = str(value).lower()
     if s in ('true', '1'):
       return True
-    elif s in ('false', '0'):
+    elif s in ('false', '0', '', None):
       return False
     else:
-      raise ValueError('%r is not a valid boolean' % value)
+      try:
+        return float(s) and True or False
+      except ValueError:
+        raise ValueError('%r is not a valid boolean' % (value,))
+
+
+class _SignedBasicType(int):
+  """A wrapper class for int that tells api_soap.Soapify() it's signed."""
+
+  xsitype = 'xsd:int'
+
+  def __new__(cls, *args, **kwargs):
+    return int.__new__(cls, *args, **kwargs)
+
+
+class _UnsignedBasicType(int):
+  """A wrapper class for int that tells api_soap.Soapify() it's unsigned."""
+
+  xsitype = 'xsd:unsignedInt'
+
+  def __new__(cls, *args, **kwargs):
+    return int.__new__(cls, *args, **kwargs)
 
 
 class Int(Attr):
   """An attribute that is always an integer."""
 
   def validate(self, obj, value):
-    return int(value)
+    return _SignedBasicType(value)
 
 
 class Unsigned(Attr):
   """An attribute that is always an integer >= 0."""
 
   def validate(self, obj, value):
-    v = int(value)
+    v = _UnsignedBasicType(value)
     if v < 0:
       raise ValueError('%r must be >= 0' % value)
     return v
@@ -191,7 +225,7 @@ class String(Attr):
     if value is None:
       return None
     else:
-      return str(value)
+      return unicode(value)
 
 
 class Enum(Attr):
@@ -209,6 +243,65 @@ class Enum(Attr):
       raise ValueError('%r invalid; value values are %r'
                        % (value, self.values))
     return value
+
+
+class Date(Attr):
+  """An attribute that is always a datetime.datetime object."""
+
+  def validate(self, obj, value):
+    # pylint: disable-msg=g-explicit-bool-comparison
+    if value is None or value == '':
+      return None
+    try:
+      f = float(value)
+    except ValueError:
+      return cwmpdate.parse(value)
+    else:
+      return datetime.datetime.utcfromtimestamp(f)
+
+
+class FileBacked(Attr):
+  """An attribute that is actually a string stored in a file.
+
+  If the string is set to empty or None, deletes the file.  If the file
+  doesn't exist, the value is the empty string.
+  """
+
+  def __init__(self, filename_ptr, attr):
+    super(FileBacked, self).__init__(self)
+    if isinstance(filename_ptr, basestring):
+      # Handle it if someone just provides a filename directly instead
+      # of a [filename]
+      self.filename_ptr = [filename_ptr]
+    else:
+      # A one-element list containing a filename, so that the filename
+      # itself can be reassigned later, eg. by a unit test
+      self.filename_ptr = filename_ptr
+    self.validate = attr.validate
+
+  def __get__(self, obj, _):
+    if obj is None:
+      return self
+    try:
+      content = open(self.filename_ptr[0]).read().rstrip()
+    except IOError as e:
+      # If file doesn't exist, then it's an empty string
+      if e.errno == errno.ENOENT:
+        return self.validate(obj, '')
+      raise
+    try:
+      return self.validate(obj, content)
+    except ValueError:
+      return ''
+
+  def __set__(self, obj, value):
+    value = self.validate(obj, value)
+    # pylint: disable-msg=g-explicit-bool-comparison
+    if value is None or value == '':
+      helpers.Unlink(self.filename_ptr[0])
+    else:
+      helpers.WriteFileAtomic(self.filename_ptr[0],
+                              unicode(value).rstrip().encode('utf-8') + '\n')
 
 
 class Trigger(object):
@@ -301,6 +394,10 @@ def TriggerEnum(*args, **kwargs):
   return Trigger(Enum(*args, **kwargs))
 
 
+def TriggerDate(*args, **kwargs):
+  return Trigger(Date(*args, **kwargs))
+
+
 class ReadOnly(object):
   """A type descriptor that prevents setting the wrapped Attr().
 
@@ -327,13 +424,13 @@ class ReadOnly(object):
       return self
     return self.attr.__get__(obj, None)
 
-  def validate(self, obj, _):
+  def validate(self, unused_obj, _):
     # this is the same exception raised by a read-only @property
-    raise AttributeError("can't set attribute")
+    raise AttributeError("can't set read-only attribute")
 
-  def __set__(self, obj, _):
+  def __set__(self, unused_obj, _):
     # this is the same exception raised by a read-only @property
-    raise AttributeError("can't set attribute")
+    raise AttributeError("can't set read-only attribute")
 
   def Set(self, obj, value):
     """Override the read-only-ness; generally for internal use."""
@@ -362,6 +459,10 @@ def ReadOnlyString(*args, **kwargs):
 
 def ReadOnlyEnum(*args, **kwargs):
   return ReadOnly(Enum(*args, **kwargs))
+
+
+def ReadOnlyDate(*args, **kwargs):
+  return ReadOnly(Date(*args, **kwargs))
 
 
 def tryattr(obj, attrname, value):

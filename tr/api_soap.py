@@ -31,7 +31,7 @@ import soap
 
 def Soapify(value):
   if hasattr(value, 'xsitype'):
-    return (value.xsitype, str(value))
+    return (value.xsitype, unicode(value))
   elif isinstance(value, bool):
     return ('xsd:boolean', cwmpbool.format(value))
   elif isinstance(value, int) or isinstance(value, long):
@@ -41,7 +41,7 @@ def Soapify(value):
   elif isinstance(value, datetime.datetime):
     return ('xsd:dateTime', cwmpdate.format(value))
   else:
-    return ('xsd:string', str(value))
+    return ('xsd:string', unicode(value))
 
 
 class Encode(object):

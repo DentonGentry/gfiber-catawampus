@@ -21,6 +21,7 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import os
+import os.path
 import shutil
 import SimpleXMLRPCServer
 import tempfile
@@ -29,6 +30,8 @@ import unittest
 import xmlrpclib
 import google3
 import gfibertv
+import tr.cwmpdate
+import tr.mainloop
 
 
 class TvPropertyRpcs(object):
@@ -96,41 +99,40 @@ class GfiberTvTests(unittest.TestCase):
     (tmp_file_handle, self.tmp_file_name) = tempfile.mkstemp(dir=self.tmpdir)
     os.close(nick_file_handle)
     os.close(tmp_file_handle)
-    gfibertv.NICKFILE = self.nick_file_name
-    gfibertv.NICKFILE_TMP = self.tmp_file_name
-    self.EASHEARTBEATFILE = gfibertv.EASHEARTBEATFILE
+    gfibertv.NICKFILE[0] = self.nick_file_name
+    self.EASHEARTBEATFILE = gfibertv.EASHEARTBEATFILE[0]
 
     (btdevices_handle, self.btdevices_fname) = tempfile.mkstemp(dir=self.tmpdir)
     os.close(btdevices_handle)
-    gfibertv.BTDEVICES = self.btdevices_fname
+    gfibertv.BTDEVICES[0] = self.btdevices_fname
 
     (bthh_handle, self.bthhdevices_fname) = tempfile.mkstemp(dir=self.tmpdir)
     os.close(bthh_handle)
-    gfibertv.BTHHDEVICES = self.bthhdevices_fname
+    gfibertv.BTHHDEVICES[0] = self.bthhdevices_fname
 
     (btconfig_handle, self.btconfig_fname) = tempfile.mkstemp(dir=self.tmpdir)
     os.close(btconfig_handle)
-    gfibertv.BTCONFIG = self.btconfig_fname
+    gfibertv.BTCONFIG[0] = self.btconfig_fname
 
     (btnopair_handle, self.btnopair_fname) = tempfile.mkstemp(dir=self.tmpdir)
     os.close(btnopair_handle)
     os.unlink(self.btnopair_fname)
-    gfibertv.BTNOPAIRING = self.btnopair_fname
+    gfibertv.BTNOPAIRING[0] = self.btnopair_fname
 
     (easfips_handle, self.easfips_fname) = tempfile.mkstemp(dir=self.tmpdir)
     os.close(easfips_handle)
     os.unlink(self.easfips_fname)
-    gfibertv.EASFIPSFILE = self.easfips_fname
+    gfibertv.EASFIPSFILE[0] = self.easfips_fname
 
     (easaddr_handle, self.easaddr_fname) = tempfile.mkstemp(dir=self.tmpdir)
     os.close(easaddr_handle)
     os.unlink(self.easaddr_fname)
-    gfibertv.EASADDRFILE = self.easaddr_fname
+    gfibertv.EASADDRFILE[0] = self.easaddr_fname
 
     (easport_handle, self.easport_fname) = tempfile.mkstemp(dir=self.tmpdir)
     os.close(easport_handle)
     os.unlink(self.easport_fname)
-    gfibertv.EASPORTFILE = self.easport_fname
+    gfibertv.EASPORTFILE[0] = self.easport_fname
 
   def tearDown(self):
     xmlrpclib.ServerProxy('http://localhost:%d' % srv_port).Quit()
@@ -141,10 +143,11 @@ class GfiberTvTests(unittest.TestCase):
     tv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
     tv.Mailbox.Node = 'Node1'
     tv.Mailbox.Name = 'Prop1'
+    print tv.Config
     tv.ValidateExports()
 
   def testGetProperties(self):
-    tvrpc = gfibertv.GFiberTvMailbox('http://localhost:%d' % srv_port)
+    tvrpc = gfibertv.Mailbox('http://localhost:%d' % srv_port)
     tvrpc.Node = 'Node1'
     tvrpc.Name = 'Prop1'
     self.assertEqual(tvrpc.Value, 'Prop1Value')
@@ -159,13 +162,13 @@ class GfiberTvTests(unittest.TestCase):
     self.assertRaises(IndexError, lambda: tvrpc.Value)
 
   def testGetPropertiesProtocolError(self):
-    tvrpc = gfibertv.GFiberTvMailbox('http://localhost:2')
+    tvrpc = gfibertv.Mailbox('http://localhost:2')
     tvrpc.Node = 'Node1'
     tvrpc.Name = 'Prop1'
     self.assertRaises(IndexError, lambda: tvrpc.Value)
 
   def testSetProperties(self):
-    tvrpc = gfibertv.GFiberTvMailbox('http://localhost:%d' % srv_port)
+    tvrpc = gfibertv.Mailbox('http://localhost:%d' % srv_port)
     tvrpc.Node = 'Node1'
     tvrpc.Name = 'Prop1'
     tvrpc.Value = 'Prop1NewValue'
@@ -176,75 +179,50 @@ class GfiberTvTests(unittest.TestCase):
     self.assertRaises(IndexError, lambda: tvrpc.Value)
 
   def testSetPropertiesProtocolError(self):
-    tvrpc = gfibertv.GFiberTvMailbox('http://localhost:2')
+    tvrpc = gfibertv.Mailbox('http://localhost:2')
     tvrpc.Node = 'Node1'
     tvrpc.Name = 'Prop1'
-    self.assertRaises(IndexError, lambda: tvrpc.SetValue(1))
+    self.assertRaises(IndexError, lambda: setattr(tvrpc, 'Value', 1))
 
   def testNodeList(self):
-    tvrpc = gfibertv.GFiberTvMailbox('http://localhost:%d' % srv_port)
+    tvrpc = gfibertv.Mailbox('http://localhost:%d' % srv_port)
     self.assertEqual(tvrpc.NodeList, 'Node1, Node2')
 
   def testListManipulation(self):
     gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
-    gftv.ValidateExports()
     self.assertEqual(0, gftv.DevicePropertiesNumberOfEntries)
     idx, newobj = gftv.AddExportObject('DeviceProperties', None)
     idx = int(idx)
     self.assertEqual(1, gftv.DevicePropertiesNumberOfEntries)
     self.assertEqual(newobj, gftv.DevicePropertiesList[idx])
-    gftv.StartTransaction()
-    gftv.DevicePropertiesList[idx].StartTransaction()
-    gftv.DevicePropertiesList[idx].NickName = 'testroom'
-    gftv.DevicePropertiesList[idx].SerialNumber = '12345'
-    gftv.DevicePropertiesList[idx].AbandonTransaction()
-    gftv.AbandonTransaction()
-    self.assertEqual('', gftv.DevicePropertiesList[idx].NickName)
+    self.assertEqual(None, gftv.DevicePropertiesList[idx].NickName)
 
-    gftv.StartTransaction()
     idx2, newobj = gftv.AddExportObject('DeviceProperties', None)
     idx2 = int(idx2)
-    gftv.DevicePropertiesList[idx].StartTransaction()
     gftv.DevicePropertiesList[idx].NickName = 'testroom'
     gftv.DevicePropertiesList[idx].SerialNumber = '12345'
-    gftv.DevicePropertiesList[idx].CommitTransaction()
 
-    gftv.DevicePropertiesList[idx2].StartTransaction()
-    uni_name = u'\u212ced\nroom\n\r!'.encode('utf-8')
+    uni_name = u'\u212ced\nroom\n\r!'
     gftv.DevicePropertiesList[idx2].NickName = uni_name
     gftv.DevicePropertiesList[idx2].SerialNumber = '56789'
-    gftv.DevicePropertiesList[idx2].CommitTransaction()
-
-    gftv.CommitTransaction()
+    tr.mainloop.MainLoop().RunOnce()
 
     # read the test file back in.
-    f = file(gfibertv.NICKFILE, 'r')
-    lines = set()
-    lines.add(f.readline())
-    lines.add(f.readline())
-    last_line = f.readline()
-    last_line = last_line.strip()
+    lines = open(gfibertv.NICKFILE[0], 'r').readlines()
+    last_line = lines and lines[-1].strip()
 
     self.assertTrue('12345/nickname=testroom\n' in lines)
-    self.assertTrue('56789/nickname=\u212cedroom!\n' in lines)
+    self.assertTrue('56789/nickname=\\u212ced_room___\n' in lines)
     self.assertTrue(last_line.startswith('serials='))
     split1 = last_line.split('=')
     self.assertEqual(2, len(split1))
     split2 = split1[1].split(',')
     self.assertTrue('12345' in split2)
     self.assertTrue('56789' in split2)
-    f.close()
 
   def testBtFiles(self):
     gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
-    gftv.ValidateExports()
 
-    def CheckNoTrashLeft():
-      self.assertEqual(None, gftv.config.bt_devices)
-      self.assertEqual(None, gftv.config.bt_hh_devices)
-      self.assertEqual(None, gftv.config.bt_hh_devices)
-
-    CheckNoTrashLeft()
     self.assertEqual('', gftv.BtDevices)
     self.assertEqual('', gftv.BtHHDevices)
     self.assertEqual('', gftv.BtConfig)
@@ -254,111 +232,79 @@ class GfiberTvTests(unittest.TestCase):
     hhdevices = 'hhdevice str\nwith a newline'
     config = 'btconfig str'
 
-    gftv.StartTransaction()
     gftv.BtDevices = devices1
-    gftv.CommitTransaction()
     self.assertEqual(devices1, gftv.BtDevices)
-    self.assertEqual(open(self.btdevices_fname).read(), devices1)
+    self.assertEqual(open(self.btdevices_fname).read(), devices1 + '\n')
     self.assertEqual('', gftv.BtHHDevices)
     self.assertEqual(open(self.bthhdevices_fname).read(), '')
     self.assertEqual('', gftv.BtConfig)
     self.assertEqual(open(self.btconfig_fname).read(), '')
-    CheckNoTrashLeft()
 
-    gftv.StartTransaction()
     gftv.BtDevices = devices2
     gftv.BtHHDevices = hhdevices
     gftv.BtConfig = config
-    gftv.CommitTransaction()
     self.assertEqual(devices2, gftv.BtDevices)
-    self.assertEqual(open(self.btdevices_fname).read(), devices2)
+    self.assertEqual(open(self.btdevices_fname).read(), devices2 + '\n')
     self.assertEqual(hhdevices, gftv.BtHHDevices)
-    self.assertEqual(open(self.bthhdevices_fname).read(), hhdevices)
+    self.assertEqual(open(self.bthhdevices_fname).read(), hhdevices + '\n')
     self.assertEqual(config, gftv.BtConfig)
-    self.assertEqual(open(self.btconfig_fname).read(), config)
-    CheckNoTrashLeft()
-
-  def FileExists(self, filename):
-    try:
-      return os.stat(filename)
-    except OSError:
-      return False
+    self.assertEqual(open(self.btconfig_fname).read(), config + '\n')
 
   def testNoPairing(self):
     gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
-    gftv.ValidateExports()
     self.assertFalse(gftv.BtNoPairing)
-    self.assertFalse(self.FileExists(self.btnopair_fname))
+    self.assertFalse(os.path.exists(self.btnopair_fname))
 
-    gftv.StartTransaction()
     gftv.BtNoPairing = True
-    self.assertFalse(self.FileExists(self.btnopair_fname))
-    gftv.CommitTransaction()
     self.assertTrue(gftv.BtNoPairing)
-    self.assertTrue(self.FileExists(self.btnopair_fname))
+    self.assertTrue(os.path.exists(self.btnopair_fname))
 
     # Make sure setting to True works if it is already true.
-    gftv.StartTransaction()
     gftv.BtNoPairing = True
-    gftv.CommitTransaction()
     self.assertTrue(gftv.BtNoPairing)
-    self.assertTrue(self.FileExists(self.btnopair_fname))
+    self.assertTrue(os.path.exists(self.btnopair_fname))
 
-    gftv.StartTransaction()
     gftv.BtNoPairing = False
-    gftv.CommitTransaction()
     self.assertFalse(gftv.BtNoPairing)
-    self.assertFalse(self.FileExists(self.btnopair_fname))
+    self.assertFalse(os.path.exists(self.btnopair_fname))
 
     # Make sure setting to False works if it is already false.
-    gftv.StartTransaction()
     gftv.BtNoPairing = False
-    gftv.CommitTransaction()
     self.assertFalse(gftv.BtNoPairing)
-    self.assertFalse(self.FileExists(self.btnopair_fname))
-
-  def testNoPairingAbandonTransaction(self):
-    gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
-    gftv.ValidateExports()
-    self.assertFalse(gftv.BtNoPairing)
-    self.assertFalse(self.FileExists(self.btnopair_fname))
-
-    gftv.StartTransaction()
-    gftv.BtNoPairing = True
-    self.assertFalse(self.FileExists(self.btnopair_fname))
-    gftv.AbandonTransaction()
-    self.assertFalse(gftv.BtNoPairing)
-    self.assertFalse(self.FileExists(self.btnopair_fname))
+    self.assertFalse(os.path.exists(self.btnopair_fname))
 
   def testEASHeartbeatTimestamp(self):
     gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
-    gfibertv.EASHEARTBEATFILE = 'testdata/gfibertv/eas_heartbeat'
-    self.assertEqual(gftv.EASHeartbeatTimestamp, '2012-11-09T22:26:40Z')
-    gfibertv.EASHEARTBEATFILE = '/path/to/nonexistant'
-    self.assertEqual(gftv.EASHeartbeatTimestamp, '0001-01-01T00:00:00Z')
-    gfibertv.EASHEARTBEATFILE = 'testdata/gfibertv/eas_heartbeat.bad'
-    self.assertEqual(gftv.EASHeartbeatTimestamp, '0001-01-01T00:00:00Z')
+    gfibertv.EASHEARTBEATFILE[0] = 'testdata/gfibertv/eas_heartbeat'
+    self.assertEqual(tr.cwmpdate.format(gftv.EASHeartbeatTimestamp),
+                     '2012-11-09T22:26:40Z')
+    gfibertv.EASHEARTBEATFILE[0] = '/path/to/nonexistant'
+    self.assertEqual(tr.cwmpdate.format(gftv.EASHeartbeatTimestamp),
+                     '0001-01-01T00:00:00Z')
+    gfibertv.EASHEARTBEATFILE[0] = 'testdata/gfibertv/eas_heartbeat.bad'
+    self.assertEqual(tr.cwmpdate.format(gftv.EASHeartbeatTimestamp),
+                     '0001-01-01T00:00:00Z')
 
   def testEASFipsCode(self):
     gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
     gftv.StartTransaction()
     gftv.EASFipsCode = 'FIPS Code'
     gftv.CommitTransaction()
-    self.assertEqual(open(self.easfips_fname).read(), 'FIPS Code')
+    self.assertEqual(open(self.easfips_fname).read(), 'FIPS Code\n')
 
   def testEASFipsServiceAddress(self):
     gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
     gftv.StartTransaction()
     gftv.EASServiceAddress = 'Service Addr'
     gftv.CommitTransaction()
-    self.assertEqual(open(self.easaddr_fname).read(), 'Service Addr')
+    self.assertEqual(open(self.easaddr_fname).read(), 'Service Addr\n')
 
   def testEASFipsServicePort(self):
     gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
     gftv.StartTransaction()
     gftv.EASServicePort = 'Service Port'
     gftv.CommitTransaction()
-    self.assertEqual(open(self.easport_fname).read(), 'Service Port')
+    self.assertEqual(open(self.easport_fname).read(), 'Service Port\n')
 
 
 if __name__ == '__main__':

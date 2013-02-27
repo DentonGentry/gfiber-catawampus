@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 #
 """Base classes for TR-069 model objects.
 
@@ -25,8 +25,6 @@ Exporter yourself.
 """
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
-
-import string
 
 
 class NotAddableError(KeyError):
@@ -64,13 +62,13 @@ class AutoDict(object):
 
   def _Bad(self, funcname):
 
-    #pylint: disable-msg=W0613
+    # pylint: disable-msg=W0613
     def Fn(*args, **kwargs):
       raise NotImplementedError('%r must override %s'
                                 % (self.__name, funcname))
     return Fn
 
-  def iteritems(self):  #pylint: disable-msg=C6409
+  def iteritems(self):  # pylint: disable-msg=C6409
     return self.__iteritems()
 
   def __getitem__(self, key):
@@ -89,12 +87,12 @@ class AutoDict(object):
       return False
     return True
 
-  def iterkeys(self):  #pylint: disable-msg=C6409
-    for (k, v) in self.iteritems():  #pylint: disable-msg=W0612
+  def iterkeys(self):  # pylint: disable-msg=C6409
+    for (k, v) in self.iteritems():  # pylint: disable-msg=W0612
       yield k
 
-  def itervalues(self):  #pylint: disable-msg=C6409
-    for (k, v) in self.iteritems():  #pylint: disable-msg=W0612
+  def itervalues(self):  # pylint: disable-msg=C6409
+    for (k, v) in self.iteritems():  # pylint: disable-msg=W0612
       yield v
 
   def __iter__(self):
@@ -102,17 +100,17 @@ class AutoDict(object):
 
   def __len__(self):
     count = 0
-    for i in self:  #pylint: disable-msg=W0612
+    for i in self:  # pylint: disable-msg=W0612
       count += 1
     return count
 
-  def keys(self):  #pylint: disable-msg=C6409
+  def keys(self):  # pylint: disable-msg=C6409
     return list(self.iterkeys())
 
-  def values(self):  #pylint: disable-msg=C6409
+  def values(self):  # pylint: disable-msg=C6409
     return list(self.itervalues())
 
-  def items(self):  #pylint: disable-msg=C6409
+  def items(self):  # pylint: disable-msg=C6409
     return list(self.iteritems())
 
 
@@ -200,8 +198,7 @@ class Exporter(object):
     object.  The tree walk starts with this object.
 
     Args:
-      obj: The object to generate the canonical for.
-
+      obj_to_find: The object to generate the canonical for.
     Returns:
       The canonical path to the object.
     """
@@ -262,7 +259,7 @@ class Exporter(object):
       self.AssertValidExport(name, path=path)
       l = self._GetExport(self, name)
       try:
-        for (iname, obj) in l.iteritems():  #pylint: disable-msg=W0612
+        for (iname, obj) in l.iteritems():  # pylint: disable-msg=W0612
           pass
       except AttributeError:
         raise Exc(name + 'List', 'is an objlist but failed to iteritems')
@@ -321,6 +318,7 @@ class Exporter(object):
 
     Args:
       name: the name of the sub-object to find the parent of.
+      allow_create: if true, try adding a row to a table to create the object.
     Returns:
       (parent, subname): the parent object and the name of the parameter or
          object referred to by 'name', relative to the parent.
@@ -349,7 +347,7 @@ class Exporter(object):
     """
     parent, subname = self.FindExport(name)
     try:
-      return self._GetExport(parent, subname)  #pylint: disable-msg=W0212
+      return self._GetExport(parent, subname)  # pylint: disable-msg=W0212
     except KeyError:
       # re-raise the KeyError with the full name, not just the subname.
       raise KeyError(name)
@@ -416,13 +414,13 @@ class Exporter(object):
 
     Args:
       param: the parameter whose attribute is going to be set.
-      attr: dict of key/value pairs of attributes and
-            the values to set.
+      attrs: dict of key/value pairs of attributes and
+             the values to set.
     Returns:
       True:  If the object handled setting the attribute.
       False:  If the object does not hanlde setting the attribute.
     """
-    obj, name = self.FindExport(param)
+    obj, unused_name = self.FindExport(param)
     if not hasattr(obj, 'SetAttributes'):
       return False
     obj.SetAttributes(attrs)
@@ -463,7 +461,7 @@ class Exporter(object):
       KeyError: if 'name' is not an exported sub-object type.
     """
     parent, subname = self.FindExport(name)
-    #pylint: disable-msg=W0212
+    # pylint: disable-msg=W0212
     return parent._AddExportObject(subname, idx)
 
   def DeleteExportObject(self, name, idx):
@@ -490,7 +488,7 @@ class Exporter(object):
       if obj is not None:
         yield '%s.' % (idx,)
         if recursive:
-          for i in obj._ListExports(recursive):  #pylint: disable-msg=W0212
+          for i in obj._ListExports(recursive):  # pylint: disable-msg=W0212
             yield '%s.%s' % (idx, i)
 
   def _ListExports(self, recursive):
@@ -503,7 +501,7 @@ class Exporter(object):
         yield name + '.'
         if recursive:
           obj = self._GetExport(self, name)
-          #pylint: disable-msg=W0212
+          # pylint: disable-msg=W0212
           for i in obj._ListExports(recursive):
             yield name + '.' + i
       if name in self.export_object_lists:
@@ -526,7 +524,7 @@ class Exporter(object):
     if name:
       obj = self.GetExport(name)
     if hasattr(obj, '_ListExports'):
-      #pylint: disable-msg=W0212
+      # pylint: disable-msg=W0212
       return obj._ListExports(recursive=recursive)
     else:
       return self._ListExportsFromDict(obj, recursive=recursive)
@@ -539,7 +537,8 @@ class Exporter(object):
     can, and raise ValueError or TypeError if there is a problem.
 
     The transaction will conclude with either an AbandonTransaction or
-    CommitTransaction."""
+    CommitTransaction.
+    """
     pass
 
   def AbandonTransaction(self):
@@ -588,6 +587,8 @@ def Dump(root):
 
 def _DumpSchema(root, out, path):
   if isinstance(root, type):
+    root = root()
+  elif hasattr(root, '__call__') and not hasattr(root, 'export_params'):
     root = root()
   for i in root.export_params:
     name = i.replace('-', '_')
