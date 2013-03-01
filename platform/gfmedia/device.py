@@ -475,7 +475,7 @@ class IP(tr181.Device_v2_2.Device.IP):
 
 
 class IPDiagnostics(CATA181.Device.IP.Diagnostics):
-  """tr-181 Device.IP.Diagnostics implementation for Google Fiber media platforms."""
+  """tr-181 Device.IP.Diagnostics for Google Fiber media platforms."""
 
   def __init__(self):
     super(IPDiagnostics, self).__init__()

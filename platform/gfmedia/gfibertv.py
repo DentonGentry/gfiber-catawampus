@@ -35,6 +35,7 @@ import tr.helpers
 import tr.mainloop
 import tr.types
 import tr.x_gfibertv_1_0
+import selftest
 BASETV = tr.x_gfibertv_1_0.X_GOOGLE_COM_GFIBERTV_v1_0.X_GOOGLE_COM_GFIBERTV
 
 # These are lists so list[0] can be reassigned in a unit test to affect
@@ -83,6 +84,8 @@ class GFiberTv(BASETV):
 
   def __init__(self, mailbox_url):
     super(GFiberTv, self).__init__()
+    self.SelfTest = selftest.SelfTest()
+    self.Export(objects=['SelfTest'])
     self.Mailbox = Mailbox(mailbox_url)
     self.DevicePropertiesList = {}
     self._rpcclient = xmlrpclib.ServerProxy(mailbox_url)
