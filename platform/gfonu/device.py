@@ -60,7 +60,7 @@ ACSTIMEOUTMIN = 2*60*60
 ACSTIMEOUTMAX = 4*60*60
 CONFIGDIR = '/config/tr69'
 DOWNLOADDIR = '/tmp'
-GINSTALL = 'ginstall.py'
+PRISMINSTALL = 'prisminstall.py'
 PROC_CPUINFO = '/proc/cpuinfo'
 REBOOT = 'tr69_reboot'
 REPOMANIFEST = '/etc/repo-buildroot-manifest'
@@ -87,11 +87,17 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
   def GetAcsUrl(self):
     setacs = subprocess.Popen([SET_ACS, 'print'], stdout=subprocess.PIPE)
     out, _ = setacs.communicate(None)
-    return out if setacs.returncode == 0 else ''
+    return setacs.returncode == 0 and out.strip() or ''
 
   def SetAcsUrl(self, url):
-    set_acs_url = url if url else 'clear'
-    rc = subprocess.call(args=[SET_ACS, 'cwmp', set_acs_url.strip()])
+    set_acs_url = url.strip() or 'clear'
+    rc = subprocess.call(args=[SET_ACS, 'cwmp', set_acs_url])
+    if rc != 0:
+      raise AttributeError('set-acs failed')
+
+  def _BlessAcsUrl(self, url):
+    set_acs_url = url.strip() or 'clear'
+    rc = subprocess.call(args=[SET_ACS, 'bless', set_acs_url])
     if rc != 0:
       raise AttributeError('set-acs failed')
 
@@ -110,8 +116,8 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
   def _AcsAccessTimeout(self):
     """Timeout for AcsAccess.
 
-    There has been no successful connection to ACS in
-    self.acs_timeout_interval seconds.
+    There has been no successful connection to ACS in self.acs_timeout_interval
+    seconds.
     """
     try:
       os.remove(ACSCONNECTED)
@@ -146,6 +152,7 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
     # We only *need* to create a 0 byte file, but write URL for debugging
     with open(ACSCONNECTED, 'w') as f:
       f.write(url)
+    self._BlessAcsUrl(url)
 
 
 # TODO: (zixia) based on real hardware chipset
@@ -223,20 +230,39 @@ class Installer(tr.download.Installer):
                           'Installer: file %r does not exist.' % self.filename)
       return False
 
-    #TODO(zixia): leave for GINSTALL
-
-    cmd = [GINSTALL]
+    cmd = [PRISMINSTALL, '--tar={0}'.format(self.filename)]
     try:
-      self._ginstall = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+      self._prisminstall = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     except OSError:
       self._call_callback(INTERNAL_ERROR, 'Unable to start installer process')
       return False
 
-    self._call_callback(0, '')
+    fd = self._prisminstall.stdout.fileno()
+    fcntl.fcntl(fd, fcntl.F_SETFL, os.O_NONBLOCK)
+    self._ioloop.add_handler(fd, self.on_stdout, self._ioloop.READ)
     return True
 
   def reboot(self):
-    sys.exit(32)
+    cmd = [REBOOT]
+    subprocess.call(cmd)
+
+  def on_stdout(self, fd, unused_events):
+    """Called whenever the prisminstall process prints to stdout."""
+    # drain the pipe
+    inp = ''
+    try:
+      inp = os.read(fd, 4096)
+    except OSError:   # returns EWOULDBLOCK
+      pass
+    if inp and inp.strip() != '.':
+      print 'prisminstall: %s' % inp.strip()
+    if self._prisminstall.poll() >= 0:
+      self._ioloop.remove_handler(self._prisminstall.stdout.fileno())
+      if self._prisminstall.returncode == 0:
+        self._call_callback(0, '')
+      else:
+        print 'prisminstall: exit code %d' % self._prisminstall.poll()
+        self._call_callback(INTERNAL_ERROR, 'Unable to install image.')
 
 
 class Device(tr181.Device_v2_4.Device):
@@ -364,12 +390,11 @@ def PlatformInit(name, device_model_root):
 
 
 def main():
-  periodic_stats = dm.periodic_statistics.PeriodicStatistics()
   dev_id = DeviceId()
-  device = Device(dev_id, periodic_stats)
-  tr.core.Dump(device)
-  device.ValidateExports()
-  print 'done'
+  periodic_stats = dm.periodic_statistics.PeriodicStatistics()
+  root = Device(dev_id, periodic_stats)
+  root.ValidateExports()
+  tr.core.Dump(root)
 
 if __name__ == '__main__':
   main()
