@@ -91,6 +91,7 @@ class TriggerObject(object):
 
 class ReadOnlyObject(object):
   b = tr.types.ReadOnlyBool(True)
+  d = tr.types.ReadOnlyDate(0.0)
   i = tr.types.ReadOnlyInt('5')
   s = tr.types.ReadOnlyString('foo')
   e = tr.types.ReadOnlyEnum(['x', 'y', 'z'])
@@ -292,6 +293,9 @@ class TypesTest(unittest.TestCase):
     self.assertEquals(obj.b, False)
     self.assertEquals(obj2.b, True)
 
+    self.assertEquals(obj.d, datetime.datetime(1970, 1, 1, 0, 0))
+    type(obj).d.Set(obj, 1367765220.0)
+    self.assertEquals(obj.d, datetime.datetime(2013, 5, 5, 14, 47))
     self.assertEquals(obj.i, 5)
     type(obj).i.Set(obj, 6)
     self.assertEquals(obj.i, 6)
@@ -302,6 +306,7 @@ class TypesTest(unittest.TestCase):
     type(obj).e.Set(obj, 'x')
     self.assertEquals(obj.e, 'x')
     self.assertRaises(AttributeError, setattr, obj, 'i', 5)
+    self.assertRaises(AttributeError, setattr, obj, 'd', 0.0)
     self.assertRaises(AttributeError, setattr, obj, 's', 'foo')
     self.assertRaises(AttributeError, setattr, obj, 'e', None)
 

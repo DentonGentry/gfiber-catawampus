@@ -217,7 +217,12 @@ While the test is in progress, setting this parameter to {{enum|Requested}} (and
           </string>
         </syntax>
       </parameter>
-
+      <parameter name="LastResultTime" access="readOnly">
+        <description>The time of the most recent speedtest run.</description>
+        <syntax>
+          <dateTime/>
+        </syntax>
+      </parameter>
     </object>
   </model>
 </dm:document>

@@ -24,6 +24,8 @@ Using Ookla's speedtest client.
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import calendar
+import datetime
 import os
 import subprocess
 import google3
@@ -38,6 +40,7 @@ CATA181DEVICE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device
 CATA181SPEED = CATA181DEVICE.IP.Diagnostics.X_CATAWAMPUS_ORG_Speedtest
 SPEEDTEST = 'OoklaClient'
 SPEEDTESTDIR = '/tmp/ookla'
+TIMENOW = datetime.datetime.now
 
 
 class Speedtest(CATA181SPEED):
@@ -45,6 +48,7 @@ class Speedtest(CATA181SPEED):
   Arguments = tr.types.String('')
   License = tr.types.String('')
   Output = tr.types.ReadOnlyString('')
+  LastResultTime = tr.types.ReadOnlyDate()
 
   def __init__(self, ioloop=None):
     super(Speedtest, self).__init__()
@@ -83,6 +87,7 @@ class Speedtest(CATA181SPEED):
   def _EndProc(self):
     print 'speedtest finished.'
     type(self).Output.Set(self, self.buffer)
+    type(self).LastResultTime.Set(self, calendar.timegm(TIMENOW().timetuple()))
     self.buffer = ''
     if self.subproc:
       self.ioloop.remove_handler(self.subproc.stdout.fileno())

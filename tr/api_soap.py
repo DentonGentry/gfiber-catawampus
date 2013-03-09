@@ -20,6 +20,7 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 import datetime
 import time
 import traceback
+import xml.sax.saxutils
 
 import google3
 import api
@@ -41,7 +42,7 @@ def Soapify(value):
   elif isinstance(value, datetime.datetime):
     return ('xsd:dateTime', cwmpdate.format(value))
   else:
-    return ('xsd:string', unicode(value))
+    return ('xsd:string', unicode(xml.sax.saxutils.escape(value)))
 
 
 class Encode(object):

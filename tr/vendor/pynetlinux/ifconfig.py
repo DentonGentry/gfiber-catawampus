@@ -79,6 +79,7 @@ SIOCGIFADDR = 0x8915
 SIOCSIFADDR = 0x8916
 SIOCGIFNETMASK = 0x891B
 SIOCSIFNETMASK = 0x891C
+SIOCGIFMTU = 0x8921
 SIOCETHTOOL = 0x8946
 
 # From linux/if.h
@@ -335,10 +336,19 @@ class Interface(object):
                   "tx_carrier", "tx_compressed"]
         return dict(zip(titles, stats))
 
+    def get_mtu(self):
+        ifreq = struct.pack('16sH14s', self.name, AF_INET, '\x00'*14)
+        try:
+            res = fcntl.ioctl(sockfd, SIOCGIFMTU, ifreq)
+            return struct.unpack('16si12x', res)[1]
+        except IOError:
+            return 0
+
     index = property(get_index)
     mac = property(get_mac, set_mac)
     ip  = property(get_ip, set_ip)
     netmask = property(get_netmask, set_netmask)
+    mtu = property(get_mtu)
 
 
 def iterifs(physical=True):

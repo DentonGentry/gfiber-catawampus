@@ -34,6 +34,7 @@ import dm.brcmwifi
 import dm.device_info
 import dm.ethernet
 import dm.igd_time
+import dm.ipinterface
 import dm.periodic_statistics
 import dm.storage
 import dm.temperature
@@ -76,6 +77,14 @@ REPOMANIFEST = '/etc/repo-buildroot-manifest'
 SET_ACS = 'set-acs'
 VERSIONFILE = '/etc/version'
 TIMEOUTFILE = '/tmp/cwmp/acs_timeout'
+
+
+def _has_wifi():
+  try:
+    PYNETIFCONF('eth2').get_index()
+    return True
+  except IOError:
+    return False
 
 
 class PlatformConfig(platform_config.PlatformConfigMeta):
@@ -481,7 +490,17 @@ class IP(tr181.Device_v2_2.Device.IP):
   def __init__(self):
     super(IP, self).__init__()
     self.Unexport('ULAPrefix')
-    self.InterfaceList = {}
+    self.InterfaceList = {
+        1: dm.ipinterface.IPInterfaceLinux26(
+            ifname='eth0', lowerlayers='Device.Ethernet.Interface.1'),
+        2: dm.ipinterface.IPInterfaceLinux26(
+            ifname='eth1', lowerlayers='Device.MoCA.Interface.1'),
+        256: dm.ipinterface.IPInterfaceLinux26(
+            ifname='br0', lowerlayers='Device.Ethernet.Interface.256'),
+    }
+    if _has_wifi():
+      self.InterfaceList[3] = dm.ipinterface.IPInterfaceLinux26(
+          ifname='eth2', lowerlayers='')  # no tr181 Wifi yet
     self.ActivePortList = {}
     self.Diagnostics = IPDiagnostics()
 
@@ -586,16 +605,9 @@ class LANDevice(BASE98IGD.LANDevice):
     self.Unexport(objects='LANHostConfigManagement')
     self.Unexport(lists='LANUSBInterfaceConfig')
     self.WLANConfigurationList = {}
-    if self._has_wifi():
+    if _has_wifi():
       wifi = dm.brcmwifi.BrcmWifiWlanConfiguration('eth2')
       self.WLANConfigurationList = {'1': wifi}
-
-  def _has_wifi(self):
-    try:
-      PYNETIFCONF('eth2').get_index()
-      return True
-    except IOError:
-      return False
 
   @property
   def LANWLANConfigurationNumberOfEntries(self):

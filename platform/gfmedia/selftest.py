@@ -20,6 +20,8 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import calendar
+import datetime
 import os
 import select
 import signal
@@ -37,6 +39,8 @@ BASE = tr.x_selftest_1_0.X_GOOGLE_COM_SELFTEST_v1_0
 
 # this can be redefined in unit tests
 STRESSTEST_BIN = 'stresstest 2>&1 | tee /proc/self/fd/2 | logos stresstest'
+IPERF_BIN = 'iperf 2>&1 | tee /proc/self/fd/2 | logos iperf'
+TIMENOW = datetime.datetime.now
 
 
 class SelfTest(BASE.X_GOOGLE_COM_GFIBERTV.SelfTest):
@@ -53,10 +57,58 @@ class SelfTest(BASE.X_GOOGLE_COM_GFIBERTV.SelfTest):
     self.Log = ''
     self.proc = None
 
-  Mode = tr.types.TriggerEnum(['None', 'Success', 'Error', 'StressTest'])
+  Mode = tr.types.TriggerEnum(['None', 'Success', 'Error',
+                               'StressTest', 'Throughput'])
   ServerIP = tr.types.TriggerString()
   AutoRestartEnable = tr.types.TriggerBool()
   MaxBitRate = tr.types.TriggerFloat()
+  LastResultTime = tr.types.ReadOnlyDate()
+
+  def _StressTest(self):
+    print 'starting selftest process.'
+    self.Log = ''
+    env = dict(os.environ)
+    env.pop('SERVER_IP', 0)
+    env.pop('DONT_ABORT', 0)
+    env.pop('MAX_BANDWIDTH', 0)
+    if self.ServerIP:
+      env['SERVER_IP'] = str(self.ServerIP)
+    if self.AutoRestartEnable:
+      env['DONT_ABORT'] = '1'
+    if self.MaxBitRate >= 0:
+      env['MAX_BANDWIDTH'] = '%d' % self.MaxBitRate  # megabits/sec
+    return (STRESSTEST_BIN, env)
+
+  def _Throughput(self):
+    print 'starting iperf.'
+    self.Log = ''
+    env = dict(os.environ)
+    env.pop('IPERF_CLIENT', 0)
+    env.pop('IPERF_SERVER', 0)
+    env.pop('IPERF_TIME', 0)
+    env.pop('TCP_WINDOW_SIZE', 0)
+    if self.ServerIP:
+      env['IPERF_CLIENT'] = str(self.ServerIP)
+      env['IPERF_TIME'] = '40'
+      env['TCP_WINDOW_SIZE'] = '32767'
+    else:
+      env['IPERF_SERVER'] = '1'
+    return (IPERF_BIN, env)
+
+  def _StartTest(self, exe, env):
+    def preexec():
+      # give child process its own process group to make it easier to kill
+      os.setpgid(0, 0)
+    self.proc = subprocess.Popen(exe, shell=True, env=env,
+                                 preexec_fn=preexec,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+    self.loop.add_handler(self.proc.stdout.fileno(),
+                          lambda fd, events: self._ReadData(timeout=0),
+                          tornado.ioloop.IOLoop.READ)
+    self.loop.add_handler(self.proc.stderr.fileno(),
+                          lambda fd, events: self._ReadData(timeout=0),
+                          tornado.ioloop.IOLoop.READ)
 
   @tr.mainloop.WaitUntilIdle
   def Triggered(self):
@@ -73,34 +125,18 @@ class SelfTest(BASE.X_GOOGLE_COM_GFIBERTV.SelfTest):
         self.proc.kill()
       self._Finish()
     if self.Mode == 'StressTest':
-      print 'starting selftest process.'
-      self.Log = ''
-      env = dict(os.environ)
-      if self.ServerIP:
-        env['SERVER_IP'] = str(self.ServerIP)
-      if self.AutoRestartEnable:
-        env['DONT_ABORT'] = '1'
-      if self.MaxBitRate >= 0:
-        env['MAX_BANDWIDTH'] = '%d' % self.MaxBitRate  # megabits/sec
-
-      def preexec():
-        # give child process its own process group to make it easier to kill
-        os.setpgid(0, 0)
-      self.proc = subprocess.Popen(STRESSTEST_BIN, shell=True, env=env,
-                                   preexec_fn=preexec,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE)
-      self.loop.add_handler(self.proc.stdout.fileno(),
-                            lambda fd, events: self._ReadData(timeout=0),
-                            tornado.ioloop.IOLoop.READ)
-      self.loop.add_handler(self.proc.stderr.fileno(),
-                            lambda fd, events: self._ReadData(timeout=0),
-                            tornado.ioloop.IOLoop.READ)
+      (exe, env) = self._StressTest()
+      self._StartTest(exe, env)
+    if self.Mode == 'Throughput':
+      (exe, env) = self._Throughput()
+      self._StartTest(exe, env)
 
   def _Finish(self):
     self.Mode = 'None'
     if self.proc:
       self.LastResult = self.proc.wait()
+      type(self).LastResultTime.Set(
+          self, calendar.timegm(TIMENOW().timetuple()))
       self.proc = None
 
   def _ReadData(self, timeout):

@@ -20,6 +20,7 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import datetime
 import signal
 import unittest
 
@@ -28,21 +29,29 @@ import tr.mainloop
 import selftest
 
 
+class TimeNow(object):
+  def timetuple(self):
+    return (2013, 1, 2, 3, 4, 5)
+
+
 class SelfTestTest(unittest.TestCase):
+  def setUp(self):
+    selftest.TIMENOW = TimeNow
+
   def testSelfTest(self):
     st = selftest.SelfTest()
     loop = tr.mainloop.MainLoop()
     st.ValidateExports()
 
     selftest.STRESSTEST_BIN = 'echo hi $DONT_ABORT $SERVER_IP $MAX_BANDWIDTH'
-    self.assertEquals(st.Log, '')
-    self.assertEquals(st.LastResult, 0)
+    self.assertEqual(st.Log, '')
+    self.assertEqual(st.LastResult, 0)
     st.Mode = 'StressTest'
     while st.Mode == 'StressTest':
       loop.RunOnce()
     self.assertEqual(st.Log, 'hi\n')
-    self.assertEquals(st.Mode, 'None')
-    self.assertEquals(st.LastResult, 0)
+    self.assertEqual(st.Mode, 'None')
+    self.assertEqual(st.LastResult, 0)
 
     selftest.STRESSTEST_BIN = (
         'echo hi2 $DONT_ABORT $SERVER_IP $MAX_BANDWIDTH\n'
@@ -55,19 +64,46 @@ class SelfTestTest(unittest.TestCase):
     while st.Mode == 'StressTest':
       loop.RunOnce()
     self.assertEqual(st.Log, 'hi2 1 1.2.3.4 12\n')
-    self.assertEquals(st.Mode, 'None')
-    self.assertEquals(st.LastResult, 24)
+    self.assertEqual(st.Mode, 'None')
+    self.assertEqual(st.LastResult, 24)
+    self.assertEqual(st.LastResultTime,
+                     datetime.datetime(2013, 1, 2, 3, 4, 5))
 
     selftest.STRESSTEST_BIN = 'sleep 1000'
     st.Mode = 'StressTest'
     for _ in range(10):
       loop.RunOnce(0)
     self.assertEqual(st.Log, '')
-    self.assertEquals(st.Mode, 'StressTest')
-    self.assertEquals(st.LastResult, 24)
+    self.assertEqual(st.Mode, 'StressTest')
+    self.assertEqual(st.LastResult, 24)
     st.Mode = 'None'
     loop.RunOnce()
-    self.assertEquals(st.LastResult, -signal.SIGTERM)
+    self.assertEqual(st.LastResult, -signal.SIGTERM)
+
+  def testIPerf(self):
+    st = selftest.SelfTest()
+    loop = tr.mainloop.MainLoop()
+    st.ValidateExports()
+    selftest.IPERF_BIN = 'echo hi $IPERF_CLIENT $IPERF_SERVER $IPERF_TIME'
+
+    self.assertEqual(st.Log, '')
+    self.assertEqual(st.LastResult, 0)
+    st.Mode = 'Throughput'
+    while st.Mode == 'Throughput':
+      loop.RunOnce()
+    self.assertEqual(st.Log, 'hi 1\n')
+    self.assertEqual(st.Mode, 'None')
+    self.assertEqual(st.LastResult, 0)
+    self.assertEqual(st.LastResultTime,
+                     datetime.datetime(2013, 1, 2, 3, 4, 5))
+
+    st.ServerIP = '1.1.1.1'
+    st.Mode = 'Throughput'
+    while st.Mode == 'Throughput':
+      loop.RunOnce()
+    self.assertEqual(st.Log, 'hi 1.1.1.1 40\n')
+    self.assertEqual(st.Mode, 'None')
+    self.assertEqual(st.LastResult, 0)
 
 
 if __name__ == '__main__':
