@@ -79,7 +79,7 @@ class _Enterable(object):
   def __enter__(self):
     return self.iter.next()
 
-  def __exit__(self, type, value, tb):
+  def __exit__(self, unused_type, unused_value, unused_tb):
     try:
       self.iter.next()
     except StopIteration:
@@ -225,6 +225,8 @@ def main():
         xml,
         [('Object.x.y', CpeFault.INVALID_PARAM_TYPE, 'stupid error'),
          ('Object.y.z', CpeFault.INVALID_PARAM_NAME, 'blah error')])
+  print
+  print 'Parsing:'
   parsed = Parse(str(xml))
   print repr(parsed)
   print parsed.Body

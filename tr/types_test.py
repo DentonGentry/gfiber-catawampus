@@ -20,9 +20,14 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import datetime
+import os.path
+import time
 import unittest
 import google3
 import tr.types
+
+TEST_FILE = 'testobject.tmp'
 
 
 class TestObject(object):
@@ -34,6 +39,8 @@ class TestObject(object):
   f = tr.types.Float(4)
   e = tr.types.Enum(['one', 'two', 'three', 7, None])
   e2 = tr.types.Enum(['thing'])
+  d = tr.types.Date()
+  file = tr.types.FileBacked([TEST_FILE], tr.types.Bool())
 
   v = tr.types.Unsigned()
   @v.validator
@@ -98,6 +105,7 @@ class TypesTest(unittest.TestCase):
     self.assertEquals(obj.i, None)
     self.assertEquals(obj.e, None)
     self.assertEquals(obj.e2, None)
+    self.assertEquals(obj.d, None)
     o1 = object()
 
     obj.a = o1
@@ -114,14 +122,17 @@ class TypesTest(unittest.TestCase):
     self.assertEquals(obj.b, 0)
     self.assertTrue(obj.b is False)
     self.assertTrue(obj.b is not 0)
+    obj.b = ''
+    self.assertEquals(obj.b, 0)
     obj.b = 'tRuE'
     self.assertEquals(obj.b, 1)
     self.assertTrue(obj.b is True)
     self.assertTrue(obj.b is not 1)
-    self.assertRaises(ValueError, setattr, obj, 'b', '5')
-    self.assertRaises(ValueError, setattr, obj, 'b', '')
+    obj.b = '5'
+    self.assertTrue(obj.b is True)
     self.assertRaises(ValueError, setattr, obj, 'b', object())
     self.assertRaises(ValueError, setattr, obj, 'b', [])
+    self.assertFalse(hasattr(obj.b, 'xsitype'))
 
     self.assertEquals(obj.s, 'defaultstring')
     obj.s = 1
@@ -139,10 +150,12 @@ class TypesTest(unittest.TestCase):
     self.assertEquals(obj.i, 7)
     obj.i = '8'
     self.assertEquals(obj.i, 8)
+    self.assertEquals(obj.i.xsitype, 'xsd:int')
     self.assertRaises(ValueError, setattr, obj, 'i', '')
 
     obj.u = '5'
     self.assertEquals(obj.u, 5)
+    self.assertEquals(obj.u.xsitype, 'xsd:unsignedInt')
     obj.u = 0
     self.assertEquals(obj.u, 0)
     self.assertRaises(ValueError, setattr, obj, 'u', '-5')
@@ -173,6 +186,48 @@ class TypesTest(unittest.TestCase):
 
     obj.vv = 5  # validator chain is: -((-5) + 1)
     self.assertEquals(obj.vv, 4)
+
+    obj.d = 0
+    self.assertEquals(obj.d, datetime.datetime.utcfromtimestamp(0))
+    now = time.time()
+    obj.d = now
+    self.assertEquals(obj.d, datetime.datetime.utcfromtimestamp(now))
+    obj.d = ''
+    self.assertEquals(obj.d, None)
+    obj.d = '2013-02-27T12:17:37Z'
+    self.assertEquals(obj.d, datetime.datetime.utcfromtimestamp(1361967457))
+
+    open(TEST_FILE, 'w').write('5')
+    self.assertEquals(obj.file, 1)
+    open(TEST_FILE, 'w').write('0')
+    self.assertEquals(obj.file, 0)
+    obj.file = ''
+    self.assertTrue(os.path.exists(TEST_FILE))
+    self.assertEquals(open(TEST_FILE).read(), 'False\n')
+    obj.file = None
+    self.assertFalse(os.path.exists(TEST_FILE))
+    obj.file = -900
+    self.assertEquals(open(TEST_FILE).read(), 'True\n')
+    os.unlink(TEST_FILE)
+
+  def testTypeCoercion(self):
+    obj = TestObject()
+    obj.b = True
+    obj.i = 7
+    obj.f = 3.14
+    obj.s = '5'
+    obj.u = 2
+    # Mostly we're checking that no ValueError is raised.
+    self.assertEquals(int(obj.b), 1)
+    self.assertEquals(float(obj.b), 1.0)
+    self.assertEquals(int(obj.i), 7)
+    self.assertEquals(float(obj.i), 7.0)
+    self.assertEquals(int(obj.f), 3)
+    self.assertEquals(float(obj.f), 3.14)
+    self.assertEquals(int(obj.s), 5)
+    self.assertEquals(float(obj.s), 5.0)
+    self.assertEquals(int(obj.u), 2)
+    self.assertEquals(float(obj.u), 2.0)
 
   def testTriggers(self):
     obj = TriggerObject()

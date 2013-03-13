@@ -23,274 +23,159 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import copy
 import errno
+import glob
 import os
+import re
 import xmlrpclib
 import google3
 import tr.core
 import tr.cwmpbool
 import tr.cwmpdate
 import tr.helpers
+import tr.mainloop
+import tr.types
 import tr.x_gfibertv_1_0
+import selftest
 BASETV = tr.x_gfibertv_1_0.X_GOOGLE_COM_GFIBERTV_v1_0.X_GOOGLE_COM_GFIBERTV
 
-NICKFILE = '/tmp/nicknames'
-NICKFILE_TMP = '/tmp/nicknames.tmp'
-BTDEVICES = '/user/bsa/bt_devices.xml'
-BTHHDEVICES = '/user/bsa/bt_hh_devices.xml'
-BTCONFIG = '/user/bsa/bt_config.xml'
-BTNOPAIRING = '/usr/bsa/nopairing'
-EASADDRFILE = '/tmp/eas_service_address'
-EASFIPSFILE = '/tmp/eas_fips'
-EASHEARTBEATFILE = '/tmp/eas_heartbeat'
-EASPORTFILE = '/tmp/eas_service_port'
+# These are lists so list[0] can be reassigned in a unit test to affect
+# the operation of tr.types.FileBacked.
+NICKFILE = ['/tmp/nicknames']
+BTDEVICES = ['/user/bsa/bt_devices.xml']
+BTHHDEVICES = ['/user/bsa/bt_hh_devices.xml']
+BTCONFIG = ['/user/bsa/bt_config.xml']
+BTNOPAIRING = ['/usr/bsa/nopairing']
+EASADDRFILE = ['/tmp/eas_service_address']
+EASFIPSFILE = ['/tmp/eas_fips']
+EASHEARTBEATFILE = ['/tmp/eas_heartbeat']
+EASPORTFILE = ['/tmp/eas_service_port']
 
 
-class GFiberTvConfig(object):
-  """Class to store configuration settings for GFiberTV."""
-  pass
-
-
-class PropertiesConfig(object):
-  """Class to store configuration settings for DeviceProperties."""
-  pass
+def _SageEscape(s):
+  """Encode a string so it's safe to include in a SageTV config file."""
+  return re.sub(re.compile(r"[^\w'\- !@#$%^*_+,.]", re.UNICODE), '_',
+                s.strip()).encode('unicode-escape')
 
 
 class GFiberTv(BASETV):
   """Implementation of x-gfibertv.xml."""
+  BtConfig = tr.types.FileBacked(BTCONFIG, tr.types.String())
+  BtDevices = tr.types.FileBacked(BTDEVICES, tr.types.String())
+  BtHHDevices = tr.types.FileBacked(BTHHDEVICES, tr.types.String())
+  BtNoPairing = tr.types.FileBacked(BTNOPAIRING, tr.types.String())
+
+  @BtNoPairing.validator
+  def BtNoPairing(self, value):
+    # tr.types.Bool is picky about parsing, and we don't want that when
+    # reading possibly-invalid data from a file, so we use tr.types.String
+    # and parse it ourselves.
+    if not value or value == 'false' or value == 'False' or value == '0':
+      return ''
+    else:
+      return True
+
+  EASFipsCode = tr.types.FileBacked(EASFIPSFILE, tr.types.String())
+  EASServiceAddress = tr.types.FileBacked(EASADDRFILE, tr.types.String())
+  EASServicePort = tr.types.FileBacked(EASPORTFILE, tr.types.String())
+  EASHeartbeatTimestamp = (
+      tr.types.ReadOnly(
+      tr.types.FileBacked(
+      EASHEARTBEATFILE, tr.types.Date())))
 
   def __init__(self, mailbox_url):
     super(GFiberTv, self).__init__()
-    self.Mailbox = GFiberTvMailbox(mailbox_url)
-    self.config = GFiberTvConfig()
-    self.config.nicknames = dict()
-    self.config_old = None
-    self.config.bt_devices = None
-    self.config.bt_hh_devices = None
-    self.config.bt_config = None
-    self.config.bt_nopairing = None
-    self.config.eas_code = None
-    self.config.eas_service_addr = None
-    self.config.eas_service_port = None
-    self.DevicePropertiesList = tr.core.AutoDict(
-        'X_GOOGLE_COM_GFIBERTV.DevicePropertiesList',
-        iteritems=self.IterProperties, getitem=self.GetProperties,
-        setitem=self.SetProperties, delitem=self.DelProperties)
+    self.SelfTest = selftest.SelfTest()
+    self.Export(objects=['SelfTest'])
+    self.Mailbox = Mailbox(mailbox_url)
+    self.DevicePropertiesList = {}
+    self._rpcclient = xmlrpclib.ServerProxy(mailbox_url)
+    self.Config = self._GetNode('')
 
-  class DeviceProperties(BASETV.DeviceProperties):
+    # TODO(apenwarr): Maybe remove this eventually.
+    #  Right now the storage box has an API, but TV boxes don't, so we
+    #  can't control a TV box directly; we have to control it through the
+    #  storage box in the Node list.  This makes it a bit messy to configure
+    #  with the ACS since the configuration keys need to refer to individual
+    #  devices. If we add a server on the TV boxes, we can eventually remove
+    #  this part and leave only Config.
+    self.NodeList = tr.core.AutoDict('NodeList',
+                                     iteritems=self._ListNodes,
+                                     getitem=self._GetNode)
+    self.Export(objects=['Config'], lists=['Node'])
+
+  def Node(self, name=None):
+    return Node(self._rpcclient, name)
+
+  def _ListNodes(self):
+    try:
+      nodes = self._rpcclient.ListNodes()
+    except (xmlrpclib.Fault, xmlrpclib.ProtocolError, IOError), e:
+      raise IndexError('Failure listing nodes: %s' % e)
+    return [(str(node), self._GetNode(node)) for node in nodes]
+
+  def _GetNode(self, name):
+    top = _PopulateTree(self._rpcclient, name)
+    _ExportTree(top)
+    return top
+
+  class _DeviceProperties(BASETV.DeviceProperties):
     """Implementation of gfibertv.DeviceProperties."""
 
-    def __init__(self):
-      super(GFiberTv.DeviceProperties, self).__init__()
-      self.config = PropertiesConfig()
-      # nick_name is a unicode string.
-      self.config.nick_name = ''
-      self.config.serial_number = ''
-      self.parent = None
+    NickName = tr.types.TriggerString()
+    SerialNumber = tr.types.TriggerString()
 
-    def StartTransaction(self):
-      # NOTE(jnewlin): If an inner object is added, we need to do deepcopy.
-      self.config_old = copy.copy(self.config)
+    def __init__(self, parent):
+      super(GFiberTv._DeviceProperties, self).__init__()
+      self.parent = parent
+      self.Triggered = self.parent.Triggered
 
-    def AbandonTransaction(self):
-      self.config = self.config_old
-      self.config_old = None
+  def DeviceProperties(self):
+    """Default constructor for new elements of DevicePropertiesList.
 
-    def CommitTransaction(self):
-      self.config_old = None
-      self.parent.WriteNicknamesFile()
-
-    @property
-    def NickName(self):
-      return self.config.nick_name.decode('utf-8')
-
-    @NickName.setter
-    def NickName(self, value):
-      # TODO(jnewlin): Need some sanity here so the user can't enter
-      # a value that hoses the file, like a carriage return or newline.
-      tmp_uni = unicode(value, 'utf-8')
-      tmp_uni = tmp_uni.replace(u'\n', u'')
-      tmp_uni = tmp_uni.replace(u'\r', u'')
-      self.config.nick_name = tmp_uni
-
-    @property
-    def SerialNumber(self):
-      return self.config.serial_number
-
-    @SerialNumber.setter
-    def SerialNumber(self, value):
-      self.config.serial_number = value
-
-  def StartTransaction(self):
-    assert self.config_old is None
-    self.config_old = copy.copy(self.config)
-
-  def AbandonTransaction(self):
-    self.config = self.config_old
-    self.config_old = None
-
-  def WriteNicknamesFile(self):
-    """Write out the nicknames file for Sage."""
-    if self.config.nicknames:
-      with file(NICKFILE_TMP, 'w') as f:
-        serials = []
-        for nn in self.config.nicknames.itervalues():
-          f.write('%s/nickname=%s\n' % (
-              nn.SerialNumber, nn.config.nick_name.encode('unicode-escape')))
-          serials.append(nn.SerialNumber)
-        f.write('serials=%s\n' % ','.join(serials))
-      os.rename(NICKFILE_TMP, NICKFILE)
-
-  def _WriteOrRemove(self, filename, content):
-    if content:
-      tr.helpers.WriteFileAtomic(filename, content)
-    else:
-      # interpret empty content as "remove the file"
-      tr.helpers.Unlink(filename)
-
-  def CommitTransaction(self):
-    """Write out the {Bluetooth, EAS} config files for Sage."""
-    self.WriteNicknamesFile()
-
-    if self.config.bt_devices is not None:
-      self._WriteOrRemove(filename=BTDEVICES, content=self.config.bt_devices)
-      self.config.bt_devices = None
-
-    if self.config.bt_hh_devices is not None:
-      self._WriteOrRemove(filename=BTHHDEVICES,
-                          content=self.config.bt_hh_devices)
-      self.config.bt_hh_devices = None
-
-    if self.config.bt_config is not None:
-      self._WriteOrRemove(filename=BTCONFIG, content=self.config.bt_config)
-      self.config.bt_config = None
-
-    if self.config.bt_nopairing is not None:
-      content = 'nopair' if self.config.bt_nopairing else ''
-      self._WriteOrRemove(filename=BTNOPAIRING, content=content)
-      self.config.bt_nopairing = None
-
-    if self.config.eas_code is not None:
-      self._WriteOrRemove(filename=EASFIPSFILE, content=self.config.eas_code)
-      self.config.eas_code = None
-
-    if self.config.eas_service_addr is not None:
-      self._WriteOrRemove(filename=EASADDRFILE,
-                          content=self.config.eas_service_addr)
-      self.config.eas_service_addr = None
-
-    if self.config.eas_service_port is not None:
-      self._WriteOrRemove(filename=EASPORTFILE,
-                          content=self.config.eas_service_port)
-      self.config.eas_service_port = None
-
-    self.config_old = None
+    Called automatically by the tr.core API to add new entries. Normally
+    the _DeviceProperties class would just be called DeviceProperties and
+    tr.core would instantiate it, but we want to pass it a parent= value
+    to the constructor, so we do this trick instead.
+    """
+    return self._DeviceProperties(parent=self)
 
   @property
   def DevicePropertiesNumberOfEntries(self):
-    return len(self.config.nicknames)
+    return len(self.DevicePropertiesList.keys())
 
-  def IterProperties(self):
-    return self.config.nicknames.iteritems()
-
-  def GetProperties(self, key):
-    return self.config.nicknames[key]
-
-  def SetProperties(self, key, child_object):
-    child_object.parent = self
-    self.config.nicknames[key] = child_object
-
-  def DelProperties(self, key):
-    del self.config.nicknames[key]
-
-  def _ReadShortFile(self, filename):
-    """Read a file into memory, return empty string if ENOEXIST."""
-    try:
-      with file(filename) as f:
-        return f.read()
-    except IOError as e:
-      # If the file doesn't exist for some reason, just return an empty
-      # string, otherwise throw the exception, which should get propagated
-      # back to the ACS.
-      if e.errno == errno.ENOENT:
-        return ''
-      raise
-
-  @property
-  def BtDevices(self):
-    return self._ReadShortFile(BTDEVICES)
-
-  @property
-  def BtNoPairing(self):
-    return os.access(BTNOPAIRING, os.R_OK)
-
-  @BtNoPairing.setter
-  def BtNoPairing(self, value):
-    self.config.bt_nopairing = tr.cwmpbool.parse(value)
-
-  @BtDevices.setter
-  def BtDevices(self, value):
-    self.config.bt_devices = value
-
-  @property
-  def BtHHDevices(self):
-    return self._ReadShortFile(BTHHDEVICES)
-
-  @BtHHDevices.setter
-  def BtHHDevices(self, value):
-    self.config.bt_hh_devices = value
-
-  @property
-  def BtConfig(self):
-    return self._ReadShortFile(BTCONFIG)
-
-  @BtConfig.setter
-  def BtConfig(self, value):
-    self.config.bt_config = value
-
-  @property
-  def EASFipsCode(self):
-    return self._ReadShortFile(EASFIPSFILE)
-
-  @EASFipsCode.setter
-  def EASFipsCode(self, value):
-    self.config.eas_code = str(value)
-
-  @property
-  def EASServiceAddress(self):
-    return self._ReadShortFile(EASADDRFILE)
-
-  @EASServiceAddress.setter
-  def EASServiceAddress(self, value):
-    self.config.eas_service_addr = str(value)
-
-  @property
-  def EASServicePort(self):
-    return self._ReadShortFile(EASPORTFILE)
-
-  @EASServicePort.setter
-  def EASServicePort(self, value):
-    self.config.eas_service_port = str(value)
-
-  @property
-  def EASHeartbeatTimestamp(self):
-    try:
-      with file(EASHEARTBEATFILE) as f:
-        secs = float(f.read())
-    except (IOError, OSError, ValueError):
-      secs = 0.0
-    return tr.cwmpdate.format(secs)
+  @tr.mainloop.WaitUntilIdle
+  def Triggered(self):
+    # write the SageTV nicknames file
+    with tr.helpers.AtomicFile(NICKFILE[0]) as f:
+      serials = []
+      for device in self.DevicePropertiesList.values():
+        if device.SerialNumber and device.NickName:
+          f.write('%s/nickname=%s\n' % (_SageEscape(device.SerialNumber),
+                                        _SageEscape(device.NickName)))
+          serials.append(device.SerialNumber)
+      f.write('serials=%s\n' % ','.join(_SageEscape(i) for i in serials))
 
 
-class GFiberTvMailbox(BASETV.Mailbox):
-  """Implementation of x-gfibertv.xml."""
+class Mailbox(BASETV.Mailbox):
+  """Getter/setter for individual values in the SageTV configuration.
+
+  You set Node the node name, set Name to the config key you want to get/set,
+  and then get/set the Value field to read or write the actual value in the
+  configuration file.
+
+  Note: this API is deprecated. Consider using the PropList (GFiberTv.Config)
+  instead.
+  """
+
+  Node = tr.types.String()
+  Name = tr.types.String()
 
   def __init__(self, url):
-    super(GFiberTvMailbox, self).__init__()
+    super(Mailbox, self).__init__()
     self.rpcclient = xmlrpclib.ServerProxy(url)
-    self.Name = ''
-    self.Node = ''
 
-  def GetValue(self):
+  @property
+  def Value(self):
     if not self.Name:
       return None
     try:
@@ -301,7 +186,8 @@ class GFiberTvMailbox(BASETV.Mailbox):
       raise IndexError(
           'Unable to access Property %s:%s' % (self.Node, self.Name))
 
-  def SetValue(self, value):
+  @Value.setter
+  def Value(self, value):
     try:
       return str(self.rpcclient.SetProperty(self.Name, value, self.Node))
     except xmlrpclib.Fault:
@@ -310,13 +196,104 @@ class GFiberTvMailbox(BASETV.Mailbox):
       raise IndexError(
           'Unable to access Property %s:%s' % (self.Node, self.Name))
 
-  Value = property(GetValue, SetValue, None,
-                   'X_GOOGLE_COM_GFIBERTV_v1_0.Mailbox.Value')
-
   @property
   def NodeList(self):
     try:
-      return str(', '.join(self.rpcclient.ListNodes()))
+      nodes = self.rpcclient.ListNodes()
+      if nodes and isinstance(nodes, basestring):
+        # if there is only one node, xmlrpclib helpfully returns a string
+        # instead of a list.
+        nodes = [nodes]
+      return str(', '.join(nodes))
     except (xmlrpclib.Fault, xmlrpclib.ProtocolError, IOError), e:
       print 'gfibertv.NodeList: %s' % e
-      return {}
+      return ''
+
+
+class PropList(tr.core.Exporter):
+  """An auto-generated list of properties in the SageTV database."""
+
+  def __init__(self, rpcclient, node):
+    self._rpcclient = rpcclient
+    self._node = node
+    self._params = {}
+    self._subs = {}
+    super(PropList, self).__init__()
+
+  def _Get(self, realname):
+    # TODO(apenwarr): use a single API call to get all the names and values,
+    #  then just cache them.  Retrieving them one at a time from SageTV
+    #  is very slow.
+    print 'xmlrpc getting %r' % realname
+    try:
+      return str(self._rpcclient.GetProperty(realname, self._node))
+    except xmlrpclib.expat.ExpatError, e:
+      #TODO(apenwarr): SageTV produces invalid XML.
+      # ...if the value contains <> characters, for example.
+      print 'Expat decode error: %s' % e
+      return None
+    except (xmlrpclib.Fault, xmlrpclib.ProtocolError, IOError), e:
+      print 'xmlrpc: %s/%s: %s' % (self._node, realname, e)
+      return None
+
+  def _Set(self, realname, value):
+    try:
+      return str(self._rpcclient.SetProperty(realname, value, self._node))
+    except (xmlrpclib.Fault, xmlrpclib.ProtocolError, IOError), e:
+      print 'xmlrpc: %s/%s: %s' % (self._node, realname, e)
+      raise ValueError('unable to set value: %e' % (e,))
+
+  def __getattr__(self, name):
+    if name.startswith('_'):
+      raise AttributeError(name)
+    elif name in self._subs:
+      return self._subs[name]
+    else:
+      return self._Get(self._params[name])
+
+  def __setattr__(self, name, value):
+    if name.startswith('_'):
+      return super(PropList, self).__setattr__(name, value)
+    elif name in self._params:
+      return self._Set(self._params[name], value)
+    else:
+      return super(PropList, self).__setattr__(name, value)
+
+
+def _PopulateTree(rpcclient, nodename):
+  # TODO(apenwarr): add a server API to get the actual property list.
+  #  Then use it here. Reading it from the file is kind of cheating.
+  top = PropList(rpcclient, nodename)
+  for g in ['/app/sage/*.properties.default*', '/rw/sage/*.properties']:
+    for filename in glob.glob(g):
+      for line in open(filename):
+        line = line.split('#', 1)[0]  # remove comments
+        line = line.split('=', 1)[0]  # remove =value from key=value
+        line = line.strip()
+        realname = line.strip()
+        # Find or create the intermediate PropLists leading up to this leaf
+        if realname:
+          clean = re.sub(r'[^\w/]', '_', realname)
+          parts = clean.split('/')
+          obj = top
+          for part in parts[:-1]:
+            if part not in obj._subs:
+              obj._subs[part] = PropList(rpcclient, nodename)
+            obj = obj._subs[part]
+          obj._params[parts[-1]] = realname
+  return top
+
+
+def _ExportTree(obj):
+  # Once the tree is populated, this function recursively registers it
+  # with tr.core.Exporter.
+  for i in obj._subs.keys():
+    if i in obj._params:
+      del obj._params[i]
+  obj.Export(params=obj._params.keys(), objects=obj._subs.keys())
+  for i in obj._subs.values():
+    _ExportTree(i)
+
+
+if __name__ == '__main__':
+  print tr.core.DumpSchema(GFiberTv('http://localhost/'))

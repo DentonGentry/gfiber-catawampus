@@ -14,8 +14,8 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409
-#pylint: disable-msg=W0404
+# pylint: disable-msg=C6409
+# pylint: disable-msg=W0404
 #
 """Implement the TR-069 style request/response protocol over HTTP."""
 
@@ -39,7 +39,7 @@ import tornado.web
 
 import api_soap
 import cpe_management_server
-import helpers
+import monohelper
 import session
 
 PROC_IF_INET6 = '/proc/net/if_inet6'
@@ -364,7 +364,8 @@ class CPEStateMachine(object):
 
     headers = {}
     if self.session.cookies:
-      headers['Cookie'] = self.session.cookies.output(attrs=[], header='', sep=';')
+      headers['Cookie'] = self.session.cookies.output(attrs=[],
+                                                      header='', sep=';')
     if self.outstanding:
       headers['Content-Type'] = 'text/xml; charset="utf-8"'
       headers['SOAPAction'] = ''
@@ -460,7 +461,7 @@ class CPEStateMachine(object):
 
     # Rate limit how often new sessions can be started with ping to
     # once a minute
-    current_time = helpers.monotime()
+    current_time = monohelper.monotime()
     elapsed_time = current_time - self.previous_ping_time
     allow_ping = (elapsed_time < 0 or
                   elapsed_time > self.rate_limit_seconds)

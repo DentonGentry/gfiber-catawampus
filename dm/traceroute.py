@@ -14,10 +14,15 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409
-#pylint: disable-msg=W0404
+# pylint: disable-msg=C6409
+# pylint: disable-msg=W0404
 #
-"""An implementation of Device.IP.Diagnostics.TraceRoute."""
+"""An implementation of Device.IP.Diagnostics.TraceRoute.
+
+Requires a traceroute binary, handles either the LBL traceroute
+bundled with many Linux distributions of the new traceroute from
+http://traceroute.sourceforge.net/
+"""
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
@@ -26,13 +31,17 @@ import re
 import subprocess
 import sys
 import google3
+import tornado.ioloop
 import tr.core
 import tr.mainloop
-import tr.tr181_v2_2
+import tr.tr181_v2_6
+import tr.types
 
 
-BASE_TRACEROUTE = tr.tr181_v2_2.Device_v2_2.Device.IP.Diagnostics.TraceRoute
+BASE_TRACEROUTE = tr.tr181_v2_6.Device_v2_6.Device.IP.Diagnostics.TraceRoute
 MIN_PACKET_SIZE = 52  # from MacOS; Linux can apparently go smaller?
+TRACEROUTE = 'traceroute'
+TRACEROUTE6 = 'traceroute6'
 
 
 class State(object):
@@ -46,34 +55,33 @@ class State(object):
 
 class TraceRoute(BASE_TRACEROUTE):
   """Implementation of the TraceRoute object from TR-181."""
+  DSCP = tr.types.Unsigned(0)
+  NumberOfTries = tr.types.Unsigned(3)
+  Timeout = tr.types.Unsigned(5000)   # milliseconds
+  DataBlockSize = tr.types.Unsigned(38)
+  MaxHopCount = tr.types.Unsigned(30)
 
-  def __init__(self, loop):
-    BASE_TRACEROUTE.__init__(self)
-    self.loop = loop
+  def __init__(self, ioloop=None):
+    super(TraceRoute, self).__init__()
+    self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
+    self.Unexport('Interface')
     self.subproc = None
     self.error = None
     self.buffer = ''
     self.Host = None
-    self.NumberOfTries = 3
-    self.Timeout = 5000   # milliseconds
-    self.DataBlockSize = 38
-    self.MaxHopCount = 30
-    self.ResponseTime = None
+    self.response_time = 0
+    self.requested = False
     self.RouteHopsList = {}
-
-  @property
-  def Interface(self):
-    # not implemented
-    return None
-
-  @property
-  def DSCP(self):
-    # not implemented
-    return None
 
   @property
   def RouteHopsNumberOfEntries(self):
     return len(self.RouteHopsList)
+
+  @property
+  def ResponseTime(self):
+    if self.error:
+      return 0
+    return self.response_time
 
   def _ClearHops(self):
     self.RouteHopsList = {}
@@ -85,12 +93,12 @@ class TraceRoute(BASE_TRACEROUTE):
                                                   ErrorCode=icmp_error,
                                                   RTTimes=rttimes)
     if rttimes:
-      self.ResponseTime = sum(rttimes)/len(rttimes)
+      self.response_time = sum(rttimes)/len(rttimes)
     if int(hop) >= int(self.MaxHopCount):
       self.error = State.ERROR_MAX_HOP_COUNT_EXCEEDED
 
   def _GetState(self):
-    if self.subproc:
+    if self.requested or self.subproc:
       return State.REQUESTED
     elif self.error:
       return self.error
@@ -101,16 +109,17 @@ class TraceRoute(BASE_TRACEROUTE):
 
   def _SetState(self, value):
     if value != State.REQUESTED:
-      raise Exception('DiagnosticsState can only be set to "Requested"')
+      raise ValueError('DiagnosticsState can only be set to "Requested"')
+    self.requested = True
     self._StartProc()
 
-  #pylint: disable-msg=W1001
+  # pylint: disable-msg=W1001
   DiagnosticsState = property(_GetState, _SetState)
 
   def _EndProc(self):
     print 'traceroute finished.'
     if self.subproc:
-      self.loop.ioloop.remove_handler(self.subproc.stdout.fileno())
+      self.ioloop.remove_handler(self.subproc.stdout.fileno())
       if self.subproc.poll() is None:
         self.subproc.kill()
       rv = self.subproc.poll()
@@ -119,34 +128,38 @@ class TraceRoute(BASE_TRACEROUTE):
         self.error = State.ERROR_CANNOT_RESOLVE_HOSTNAME
       self.subproc = None
 
+  @tr.mainloop.WaitUntilIdle
   def _StartProc(self):
     self._EndProc()
     self._ClearHops()
     self.error = None
+    self.response_time = 0
+    self.requested = False
     print 'traceroute starting.'
     if not self.Host:
-      raise Exception('TraceRoute.Host is not set')
+      raise ValueError('TraceRoute.Host is not set')
     if ':' in self.Host:
       # IPv6
-      argv_base = ['traceroute6']
+      argv_base = [TRACEROUTE6]
       if sys.platform == 'darwin':
         argv_base += ['-l']  # tell MacOS traceroute6 to include IP addr
     else:
       # assume IPv4
-      argv_base = ['traceroute']
-    argv = argv_base + ['-m', '%d' % int(self.MaxHopCount),
-                        '-q', '%d' % int(self.NumberOfTries),
-                        '-w', '%d' % (int(self.Timeout)/1000.0),
-                        self.Host,
-                        '%d' % max(MIN_PACKET_SIZE, int(self.DataBlockSize))]
+      argv_base = [TRACEROUTE]
+    argv = argv_base + ['-m', str(int(self.MaxHopCount)),
+                        '-q', str(int(self.NumberOfTries)),
+                        '-w', str(int(self.Timeout)/1000)]
+    if self.DSCP:
+      argv += ['-t', str(int(self.DSCP))]
+    argv += [self.Host, str(max(MIN_PACKET_SIZE, int(self.DataBlockSize)))]
     print '  %r' % argv
     self.subproc = subprocess.Popen(argv,
                                     stdout=subprocess.PIPE)
-    self.loop.ioloop.add_handler(self.subproc.stdout.fileno(),
-                                 self._GotData,
-                                 self.loop.ioloop.READ)
+    self.ioloop.add_handler(self.subproc.stdout.fileno(),
+                            self._GotData,
+                            self.ioloop.READ)
 
-  #pylint: disable-msg=W0613
+  # pylint: disable-msg=W0613
   def _GotData(self, fd, events):
     data = os.read(fd, 4096)
     if not data:
@@ -160,7 +173,6 @@ class TraceRoute(BASE_TRACEROUTE):
 
   def _GotLine(self, line):
     # TODO(apenwarr): find out how traceroute reports host-unreachable/etc
-    # TODO(apenwarr): check that traceroute output is same on OpenWRT
     print 'traceroute line: %r' % (line,)
     g = re.match(r'^\s*(\d+)\s+(\S+) \(([\d:.]+)\)((\s+[\d.]+ ms)+)', line)
     if g:

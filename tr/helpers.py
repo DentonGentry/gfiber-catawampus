@@ -19,8 +19,6 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import errno
 import os
-import time
-import tornado.util
 
 
 def Unlink(filename):
@@ -40,17 +38,34 @@ def Unlink(filename):
       raise
 
 
-def WriteFileAtomic(final_file_name, data, tmp_file_name=None):
-  """Writes data to tmp file, then moves it to the final file atomically."""
-  if not tmp_file_name:
-    tmp_file_name = final_file_name + '.tmp'
-  with file(tmp_file_name, 'w') as f:
+class AtomicFile(object):
+  """Like a normal file object, but atomically replaces file on close().
+
+  Example:
+      with AtomicFile('filename') as f:
+        f.write('hello world')
+        f.write('more stuff')
+
+  The above program creates filename.tmp, writes content to it, then
+  closes it and renames it to filename, thus overwriting any existing file
+  named 'filename' atomically.
+  """
+
+  def __init__(self, filename):
+    self.filename = filename
+    self.file = None
+
+  def __enter__(self):
+    self.file = open(self.filename + '.tmp', 'w')
+    return self.file
+
+  def __exit__(self, unused_type, unused_value, unused_traceback):
+    if self.file:
+      self.file.close()
+      os.rename(self.filename + '.tmp', self.filename)
+
+
+def WriteFileAtomic(filename, data):
+  """A shortcut for calling AtomicFile with a static string as content."""
+  with AtomicFile(filename) as f:
     f.write(data)
-  os.rename(tmp_file_name, final_file_name)
-
-
-def monotime():
-  if hasattr(tornado.util, 'monotime'):
-    return tornado.util.monotime()
-  else:
-    return time.time()

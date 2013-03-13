@@ -25,6 +25,7 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import datetime
 import errno
+import fcntl
 import logging
 import os
 import socket
@@ -32,8 +33,15 @@ import sys
 import traceback
 import google3
 import tornado.ioloop
-import tornado.iostream  #pylint: disable-msg=W0404
+import tornado.iostream  # pylint: disable-msg=W0404
 import helpers
+
+
+def _CloseOnExec(fd, enabled):
+  flag = fcntl.fcntl(fd, fcntl.F_GETFD) & ~fcntl.FD_CLOEXEC
+  if enabled:
+    flag |= fcntl.FD_CLOEXEC
+  fcntl.fcntl(fd, fcntl.F_SETFD, flag)
 
 
 def _DeleteOldSock(family, address):
@@ -48,6 +56,8 @@ def _DeleteOldSock(family, address):
 def _ListenSocket(family, address):
   """Return a new listening socket on the given family and address."""
   sock = socket.socket(family, socket.SOCK_STREAM, 0)
+  _CloseOnExec(sock.fileno(), True)
+
   if family == socket.AF_UNIX:
     _DeleteOldSock(family, address)
   else:
@@ -92,14 +102,14 @@ class ListenSocket(object):
       self.sock.close()
       helpers.Unlink(self.address)
 
-  def _Accept(self, fd, events):  #pylint: disable-msg=W0613
+  def _Accept(self, fd, events):  # pylint: disable-msg=W0613
     try:
       sock, address = self.sock.accept()
     except socket.error, e:
       if e.args[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
         return
       raise
-    sock.setblocking(0)  #pylint: disable-msg=E1101
+    sock.setblocking(0)  # pylint: disable-msg=E1101
     print 'got a connection from %r' % (address,)
     self.onaccept_func(sock, address)
 
@@ -151,12 +161,13 @@ class LineReader(object):
 
   def OnClose(self):
     print 'closing %r' % (self.address,)
-    self.stream._read_callback = None
+    self.stream._read_callback = None  # pylint: disable-msg=protected-access
     self.stream.set_close_callback(None)
 
 
 class IOLoopWrapper(tornado.ioloop.IOLoop):
   """Overload IOLoop so that we can catch their inner exceptions."""
+
   def __init__(self):
     super(IOLoopWrapper, self).__init__()
 
@@ -195,7 +206,7 @@ class MainLoop(object):
     # can get their refcounts down to zero, so their destructors can be
     # called
     if self.ioloop:
-      #gpylint: disable-msg=W0212
+      # gpylint: disable-msg=W0212
       for fd in self.ioloop._handlers.keys():
         self.ioloop.remove_handler(fd)
       self.ioloop._handlers.clear()
@@ -270,6 +281,7 @@ class MainLoop(object):
 
   def Connect(self, family, address, onconnect_func):
     sock = socket.socket(family, socket.SOCK_STREAM, 0)
+    _CloseOnExec(sock.fileno(), True)
     stream = tornado.iostream.IOStream(sock)
     stream.set_close_callback(lambda: onconnect_func(None))
     stream.connect(address, lambda: onconnect_func(stream))
@@ -298,7 +310,7 @@ class _WaitUntilIdle(object):
     for tmo in timeouts:
       try:
         tornado.ioloop.IOLoop.instance().remove_timeout(tmo)
-      except:  #gpylint: disable-msg=W0702
+      except:  # pylint: disable-msg=bare-except
         pass   # must catch all exceptions in a destructor
 
   def _Call(self, *args, **kwargs):
@@ -358,10 +370,10 @@ def _TestGotLine(line):
 
 def main():
   loop = MainLoop()
-  #pylint: disable-msg=C6402
+  # pylint: disable-msg=C6402
   loop.ListenInet(('', 12999),
                   lambda sock, address: LineReader(sock, address,
-                                                    _TestGotLine))
+                                                   _TestGotLine))
   loop.Start()
 
 

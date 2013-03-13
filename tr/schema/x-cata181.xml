@@ -136,5 +136,55 @@
         </syntax>
       </parameter>
     </object>
+
+    <object name="Device.IP.Diagnostics.X_CATAWAMPUS-ORG_Speedtest." access="readOnly" minEntries="1" maxEntries="1">
+      <description>This object provides access to an IP-layer performance test.</description>
+      <parameter name="DiagnosticsState" access="readWrite" activeNotify="canDeny">
+        <description>Indicates availability of diagnostic data.  {{enum}}
+If the ACS sets the value of this parameter to {{enum|Requested}}, the CPE MUST initiate the corresponding diagnostic test.  When  writing, the only allowed value is {{enum|Requested}}.  To ensure the use of the proper test parameters (the writable parameters in  this object), the test parameters MUST be set either prior to or at the same time as (in the same SetParameterValues) setting the  {{param}} to {{enum|Requested}}.
+When requested, the CPE SHOULD wait until after completion of the communication session with the ACS before starting the diagnostic.
+When the test is completed, the value of this parameter MUST be either {{enum|Complete}} (if the test completed successfully), or one  of the ''Error'' values listed above.
+If the value of this parameter is anything other than {{enum|Complete}}, the values of the results parameters for this test are  indeterminate.
+When the diagnostic initiated by the ACS is completed (successfully or not), the CPE MUST establish a new connection to the ACS to  allow the ACS to view the results, indicating the Event code ''8 DIAGNOSTICS COMPLETE'' in the Inform message.
+After the diagnostic is complete, the value of all result parameters (all read-only parameters in this object) MUST be retained by  the CPE until either this diagnostic is run again, or the CPE reboots.  After a reboot, if the CPE has not retained the result  parameters from the most recent test, it MUST set the value of this parameter to {{enum|None}}.
+Modifying any of the writable parameters in this object except for this one MUST result in the value of this parameter being set to  {{enum|None}}.
+While the test is in progress, modifying any of the writable parameters in this object except for this one MUST result in the test  being terminated and the value of this parameter being set to {{enum|None}}.
+While the test is in progress, setting this parameter to {{enum|Requested}} (and possibly modifying other writable parameters in this  object) MUST result in the test being terminated and then restarted using the current values of the test parameters.</description>
+        <syntax>
+          <string>
+            <enumeration value="None" access="readOnly"/>
+            <enumeration value="Requested"/>
+            <enumeration value="Complete" access="readOnly"/>
+            <enumeration value="Error_Internal" access="readOnly"/>
+            <enumeration value="Error_Other" access="readOnly"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="License" access="readWrite">
+        <description>The license and test configuration to be used for the speed test invocation.</description>
+        <syntax>
+          <string>
+            <size maxLength="16384"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="Arguments" access="readWrite">
+        <description>Arguments to pass to the speedtest. This string will be broken into distinct arguments at whitespaces. Note that no shell is involved, and shell substitutions will not be performed.</description>
+        <syntax>
+          <string>
+            <size maxLength="1024"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="Output" access="readOnly">
+        <description>The output of the speed test run.</description>
+        <syntax>
+          <string>
+            <size maxLength="65536"/>
+          </string>
+        </syntax>
+      </parameter>
+
+    </object>
   </model>
 </dm:document>

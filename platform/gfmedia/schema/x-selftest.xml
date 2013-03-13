@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  TR-069 google.com vendor model for automatic self test.
+
+  This allows the ACS to activate a self-test mode on the device, which can
+  be useful during manufacturing tests.
+-->
+<dm:document xmlns:dm="urn:broadband-forum-org:cwmp:datamodel-1-3"
+             xmlns:dmr="urn:broadband-forum-org:cwmp:datamodel-report-0-1"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="urn:broadband-forum-org:cwmp:datamodel-1-3 cwmp-datamodel-1-3.xsd
+                                 urn:broadband-forum-org:cwmp:datamodel-report-0-1 cwmp-datamodel-report.xsd"
+             spec="urn:google-com:x-selftest-1-0">
+
+  <import file="tr-069-biblio.xml" spec="urn:broadband-forum-org:tr-069-biblio"/>
+
+  <import file="tr-106-1-0-types.xml" spec="urn:broadband-forum-org:tr-106-1-0">
+    <dataType name="IPAddress"/>
+    <dataType name="MACAddress"/>
+  </import>
+
+  <model name="X_GOOGLE-COM_SELFTEST:1.0" isService="true">
+    <object name="X_GOOGLE_COM_GFIBERTV.SelfTest." access="readOnly" minEntries="1" maxEntries="1">
+      <description>Parameters for configuring an automated self test.</description>
+      <parameter name="ServerIP" access="readWrite">
+        <description>For clients (ie. TV box) the server (storage box) to
+          connect to.  If this parameter is omitted, scans the local network
+          for a server.</description>
+        <syntax>
+          <dataType ref="IPAddress"/>
+        </syntax>
+      </parameter>
+      <parameter name="AutoRestartEnable" access="readWrite">
+        <description>If true, restart the test after it passes or fails.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="MaxBitRate" access="readWrite">
+        <description>Maximum data transmit rate, in {{units}}.  0 means no
+          transmission, and values less than zero mean unlimited.</description>
+        <syntax>
+          <float>
+            <units value="Mbps"/>
+          </float>
+        </syntax>
+      </parameter>
+      <parameter name="Mode" access="readWrite">
+        <description>The current self-test mode.  Set to None to disable
+          the test, or StressTest to enable the stress test.  Other kinds
+          of tests may be added in the future.</description>
+        <syntax>
+          <string>
+            <enumeration value="None"/>
+            <enumeration value="StressTest"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="LastResult" access="readOnly">
+        <description>The result of the most recent test run. 0 means
+          success.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="Log" access="readOnly">
+        <description>The most recent output of the test script.</description>
+        <syntax>
+          <string>
+            <size maxLength="100000"/>
+          </string>
+        </syntax>
+      </parameter>
+    </object>
+  </model>
+</dm:document>

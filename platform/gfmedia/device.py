@@ -37,6 +37,7 @@ import dm.igd_time
 import dm.periodic_statistics
 import dm.storage
 import dm.temperature
+import dm.traceroute
 import platform_config
 import pynetlinux
 import tornado.ioloop
@@ -48,11 +49,12 @@ import tr.x_catawampus_tr181_2_0
 
 import gfibertv
 import gvsb
+import ookla
 import stbservice
 
 
 BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
-CATA181DI = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.DeviceInfo
+CATA181 = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
 PYNETIFCONF = pynetlinux.ifconfig.Interface
 
 # tr-69 error codes
@@ -406,7 +408,7 @@ class Moca(tr181.Device_v2_2.Device.MoCA):
     return len(self.InterfaceList)
 
 
-class FanReadGpio(CATA181DI.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
+class FanReadGpio(CATA181.DeviceInfo.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
   """Implementation of Fan object, reading rev/sec from a file."""
   Name = tr.types.ReadOnlyString('')
 
@@ -446,6 +448,42 @@ class FanReadGpio(CATA181DI.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
       return -1
 
 
+class IP(tr181.Device_v2_2.Device.IP):
+  """tr-181 Device.IP implementation for Google Fiber media platforms."""
+  # Enable fields are supposed to be writeable; we don't support that.
+  IPv4Capable = tr.types.ReadOnlyBool(True)
+  IPv4Enable = tr.types.ReadOnlyBool(True)
+  IPv4Status = tr.types.ReadOnlyString('Enabled')
+  IPv6Capable = tr.types.ReadOnlyBool(True)
+  IPv6Enable = tr.types.ReadOnlyBool(True)
+  IPv6Status = tr.types.ReadOnlyString('Enabled')
+
+  def __init__(self):
+    super(IP, self).__init__()
+    self.Unexport('ULAPrefix')
+    self.InterfaceList = {}
+    self.ActivePortList = {}
+    self.Diagnostics = IPDiagnostics()
+
+  @property
+  def InterfaceNumberOfEntries(self):
+    return len(self.InterfaceList)
+
+  @property
+  def ActivePortNumberOfEntries(self):
+    return len(self.ActivePortList)
+
+
+class IPDiagnostics(CATA181.Device.IP.Diagnostics):
+  """tr-181 Device.IP.Diagnostics for Google Fiber media platforms."""
+
+  def __init__(self):
+    super(IPDiagnostics, self).__init__()
+    self.Unexport(objects='IPPing')
+    self.TraceRoute = dm.traceroute.TraceRoute()
+    self.X_CATAWAMPUS_ORG_Speedtest = ookla.Speedtest()
+
+
 class Device(tr181.Device_v2_2.Device):
   """tr-181 Device implementation for Google Fiber media platforms."""
 
@@ -457,6 +495,7 @@ class Device(tr181.Device_v2_2.Device):
     led = dm.device_info.LedStatusReadFromFile('LED', LEDSTATUS)
     self.DeviceInfo.AddLedStatus(led)
     self.Ethernet = Ethernet()
+    self.IP = IP()
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
     self.MoCA = Moca()
     self.Services = Services()
@@ -484,7 +523,6 @@ class Device(tr181.Device_v2_2.Device):
     self.Unexport(objects='HomePlug')
     self.Unexport(objects='Hosts')
     self.Unexport(objects='IEEE8021x')
-    self.Unexport(objects='IP')
     self.Unexport(objects='IPv6rd')
     self.Unexport(objects='LANConfigSecurity')
     self.Unexport(objects='NAT')
