@@ -33,6 +33,7 @@ import tr.cwmpbool
 import tr.cwmpdate
 import tr.helpers
 import tr.mainloop
+import tr.session
 import tr.types
 import tr.x_gfibertv_1_0
 import selftest
@@ -89,7 +90,6 @@ class GFiberTv(BASETV):
     self.Mailbox = Mailbox(mailbox_url)
     self.DevicePropertiesList = {}
     self._rpcclient = xmlrpclib.ServerProxy(mailbox_url)
-    self.Config = self._GetNode('')
 
     # TODO(apenwarr): Maybe remove this eventually.
     #  Right now the storage box has an API, but TV boxes don't, so we
@@ -103,8 +103,9 @@ class GFiberTv(BASETV):
                                      getitem=self._GetNode)
     self.Export(objects=['Config'], lists=['Node'])
 
-  def Node(self, name=None):
-    return Node(self._rpcclient, name)
+  @property
+  def Config(self):
+    return self._GetNode('')
 
   def _ListNodes(self):
     try:
@@ -113,6 +114,7 @@ class GFiberTv(BASETV):
       raise IndexError('Failure listing nodes: %s' % e)
     return [(str(node), self._GetNode(node)) for node in nodes]
 
+  @tr.session.cache
   def _GetNode(self, name):
     top = _PopulateTree(self._rpcclient, name)
     _ExportTree(top)
@@ -266,7 +268,12 @@ def _PopulateTree(rpcclient, nodename):
   top = PropList(rpcclient, nodename)
   for g in ['/app/sage/*.properties.default*', '/rw/sage/*.properties']:
     for filename in glob.glob(g):
-      for line in open(filename):
+      try:
+        lines = open(filename).readlines()
+      except IOError as e:
+        print e  # non-fatal, but interesting
+        continue
+      for line in lines:
         line = line.split('#', 1)[0]  # remove comments
         line = line.split('=', 1)[0]  # remove =value from key=value
         line = line.strip()
