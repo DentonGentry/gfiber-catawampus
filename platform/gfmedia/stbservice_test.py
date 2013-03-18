@@ -359,6 +359,7 @@ class STBServiceTest(unittest.TestCase):
       self.assertEqual(v.DisplayDevice.HDMI3DPresent, False)
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_NegotiationCount4, 0)
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_NegotiationCount24, 0)
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_HDCPAuthFailureCnt, 0)
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_VendorId, '')
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_ProductId, 0)
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_MfgYear, 1990)
@@ -446,6 +447,7 @@ class STBServiceTest(unittest.TestCase):
 
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_NegotiationCount4, 3)
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_NegotiationCount24, 9)
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_HDCPAuthFailureCnt, 5)
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_VendorId, 'ACR')
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_ProductId, 51)
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_MfgYear, 2008)
@@ -473,6 +475,7 @@ class STBServiceTest(unittest.TestCase):
       self.assertEqual(v.DisplayDevice.Status, 'Present')
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_NegotiationCount4, 3)
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_NegotiationCount24, 9)
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_HDCPAuthFailureCnt, 5)
       self.assertEqual(v.DisplayDevice.Name, '')
       self.assertEqual(v.DisplayDevice.EEDID, '')
       self.assertEqual(len(v.DisplayDevice.SupportedResolutions), 0)

@@ -398,6 +398,10 @@ class HDMIDisplayDevice(CATA135STB.Components.HDMI.DisplayDevice):
     return self.data.get('Negotiations24hr', 0)
 
   @property
+  def X_GOOGLE_COM_HDCPAuthFailureCnt(self):
+    return self.data.get('HDCPAuthFailureCnt', 0)
+
+  @property
   def X_GOOGLE_COM_VendorId(self):
     return self.data.get('VendorId', '')
 
