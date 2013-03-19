@@ -20,8 +20,12 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import os
+
 # Unit tests can override this.
 PROC_NET_DEV = '/proc/net/dev'
+BCMGENET_SYSFS_PATH = '/sys/kernel/debug/bcmgenet/'
+BCMGENET_QUEUE_CNT = 17
 
 
 class NetdevStatsLinux26(object):
@@ -78,11 +82,13 @@ class NetdevStatsLinux26(object):
       self.UnicastPacketsSent = int(ifstats[self._TX_PKTS])
       self.UnknownProtoPacketsReceived = 0
 
+    self.DiscardFrameCnts = self._ReadDiscardStats(ifname)
+
   def _ReadProcNetDev(self, ifname):
     """Return the /proc/net/dev entry for ifname.
 
     Args:
-      ifname: string name of the interface, ecx: "eth0"
+      ifname: string name of the interface, e.g.: "eth0"
 
     Returns:
       The /proc/net/dev entry for ifname as a list.
@@ -92,7 +98,37 @@ class NetdevStatsLinux26(object):
       fields = line.split(':')
       if (len(fields) == 2) and (fields[0].strip() == ifname):
         return fields[1].split()
+    f.close()
     return None
+
+  def _ReadDiscardStats(self, ifname):
+    """Return the /sys/kernel/debug/bcmgenet discard counters for ifname.
+
+    Args:
+      ifname: string name of the interface, ecx: "eth0"
+
+    Returns:
+      A list of all the values in the
+      /sys/kernel/debug/bcmgenet/<ifname>/bcmgenet_discard_cnt_q<queue_index>
+      files, where index ranges from 0 to 16 (there is a different counter
+      for each queue).
+    """
+    base_path = BCMGENET_SYSFS_PATH + ifname
+    if not os.path.exists(base_path):
+      return []
+
+    base_filename = base_path + '/bcmgenet_discard_cnt_q%d'
+    discard_cnts = []
+    for i in range(BCMGENET_QUEUE_CNT):
+      file_path = base_filename % i
+      try:
+        f = open(file_path)
+        line = f.readline().strip()
+        discard_cnts.append(line)
+        f.close()
+      except IOError:
+        continue
+    return discard_cnts
 
 
 def main():
