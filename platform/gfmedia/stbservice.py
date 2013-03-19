@@ -868,3 +868,11 @@ class EPG(CATA135STB.X_CATAWAMPUS_ORG_ProgramMetadata.EPG):
   @property
   def EPGExpireTime(self):
     return tr.cwmpdate.format(float(self.data.get('EPGExpireTime', 0)))
+
+  @property
+  def NumChannels(self):
+    return self.data.get('NumChannels', 0)
+
+  @property
+  def NumEnabledChannels(self):
+    return self.data.get('NumEnabledChannels', 0)

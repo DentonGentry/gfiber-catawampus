@@ -29,9 +29,9 @@ import threading
 import unittest
 import xmlrpclib
 import google3
-import gfibertv
 import tr.cwmpdate
 import tr.mainloop
+import gfibertv
 
 
 class TvPropertyRpcs(object):
@@ -93,6 +93,9 @@ class GfiberTvTests(unittest.TestCase):
     self.server_thread = XmlRpcThread()
     self.server_thread.start()
     srv_cv.wait()
+
+    self.DISK_SPACE_FILE = gfibertv.DISK_SPACE_FILE
+    gfibertv.DISK_SPACE_FILE = ['testdata/gfibertv/dvr_space']
 
     self.tmpdir = tempfile.mkdtemp()
     (nick_file_handle, self.nick_file_name) = tempfile.mkstemp(dir=self.tmpdir)
@@ -314,6 +317,14 @@ class GfiberTvTests(unittest.TestCase):
     gftv.EASServicePort = 'Service Port'
     gftv.CommitTransaction()
     self.assertEqual(open(self.easport_fname).read(), 'Service Port\n')
+
+  def testDvrSpace(self):
+    gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
+    dvrspace = gftv.DvrSpace
+    self.assertEqual(dvrspace.PermanentFiles, 10)
+    self.assertEqual(dvrspace.PermanentMBytes, 1)
+    self.assertEqual(dvrspace.TransientFiles, 20)
+    self.assertEqual(dvrspace.TransientMBytes, 2)
 
 
 if __name__ == '__main__':

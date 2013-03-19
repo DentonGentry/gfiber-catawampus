@@ -508,6 +508,8 @@ class STBServiceTest(unittest.TestCase):
     self.assertEqual(epgStats.EPGErrors, 0)
     self.assertEqual(epgStats.LastReceivedTime, '0001-01-01T00:00:00Z')
     self.assertEqual(epgStats.EPGExpireTime, '0001-01-01T00:00:00Z')
+    self.assertEqual(epgStats.NumChannels, 0)
+    self.assertEqual(epgStats.NumEnabledChannels, 0)
 
   def testEPGStatsAll(self):
     """Test whether EPG stats are deserialized properly."""
@@ -518,6 +520,8 @@ class STBServiceTest(unittest.TestCase):
     self.assertEqual(epgStats.EPGErrors, 2)
     self.assertEqual(epgStats.LastReceivedTime, '2012-07-25T01:50:37Z')
     self.assertEqual(epgStats.EPGExpireTime, '2012-07-30T01:50:37Z')
+    self.assertEqual(epgStats.NumChannels, 20)
+    self.assertEqual(epgStats.NumEnabledChannels, 21)
 
   def testStallAlarm(self):
     stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_small%d.json']

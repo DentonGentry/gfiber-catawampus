@@ -21,10 +21,8 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import copy
-import errno
 import glob
-import os
+import json
 import re
 import xmlrpclib
 import google3
@@ -46,6 +44,7 @@ BTDEVICES = ['/user/bsa/bt_devices.xml']
 BTHHDEVICES = ['/user/bsa/bt_hh_devices.xml']
 BTCONFIG = ['/user/bsa/bt_config.xml']
 BTNOPAIRING = ['/usr/bsa/nopairing']
+DISK_SPACE_FILE = ['/tmp/dvr_space']
 EASADDRFILE = ['/tmp/eas_service_address']
 EASFIPSFILE = ['/tmp/eas_fips']
 EASHEARTBEATFILE = ['/tmp/eas_heartbeat']
@@ -78,10 +77,8 @@ class GFiberTv(BASETV):
   EASFipsCode = tr.types.FileBacked(EASFIPSFILE, tr.types.String())
   EASServiceAddress = tr.types.FileBacked(EASADDRFILE, tr.types.String())
   EASServicePort = tr.types.FileBacked(EASPORTFILE, tr.types.String())
-  EASHeartbeatTimestamp = (
-      tr.types.ReadOnly(
-      tr.types.FileBacked(
-      EASHEARTBEATFILE, tr.types.Date())))
+  f = tr.types.FileBacked(EASHEARTBEATFILE, tr.types.Date())
+  EASHeartbeatTimestamp = tr.types.ReadOnly(f)
 
   def __init__(self, mailbox_url):
     super(GFiberTv, self).__init__()
@@ -102,6 +99,10 @@ class GFiberTv(BASETV):
                                      iteritems=self._ListNodes,
                                      getitem=self._GetNode)
     self.Export(objects=['Config'], lists=['Node'])
+
+  @property
+  def DvrSpace(self):
+    return DvrSpace()
 
   @property
   def Config(self):
@@ -138,6 +139,9 @@ class GFiberTv(BASETV):
     the _DeviceProperties class would just be called DeviceProperties and
     tr.core would instantiate it, but we want to pass it a parent= value
     to the constructor, so we do this trick instead.
+
+    Returns:
+      gfibertv.DeviceProperties
     """
     return self._DeviceProperties(parent=self)
 
@@ -156,6 +160,44 @@ class GFiberTv(BASETV):
                                         _SageEscape(device.NickName)))
           serials.append(device.SerialNumber)
       f.write('serials=%s\n' % ','.join(_SageEscape(i) for i in serials))
+
+
+class DvrSpace(BASETV.DvrSpace):
+  """X_GOOGLE_COM_GFIBERTV.DvrSpace.
+
+  Ephemeral object to export information from /tmp/dvr_space.
+  """
+
+  PermanentMBytes = tr.types.ReadOnlyInt(-1)
+  PermanentFiles = tr.types.ReadOnlyInt(-1)
+  TransientMBytes = tr.types.ReadOnlyInt(-1)
+  TransientFiles = tr.types.ReadOnlyInt(-1)
+
+  def __init__(self):
+    super(DvrSpace, self).__init__()
+    data = dict()
+    for filename in DISK_SPACE_FILE:
+      self._LoadJSON(filename, data)
+    mbytes = data.get('permanentSize', -1000000)
+    type(self).PermanentMBytes.Set(self, mbytes / 1000000)
+    type(self).PermanentFiles.Set(self, data.get('permanentFiles', -1))
+    mbytes = data.get('transientSize', -1000000)
+    type(self).TransientMBytes.Set(self, mbytes / 1000000)
+    type(self).TransientFiles.Set(self, data.get('transientFiles', -1))
+
+  def _LoadJSON(self, filename, data):
+    """Populate data with fields read from the JSON file at filename."""
+    try:
+      d = json.load(open(filename))
+      data.update(d)
+    except IOError:
+      # Sage might not be running yet
+      pass
+    except (ValueError, KeyError) as e:
+      # ValueError - JSON file is malformed and cannot be decoded
+      # KeyError - Decoded JSON file doesn't contain the required fields.
+      print('DvrSpace: Failed to read stats from file {0}, '
+            'error = {1}'.format(filename, e))
 
 
 class Mailbox(BASETV.Mailbox):
@@ -230,7 +272,7 @@ class PropList(tr.core.Exporter):
     try:
       return str(self._rpcclient.GetProperty(realname, self._node))
     except xmlrpclib.expat.ExpatError, e:
-      #TODO(apenwarr): SageTV produces invalid XML.
+      # TODO(apenwarr): SageTV produces invalid XML.
       # ...if the value contains <> characters, for example.
       print 'Expat decode error: %s' % e
       return None

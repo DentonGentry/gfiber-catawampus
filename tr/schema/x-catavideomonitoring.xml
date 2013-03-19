@@ -48,6 +48,18 @@
           <unsignedInt/>
         </syntax>
       </parameter>
+      <parameter name="NumChannels" access="readOnly">
+        <description>Number of channels present in the EPG.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="NumEnabledChannels" access="readOnly">
+        <description>Number of channels this device is authorized to tune to.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
     </object>
     <object name="STBService.{i}.ServiceMonitoring." access="readOnly" minEntries="1" maxEntries="1">
       <parameter name="X_CATAWAMPUS-ORG_StallAlarmTime" access="readOnly">
