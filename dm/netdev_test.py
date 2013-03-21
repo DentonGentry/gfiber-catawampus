@@ -31,9 +31,13 @@ class NetdevTest(unittest.TestCase):
 
   def setUp(self):
     self._old_PROC_NET_DEV = netdev.PROC_NET_DEV
+    self._old_BCMGENET_SYSFS_PATH = netdev.BCMGENET_SYSFS_PATH
+    self._old_BCMGENET_QUEUE_CNT = netdev.BCMGENET_QUEUE_CNT
 
   def tearDown(self):
     netdev.PROC_NET_DEV = self._old_PROC_NET_DEV
+    netdev.BCMGENET_SYSFS_PATH = self._old_BCMGENET_SYSFS_PATH
+    netdev.BCMGENET_QUEUE_CNT = self._old_BCMGENET_QUEUE_CNT
 
   def testInterfaceStatsGood(self):
     netdev.PROC_NET_DEV = 'testdata/ethernet/net_dev'
@@ -76,6 +80,20 @@ class NetdevTest(unittest.TestCase):
     self.assertEqual(eth.UnicastPacketsSent, 80960002)
     self.assertEqual(eth.UnknownProtoPacketsReceived, 0)
 
+  def testSysfsStats(self):
+    netdev.BCMGENET_SYSFS_PATH = 'testdata/sysfs/'
+    netdev.BCMGENET_QUEUE_CNT = 17
+    eth = netdev.NetdevStatsLinux26('eth0')
+    self.assertEqual(len(eth.DiscardFrameCnts), netdev.BCMGENET_QUEUE_CNT)
+    for i in range(netdev.BCMGENET_QUEUE_CNT):
+      self.assertEqual(int(eth.DiscardFrameCnts[i]), i)
+    netdev.BCMGENET_QUEUE_CNT = 5
+    eth = netdev.NetdevStatsLinux26('eth0')
+    self.assertEqual(len(eth.DiscardFrameCnts), netdev.BCMGENET_QUEUE_CNT)
+    for i in range(netdev.BCMGENET_QUEUE_CNT):
+      self.assertEqual(int(eth.DiscardFrameCnts[i]), i)
+    eth = netdev.NetdevStatsLinux26('foo0')
+    self.assertEqual(len(eth.DiscardFrameCnts), 0)
 
 if __name__ == '__main__':
   unittest.main()
