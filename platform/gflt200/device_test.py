@@ -80,7 +80,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def testModelName(self):
     did = device.DeviceId()
-    self.assertEqual(did.ModelName, 'GFONU')
+    self.assertEqual(did.ModelName, 'GFLT200')
 
   def testSoftwareVersion(self):
     did = device.DeviceId()
@@ -88,7 +88,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def testAdditionalSoftwareVersion(self):
     did = device.DeviceId()
-    self.assertEqual(did.AdditionalSoftwareVersion, '1.0')
+    self.assertEqual(did.AdditionalSoftwareVersion, '0.0')
 
   # TODO: (zixia) change based on real hardware chipset
   def testGetHardwareVersion(self):

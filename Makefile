@@ -12,7 +12,7 @@ test: all \
   dm/test \
   platform/fakecpe/test \
   platform/gfmedia/test \
-  platform/gfonu/test \
+  platform/gflt200/test \
   *_test.py
 	set -e; \
 	for d in $(filter %_test.py,$^); do \
@@ -48,7 +48,7 @@ install:
 		$(DSTDIR)/tr/vendor/tornado $(DSTDIR)/tr/vendor/tornado/tornado \
 		$(DSTDIR)/tr/vendor/tornado/tornado/platform \
 		$(DSTDIR)/tr/vendor/pbkdf2 $(DSTDIR)/tr/vendor/curtain \
-		$(DSTDIR)/platform $(DSTDIR)/platform/gfmedia $(DSTDIR)/platform/gfonu \
+		$(DSTDIR)/platform $(DSTDIR)/platform/gfmedia $(DSTDIR)/platform/gflt200 \
 		$(DSTDIR)/platform/fakecpe $(DSTDIR)/dm
 	$(INSTALL) -D -m 0755 cwmp cwmpd $(DSTDIR)
 	$(INSTALL) -D -m 0644 *.py $(DSTDIR)
@@ -56,7 +56,7 @@ install:
 	$(INSTALL) -D -m 0644 dm/*.py $(DSTDIR)/dm
 	$(INSTALL) -D -m 0644 platform/*.py $(DSTDIR)/platform
 	$(INSTALL) -D -m 0644 platform/gfmedia/*.py $(DSTDIR)/platform/gfmedia
-	$(INSTALL) -D -m 0644 platform/gfonu/*.py $(DSTDIR)/platform/gfonu
+	$(INSTALL) -D -m 0644 platform/gflt200/*.py $(DSTDIR)/platform/gflt200
 	$(INSTALL) -D -m 0644 platform/fakecpe/*.py $(DSTDIR)/platform/fakecpe
 	$(INSTALL) -D -m 0644 platform/fakecpe/version $(DSTDIR)/platform/fakecpe
 	$(INSTALL) -D -m 0644 tr/vendor/README.third_party $(DSTDIR)/tr/vendor

@@ -60,6 +60,8 @@ ACSTIMEOUTMIN = 2*60*60
 ACSTIMEOUTMAX = 4*60*60
 CONFIGDIR = '/config/tr69'
 DOWNLOADDIR = '/tmp'
+SYSVAR = '/usr/bin/sysvar_cmd'
+SYSVAR_ERROR = '<<ERROR CODE>>'
 PRISMINSTALL = 'prisminstall.py'
 PROC_CPUINFO = '/proc/cpuinfo'
 REBOOT = 'tr69_reboot'
@@ -69,7 +71,7 @@ VERSIONFILE = '/etc/version'
 
 
 class PlatformConfig(platform_config.PlatformConfigMeta):
-  """PlatformConfig for GFONU devices."""
+  """PlatformConfig for GFLT200 devices."""
 
   def __init__(self, ioloop=None):
     platform_config.PlatformConfigMeta.__init__(self)
@@ -158,6 +160,29 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
 # TODO: (zixia) based on real hardware chipset
 class DeviceId(dm.device_info.DeviceIdMeta):
 
+  def _GetSysVarParam(self, param, default):
+    """Get device statistics from SYSVAR partition"""
+
+    cmd = [SYSVAR, '-g', param]
+    devnull = open('/dev/null', 'w')
+
+    try:
+      getparam = subprocess.Popen(cmd, stdin=devnull, stderr=devnull,
+                                  stdout=subprocess.PIPE)
+      out, _ = getparam.communicate(None)
+      if getparam.returncode != 0:
+        out = ''
+      if SYSVAR_ERROR in out.strip():
+        out = ''
+    except OSError:
+      out = ''
+
+    val = out.strip()
+    if val and len(val) > 1:
+      return val
+    else:
+      return default
+
   @property
   def Manufacturer(self):
     return 'Google Fiber'
@@ -168,7 +193,7 @@ class DeviceId(dm.device_info.DeviceIdMeta):
 
   @property
   def ModelName(self):
-    return 'GFONU'
+    return self._GetSysVarParam('PLATFORM_NAME', default='GFLT200')
 
   @property
   def Description(self):
@@ -176,31 +201,31 @@ class DeviceId(dm.device_info.DeviceIdMeta):
 
   @property
   def SerialNumber(self):
-    return '666666666666'
+    return self._GetSysVarParam('SERIAL_NO', default='666666666666')
 
   @property
   def HardwareVersion(self):
-    return '1.0'
+    return self._GetSysVarParam('HW_REV', default='1.0')
 
   @property
   def AdditionalHardwareVersion(self):
-    return '1.0'
+    return self._GetSysVarParam('GPN', default='0.0')
 
   @property
   def SoftwareVersion(self):
-    return '1.0'
+    return self._GetSysVarParam('SW_REV', default='1.0')
 
   @property
   def AdditionalSoftwareVersion(self):
-    return '1.0'
+    return self._GetSysVarParam('REPOMANIFEST', default='0.0')
 
   @property
   def ProductClass(self):
-    return 'GFLT200'
+    return self._GetSysVarParam('PLATFORM_NAME', default='GFLT200')
 
   @property
   def ModemFirmwareVersion(self):
-    return '1.0'
+    return '0'
 
 
 class Installer(tr.download.Installer):
