@@ -6,7 +6,10 @@
           "StreamId": 3,
           "MPEG2TSStats": {
             "TSPacketsReceived": 600,
-            "PacketDiscontinuityCounter": 60
+            "PacketDiscontinuityCounter": 60,
+            "DropBytes": 6000,
+            "DropPackets": 601,
+            "PacketErrorCount": 6
           },
           "DejitteringStats": {
             "EmptyBufferTime": 31,

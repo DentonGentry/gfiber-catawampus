@@ -94,6 +94,7 @@ class ReadOnlyObject(object):
   i = tr.types.ReadOnlyInt('5')
   s = tr.types.ReadOnlyString('foo')
   e = tr.types.ReadOnlyEnum(['x', 'y', 'z'])
+  u = tr.types.ReadOnlyUnsigned(6)
 
 
 class TypesTest(unittest.TestCase):
@@ -303,6 +304,14 @@ class TypesTest(unittest.TestCase):
     self.assertRaises(AttributeError, setattr, obj, 'i', 5)
     self.assertRaises(AttributeError, setattr, obj, 's', 'foo')
     self.assertRaises(AttributeError, setattr, obj, 'e', None)
+
+  def testReallyBigInteger(self):
+    obj = ReadOnlyObject()
+    obj2 = TestObject()
+    type(obj).i.Set(self, long(30595169952))
+    type(obj).u.Set(self, long(30595169952))
+    obj2.i = long(30595169952L)
+    obj2.u = long(30595169952L)
 
 
 if __name__ == '__main__':

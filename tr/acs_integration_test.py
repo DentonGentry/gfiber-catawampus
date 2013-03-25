@@ -40,7 +40,8 @@ class TestDeviceModelObject(core.Exporter):
   def __init__(self):
     core.Exporter.__init__(self)
     self.Foo = 'bar'
-    params = ['Foo']
+    self.X_CATAWAMPUS_ORG_Bar = 'baz'
+    params = ['Foo', 'X_CATAWAMPUS-ORG_Bar']
     objects = []
     self.Export(params=params, objects=objects)
 
@@ -546,10 +547,11 @@ class GetParamsRpcTest(unittest.TestCase):
     names = root.findall(
         SOAPNS + 'Body/' + CWMPNS +
         'GetParameterNamesResponse/ParameterList/ParameterInfoStruct/Name')
-    self.assertEqual(len(names), 3)
+    self.assertEqual(len(names), 4)
     self.assertEqual(names[0].text, '.')
     self.assertEqual(names[1].text, 'SubObject.')
     self.assertEqual(names[2].text, 'SubObject.Foo')
+    self.assertEqual(names[3].text, 'SubObject.X_CATAWAMPUS-ORG_Bar')
 
   def _AssertCwmpFaultNopeNotHere(self, root):
     fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
@@ -560,6 +562,15 @@ class GetParamsRpcTest(unittest.TestCase):
     self.assertTrue(detail)
     self.assertEqual(detail.find('FaultCode').text, '9005')
     self.assertTrue(detail.find('FaultString').text.find('NopeNotHere'))
+
+  def testSetVendorParam(self):
+    cpe = getCpe(simpleroot=True)
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:SetParameterValues><ParameterList><ns2:ParameterValueStruct xmlns:ns2="urn:dslforum-org:cwmp-1-2"><Name>SubObject.X_CATAWAMPUS-ORG_Bar</Name><Value xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:boolean">true</Value></ns2:ParameterValueStruct></ParameterList><ParameterKey>myParamKey</ParameterKey></cwmp:SetParameterValues></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+    print responseXml
+    root = ET.fromstring(str(responseXml))
+    fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
+    self.assertFalse(fault)
 
   def testGetBadParamValue(self):
     cpe = getCpe()

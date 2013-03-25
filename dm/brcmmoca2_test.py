@@ -47,31 +47,8 @@ class MocaTest(unittest.TestCase):
   def testMocaInterfaceStatsGood(self):
     moca = brcmmoca2.BrcmMocaInterfaceStatsLinux26('foo0')
     moca.ValidateExports()
-
-    self.assertEqual(moca.BroadcastPacketsReceived, 0)
-    self.assertEqual(moca.BroadcastPacketsSent, 0)
-    self.assertEqual(moca.BytesReceived, 1)
-    self.assertEqual(moca.BytesSent, 9)
-    self.assertEqual(moca.DiscardPacketsReceived, 4)
-    self.assertEqual(moca.DiscardPacketsSent, 11)
-    self.assertEqual(moca.ErrorsReceived, 9)
-    self.assertEqual(moca.ErrorsSent, 12)
-    self.assertEqual(moca.MulticastPacketsReceived, 8)
-    self.assertEqual(moca.MulticastPacketsSent, 0)
-    self.assertEqual(moca.PacketsReceived, 100)
-    self.assertEqual(moca.PacketsSent, 10)
-    self.assertEqual(moca.UnicastPacketsReceived, 92)
+    # complete tests are in netdev_test.py, this is just quick validation.
     self.assertEqual(moca.UnicastPacketsSent, 10)
-    self.assertEqual(moca.UnknownProtoPacketsReceived, 0)
-
-  def testMocaInterfaceStatsNonexistent(self):
-    moca = brcmmoca2.BrcmMocaInterfaceStatsLinux26('doesnotexist0')
-    exception_raised = False
-    try:
-      moca.ErrorsReceived
-    except AttributeError:
-      exception_raised = True
-    self.assertTrue(exception_raised)
 
   def testMocaInterface(self):
     moca = brcmmoca2.BrcmMocaInterface(ifname='foo0', upstream=False)
@@ -132,6 +109,19 @@ class MocaTest(unittest.TestCase):
     moca = brcmmoca2.BrcmMocaInterface(ifname='foo0', upstream=False)
     brcmmoca2.MOCAP = 'testdata/brcmmoca2/mocap_uptime'
     self.assertEqual(moca.LastChange, 119728800)
+
+  def testDiscardFramePresence(self):
+    # Content of DiscardFrameCnts is tested in netdev_test.py.
+    d1 = 'X_CATAWAMPUS-ORG_DiscardFrameCnts'
+    d2 = 'X_CATAWAMPUS-ORG_DiscardPacketsReceivedHipri'
+    moca = brcmmoca2.BrcmMocaInterface('foo0', qfiles=None)
+    self.assertFalse(moca.Stats.IsValidExport(d1))
+    self.assertFalse(moca.Stats.IsValidExport(d2))
+
+    qfiles = 'testdata/sysfs/eth0/bcmgenet_discard_cnt_q%d'
+    moca = brcmmoca2.BrcmMocaInterface('foo0', qfiles=qfiles, numq=2)
+    self.assertTrue(moca.Stats.IsValidExport(d1))
+    self.assertTrue(moca.Stats.IsValidExport(d2))
 
   def testAssociatedDevice(self):
     moca = brcmmoca2.BrcmMocaInterface(ifname='foo0', upstream=False)

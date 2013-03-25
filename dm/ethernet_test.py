@@ -36,41 +36,18 @@ class EthernetTest(unittest.TestCase):
   def setUp(self):
     self.old_PROC_NET_DEV = netdev.PROC_NET_DEV
     self.old_PYNETIFCONF = ethernet.PYNETIFCONF
+    netdev.PROC_NET_DEV = 'testdata/ethernet/net_dev'
+    ethernet.PYNETIFCONF = MockPynet
 
   def tearDown(self):
     netdev.PROC_NET_DEV = self.old_PROC_NET_DEV
     ethernet.PYNETIFCONF = self.old_PYNETIFCONF
 
   def testInterfaceStatsGood(self):
-    netdev.PROC_NET_DEV = 'testdata/ethernet/net_dev'
     eth = ethernet.EthernetInterfaceStatsLinux26('foo0')
     eth.ValidateExports()
-
-    self.assertEqual(eth.BroadcastPacketsReceived, 0)
-    self.assertEqual(eth.BroadcastPacketsSent, 0)
-    self.assertEqual(eth.BytesReceived, 1)
-    self.assertEqual(eth.BytesSent, 9)
-    self.assertEqual(eth.DiscardPacketsReceived, 4)
-    self.assertEqual(eth.DiscardPacketsSent, 11)
-    self.assertEqual(eth.ErrorsReceived, 9)
-    self.assertEqual(eth.ErrorsSent, 12)
-    self.assertEqual(eth.MulticastPacketsReceived, 8)
-    self.assertEqual(eth.MulticastPacketsSent, 0)
-    self.assertEqual(eth.PacketsReceived, 100)
+    # only a sanity check. Extensive tests in netdev_test.py
     self.assertEqual(eth.PacketsSent, 10)
-    self.assertEqual(eth.UnicastPacketsReceived, 92)
-    self.assertEqual(eth.UnicastPacketsSent, 10)
-    self.assertEqual(eth.UnknownProtoPacketsReceived, 0)
-
-  def testInterfaceStatsNonexistent(self):
-    netdev.PROC_NET_DEV = 'testdata/ethernet/net_dev'
-    eth = ethernet.EthernetInterfaceStatsLinux26('doesnotexist0')
-    exception_raised = False
-    try:
-      eth.ErrorsReceived
-    except AttributeError:
-      exception_raised = True
-    self.assertTrue(exception_raised)
 
   def _CheckEthernetInterfaceParameters(self, ifname, upstream, eth, pynet):
     self.assertEqual(eth.DuplexMode, 'Auto')
@@ -86,14 +63,10 @@ class EthernetTest(unittest.TestCase):
                      'Full' if pynet.v_duplex else 'Half')
 
   def testValidateExports(self):
-    ethernet.PYNETIFCONF = MockPynet
-    netdev.PROC_NET_DEV = 'testdata/ethernet/net_dev'
     eth = ethernet.EthernetInterfaceLinux26('foo0')
     eth.ValidateExports()
 
   def testInterfaceGood(self):
-    ethernet.PYNETIFCONF = MockPynet
-    netdev.PROC_NET_DEV = 'testdata/ethernet/net_dev'
     upstream = False
 
     eth = ethernet.EthernetInterfaceLinux26('foo0')
@@ -117,6 +90,19 @@ class EthernetTest(unittest.TestCase):
     MockPynet.v_link_up = False
     eth = ethernet.EthernetInterfaceLinux26('foo0')
     self._CheckEthernetInterfaceParameters('foo0', upstream, eth, MockPynet)
+
+  def testDiscardFramePresence(self):
+    # Content of DiscardFrameCnts is tested in netdev_test.py.
+    d1 = 'X_CATAWAMPUS-ORG_DiscardFrameCnts'
+    d2 = 'X_CATAWAMPUS-ORG_DiscardPacketsReceivedHipri'
+    eth = ethernet.EthernetInterfaceLinux26('foo0', qfiles=None)
+    self.assertFalse(eth.Stats.IsValidExport(d1))
+    self.assertFalse(eth.Stats.IsValidExport(d2))
+
+    qfiles = 'testdata/sysfs/eth0/bcmgenet_discard_cnt_q%d'
+    eth = ethernet.EthernetInterfaceLinux26('foo0', qfiles=qfiles, numq=2)
+    self.assertTrue(eth.Stats.IsValidExport(d1))
+    self.assertTrue(eth.Stats.IsValidExport(d2))
 
 
 class MockPynet(object):

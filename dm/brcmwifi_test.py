@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # unittest requires method names starting in 'test'
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """Unit tests for brcmwifi.py implementation."""
 
@@ -619,21 +619,7 @@ class BrcmWifiTest(unittest.TestCase):
     stats = bw.Stats
     stats.ValidateExports()
     # pylint: disable-msg=E1101
-    self.assertEqual(stats.BroadcastPacketsReceived, 0)
-    self.assertEqual(stats.BroadcastPacketsSent, 0)
-    self.assertEqual(stats.BytesReceived, 1)
-    self.assertEqual(stats.BytesSent, 9)
-    self.assertEqual(stats.DiscardPacketsReceived, 4)
-    self.assertEqual(stats.DiscardPacketsSent, 11)
-    self.assertEqual(stats.ErrorsReceived, 9)
-    self.assertEqual(stats.ErrorsSent, 12)
-    self.assertEqual(stats.MulticastPacketsReceived, 8)
-    self.assertEqual(stats.MulticastPacketsSent, 0)
-    self.assertEqual(stats.PacketsReceived, 100)
-    self.assertEqual(stats.PacketsSent, 10)
-    self.assertEqual(stats.UnicastPacketsReceived, 92)
     self.assertEqual(stats.UnicastPacketsSent, 10)
-    self.assertEqual(stats.UnknownProtoPacketsReceived, 0)
 
   def testWifiStats(self):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')

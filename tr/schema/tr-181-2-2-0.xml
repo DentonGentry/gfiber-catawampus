@@ -3458,13 +3458,6 @@ This parameter can only be modified if the {{object}} is ''Static'' (as explaine
         <parameter ref="MulticastPacketsSent" requirement="readOnly"/>
         <parameter ref="MulticastPacketsReceived" requirement="readOnly"/>
         <parameter ref="UnknownProtoPacketsReceived" requirement="readOnly"/>
-        <parameter ref="DiscardFrameCnts" requirement="readWrite">
-          <description>The count of discarded frames per queue. </description>
-          <syntax>
-            <list/>
-            <unsignedInt/>
-          </syntax>
-        </parameter>
       </object>
     </profile>
     

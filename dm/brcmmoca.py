@@ -113,12 +113,15 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
 
   Upstream = tr.types.ReadOnlyBool(False)
 
-  def __init__(self, ifname, upstream=False):
+  def __init__(self, ifname, upstream=False, qfiles=None, numq=0, hipriq=0):
     BASE181MOCA.Interface.__init__(self)
     type(self).MaxNodes.Set(self, self.MAX_NODES_MOCA1)
     type(self).Name.Set(self, ifname)
     type(self).Upstream.Set(self, bool(upstream))
     self._pynet = PYNETIFCONF(ifname)
+    self._qfiles = qfiles
+    self._numq = numq
+    self._hipriq = hipriq
 
     self.Unexport('Alias')
     self.Unexport('MaxBitRate')
@@ -145,7 +148,8 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
 
   @property
   def Stats(self):
-    return BrcmMocaInterfaceStatsLinux26(self.Name)
+    return BrcmMocaInterfaceStatsLinux26(self.Name, self._qfiles,
+                                         self._numq, self._hipriq)
 
   @tr.session.cache
   def _MocaCtlShowStatus(self):
@@ -328,12 +332,15 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
 
 
 class BrcmMocaInterfaceStatsLinux26(netdev.NetdevStatsLinux26,
-                                    BASE181MOCA.Interface.Stats):
+                                    CATA181MOCA.Interface.Stats):
   """tr181 Device.MoCA.Interface.Stats for Broadcom chipsets."""
 
-  def __init__(self, ifname):
-    netdev.NetdevStatsLinux26.__init__(self, ifname)
-    BASE181MOCA.Interface.Stats.__init__(self)
+  def __init__(self, ifname, qfiles=None, numq=0, hipriq=0):
+    netdev.NetdevStatsLinux26.__init__(self, ifname, qfiles, numq, hipriq)
+    CATA181MOCA.Interface.Stats.__init__(self)
+    if not qfiles:
+      self.Unexport('X_CATAWAMPUS-ORG_DiscardFrameCnts')
+      self.Unexport('X_CATAWAMPUS-ORG_DiscardPacketsReceivedHipri')
 
 
 class BrcmMocaAssociatedDevice(CATA181MOCA.Interface.AssociatedDevice):
