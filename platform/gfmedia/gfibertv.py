@@ -211,8 +211,8 @@ class Mailbox(BASETV.Mailbox):
   instead.
   """
 
-  Node = tr.types.String()
-  Name = tr.types.String()
+  Node = tr.types.String('')
+  Name = tr.types.String('')
 
   def __init__(self, url):
     super(Mailbox, self).__init__()
@@ -228,7 +228,7 @@ class Mailbox(BASETV.Mailbox):
       raise IndexError('No such Property %s:%s' % (self.Node, self.Name))
     except (xmlrpclib.ProtocolError, IOError):
       raise IndexError(
-          'Unable to access Property %s:%s' % (self.Node, self.Name))
+          'Unable to access Property %r:%r' % (self.Node, self.Name))
 
   @Value.setter
   def Value(self, value):
@@ -238,7 +238,7 @@ class Mailbox(BASETV.Mailbox):
       raise IndexError('No such Property %s:%s' % (self.Node, self.Name))
     except (xmlrpclib.ProtocolError, IOError):
       raise IndexError(
-          'Unable to access Property %s:%s' % (self.Node, self.Name))
+          'Unable to access Property %r:%r' % (self.Node, self.Name))
 
   @property
   def NodeList(self):
