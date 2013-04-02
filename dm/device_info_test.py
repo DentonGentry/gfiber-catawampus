@@ -121,7 +121,7 @@ class DeviceInfoTest(tornado.testing.AsyncTestCase):
   def testDeviceInfo181Fields(self):
     device_info.PROC_UPTIME = 'testdata/device_info/uptime'
     di = device_info.DeviceInfo181Linux26(TestDeviceId())
-    self.assertEqual(di.UpTime, '123')
+    self.assertEqual(di.UpTime, 123)
     self.assertEqual(di.VendorLogFileNumberOfEntries, 0)
     self.assertEqual(di.VendorConfigFileNumberOfEntries, 0)
     self.assertEqual(di.LocationNumberOfEntries, 0)
@@ -129,7 +129,7 @@ class DeviceInfoTest(tornado.testing.AsyncTestCase):
   def testDeviceInfo98Fields(self):
     device_info.PROC_UPTIME = 'testdata/device_info/uptime'
     di = device_info.DeviceInfo98Linux26(TestDeviceId())
-    self.assertEqual(di.UpTime, '123')
+    self.assertEqual(di.UpTime, 123)
     self.assertEqual(di.SpecVersion, '1.0')
     self.assertEqual(di.VendorConfigFileNumberOfEntries, 0)
 
