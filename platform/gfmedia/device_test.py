@@ -60,6 +60,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.install_cb_called = False
     self.install_cb_faultcode = None
     self.install_cb_faultstring = None
+    self.old_TIMEOUTFILE = device.TIMEOUTFILE
 
   def tearDown(self):
     super(DeviceTest, self).tearDown()
@@ -74,6 +75,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     device.REPOMANIFEST = self.old_REPOMANIFEST
     device.SET_ACS = self.old_SET_ACS
     device.VERSIONFILE = self.old_VERSIONFILE
+    device.TIMEOUTFILE = self.old_TIMEOUTFILE
 
   def testGetSerialNumber(self):
     did = device.DeviceId()
@@ -223,6 +225,13 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
     # cleanup
     shutil.rmtree(tmpdir)
+
+  def testGetAcsUrlTimeout(self):
+    device.TIMEOUTFILE = 'testdata/device/garbage'
+    pc = device.PlatformConfig(ioloop=MockIoloop())
+    self.assertEqual(pc.ACSTimeout('/no_such_file_at_this_path', 60), 60)
+    self.assertEqual(pc.ACSTimeout('testdata/device/garbage', 60), 60)
+    self.assertEqual(pc.ACSTimeout('testdata/device/timeout', 60), 120)
 
 
 if __name__ == '__main__':
