@@ -356,6 +356,12 @@
           <unsignedInt/>
         </syntax>
       </parameter>
+      <parameter name="X_GOOGLE-COM_HDCPAuthFailureCnt" access="readOnly">
+        <description>Number of times the HDCP authentication failed.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
       <parameter name="X_GOOGLE-COM_VendorId" access="readOnly">
         <description>Short identifier of the vendor which manufactured this DisplayDevice.</description>
         <syntax>
