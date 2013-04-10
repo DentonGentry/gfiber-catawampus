@@ -79,9 +79,10 @@ class TestDeviceModelRoot(core.Exporter):
     params.append('ReadOnlyParameter')
     self.SubObject = TestDeviceModelObject()
     self.ItemList = {}
-    self.Item = TestDeviceModelObject
+    self.Item2List = {}
+    self.Item = self.Item2 = TestDeviceModelObject
     objects.append('SubObject')
-    self.Export(params=params, objects=objects, lists=['Item'])
+    self.Export(params=params, objects=objects, lists=['Item', 'Item2'])
     self.boolean_parameter = True
     self.boolean_parameter_set = False
     self.start_transaction_called = False
@@ -219,7 +220,7 @@ class FakePlatformConfig(object):
     return None
 
 
-def getCpe(simpleroot=False):
+def getCpeAndModel(simpleroot=False):
   root = TestDeviceModelRootSimple() if simpleroot else TestDeviceModelRoot()
   cpe = api.CPE(root)
   cpe.download_manager = MockDownloadManager()
@@ -227,7 +228,11 @@ def getCpe(simpleroot=False):
                             ping_path='/ping/acs_integration_test',
                             acs=None, cpe=cpe, cpe_listener=False,
                             platform_config=FakePlatformConfig())
-  return cpe_machine
+  return cpe_machine, root
+
+
+def getCpe(simpleroot=False):
+  return getCpeAndModel(simpleroot)[0]
 
 
 class TransferRpcTest(unittest.TestCase):
@@ -537,7 +542,7 @@ class GetParamsRpcTest(unittest.TestCase):
     names = root.findall(
         SOAPNS + 'Body/' + CWMPNS +
         'GetParameterNamesResponse/ParameterList/ParameterInfoStruct/Name')
-    self.assertEqual(len(names), 13)
+    self.assertEqual(len(names), 14)
 
   def testGetParamNameRecursive(self):
     cpe = getCpe(simpleroot=True)
@@ -703,16 +708,42 @@ class GetParamsRpcTest(unittest.TestCase):
     self._AssertCwmpFaultNopeNotHere(root)
 
   def testAddObjects(self):
-    cpe = getCpe()
-    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:AddObjects><ObjectName>Item.</ObjectName><Count>2</Count><ParameterKey>ParameterKey1</ParameterKey></cwmp:AddObjects></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
+    cpe, model = getCpeAndModel()
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:X_CATAWAMPUS_ORG_AddObjects><Object><ObjectName>Item.</ObjectName><Count>2</Count></Object><Object><ObjectName>Item2.</ObjectName><Count>3</Count></Object><ParameterKey>ParameterKey1</ParameterKey></cwmp:X_CATAWAMPUS_ORG_AddObjects></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(soapxml)
-    print 'SFASDFSDFA', responseXml
+    print 'testAddObjects response:', responseXml
     root = ET.fromstring(str(responseXml))
-    resp = root.find(SOAPNS + 'Body/' + CWMPNS + 'AddObjectsResponse')
+    resp = root.find(SOAPNS + 'Body/' + CWMPNS + 'X_CATAWAMPUS_ORG_AddObjectsResponse')
     self.assertTrue(resp)
-    instances = resp.findall('InstanceNumber')
-    self.assertTrue(instances)
-    self.assertEqual(len(instances), 2)
+    objidx_list = resp.findall('Object')
+    self.assertTrue(objidx_list)
+    self.assertEqual(len(objidx_list), 2)
+    self.assertEqual(len(objidx_list[0].findall('InstanceNumber')), 2)
+    self.assertEqual(len(objidx_list[1].findall('InstanceNumber')), 3)
+    self.assertEqual(len(list(model.ListExports('Item'))), 2)
+
+  def testAddObjectsFailure(self):
+    cpe, model = getCpeAndModel()
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:X_CATAWAMPUS_ORG_AddObjects><Object><ObjectName>Item.</ObjectName><Count>2</Count></Object><Object><ObjectName>NotARealItem2.</ObjectName><Count>3</Count></Object><ParameterKey>ParameterKey1</ParameterKey></cwmp:X_CATAWAMPUS_ORG_AddObjects></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+    print 'testAddObjectsFailure response:', responseXml
+    root = ET.fromstring(str(responseXml))
+    fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
+    self.assertTrue(fault)
+    self.assertEqual(fault.find('faultcode').text, 'Client')
+    self.assertEqual(fault.find('faultstring').text, 'CWMP fault')
+    detail = fault.find('detail/' + CWMPNS + 'Fault')
+    self.assertTrue(detail)
+    self.assertEqual(detail.find('FaultCode').text, '9003')
+    self.assertTrue('Invalid arguments' in detail.find('FaultString').text)
+    aof_list = detail.findall('X_CATAWAMPUS_ORG_AddObjectsFault')
+    self.assertEqual(len(aof_list), 1)
+    aof = aof_list[0]
+    self.assertTrue(aof.find('ParameterName').text, 'NotARealItem2.')
+    self.assertTrue(aof.find('FaultCode').text, '9005')
+    # there should be no error for the AddObjects on Item., but it should
+    # still have been reversed.
+    self.assertEqual(len(list(model.ListExports('Item'))), 0)
 
   def testNoSuchMethod(self):
     cpe = getCpe()
@@ -727,7 +758,7 @@ class GetParamsRpcTest(unittest.TestCase):
     detail = fault.find('detail/' + CWMPNS + 'Fault')
     self.assertTrue(detail)
     self.assertEqual(detail.find('FaultCode').text, '9000')
-    self.assertTrue(detail.find('FaultString').text.find('NoSuchMethod'))
+    self.assertTrue('NoSuchMethod' in detail.find('FaultString').text)
 
   def testInvalidArgument(self):
     cpe = getCpe()
@@ -826,14 +857,13 @@ class GetParamsRpcTest(unittest.TestCase):
     # make the first character of internal methods a lowercase letter
     # or underscore.
     # Don't feel bad. This comment is here because I made the same mistake.
-    expected = ['AddObject', 'AddObjects',
-                'CancelTransfer', 'ChangeDUState', 'DeleteObject',
+    expected = ['AddObject', 'CancelTransfer', 'ChangeDUState', 'DeleteObject',
                 'Download', 'FactoryReset', 'GetAllQueuedTransfers',
                 'GetOptions', 'GetParameterAttributes', 'GetParameterNames',
                 'GetParameterValues', 'GetQueuedTransfers', 'GetRPCMethods',
                 'Reboot', 'ScheduleDownload', 'ScheduleInform',
                 'SetParameterAttributes', 'SetParameterValues', 'SetVouchers',
-                'Upload']
+                'Upload', 'X_CATAWAMPUS_ORG_AddObjects']
     self.assertEqual(rpcnames, expected)
 
   def testSetParameterAttributes(self):
