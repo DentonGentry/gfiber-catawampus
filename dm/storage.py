@@ -646,10 +646,18 @@ class CapabilitiesNoneLinux26(BASESTORAGE.Capabilities):
     fslist = set()
     with open(PROC_FILESYSTEMS) as f:
       for line in f:
-        if line.find('nodev') >= 0:
-          # rule of thumb to skip internal, non-interesting filesystems
+        line = line.strip()
+        split_line = line.split('\t')
+        devtype = None
+        if len(split_line) == 2:
+          devtype = split_line[0]
+          fstype = split_line[1]
+        else:
+          fstype = split_line[0]
+        # Rule of thumb to skip internal, non-interesting filesystems,
+        # except for tmpfs which is allowed.
+        if devtype == 'nodev' and fstype != 'tmpfs':
           continue
-        fstype = line.strip()
         if _IsSillyFilesystem(fstype):
           continue
         fslist.add(_FsType(fstype))
