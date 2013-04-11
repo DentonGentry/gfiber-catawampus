@@ -239,7 +239,7 @@ class ParameterAttributes(object):
            attrs.notification == ACTIVE_NOTIFY) and
           value != attrs.current_value and
           self.set_notification_parameters_cb):
-        self.set_notification_parameters_cb([(paramname, 'Trigger')])
+        self.set_notification_parameters_cb([(paramname, value)])
         if (self.new_value_change_session_cb and
             attrs.notification == ACTIVE_NOTIFY):
           self.new_value_change_session_cb()

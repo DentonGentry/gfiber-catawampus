@@ -190,7 +190,7 @@ class ParameterAttrsTest(unittest.TestCase):
     cpe.parameter_attrs.CheckForTriggers()
     self.assertEqual(1, len(set_notification_arg[0]))
     self.assertEqual('SomeParam', set_notification_arg[0][0][0])
-    self.assertEqual('Trigger', set_notification_arg[0][0][1])
+    self.assertEqual(root.SomeParam, set_notification_arg[0][0][1])
     self.assertEqual(1, new_session_called[0])
 
 
