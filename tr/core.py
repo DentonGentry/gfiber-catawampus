@@ -369,6 +369,9 @@ class Exporter(object):
       path, and you can do things like getattr(obj, paramname) or
       setattr(obj, paramname, 'value').  The yielded list is guaranteed
       to be in the same order as the input list of names.
+
+      To support vendor parameters like X_CATAWAMPUS-ORG_Foo, underscores
+      are substituted for dashes.
     """
     cache = {}
     cache[()] = self
@@ -387,7 +390,7 @@ class Exporter(object):
       for i in after:
         before = tuple(list(before) + [i])
         cache[before] = o = Exporter._GetExport(o, i)
-      yield o, param
+      yield o, param.replace('-', '_')
 
   def SetExportParam(self, name, value):
     """Set the value of a parameter of this object.
@@ -401,7 +404,8 @@ class Exporter(object):
       KeyError: if the name is not an exported parameter.
     """
     parent, subname = self.FindExport(name)
-    if subname not in parent.export_params:
+    fixed = [Exporter._FixExportName(parent, x) for x in parent.export_params]
+    if subname not in fixed:
       raise KeyError(name)
     if not parent.dirty:
       parent.StartTransaction()

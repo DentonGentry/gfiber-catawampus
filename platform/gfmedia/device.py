@@ -379,7 +379,13 @@ class Ethernet(tr181.Device_v2_2.Device.Ethernet):
 
   def __init__(self):
     tr181.Device_v2_2.Device.Ethernet.__init__(self)
-    self.InterfaceList = {'1': dm.ethernet.EthernetInterfaceLinux26('eth0')}
+    self.InterfaceList = {
+        '1': dm.ethernet.EthernetInterfaceLinux26(
+            ifname='eth0',
+            qfiles='/sys/kernel/debug/bcmgenet/eth0/bcmgenet_discard_cnt_q%d',
+            numq=17,
+            hipriq=1),
+        '256': dm.ethernet.EthernetInterfaceLinux26(ifname='br0')}
     self.VLANTerminationList = {}
     self.LinkList = {}
 
@@ -401,7 +407,12 @@ class Moca(tr181.Device_v2_2.Device.MoCA):
 
   def __init__(self):
     tr181.Device_v2_2.Device.MoCA.__init__(self)
-    self.InterfaceList = {'1': dm.brcmmoca.BrcmMocaInterface('eth1')}
+    self.InterfaceList = {
+        '1': dm.brcmmoca.BrcmMocaInterface(
+            ifname='eth1',
+            qfiles='/sys/kernel/debug/bcmgenet/eth1/bcmgenet_discard_cnt_q%d',
+            numq=17,
+            hipriq=1)}
 
   @property
   def InterfaceNumberOfEntries(self):

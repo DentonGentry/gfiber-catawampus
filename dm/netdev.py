@@ -20,6 +20,8 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import tr.types
+
 # Unit tests can override this.
 PROC_NET_DEV = '/proc/net/dev'
 
@@ -44,45 +46,67 @@ class NetdevStatsLinux26(object):
   _TX_CARRIER = 13
   _TX_COMPRESSED = 14
 
-  def __init__(self, ifname):
+  BroadcastPacketsReceived = tr.types.ReadOnlyUnsigned(0)
+  BroadcastPacketsSent = tr.types.ReadOnlyUnsigned(0)
+  BytesReceived = tr.types.ReadOnlyUnsigned(0)
+  BytesSent = tr.types.ReadOnlyUnsigned(0)
+  DiscardPacketsReceived = tr.types.ReadOnlyUnsigned(0)
+  DiscardPacketsSent = tr.types.ReadOnlyUnsigned(0)
+  ErrorsReceived = tr.types.ReadOnlyUnsigned(0)
+  ErrorsSent = tr.types.ReadOnlyUnsigned(0)
+  MulticastPacketsReceived = tr.types.ReadOnlyUnsigned(0)
+  MulticastPacketsSent = tr.types.ReadOnlyUnsigned(0)
+  PacketsReceived = tr.types.ReadOnlyUnsigned(0)
+  PacketsSent = tr.types.ReadOnlyUnsigned(0)
+  UnicastPacketsReceived = tr.types.ReadOnlyUnsigned(0)
+  UnicastPacketsSent = tr.types.ReadOnlyUnsigned(0)
+  UnknownProtoPacketsReceived = tr.types.ReadOnlyUnsigned(0)
+  X_CATAWAMPUS_ORG_DiscardPacketsReceivedHipri = tr.types.ReadOnlyUnsigned(0)
+
+  def __init__(self, ifname, qfiles=None, numq=0, hipriq=0):
     """Parse fields from a /proc/net/dev line.
 
     Args:
       ifname: string name of the interface, like "eth0"
+      qfiles: path to per-queue discard count files
+      numq: number of per-queue discard files to look for
+      hipriq: number of qfiles to include in DiscardPacketsReceivedHipri
     """
     ifstats = self._ReadProcNetDev(ifname)
     if ifstats:
-      self.BroadcastPacketsReceived = 0
-      self.BroadcastPacketsSent = 0
-      self.BytesReceived = int(ifstats[self._RX_BYTES])
-      self.BytesSent = int(ifstats[self._TX_BYTES])
-      self.DiscardPacketsReceived = int(ifstats[self._RX_DROP])
-      self.DiscardPacketsSent = int(ifstats[self._TX_DROP])
+      type(self).BytesReceived.Set(self, long(ifstats[self._RX_BYTES]))
+      type(self).BytesSent.Set(self, long(ifstats[self._TX_BYTES]))
+      rxdrop = long(ifstats[self._RX_DROP])
+      rxfifo = long(ifstats[self._RX_FIFO])
+      type(self).DiscardPacketsReceived.Set(self, rxdrop + rxfifo)
+      type(self).DiscardPacketsSent.Set(self, long(ifstats[self._TX_DROP]))
 
-      rxerr = int(ifstats[self._RX_ERRS])
-      rxframe = int(ifstats[self._RX_FRAME])
-      self.ErrorsReceived = rxerr + rxframe
-
-      self.ErrorsSent = int(ifstats[self._TX_FIFO])
-      self.MulticastPacketsReceived = int(ifstats[self._RX_MCAST])
-      self.MulticastPacketsSent = 0
-      self.PacketsReceived = int(ifstats[self._RX_PKTS])
-      self.PacketsSent = int(ifstats[self._TX_PKTS])
-
-      rx = int(ifstats[self._RX_PKTS]) - int(ifstats[self._RX_MCAST])
-      self.UnicastPacketsReceived = rx
+      rxerr = long(ifstats[self._RX_ERRS])
+      rxframe = long(ifstats[self._RX_FRAME])
+      type(self).ErrorsReceived.Set(self, rxerr + rxframe)
+      type(self).ErrorsSent.Set(self, long(ifstats[self._TX_FIFO]))
+      rxmcast = long(ifstats[self._RX_MCAST])
+      rxpkts = long(ifstats[self._RX_PKTS])
+      type(self).MulticastPacketsReceived.Set(self, rxmcast)
+      type(self).PacketsReceived.Set(self, rxpkts)
+      txpkts = long(ifstats[self._TX_PKTS])
+      type(self).PacketsSent.Set(self, txpkts)
+      type(self).UnicastPacketsReceived.Set(self, rxpkts - rxmcast)
 
       # Linux doesn't break out transmit uni/multi/broadcast, but we don't
       # want to return 0 for all of them. So we return all transmitted
       # packets as unicast, though some were surely multicast or broadcast.
-      self.UnicastPacketsSent = int(ifstats[self._TX_PKTS])
-      self.UnknownProtoPacketsReceived = 0
+      type(self).UnicastPacketsSent.Set(self, txpkts)
+    discards = self._ReadDiscardStats(qfiles, numq)
+    self.X_CATAWAMPUS_ORG_DiscardFrameCnts = discards
+    h = self._GetHighPrioDiscards(discards, hipriq)
+    type(self).X_CATAWAMPUS_ORG_DiscardPacketsReceivedHipri.Set(self, h)
 
   def _ReadProcNetDev(self, ifname):
     """Return the /proc/net/dev entry for ifname.
 
     Args:
-      ifname: string name of the interface, ecx: "eth0"
+      ifname: string name of the interface, e.g.: "eth0"
 
     Returns:
       The /proc/net/dev entry for ifname as a list.
@@ -92,7 +116,42 @@ class NetdevStatsLinux26(object):
       fields = line.split(':')
       if (len(fields) == 2) and (fields[0].strip() == ifname):
         return fields[1].split()
+    f.close()
     return None
+
+  def _ReadDiscardStats(self, qfiles, numq):
+    """Return the discard counters for ifname.
+
+    Args:
+      qfiles: path to per-queue discard count files
+      numq: number of per-queue discard files to look for
+
+    Returns:
+      A list of all the values in the qfiles, where index
+      ranges from 0 to numq (there is a different counter
+      for each queue).
+    """
+    discard_cnts = []
+    for i in range(numq):
+      try:
+        file_path = qfiles % i
+        with open(file_path) as f:
+          val = long(f.readline().strip())
+          discard_cnts.append(val)
+      except (IOError, ValueError, TypeError):
+        print 'WARN: _ReadDiscardStats %s : %d failed' % (qfiles, i)
+        discard_cnts.append(-1)
+    return discard_cnts
+
+  def _GetHighPrioDiscards(self, discards, hipriq):
+    """Return sum of discards[0:hipriq]."""
+    total = 0L
+    for i in range(hipriq):
+      try:
+        total += long(discards[i])
+      except (IndexError, ValueError):
+        continue
+    return total
 
 
 def main():

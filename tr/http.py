@@ -172,7 +172,7 @@ class CPEStateMachine(object):
   """
 
   def __init__(self, ip, cpe, listenport, platform_config, ping_path,
-               acs_url=None, ping_ip6dev=None, fetch_args=dict(), ioloop=None,
+               acs_url=None, ping_ip6dev=None, fetch_args=None, ioloop=None,
                restrict_acs_hosts=None):
     self.cpe = cpe
     self.cpe_soap = api_soap.CPE(self.cpe)
@@ -187,7 +187,7 @@ class CPEStateMachine(object):
     self.session = None
     self.my_configured_ip = ip
     self.ping_ip6dev = ping_ip6dev
-    self.fetch_args = fetch_args
+    self.fetch_args = fetch_args or dict()
     self.rate_limit_seconds = 60
     self.platform_config = platform_config
     self.previous_ping_time = 0
@@ -468,6 +468,11 @@ class CPEStateMachine(object):
     if allow_ping:
       self.ping_timeout_pending = None
       self.previous_ping_time = current_time
+      # This happens if there was a previous ping, but ACS failed
+      # to respond (503 for example).  And we don't want multiple
+      # copies of this event code in the request.
+      self.event_queue = self._RemoveFromDequeue(
+          self.event_queue, frozenset(['6 connection request']))
       self._NewSession('6 CONNECTION REQUEST')
     elif not self.ping_timeout_pending:
       # Queue up a new session via tornado.
@@ -555,12 +560,13 @@ class CPEStateMachine(object):
 
 
 def Listen(ip, port, ping_path, acs, cpe, cpe_listener, platform_config,
-           acs_url=None, ping_ip6dev=None, fetch_args=dict(), ioloop=None,
+           acs_url=None, ping_ip6dev=None, fetch_args=None, ioloop=None,
            restrict_acs_hosts=None):
   if not ping_path:
     ping_path = '/ping/%x' % random.getrandbits(120)
   while ping_path.startswith('/'):
     ping_path = ping_path[1:]
+  fetch_args = fetch_args or dict()
   cpe_machine = CPEStateMachine(ip=ip, cpe=cpe, listenport=port,
                                 platform_config=platform_config,
                                 ping_path=ping_path,

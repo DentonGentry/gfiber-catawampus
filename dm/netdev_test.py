@@ -42,7 +42,7 @@ class NetdevTest(unittest.TestCase):
     self.assertEqual(eth.BroadcastPacketsSent, 0)
     self.assertEqual(eth.BytesReceived, 1)
     self.assertEqual(eth.BytesSent, 9)
-    self.assertEqual(eth.DiscardPacketsReceived, 4)
+    self.assertEqual(eth.DiscardPacketsReceived, 9)
     self.assertEqual(eth.DiscardPacketsSent, 11)
     self.assertEqual(eth.ErrorsReceived, 9)
     self.assertEqual(eth.ErrorsSent, 12)
@@ -75,6 +75,29 @@ class NetdevTest(unittest.TestCase):
     self.assertEqual(eth.UnicastPacketsReceived, 91456760)
     self.assertEqual(eth.UnicastPacketsSent, 80960002)
     self.assertEqual(eth.UnknownProtoPacketsReceived, 0)
+
+  def testSysfsStats(self):
+    qfiles = 'testdata/sysfs/eth0/bcmgenet_discard_cnt_q%d'
+    numq = 17
+    eth = netdev.NetdevStatsLinux26('eth0', qfiles=qfiles,
+                                    numq=numq, hipriq=numq)
+    self.assertEqual(len(eth.X_CATAWAMPUS_ORG_DiscardFrameCnts), numq)
+    total = 0
+    for i in range(numq):
+      self.assertEqual(int(eth.X_CATAWAMPUS_ORG_DiscardFrameCnts[i]), i)
+      total += i
+    self.assertEqual(eth.X_CATAWAMPUS_ORG_DiscardPacketsReceivedHipri, total)
+
+    numq = 5
+    eth = netdev.NetdevStatsLinux26('eth0', qfiles=qfiles, numq=numq, hipriq=2)
+    self.assertEqual(len(eth.X_CATAWAMPUS_ORG_DiscardFrameCnts), numq)
+    for i in range(numq):
+      self.assertEqual(int(eth.X_CATAWAMPUS_ORG_DiscardFrameCnts[i]), i)
+    self.assertEqual(eth.X_CATAWAMPUS_ORG_DiscardPacketsReceivedHipri, 1)
+
+    eth = netdev.NetdevStatsLinux26('foo0', qfiles=qfiles, numq=0)
+    self.assertEqual(len(eth.X_CATAWAMPUS_ORG_DiscardFrameCnts), 0)
+    self.assertEqual(eth.X_CATAWAMPUS_ORG_DiscardPacketsReceivedHipri, 0)
 
 
 if __name__ == '__main__':

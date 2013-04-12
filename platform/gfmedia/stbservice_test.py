@@ -32,6 +32,16 @@ def MockTime():
   return 1357898400.0
 
 
+class MockIoloop(object):
+  def __init__(self):
+    self.timeout = None
+    self.callback = None
+
+  def add_timeout(self, timeout, callback, monotonic=None):
+    self.timeout = timeout
+    self.callback = callback
+
+
 class STBServiceTest(unittest.TestCase):
   def setUp(self):
     self.STATS_FILES_NOEXST = ['testdata/stbservice/notexist%d.json']
@@ -114,6 +124,10 @@ class STBServiceTest(unittest.TestCase):
   def checkMPEG2Zero(self, stream):
     self.assertEqual(stream.Total.MPEG2TSStats.TSPacketsReceived, 0)
     self.assertEqual(stream.Total.MPEG2TSStats.PacketDiscontinuityCounter, 0)
+    self.assertEqual(stream.Total.MPEG2TSStats.X_CATAWAMPUS_ORG_DropPackets, 0)
+    self.assertEqual(stream.Total.MPEG2TSStats.X_CATAWAMPUS_ORG_DropBytes, 0)
+    self.assertEqual(
+        stream.Total.MPEG2TSStats.X_CATAWAMPUS_ORG_PacketErrorCount, 0)
 
   def testNonexistentStatsFile(self):
     """Test whether the absence of stats file is handled gracefully."""
@@ -213,6 +227,38 @@ class STBServiceTest(unittest.TestCase):
     self.assertEqual(ml[6].Total.MPEG2TSStats.PacketDiscontinuityCounter, 30)
     self.assertEqual(ml[7].Total.MPEG2TSStats.PacketDiscontinuityCounter, 20)
     self.assertEqual(ml[8].Total.MPEG2TSStats.PacketDiscontinuityCounter, 10)
+    self.assertEqual(ml[1].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_DropBytes, 8000)
+    self.assertEqual(ml[2].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_DropBytes, 7000)
+    self.assertEqual(ml[3].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_DropBytes, 6000)
+    self.assertEqual(ml[4].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_DropBytes, 5000)
+    self.assertEqual(ml[5].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_DropBytes, 4000)
+    self.assertEqual(ml[6].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_DropBytes, 3000)
+    self.assertEqual(ml[7].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_DropBytes, 2000)
+    self.assertEqual(ml[8].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_DropBytes, 1000)
+    self.assertEqual(ml[1].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_DropPackets, 801)
+    self.assertEqual(ml[2].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_DropPackets, 701)
+    self.assertEqual(ml[3].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_DropPackets, 601)
+    self.assertEqual(ml[4].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_DropPackets, 501)
+    self.assertEqual(ml[5].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_DropPackets, 401)
+    self.assertEqual(ml[6].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_DropPackets, 301)
+    self.assertEqual(ml[7].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_DropPackets, 201)
+    self.assertEqual(ml[8].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_DropPackets, 101)
+    self.assertEqual(
+        ml[1].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_PacketErrorCount, 8)
+    self.assertEqual(
+        ml[2].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_PacketErrorCount, 7)
+    self.assertEqual(
+        ml[3].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_PacketErrorCount, 6)
+    self.assertEqual(
+        ml[4].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_PacketErrorCount, 5)
+    self.assertEqual(
+        ml[5].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_PacketErrorCount, 4)
+    self.assertEqual(
+        ml[6].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_PacketErrorCount, 3)
+    self.assertEqual(
+        ml[7].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_PacketErrorCount, 2)
+    self.assertEqual(
+        ml[8].Total.MPEG2TSStats.X_CATAWAMPUS_ORG_PacketErrorCount, 1)
 
   def testDejitteringStats(self):
     """Test whether Dejittering stats are deserialized."""
@@ -359,6 +405,7 @@ class STBServiceTest(unittest.TestCase):
       self.assertEqual(v.DisplayDevice.HDMI3DPresent, False)
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_NegotiationCount4, 0)
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_NegotiationCount24, 0)
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_HDCPAuthFailureCnt, 0)
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_VendorId, '')
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_ProductId, 0)
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_MfgYear, 1990)
@@ -446,6 +493,7 @@ class STBServiceTest(unittest.TestCase):
 
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_NegotiationCount4, 3)
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_NegotiationCount24, 9)
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_HDCPAuthFailureCnt, 5)
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_VendorId, 'ACR')
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_ProductId, 51)
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_MfgYear, 2008)
@@ -473,6 +521,7 @@ class STBServiceTest(unittest.TestCase):
       self.assertEqual(v.DisplayDevice.Status, 'Present')
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_NegotiationCount4, 3)
       self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_NegotiationCount24, 9)
+      self.assertEqual(v.DisplayDevice.X_GOOGLE_COM_HDCPAuthFailureCnt, 5)
       self.assertEqual(v.DisplayDevice.Name, '')
       self.assertEqual(v.DisplayDevice.EEDID, '')
       self.assertEqual(len(v.DisplayDevice.SupportedResolutions), 0)
@@ -505,6 +554,8 @@ class STBServiceTest(unittest.TestCase):
     self.assertEqual(epgStats.EPGErrors, 0)
     self.assertEqual(epgStats.LastReceivedTime, '0001-01-01T00:00:00Z')
     self.assertEqual(epgStats.EPGExpireTime, '0001-01-01T00:00:00Z')
+    self.assertEqual(epgStats.NumChannels, 0)
+    self.assertEqual(epgStats.NumEnabledChannels, 0)
 
   def testEPGStatsAll(self):
     """Test whether EPG stats are deserialized properly."""
@@ -515,10 +566,13 @@ class STBServiceTest(unittest.TestCase):
     self.assertEqual(epgStats.EPGErrors, 2)
     self.assertEqual(epgStats.LastReceivedTime, '2012-07-25T01:50:37Z')
     self.assertEqual(epgStats.EPGExpireTime, '2012-07-30T01:50:37Z')
+    self.assertEqual(epgStats.NumChannels, 20)
+    self.assertEqual(epgStats.NumEnabledChannels, 21)
 
   def testStallAlarm(self):
     stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_small%d.json']
-    stb = stbservice.STBService()
+    ioloop = MockIoloop()
+    stb = stbservice.STBService(ioloop=ioloop)
     self.assertEqual(stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmTime,
                      '0001-01-01T00:00:00Z')
     stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmValue = 1
@@ -528,11 +582,28 @@ class STBServiceTest(unittest.TestCase):
     stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_full%d.json']
     self.assertEqual(stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmTime,
                      '2013-01-11T10:00:00Z')
+    self.assertTrue(ioloop.callback is not None)
     # Alarm should stay asserted even when stalltime drops below threshold.
     stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_small%d.json']
     self.assertEqual(stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmTime,
                      '2013-01-11T10:00:00Z')
+    # Explicitly clear
     stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmTime = 0
+    self.assertEqual(stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmTime,
+                     '0001-01-01T00:00:00Z')
+
+  def testStallAlarmReset(self):
+    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_full%d.json']
+    ioloop = MockIoloop()
+    stb = stbservice.STBService(ioloop=ioloop)
+    stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmValue = 1
+    self.assertEqual(stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmTime,
+                     '2013-01-11T10:00:00Z')
+    self.assertTrue(ioloop.callback is not None)
+    # Stalltime drops back below threshold
+    stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_small%d.json']
+    # Simulate timeout callback
+    ioloop.callback()
     self.assertEqual(stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmTime,
                      '0001-01-01T00:00:00Z')
 

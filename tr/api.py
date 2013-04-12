@@ -477,10 +477,36 @@ class CPE(TR069Service):
   def AddObject(self, object_name, parameter_key):
     """Create a new object with default parameters."""
     assert object_name.endswith('.')
-    # pylint: disable-msg=W0612
-    (idx, obj) = self.root.AddExportObject(object_name[:-1])
+    (idx, _) = self.root.AddExportObject(object_name[:-1])
     self._SetParameterKey(parameter_key)
     return (idx, 0)  # successfully created
+
+  def AddObjects(self, object_name, count, parameter_key):
+    """Create several new objects with default parameters.
+
+    This is not a standard method in TR-069, it's an extension we added.
+
+    Args:
+      object_name: the parent object name, ending in dot.
+      count: the number of objects to insert (up to 1000)
+      parameter_key: the tr-069 cookie used to check which commands completed.
+    Returns:
+      A tuple of (idxlist, status).
+      idxlist: the list of created object indexes (object_name.%s).
+      status: 0 if successful.
+    Raises:
+      ParameterValueError: if count is too large.
+    """
+    assert object_name.endswith('.')
+    if count > 1000:
+      raise ParameterValueError(parameter=object_name,
+                                msg='Tried to insert too many objects at once')
+    idxlist = []
+    for _ in xrange(int(count)):
+      (idx, _) = self.root.AddExportObject(object_name[:-1])
+      idxlist.append(idx)
+    self._SetParameterKey(parameter_key)
+    return (idxlist, 0)  # successfully created
 
   def DeleteObject(self, object_name, parameter_key):
     """Delete an object and its sub-objects/parameters."""

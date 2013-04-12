@@ -132,6 +132,14 @@ class Encode(object):
         xml.ParameterKey(str(parameter_key))
     return xml
 
+  def AddObjects(self, object_name, count, parameter_key):
+    with self._Envelope() as xml:
+      with xml['cwmp:AddObject']:
+        xml.ObjectName(str(object_name))
+        xml.Count(str(count))
+        xml.ParameterKey(str(parameter_key))
+    return xml
+
   def DeleteObject(self, object_name, parameter_key):
     with self._Envelope() as xml:
       with xml['cwmp:DeleteObject']:
@@ -297,6 +305,16 @@ class CPE(SoapHandler):
       xml.Status(str(int(status)))
     return xml
 
+  def AddObjects(self, xml, req):
+    self._CheckObjectName(req.ObjectName)
+    idxlist, status = self.impl.AddObjects(req.ObjectName, int(req.Count),
+                                           req.ParameterKey)
+    with xml['cwmp:AddObjectsResponse']:
+      for idx in idxlist:
+        xml.InstanceNumber(str(idx))
+      xml.Status(str(int(status)))
+    return xml
+
   def DeleteObject(self, xml, req):
     self._CheckObjectName(req.ObjectName)
     code = self.impl.DeleteObject(req.ObjectName, req.ParameterKey)
@@ -380,37 +398,3 @@ class CPE(SoapHandler):
     self.impl.Reboot(req.CommandKey)
     xml['cwmp:RebootResponse'](None)
     return xml
-
-
-def main():
-  class FakeDeviceInfo(object):
-    Manufacturer = 'manufacturer'
-    ManufacturerOUI = 'oui'
-    ProductClass = 'productclass'
-    SerialNumber = 'serialnumber'
-
-  root = core.Exporter()
-  root.Export(params=['Test', 'Test2'], lists=['Sub'])
-  root.Test = '5'
-  root.Test2 = 6
-  root.SubList = {}
-  root.Sub = core.Exporter
-  root.DeviceInfo = FakeDeviceInfo()
-
-  real_acs = api.ACS()
-  real_cpe = api.CPE(real_acs, root, None)
-  cpe = CPE(real_cpe)
-  acs = ACS(real_acs)
-  encode = Encode()
-  print cpe.Handle(encode.GetRPCMethods())
-  print cpe.Handle(encode.GetParameterNames('', False))
-  print cpe.Handle(encode.GetParameterValues(['Test']))
-  print cpe.Handle(encode.SetParameterValues([('Test', 6), ('Test2', 7)], 77))
-  print cpe.Handle(encode.GetParameterValues(['Test', 'Test2']))
-  print cpe.Handle(encode.AddObject('Sub.', 5))
-  print cpe.Handle(encode.DeleteObject('Sub.0', 5))
-  print acs.Handle(encode.Inform(root, [], 1, None, 1, []))
-
-
-if __name__ == '__main__':
-  main()

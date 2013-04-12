@@ -73,10 +73,36 @@
       <parameter name="EASServicePort" access="readWrite">
         <description>UDP Port number to monitor for the the Emergency Alert System.</description>
         <syntax>
-          <string/>
+          <unsignedInt/>
         </syntax>
       </parameter>
 
+      <object name="DvrSpace." access="readOnly" minEntries="1" maxEntries="1">
+        <parameter name="PermanentFiles" access="readOnly">
+          <description>Number of permanent DVR files currently stored.</description>
+          <syntax>
+            <unsignedInt/>
+          </syntax>
+        </parameter>
+        <parameter name="PermanentMBytes" access="readOnly">
+          <description>Number of Megabytes of permanent DVR files currently stored.</description>
+          <syntax>
+            <unsignedInt/>
+          </syntax>
+        </parameter>
+        <parameter name="TransientFiles" access="readOnly">
+          <description>Number of transient DVR files currently stored. Transient files can be deleted as needed by the DVR, as part of its normal operation.</description>
+          <syntax>
+            <unsignedInt/>
+          </syntax>
+        </parameter>
+        <parameter name="TransientMBytes" access="readOnly">
+          <description>Number of Megabytes of transient DVR files currently stored. Transient files can be deleted as needed by the DVR, as part of its normal operation.</description>
+          <syntax>
+            <unsignedInt/>
+          </syntax>
+        </parameter>
+      </object>
       <object name="DeviceProperties.{i}." access="readWrite" numEntriesParameter="DevicePropertiesNumberOfEntries" minEntries="0" maxEntries="16">
         <parameter name="SerialNumber" access="readWrite">
           <description>Serial number of the device.</description>

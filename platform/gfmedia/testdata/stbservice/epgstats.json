@@ -3,6 +3,8 @@
     "MulticastPackets": 1002,
     "EPGErrors": 2,
     "LastReceivedTime": 1343181037,
-    "EPGExpireTime": 1343613037
+    "EPGExpireTime": 1343613037,
+    "NumChannels": 20,
+    "NumEnabledChannels": 21
   }
 }

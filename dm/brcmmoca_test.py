@@ -35,6 +35,8 @@ class MocaTest(unittest.TestCase):
     self.old_PYNETIFCONF = brcmmoca.PYNETIFCONF
     self.old_PROC_NET_DEV = netdev.PROC_NET_DEV
     tr.session.cache.flush()
+    brcmmoca.PYNETIFCONF = MockPynet
+    netdev.PROC_NET_DEV = 'testdata/brcmmoca/proc/net/dev'
 
   def tearDown(self):
     brcmmoca.MOCACTL = self.old_MOCACTL
@@ -42,40 +44,12 @@ class MocaTest(unittest.TestCase):
     netdev.PROC_NET_DEV = self.old_PROC_NET_DEV
 
   def testMocaInterfaceStatsGood(self):
-    netdev.PROC_NET_DEV = 'testdata/brcmmoca/proc/net/dev'
     moca = brcmmoca.BrcmMocaInterfaceStatsLinux26('foo0')
     moca.ValidateExports()
-
-    self.assertEqual(moca.BroadcastPacketsReceived, 0)
-    self.assertEqual(moca.BroadcastPacketsSent, 0)
-    self.assertEqual(moca.BytesReceived, 1)
-    self.assertEqual(moca.BytesSent, 9)
-    self.assertEqual(moca.DiscardPacketsReceived, 4)
-    self.assertEqual(moca.DiscardPacketsSent, 11)
-    self.assertEqual(moca.ErrorsReceived, 9)
-    self.assertEqual(moca.ErrorsSent, 12)
-    self.assertEqual(moca.MulticastPacketsReceived, 8)
-    self.assertEqual(moca.MulticastPacketsSent, 0)
-    self.assertEqual(moca.PacketsReceived, 100)
-    self.assertEqual(moca.PacketsSent, 10)
-    self.assertEqual(moca.UnicastPacketsReceived, 92)
     self.assertEqual(moca.UnicastPacketsSent, 10)
-    self.assertEqual(moca.UnknownProtoPacketsReceived, 0)
-
-  def testMocaInterfaceStatsNonexistent(self):
-    netdev.PROC_NET_DEV = 'testdata/brcmmoca/proc/net/dev'
-    moca = brcmmoca.BrcmMocaInterfaceStatsLinux26('doesnotexist0')
-    exception_raised = False
-    try:
-      moca.ErrorsReceived
-    except AttributeError:
-      exception_raised = True
-    self.assertTrue(exception_raised)
 
   def testMocaInterface(self):
-    brcmmoca.PYNETIFCONF = MockPynet
     brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl'
-    netdev.PROC_NET_DEV = 'testdata/brcmmoca/proc/net/dev'
     moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=False)
     moca.ValidateExports()
     self.assertEqual(moca.Name, 'foo0')
@@ -106,9 +80,7 @@ class MocaTest(unittest.TestCase):
     self.assertRaises(AttributeError, setattr, moca, 'QAM256Capable', True)
 
   def testMocaInterfaceCache(self):
-    brcmmoca.PYNETIFCONF = MockPynet
     brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl'
-    netdev.PROC_NET_DEV = 'testdata/brcmmoca/proc/net/dev'
     moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=False)
     self.assertEqual(moca.FirmwareVersion, '5.6.789')
     self.assertEqual(moca.HighestVersion, '1.1')
@@ -117,7 +89,6 @@ class MocaTest(unittest.TestCase):
     self.assertEqual(moca.CurrentOperFreq, 999)
 
   def testMocaInterfaceAlt(self):
-    brcmmoca.PYNETIFCONF = MockPynet
     brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl_alt'
     moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=False)
     self.assertEqual(moca.HighestVersion, '1.0')
@@ -128,7 +99,6 @@ class MocaTest(unittest.TestCase):
     self.assertEqual(moca.PacketAggregationCapability, 7)
 
   def testMocaInterfaceMocaCtlFails(self):
-    brcmmoca.PYNETIFCONF = MockPynet
     brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl_fail'
     moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=False)
     self.assertEqual(moca.FirmwareVersion, '0')
@@ -140,10 +110,22 @@ class MocaTest(unittest.TestCase):
     self.assertEqual(moca.PacketAggregationCapability, 0)
 
   def testLastChange(self):
-    brcmmoca.PYNETIFCONF = MockPynet
     moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=False)
     brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl_up1'
     self.assertEqual(moca.LastChange, 6090)
+
+  def testDiscardFramePresence(self):
+    # Content of DiscardFrameCnts is tested in netdev_test.py.
+    d1 = 'X_CATAWAMPUS-ORG_DiscardFrameCnts'
+    d2 = 'X_CATAWAMPUS-ORG_DiscardPacketsReceivedHipri'
+    moca = brcmmoca.BrcmMocaInterface('foo0', qfiles=None)
+    self.assertFalse(moca.Stats.IsValidExport(d1))
+    self.assertFalse(moca.Stats.IsValidExport(d2))
+
+    qfiles = 'testdata/sysfs/eth0/bcmgenet_discard_cnt_q%d'
+    moca = brcmmoca.BrcmMocaInterface('foo0', qfiles=qfiles, numq=2)
+    self.assertTrue(moca.Stats.IsValidExport(d1))
+    self.assertTrue(moca.Stats.IsValidExport(d2))
 
   def testAssociatedDevice(self):
     brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl'

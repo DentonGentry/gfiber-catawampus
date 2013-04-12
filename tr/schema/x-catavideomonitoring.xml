@@ -48,6 +48,18 @@
           <unsignedInt/>
         </syntax>
       </parameter>
+      <parameter name="NumChannels" access="readOnly">
+        <description>Number of channels present in the EPG.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="NumEnabledChannels" access="readOnly">
+        <description>Number of channels this device is authorized to tune to.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
     </object>
     <object name="STBService.{i}.ServiceMonitoring." access="readOnly" minEntries="1" maxEntries="1">
       <parameter name="X_CATAWAMPUS-ORG_StallAlarmTime" access="readOnly">
@@ -62,6 +74,14 @@
           </unsignedInt>
         </syntax>
       </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_StallAlarmResetTime" access="readWrite">
+        <description>Number of {{units}} after which {{param|X_CATAWAMPUS-ORG_StallAlarmTime}} will reset back to Unknown Time. If the stall condition persists, the alarm will immediately assert itself again.</description>
+        <syntax>
+          <unsignedInt>
+            <units value="seconds"/>
+          </unsignedInt>
+        </syntax>
+      </parameter>
     </object>
     <object name="STBService.{i}.ServiceMonitoring.MainStream.{i}.Total.X_CATAWAMPUS-ORG_MulticastStats." access="readOnly" minEntries="1" maxEntries="1">
       <description>Total IP Multicast statistics for this ''ServiceMonitoring'' main stream instance.</description>
@@ -72,7 +92,7 @@
         </syntax>
       </parameter>
       <parameter name="StallTime" access="readOnly">
-        <description>The amount of time since data last arrived, in {{units}}}. Note that for efficiency, this value is generally snapshotted. It won't be seen to continuously increase.</description>
+        <description>The amount of time since data last arrived, in {{units}}}. Note that for efficiency, this value may be snapshotted. It won't be seen to continuously increase.</description>
         <syntax>
           <unsignedInt>
             <units value="milliseconds"/>
@@ -107,6 +127,26 @@
       </parameter>
       <parameter name="UdpDrops" access="readOnly">
         <description>The number of bytes from this group dropped by the UDP module.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+    </object>
+    <object name="STBService.{i}.ServiceMonitoring.MainStream.{i}.Total.MPEG2TSStats." access="readOnly" minEntries="1" maxEntries="1">
+      <parameter name="X_CATAWAMPUS-ORG_DropBytes" access="readOnly">
+        <description>The number of bytes from this group dropped because they were malformed (ex: starting offset greater than the packet size).</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_DropPackets" access="readOnly">
+        <description>The number of packets from this group dropped because they were malformed (ex: starting offset greater than the packet size).</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_PacketErrorCount" access="readOnly">
+        <description>The number of packets from this group dropped because the PID was -2.</description>
         <syntax>
           <unsignedInt/>
         </syntax>
@@ -312,6 +352,12 @@
       </parameter>
       <parameter name="X_GOOGLE-COM_NegotiationCount24" access="readOnly">
         <description>Number of times the HDMI/HDCP connection has renegotiated in the last 24 hours.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="X_GOOGLE-COM_HDCPAuthFailureCnt" access="readOnly">
+        <description>Number of times the HDCP authentication failed.</description>
         <syntax>
           <unsignedInt/>
         </syntax>

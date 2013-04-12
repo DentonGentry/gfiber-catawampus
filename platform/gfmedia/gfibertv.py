@@ -21,10 +21,8 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import copy
-import errno
 import glob
-import os
+import json
 import re
 import xmlrpclib
 import google3
@@ -33,6 +31,7 @@ import tr.cwmpbool
 import tr.cwmpdate
 import tr.helpers
 import tr.mainloop
+import tr.session
 import tr.types
 import tr.x_gfibertv_1_0
 import selftest
@@ -45,6 +44,7 @@ BTDEVICES = ['/user/bsa/bt_devices.xml']
 BTHHDEVICES = ['/user/bsa/bt_hh_devices.xml']
 BTCONFIG = ['/user/bsa/bt_config.xml']
 BTNOPAIRING = ['/usr/bsa/nopairing']
+DISK_SPACE_FILE = ['/tmp/dvr_space']
 EASADDRFILE = ['/tmp/eas_service_address']
 EASFIPSFILE = ['/tmp/eas_fips']
 EASHEARTBEATFILE = ['/tmp/eas_heartbeat']
@@ -77,10 +77,8 @@ class GFiberTv(BASETV):
   EASFipsCode = tr.types.FileBacked(EASFIPSFILE, tr.types.String())
   EASServiceAddress = tr.types.FileBacked(EASADDRFILE, tr.types.String())
   EASServicePort = tr.types.FileBacked(EASPORTFILE, tr.types.String())
-  EASHeartbeatTimestamp = (
-      tr.types.ReadOnly(
-      tr.types.FileBacked(
-      EASHEARTBEATFILE, tr.types.Date())))
+  f = tr.types.FileBacked(EASHEARTBEATFILE, tr.types.Date())
+  EASHeartbeatTimestamp = tr.types.ReadOnly(f)
 
   def __init__(self, mailbox_url):
     super(GFiberTv, self).__init__()
@@ -89,7 +87,6 @@ class GFiberTv(BASETV):
     self.Mailbox = Mailbox(mailbox_url)
     self.DevicePropertiesList = {}
     self._rpcclient = xmlrpclib.ServerProxy(mailbox_url)
-    self.Config = self._GetNode('')
 
     # TODO(apenwarr): Maybe remove this eventually.
     #  Right now the storage box has an API, but TV boxes don't, so we
@@ -103,8 +100,13 @@ class GFiberTv(BASETV):
                                      getitem=self._GetNode)
     self.Export(objects=['Config'], lists=['Node'])
 
-  def Node(self, name=None):
-    return Node(self._rpcclient, name)
+  @property
+  def DvrSpace(self):
+    return DvrSpace()
+
+  @property
+  def Config(self):
+    return self._GetNode('')
 
   def _ListNodes(self):
     try:
@@ -113,6 +115,7 @@ class GFiberTv(BASETV):
       raise IndexError('Failure listing nodes: %s' % e)
     return [(str(node), self._GetNode(node)) for node in nodes]
 
+  @tr.session.cache
   def _GetNode(self, name):
     top = _PopulateTree(self._rpcclient, name)
     _ExportTree(top)
@@ -136,6 +139,9 @@ class GFiberTv(BASETV):
     the _DeviceProperties class would just be called DeviceProperties and
     tr.core would instantiate it, but we want to pass it a parent= value
     to the constructor, so we do this trick instead.
+
+    Returns:
+      gfibertv.DeviceProperties
     """
     return self._DeviceProperties(parent=self)
 
@@ -156,6 +162,44 @@ class GFiberTv(BASETV):
       f.write('serials=%s\n' % ','.join(_SageEscape(i) for i in serials))
 
 
+class DvrSpace(BASETV.DvrSpace):
+  """X_GOOGLE_COM_GFIBERTV.DvrSpace.
+
+  Ephemeral object to export information from /tmp/dvr_space.
+  """
+
+  PermanentMBytes = tr.types.ReadOnlyInt(-1)
+  PermanentFiles = tr.types.ReadOnlyInt(-1)
+  TransientMBytes = tr.types.ReadOnlyInt(-1)
+  TransientFiles = tr.types.ReadOnlyInt(-1)
+
+  def __init__(self):
+    super(DvrSpace, self).__init__()
+    data = dict()
+    for filename in DISK_SPACE_FILE:
+      self._LoadJSON(filename, data)
+    mbytes = data.get('permanentSize', -1000000)
+    type(self).PermanentMBytes.Set(self, mbytes / 1000000)
+    type(self).PermanentFiles.Set(self, data.get('permanentFiles', -1))
+    mbytes = data.get('transientSize', -1000000)
+    type(self).TransientMBytes.Set(self, mbytes / 1000000)
+    type(self).TransientFiles.Set(self, data.get('transientFiles', -1))
+
+  def _LoadJSON(self, filename, data):
+    """Populate data with fields read from the JSON file at filename."""
+    try:
+      d = json.load(open(filename))
+      data.update(d)
+    except IOError:
+      # Sage might not be running yet
+      pass
+    except (ValueError, KeyError) as e:
+      # ValueError - JSON file is malformed and cannot be decoded
+      # KeyError - Decoded JSON file doesn't contain the required fields.
+      print('DvrSpace: Failed to read stats from file {0}, '
+            'error = {1}'.format(filename, e))
+
+
 class Mailbox(BASETV.Mailbox):
   """Getter/setter for individual values in the SageTV configuration.
 
@@ -167,8 +211,8 @@ class Mailbox(BASETV.Mailbox):
   instead.
   """
 
-  Node = tr.types.String()
-  Name = tr.types.String()
+  Node = tr.types.String('')
+  Name = tr.types.String('')
 
   def __init__(self, url):
     super(Mailbox, self).__init__()
@@ -184,7 +228,7 @@ class Mailbox(BASETV.Mailbox):
       raise IndexError('No such Property %s:%s' % (self.Node, self.Name))
     except (xmlrpclib.ProtocolError, IOError):
       raise IndexError(
-          'Unable to access Property %s:%s' % (self.Node, self.Name))
+          'Unable to access Property %r:%r' % (self.Node, self.Name))
 
   @Value.setter
   def Value(self, value):
@@ -194,7 +238,7 @@ class Mailbox(BASETV.Mailbox):
       raise IndexError('No such Property %s:%s' % (self.Node, self.Name))
     except (xmlrpclib.ProtocolError, IOError):
       raise IndexError(
-          'Unable to access Property %s:%s' % (self.Node, self.Name))
+          'Unable to access Property %r:%r' % (self.Node, self.Name))
 
   @property
   def NodeList(self):
@@ -228,7 +272,7 @@ class PropList(tr.core.Exporter):
     try:
       return str(self._rpcclient.GetProperty(realname, self._node))
     except xmlrpclib.expat.ExpatError, e:
-      #TODO(apenwarr): SageTV produces invalid XML.
+      # TODO(apenwarr): SageTV produces invalid XML.
       # ...if the value contains <> characters, for example.
       print 'Expat decode error: %s' % e
       return None
@@ -266,7 +310,12 @@ def _PopulateTree(rpcclient, nodename):
   top = PropList(rpcclient, nodename)
   for g in ['/app/sage/*.properties.default*', '/rw/sage/*.properties']:
     for filename in glob.glob(g):
-      for line in open(filename):
+      try:
+        lines = open(filename).readlines()
+      except IOError as e:
+        print e  # non-fatal, but interesting
+        continue
+      for line in lines:
         line = line.split('#', 1)[0]  # remove comments
         line = line.split('=', 1)[0]  # remove =value from key=value
         line = line.strip()

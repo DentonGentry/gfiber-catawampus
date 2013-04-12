@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """Implementation of tr-181 Device.Ethernet hierarchy of objects.
 
@@ -28,61 +28,61 @@ import pynetlinux
 import tr.core
 import tr.cwmpdate
 import tr.tr181_v2_4
+import tr.types
 import tr.x_catawampus_tr181_2_0
 import netdev
 
-BASEETHERNET = tr.tr181_v2_4.Device_v2_4.Device.Ethernet
-CATAWAMPUSETHERNET = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device.Ethernet
+CATADEVICE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
+CATAETHERNET = CATADEVICE.Device.Ethernet
 PYNETIFCONF = pynetlinux.ifconfig.Interface
 
 
 class EthernetInterfaceStatsLinux26(netdev.NetdevStatsLinux26,
-                                    BASEETHERNET.Interface.Stats):
+                                    CATAETHERNET.Interface.Stats):
   """tr181 Ethernet.Interface.{i}.Stats implementation for Linux eth#."""
 
-  def __init__(self, ifname):
-    netdev.NetdevStatsLinux26.__init__(self, ifname)
-    BASEETHERNET.Interface.Stats.__init__(self)
+  def __init__(self, ifname, qfiles=None, numq=0, hipriq=0):
+    netdev.NetdevStatsLinux26.__init__(self, ifname, qfiles, numq, hipriq)
+    CATAETHERNET.Interface.Stats.__init__(self)
+    if not qfiles:
+      self.Unexport('X_CATAWAMPUS-ORG_DiscardFrameCnts')
+      self.Unexport('X_CATAWAMPUS-ORG_DiscardPacketsReceivedHipri')
 
 
-class EthernetInterfaceLinux26(CATAWAMPUSETHERNET.Interface):
+class EthernetInterfaceLinux26(CATAETHERNET.Interface):
   """Handling for a Linux 2.6-style device like eth0/eth1/etc.
 
-  Constructor arguments:
+  Args:
     ifname: netdev name, like 'eth0'
+    qfiles: path to per-queue discard count files
+    numq: number of per-queue discard files to look for
   """
 
-  def __init__(self, ifname, upstream=False):
+  DuplexMode = tr.types.ReadOnlyString('Auto')
+  Enable = tr.types.ReadOnlyBool(True)
+  LowerLayers = tr.types.ReadOnlyString('')
+  Name = tr.types.ReadOnlyString('')
+  MaxBitRate = tr.types.ReadOnlyInt(-1)
+  Upstream = tr.types.ReadOnlyBool(False)
+
+  def __init__(self, ifname, upstream=False, qfiles=None, numq=0, hipriq=0):
     super(EthernetInterfaceLinux26, self).__init__()
     self._pynet = PYNETIFCONF(ifname)
     self._ifname = ifname
+    self._qfiles = qfiles
+    self._numq = numq
+    self._hipriq = hipriq
     self.Unexport('Alias')
-    self.Name = ifname
-    self.Upstream = upstream
-
-  @property
-  def DuplexMode(self):
-    return 'Auto'
-
-  @property
-  def Enable(self):
-    return True
+    type(self).Name.Set(self, ifname)
+    type(self).Upstream.Set(self, upstream)
 
   @property
   def LastChange(self):
     return tr.cwmpdate.format(0)
 
   @property
-  def LowerLayers(self):
-    return ''
-
-  @property
   def MACAddress(self):
     return self._pynet.get_mac()
-
-  @property
-  def MaxBitRate(self):
-    return -1
 
   @property
   def Status(self):
@@ -96,7 +96,9 @@ class EthernetInterfaceLinux26(CATAWAMPUSETHERNET.Interface):
 
   @property
   def Stats(self):
-    return EthernetInterfaceStatsLinux26(self._ifname)
+    return EthernetInterfaceStatsLinux26(
+        ifname=self._ifname, qfiles=self._qfiles,
+        numq=self._numq, hipriq=self._hipriq)
 
   @property
   def X_CATAWAMPUS_ORG_ActualBitRate(self):

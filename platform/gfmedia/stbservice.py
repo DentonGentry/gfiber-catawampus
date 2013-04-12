@@ -20,6 +20,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import datetime
 import glob
 import json
 import re
@@ -27,6 +28,7 @@ import socket
 import struct
 import time
 
+import tornado.ioloop
 import tr.cwmpdate
 import tr.session
 import tr.tr135_v1_2
@@ -86,7 +88,7 @@ def UnpackAlanCoxIP(packed):
 class STBService(BASE135STB):
   """STBService.{i}."""
 
-  def __init__(self):
+  def __init__(self, ioloop=None):
     super(STBService, self).__init__()
     self.Unexport('Alias')
     self.Unexport('Enable')
@@ -95,7 +97,7 @@ class STBService(BASE135STB):
     self.Unexport(objects='Applications')
     self.Unexport(objects='Capabilities')
     self.Export(objects=['X_CATAWAMPUS-ORG_ProgramMetadata'])
-    self.ServiceMonitoring = ServiceMonitoring()
+    self.ServiceMonitoring = ServiceMonitoring(ioloop=ioloop)
     self.Components = Components()
     self.X_CATAWAMPUS_ORG_ProgramMetadata = ProgMetadata()
 
@@ -398,6 +400,10 @@ class HDMIDisplayDevice(CATA135STB.Components.HDMI.DisplayDevice):
     return self.data.get('Negotiations24hr', 0)
 
   @property
+  def X_GOOGLE_COM_HDCPAuthFailureCnt(self):
+    return self.data.get('HDCPAuthFailureCnt', 0)
+
+  @property
   def X_GOOGLE_COM_VendorId(self):
     return self.data.get('VendorId', '')
 
@@ -417,8 +423,12 @@ class HDMIDisplayDevice(CATA135STB.Components.HDMI.DisplayDevice):
 class ServiceMonitoring(CATA135STB.ServiceMonitoring):
   """STBService.{i}.ServiceMonitoring."""
 
-  def __init__(self):
+  X_CATAWAMPUS_ORG_StallAlarmResetTime = tr.types.Unsigned()
+  X_CATAWAMPUS_ORG_StallAlarmValue = tr.types.Unsigned()
+
+  def __init__(self, ioloop=None):
     super(ServiceMonitoring, self).__init__()
+    self._ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self.Unexport('FetchSamples')
     self.Unexport('ForceSample')
     self.Unexport('ReportEndTime')
@@ -431,6 +441,8 @@ class ServiceMonitoring(CATA135STB.ServiceMonitoring):
     self.Unexport('EventsPerSampleInterval')
     self.Unexport(objects='GlobalOperation')
     self.stall_alarm_time = 0.0
+    self.stall_alarm_reset_handler = None
+    self.X_CATAWAMPUS_ORG_StallAlarmResetTime = 45 * 60
     self.X_CATAWAMPUS_ORG_StallAlarmValue = 0
     self.MainStreamList = {}
     for x in range(1, 9):
@@ -441,6 +453,10 @@ class ServiceMonitoring(CATA135STB.ServiceMonitoring):
   @property
   def MainStreamNumberOfEntries(self):
     return len(self.MainStreamList)
+
+  def _StallAlarmReset(self):
+    self.stall_alarm_time = 0.0
+    self.stall_alarm_reset_handler = None
 
   def _CheckForStall(self):
     for ms in self.MainStreamList.values():
@@ -453,6 +469,9 @@ class ServiceMonitoring(CATA135STB.ServiceMonitoring):
   def GetAlarmTime(self):
     if not self.stall_alarm_time and self._CheckForStall():
       self.stall_alarm_time = TIMENOW()
+      seconds = self.X_CATAWAMPUS_ORG_StallAlarmResetTime
+      self.stall_alarm_reset_handler = self._ioloop.add_timeout(
+          datetime.timedelta(seconds=seconds), self._StallAlarmReset)
     return tr.cwmpdate.format(self.stall_alarm_time)
 
   def SetAlarmTime(self, value):
@@ -598,7 +617,7 @@ class DejitteringStats(BASE135STB.ServiceMonitoring.MainStream.Total.
     return int(self.data.get('SessionId', 0))
 
 
-class MPEG2TSStats(BASE135STB.ServiceMonitoring.MainStream.Total.MPEG2TSStats):
+class MPEG2TSStats(CATA135STB.ServiceMonitoring.MainStream.Total.MPEG2TSStats):
   """STBService.{i}.ServiceMonitoring.MainStream.{i}.Total.MPEG2TSStats."""
 
   def __init__(self, data):
@@ -616,6 +635,18 @@ class MPEG2TSStats(BASE135STB.ServiceMonitoring.MainStream.Total.MPEG2TSStats):
   @property
   def TSPacketsReceived(self):
     return int(self.data.get('TSPacketsReceived', 0))
+
+  @property
+  def X_CATAWAMPUS_ORG_DropBytes(self):
+    return int(self.data.get('DropBytes', 0))
+
+  @property
+  def X_CATAWAMPUS_ORG_DropPackets(self):
+    return int(self.data.get('DropPackets', 0))
+
+  @property
+  def X_CATAWAMPUS_ORG_PacketErrorCount(self):
+    return int(self.data.get('PacketErrorCount', 0))
 
 
 class TCPStats(CATA135STB.ServiceMonitoring.MainStream.Total.TCPStats):
@@ -864,3 +895,11 @@ class EPG(CATA135STB.X_CATAWAMPUS_ORG_ProgramMetadata.EPG):
   @property
   def EPGExpireTime(self):
     return tr.cwmpdate.format(float(self.data.get('EPGExpireTime', 0)))
+
+  @property
+  def NumChannels(self):
+    return self.data.get('NumChannels', 0)
+
+  @property
+  def NumEnabledChannels(self):
+    return self.data.get('NumEnabledChannels', 0)

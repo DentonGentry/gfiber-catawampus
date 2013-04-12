@@ -106,9 +106,9 @@ class DeviceIdMeta(object):
 
 
 def _GetUptime():
-  """Return a string of the number of integer seconds since boot."""
+  """Return the number of seconds since boot."""
   uptime = float(open(PROC_UPTIME).read().split()[0])
-  return str(int(uptime))
+  return int(uptime)
 
 
 #pylint: disable-msg=W0231
@@ -120,13 +120,12 @@ class DeviceInfo181Linux26(CATA181DEVICEINFO):
     assert isinstance(device_id, DeviceIdMeta)
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self._device_id = device_id
-    self.MemoryStatus = MemoryStatusLinux26()
-    self.ProcessStatus = ProcessStatusLinux26(ioloop=ioloop)
     self.Unexport('FirstUseDate')
     self.Unexport(objects='NetworkProperties')
     self.Unexport('ProvisioningCode')
     self.Unexport(objects='ProxierInfo')
     self.LocationList = {}
+    self.ProcessStatus = ProcessStatusLinux26(ioloop=ioloop)
     self.TemperatureStatus = temperature.TemperatureStatus()
     self.VendorLogFileList = {}
     self.VendorConfigFileList = {}
@@ -141,6 +140,10 @@ class DeviceInfo181Linux26(CATA181DEVICEINFO):
       return getattr(self._device_id, name)
     else:
       raise AttributeError('No such attribute %s' % name)
+
+  @property
+  def MemoryStatus(self):
+    return MemoryStatusLinux26()
 
   @property
   def UpTime(self):
@@ -181,17 +184,14 @@ class MemoryStatusLinux26(BASE181DEVICE.DeviceInfo.MemoryStatus):
   Reads /proc/meminfo to find TotalMem and FreeMem.
   """
 
+  Free = tr.types.ReadOnlyUnsigned(0)
+  Total = tr.types.ReadOnlyUnsigned(0)
+
   def __init__(self):
     super(MemoryStatusLinux26, self).__init__()
-    (self._totalmem, self._freemem) = self._GetMemInfo()
-
-  @property
-  def Total(self):
-    return self._totalmem
-
-  @property
-  def Free(self):
-    return self._freemem
+    (total, free) = self._GetMemInfo()
+    type(self).Free.Set(self, free)
+    type(self).Total.Set(self, total)
 
   def _GetMemInfo(self):
     """Fetch TotalMem and FreeMem from the underlying platform.

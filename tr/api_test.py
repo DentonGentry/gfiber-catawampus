@@ -128,6 +128,14 @@ class ApiTest(unittest.TestCase):
     self.assertEqual(result, [('%s.word' % name, 'word1')])
     self.assertEqual(changes, 5)
 
+    (idxlist, status) = cpe.AddObjects('Test.Thingy.', 7, 0)
+    self.assertEqual(status, 0)
+    self.assertEqual(len(set(idxlist)), 7)
+    result = cpe.GetParameterValues([('Test.Thingy.%d' % int(idx))
+                                     for idx in idxlist])
+    self.assertEqual([i.word for idx, i in result],
+                     [None] * 7)
+
   def testGetParameterValuesEmpty(self):
     cpe = api.CPE(TestSimpleRoot())
     result = cpe.GetParameterValues([''])

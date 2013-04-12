@@ -176,22 +176,22 @@ class Bool(Attr):
         raise ValueError('%r is not a valid boolean' % (value,))
 
 
-class _SignedBasicType(int):
+class _SignedBasicType(long):
   """A wrapper class for int that tells api_soap.Soapify() it's signed."""
 
   xsitype = 'xsd:int'
 
   def __new__(cls, *args, **kwargs):
-    return int.__new__(cls, *args, **kwargs)
+    return long.__new__(cls, *args, **kwargs)
 
 
-class _UnsignedBasicType(int):
+class _UnsignedBasicType(long):
   """A wrapper class for int that tells api_soap.Soapify() it's unsigned."""
 
   xsitype = 'xsd:unsignedInt'
 
   def __new__(cls, *args, **kwargs):
-    return int.__new__(cls, *args, **kwargs)
+    return long.__new__(cls, *args, **kwargs)
 
 
 class Int(Attr):

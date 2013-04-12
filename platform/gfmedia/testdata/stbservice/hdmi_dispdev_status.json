@@ -2,6 +2,7 @@
   "HDMIDisplayDevice": {
     "Status": "Present",
     "Negotiations4hr": 3,
-    "Negotiations24hr": 9
+    "Negotiations24hr": 9,
+    "HDCPAuthFailureCnt": 5
   }
 }
