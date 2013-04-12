@@ -1,3 +1,5 @@
+PYTHON?=python
+
 default: all
 
 all: test
@@ -7,7 +9,7 @@ test: all $(wildcard *_test.py)
 	for d in $(filter %_test.py,$^); do \
 		echo; \
 		echo "Testing $$d"; \
-		PYTHONPATH=$(HOSTPYTHONPATH):$(PYTHONPATH) python $$d; \
+		$(PYTHON) $$d; \
 	done
 
 clean:
