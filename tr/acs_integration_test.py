@@ -836,6 +836,41 @@ class GetParamsRpcTest(unittest.TestCase):
                 'Upload']
     self.assertEqual(rpcnames, expected)
 
+  def testSetParameterAttributes(self):
+    cpe = getCpe()
+    soapxml = r"""
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<soapenv:Header>
+ <cwmp:ID soapenv:mustUnderstand="1">google.acs.1365618768811.6800571</cwmp:ID>
+ <cwmp:HoldRequests soapenv:mustUnderstand="1">0</cwmp:HoldRequests>
+</soapenv:Header>
+<soapenv:Body>
+ <cwmp:SetParameterAttributes>
+  <ParameterList>
+   <ns5:SetParameterAttributesStruct xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" xmlns:ns3="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns4="urn:dslforum-org:cwmp-1-0" xmlns:ns5="urn:dslforum-org:cwmp-1-2">
+    <Name>ReadOnlyParameter</Name>
+    <NotificationChange>true</NotificationChange>
+    <Notification>4</Notification>
+    <AccessListChange>false</AccessListChange>
+    <AccessList/>
+   </ns5:SetParameterAttributesStruct>
+   <ns5:SetParameterAttributesStruct xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" xmlns:ns3="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns4="urn:dslforum-org:cwmp-1-0" xmlns:ns5="urn:dslforum-org:cwmp-1-2">
+    <Name>SubObject.Foo</Name>
+    <NotificationChange>true</NotificationChange>
+    <Notification>2</Notification>
+    <AccessListChange>false</AccessListChange>
+    <AccessList/>
+   </ns5:SetParameterAttributesStruct>
+ </ParameterList>
+ </cwmp:SetParameterAttributes>
+</soapenv:Body>
+</soapenv:Envelope>"""  #pylint: disable-msg=C6310
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+    print responseXml
+    self.assertEqual(4, cpe.cpe.parameter_attrs.GetParameterAttribute('ReadOnlyParameter', 'Notification'))
+    self.assertEqual(2, cpe.cpe.parameter_attrs.GetParameterAttribute('SubObject.Foo', 'Notification'))
+
+
   def testInternalError(self):
     cpe = getCpe()
     # RaiseSystemError simulates an unexpected problem which should
