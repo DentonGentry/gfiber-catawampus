@@ -323,7 +323,7 @@ class _WaitUntilIdle(object):
     """Schedule a delayed call of the wrapped function with the given args."""
     key = (args, tuple(sorted(kwargs.items())))
     if key not in self.timeouts:
-      if hasattr(tornado.util, 'monotonic'):
+      if hasattr(tornado.util, 'monotime'):
         self.timeouts[key] = tornado.ioloop.IOLoop.instance().add_timeout(
             0, lambda: self._Call(*args, **kwargs), monotonic=True)
       else:
