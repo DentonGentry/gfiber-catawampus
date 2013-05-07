@@ -75,6 +75,7 @@ REBOOT = '/bin/tr69_reboot'
 REPOMANIFEST = '/etc/repo-buildroot-manifest'
 SET_ACS = 'set-acs'
 VERSIONFILE = '/etc/version'
+TIMEOUTFILE = '/tmp/cwmp/acs_timeout'
 
 
 class PlatformConfig(platform_config.PlatformConfigMeta):
@@ -84,8 +85,16 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
     platform_config.PlatformConfigMeta.__init__(self)
     self._ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self.acs_timeout = None
-    self.acs_timeout_interval = random.randrange(ACSTIMEOUTMIN, ACSTIMEOUTMAX)
+    self.default_acs_timeout = random.randrange(ACSTIMEOUTMIN, ACSTIMEOUTMAX)
     self.acs_timeout_url = None
+
+  def ACSTimeout(self, filename, default):
+    """Get timeout value from file for testing."""
+    try:
+      return int(open(filename).readline().strip())
+    except (IOError, ValueError):
+      pass
+    return default
 
   def ConfigDir(self):
     return CONFIGDIR
@@ -125,8 +134,7 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
   def _AcsAccessTimeout(self):
     """Timeout for AcsAccess.
 
-    There has been no successful connection to ACS in self.acs_timeout_interval
-    seconds.
+    There has been no successful connection to ACS in acs timeout seconds.
     """
     try:
       os.remove(ACSCONNECTED)
@@ -152,8 +160,9 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
       self.acs_timeout_url = url
     if not self.acs_timeout:
       self.acs_timeout = self._ioloop.add_timeout(
-          datetime.timedelta(seconds=self.acs_timeout_interval),
-          self._AcsAccessTimeout)
+          datetime.timedelta(
+              seconds=self.ACSTimeout(TIMEOUTFILE, self.default_acs_timeout)),
+              self._AcsAccessTimeout)
 
   def AcsAccessSuccess(self, url):
     """Called when a session with the ACS successfully concludes."""

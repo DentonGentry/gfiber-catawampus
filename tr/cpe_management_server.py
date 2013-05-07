@@ -39,7 +39,7 @@ import cwmpdate
 
 # Allow unit tests to override with a mock
 PERIODIC_CALLBACK = tornado.ioloop.PeriodicCallback
-
+SESSIONTIMEOUTFILE = '/tmp/cwmp/session_timeout'
 
 class ServerParameters(object):
   """Class to hold parameters of CpeManagementServer."""
@@ -348,10 +348,19 @@ class CpeManagementServer(object):
     k = float(self.config.CWMPRetryIntervalMultiplier) / 1000.0
     start = m * math.pow(k, c-1)
     stop = start * k
-    # pin start/stop to have a maximum value of PerdiodInfomInterval
+    # pin start/stop to have a maximum value of PeriodicInformInterval
     start = int(min(start, periodic_interval/k))
     stop = int(min(stop, periodic_interval))
-    return random.randrange(start, stop)
+    randomwait = random.randrange(start, stop)
+    return self.GetTimeout(SESSIONTIMEOUTFILE, randomwait)
+
+  def GetTimeout(self, filename, default=60):
+    """Get timeout value from file for testing."""
+    try:
+      return int(open(filename).readline().strip())
+    except (IOError, ValueError):
+      pass
+    return default
 
 
 def main():
