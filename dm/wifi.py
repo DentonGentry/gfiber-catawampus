@@ -113,7 +113,10 @@ class PreSharedKey98(WLANDEV.PreSharedKey):
     self.key_pbkdf2 = None
 
   def GetKeyPassphrase(self):
-    return self.passphrase if self.passphrase is not None else ''
+    # TR69 spec says:
+    # "When read, this parameter returns an empty string, regardless
+    # of the actual value."
+    return ''
 
   KeyPassphrase = property(
       GetKeyPassphrase, SetKeyPassphrase, None,
