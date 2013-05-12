@@ -27,118 +27,113 @@ import unittest
 
 import google3
 import gvsb
+import tr.mainloop
 
 
 class GvsbTest(unittest.TestCase):
   """Tests for gvsb.py."""
 
+  def setUp(self):
+    self.loop = tr.mainloop.MainLoop()
+    tmpdir = tempfile.mkdtemp()
+    self.EPGPRIMARYFILE = gvsb.EPGPRIMARYFILE
+    self.EPGSECONDARYFILE = gvsb.EPGSECONDARYFILE
+    self.EPGURLFILE = gvsb.EPGURLFILE
+    self.GVSBSERVERFILE = gvsb.GVSBSERVERFILE
+    self.GVSBCHANNELFILE = gvsb.GVSBCHANNELFILE
+    self.GVSBKICKFILE = gvsb.GVSBKICKFILE
+    gvsb.EPGPRIMARYFILE[0] = str(os.path.join(tmpdir, 'epgprimaryfile'))
+    gvsb.EPGSECONDARYFILE[0] = str(os.path.join(tmpdir, 'epgsecondaryfile'))
+    gvsb.EPGURLFILE[0] = str(os.path.join(tmpdir, 'epgurlfile'))
+    gvsb.GVSBSERVERFILE[0] = str(os.path.join(tmpdir, 'gvsbserverfile'))
+    gvsb.GVSBCHANNELFILE[0] = str(os.path.join(tmpdir, 'gvsbchannelfile'))
+    gvsb.GVSBKICKFILE[0] = str(os.path.join(tmpdir, 'gvsbkickfile'))
+    self.tmpdir = tmpdir
+
+  def tearDown(self):
+    #shutil.rmtree(self.tmpdir)
+    gvsb.EPGPRIMARYFILE = self.EPGPRIMARYFILE
+    gvsb.EPGSECONDARYFILE = self.EPGSECONDARYFILE
+    gvsb.EPGURLFILE = self.EPGURLFILE
+    gvsb.GVSBSERVERFILE = self.GVSBSERVERFILE
+    gvsb.GVSBCHANNELFILE = self.GVSBCHANNELFILE
+    gvsb.GVSBKICKFILE = self.GVSBKICKFILE
+
   def testValidateExports(self):
     gv = gvsb.Gvsb()
+    self.loop.RunOnce()
     gv.ValidateExports()
 
+  def _GetFileContent(self, filenamelist):
+    filename = filenamelist[0]
+    return open(filename).readline()
+
   def testEpgPrimary(self):
-    temp = tempfile.NamedTemporaryFile()
-    gvsb.EPGPRIMARYFILE = temp.name
     gv = gvsb.Gvsb()
-    gv.StartTransaction()
-    gv.EpgPrimary = 'Booga'
-    gv.CommitTransaction()
-    self.assertEqual(gv.EpgPrimary, 'Booga')
-    temp.seek(0)
-    self.assertEqual(temp.readline(), 'Booga')
-    temp.close()
+    self.loop.RunOnce()
+    gv.EpgPrimary = 'EpgPrimaryFoo'
+    self.loop.RunOnce()
+    self.assertEqual(gv.EpgPrimary, 'EpgPrimaryFoo')
+    self.assertEqual(self._GetFileContent(gvsb.EPGPRIMARYFILE), 'EpgPrimaryFoo\n')
 
   def testEpgSecondary(self):
-    temp = tempfile.NamedTemporaryFile()
-    gvsb.EPGSECONDARYFILE = temp.name
     gv = gvsb.Gvsb()
-    gv.StartTransaction()
-    gv.EpgSecondary = 'Booga'
-    gv.CommitTransaction()
-    self.assertEqual(gv.EpgSecondary, 'Booga')
-    temp.seek(0)
-    self.assertEqual(temp.readline(), 'Booga')
-    temp.close()
+    self.loop.RunOnce()
+    gv.EpgSecondary = 'EpgSecondaryFoo'
+    self.loop.RunOnce()
+    self.assertEqual(gv.EpgSecondary, 'EpgSecondaryFoo')
+    self.assertEqual(self._GetFileContent(gvsb.EPGSECONDARYFILE),
+                     'EpgSecondaryFoo\n')
+
+  def testEpgUrl(self):
+    gv = gvsb.Gvsb()
+    self.loop.RunOnce()
+    gv.EpgUrl = 'EpgUrlFoo'
+    self.loop.RunOnce()
+    self.assertEqual(gv.EpgUrl, 'EpgUrlFoo')
+    self.assertEqual(self._GetFileContent(gvsb.EPGURLFILE), 'EpgUrlFoo\n')
 
   def testGvsbServer(self):
-    temp = tempfile.NamedTemporaryFile()
-    gvsb.GVSBSERVERFILE = temp.name
     gv = gvsb.Gvsb()
-    gv.StartTransaction()
-    gv.GvsbServer = 'Booga'
-    gv.CommitTransaction()
-    self.assertEqual(gv.GvsbServer, 'Booga')
-    temp.seek(0)
-    self.assertEqual(temp.readline(), 'Booga')
-    temp.close()
+    self.loop.RunOnce()
+    gv.GvsbServer = 'GvsbServerFoo'
+    self.loop.RunOnce()
+    self.assertEqual(gv.GvsbServer, 'GvsbServerFoo')
+    self.assertEqual(self._GetFileContent(gvsb.GVSBSERVERFILE),
+                     'GvsbServerFoo\n')
 
   def testGvsbChannelLineup(self):
-    temp = tempfile.NamedTemporaryFile()
-    gvsb.GVSBCHANNELFILE = temp.name
     gv = gvsb.Gvsb()
-    self.assertEqual(gv.GvsbChannelLineup, 0)
-    gv.StartTransaction()
+    self.loop.RunOnce()
+    self.assertEqual(gv.GvsbChannelLineup, '0')
     gv.GvsbChannelLineup = 1000
-    gv.CommitTransaction()
-    self.assertEqual(gv.GvsbChannelLineup, 1000)
-    temp.seek(0)
-    self.assertEqual(temp.readline(), '1000')
-    temp.close()
+    self.loop.RunOnce()
+    self.assertEqual(gv.GvsbChannelLineup, '1000')
+    self.assertEqual(self._GetFileContent(gvsb.GVSBCHANNELFILE), '1000\n')
 
   def testGvsbKick(self):
-    temp = tempfile.NamedTemporaryFile()
-    gvsb.GVSBKICKFILE = temp.name
     gv = gvsb.Gvsb()
-    gv.StartTransaction()
+    self.loop.RunOnce()
     gv.GvsbKick = 'kickme'
-    gv.CommitTransaction()
+    self.loop.RunOnce()
     self.assertEqual(gv.GvsbKick, 'kickme')
-    temp.seek(0)
-    self.assertEqual(temp.readline(), 'kickme')
-    temp.close()
+    self.assertEqual(self._GetFileContent(gvsb.GVSBKICKFILE), 'kickme\n')
 
-  def _FileIsEmpty(self, filename):
+  def _FileIsEmpty(self, filenamelist):
+    """Check that file exists but is zero bytes in size."""
+    filename = filenamelist[0]
     st = os.stat(filename)
     return True if st and st.st_size == 0 else False
 
   def testInitEmptyFiles(self):
-    tmpdir = tempfile.mkdtemp()
-    gvsb.EPGPRIMARYFILE = os.path.join(tmpdir, 'epgprimaryfile')
-    gvsb.EPGSECONDARYFILE = os.path.join(tmpdir, 'epgsecondaryfile')
-    gvsb.GVSBSERVERFILE = os.path.join(tmpdir, 'gvsbserverfile')
-    gvsb.GVSBCHANNELFILE = os.path.join(tmpdir, 'gvsbchannelfile')
-    gvsb.GVSBKICKFILE = os.path.join(tmpdir, 'gvsbkickfile')
     gv = gvsb.Gvsb()
-    gv.StartTransaction()
-    gv.CommitTransaction()
+    self.loop.RunOnce()
     self.assertTrue(self._FileIsEmpty(gvsb.EPGPRIMARYFILE))
     self.assertTrue(self._FileIsEmpty(gvsb.EPGSECONDARYFILE))
+    self.assertTrue(self._FileIsEmpty(gvsb.EPGURLFILE))
+    self.assertFalse(self._FileIsEmpty(gvsb.GVSBCHANNELFILE))
     self.assertTrue(self._FileIsEmpty(gvsb.GVSBSERVERFILE))
-    self.assertTrue(self._FileIsEmpty(gvsb.GVSBCHANNELFILE))
     self.assertTrue(self._FileIsEmpty(gvsb.GVSBKICKFILE))
-    shutil.rmtree(tmpdir)
-
-  def testAbandonTransaction(self):
-    tmpdir = tempfile.mkdtemp()
-    gvsb.EPGPRIMARYFILE = os.path.join(tmpdir, 'epgprimaryfile')
-    gvsb.EPGSECONDARYFILE = os.path.join(tmpdir, 'epgsecondaryfile')
-    gvsb.GVSBSERVERFILE = os.path.join(tmpdir, 'gvsbserverfile')
-    gvsb.GVSBCHANNELFILE = os.path.join(tmpdir, 'gvsbchannelfile')
-    gvsb.GVSBKICKFILE = os.path.join(tmpdir, 'gvsbkickfile')
-    gv = gvsb.Gvsb()
-    gv.StartTransaction()
-    gv.EpgPrimary = 'epgprimary'
-    gv.EpgSecondary = 'epgsecondary'
-    gv.GvsbServer = 'gvsbserver'
-    gv.GvsbChannelLineup = '1001'
-    gv.GvsbKick = 'gvsbkick'
-    gv.AbandonTransaction()
-    self.assertTrue(self._FileIsEmpty(gvsb.EPGPRIMARYFILE))
-    self.assertTrue(self._FileIsEmpty(gvsb.EPGSECONDARYFILE))
-    self.assertTrue(self._FileIsEmpty(gvsb.GVSBSERVERFILE))
-    self.assertTrue(self._FileIsEmpty(gvsb.GVSBCHANNELFILE))
-    self.assertTrue(self._FileIsEmpty(gvsb.GVSBKICKFILE))
-    shutil.rmtree(tmpdir)
 
 
 if __name__ == '__main__':

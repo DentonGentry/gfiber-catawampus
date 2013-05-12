@@ -25,9 +25,11 @@ import os.path
 import time
 import unittest
 import google3
+import mainloop
 import tr.types
 
 TEST_FILE = 'testobject.tmp'
+TEST2_FILE = 'testobject2.tmp'
 
 
 class TestObject(object):
@@ -41,6 +43,8 @@ class TestObject(object):
   e2 = tr.types.Enum(['thing'])
   d = tr.types.Date()
   file = tr.types.FileBacked([TEST_FILE], tr.types.Bool())
+  file2 = tr.types.FileBacked([TEST_FILE], tr.types.Bool(),
+                              delete_if_empty=False)
 
   v = tr.types.Unsigned()
   @v.validator
@@ -204,13 +208,48 @@ class TypesTest(unittest.TestCase):
     open(TEST_FILE, 'w').write('0')
     self.assertEquals(obj.file, 0)
     obj.file = ''
+    loop = mainloop.MainLoop()
+    loop.RunOnce()
     self.assertTrue(os.path.exists(TEST_FILE))
     self.assertEquals(open(TEST_FILE).read(), 'False\n')
     obj.file = None
+    loop.RunOnce()
     self.assertFalse(os.path.exists(TEST_FILE))
     obj.file = -900
+    loop.RunOnce()
     self.assertEquals(open(TEST_FILE).read(), 'True\n')
     os.unlink(TEST_FILE)
+
+  def testFileBackedTransactions(self):
+    loop = mainloop.MainLoop()
+    obj = TestObject()
+    saved = obj.file
+    obj.file = '1'
+    self.assertEqual(obj.file, saved)
+    obj.file = saved
+    self.assertEqual(obj.file, saved)
+    # Simulates an abandoned transaction
+    loop.RunOnce()
+    self.assertEqual(obj.file, saved)
+    saved = obj.file
+    obj.file = '1'
+    self.assertEqual(obj.file, saved)
+    # Simulates a successful transaction
+    loop.RunOnce()
+    self.assertTrue(obj.file)
+
+  def testFileBackedNotDeleted(self):
+    obj = TestObject()
+    open(TEST2_FILE, 'w').write('0')
+    self.assertEquals(obj.file2, 0)
+    obj.file2 = ''
+    loop = mainloop.MainLoop()
+    loop.RunOnce()
+    self.assertTrue(os.path.exists(TEST2_FILE))
+    obj.file2 = None
+    loop.RunOnce()
+    self.assertTrue(os.path.exists(TEST2_FILE))
+    os.unlink(TEST2_FILE)
 
   def testTypeCoercion(self):
     obj = TestObject()
