@@ -82,6 +82,14 @@ class ParameterNotWritableError(AttributeError):
     self.parameter = parameter
 
 
+class AddObjectsErrors(Exception):
+  """Exceptions which occurred during an AddObjects transaction."""
+
+  def __init__(self, error_list, msg):
+    Exception.__init__(self, '%s (%s)' % (msg, error_list))
+    self.error_list = error_list
+
+
 class TR069Service(object):
   """Represents a TR-069 SOAP RPC service."""
 
@@ -239,7 +247,7 @@ class ParameterAttributes(object):
            attrs.notification == ACTIVE_NOTIFY) and
           value != attrs.current_value and
           self.set_notification_parameters_cb):
-        self.set_notification_parameters_cb([(paramname, 'Trigger')])
+        self.set_notification_parameters_cb([(paramname, value)])
         if (self.new_value_change_session_cb and
             attrs.notification == ACTIVE_NOTIFY):
           self.new_value_change_session_cb()
@@ -481,32 +489,56 @@ class CPE(TR069Service):
     self._SetParameterKey(parameter_key)
     return (idx, 0)  # successfully created
 
-  def AddObjects(self, object_name, count, parameter_key):
+  def X_CATAWAMPUS_ORG_AddObjects(self, objcount_list, parameter_key):
     """Create several new objects with default parameters.
 
     This is not a standard method in TR-069, it's an extension we added.
 
     Args:
-      object_name: the parent object name, ending in dot.
-      count: the number of objects to insert (up to 1000)
+      objcount_list: a list of (object_name, count).  Each object_name ends
+        in a dot.
       parameter_key: the tr-069 cookie used to check which commands completed.
     Returns:
-      A tuple of (idxlist, status).
-      idxlist: the list of created object indexes (object_name.%s).
+      A tuple of (objindex_list, status).
+      objindex_list: a list of (object_name, [indexes...]).
       status: 0 if successful.
     Raises:
-      ParameterValueError: if count is too large.
+      AddObjectsErrors: if any errors are encountered while adding objects.
     """
-    assert object_name.endswith('.')
-    if count > 1000:
-      raise ParameterValueError(parameter=object_name,
-                                msg='Tried to insert too many objects at once')
-    idxlist = []
-    for _ in xrange(int(count)):
-      (idx, _) = self.root.AddExportObject(object_name[:-1])
-      idxlist.append(idx)
+    out = []
+    error_list = []
+    for object_name, count in objcount_list:
+      if not object_name.endswith('.'):
+        error_list.append(ParameterNameError(
+            parameter=object_name,
+            msg='Object name must end with "."'))
+        continue
+      if count > 1000:
+        error_list.append(ParameterValueError(
+            parameter=object_name,
+            msg='Tried to insert too many objects at once'))
+        continue
+      idxlist = []
+      for _ in xrange(int(count)):
+        idxo = self._Apply(error_list, object_name, ParameterNotWritableError,
+                           self.root.AddExportObject, object_name[:-1])
+        if not idxo:
+          break
+        (idx, _) = idxo
+        idxlist.append(idx)
+      out.append((object_name, idxlist))
+    if error_list:
+      # there are errors to report, which means we can't report the list of
+      # added objects.  So we have to undo as many as the adds as we can
+      # before returning the error.
+      for object_name, idxlist in out:
+        for idx in idxlist:
+          self._Apply(error_list, object_name, ParameterNameError,
+                      self.root.DeleteExportObject, object_name[:-1], idx)
+        raise AddObjectsErrors(error_list=error_list,
+                               msg='AddObjects Errors: %d' % len(error_list))
     self._SetParameterKey(parameter_key)
-    return (idxlist, 0)  # successfully created
+    return (out, 0)  # successfully created
 
   def DeleteObject(self, object_name, parameter_key):
     """Delete an object and its sub-objects/parameters."""

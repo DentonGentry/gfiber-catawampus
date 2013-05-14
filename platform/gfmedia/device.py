@@ -34,6 +34,7 @@ import dm.brcmwifi
 import dm.device_info
 import dm.ethernet
 import dm.igd_time
+import dm.ipinterface
 import dm.periodic_statistics
 import dm.storage
 import dm.temperature
@@ -75,6 +76,15 @@ REBOOT = '/bin/tr69_reboot'
 REPOMANIFEST = '/etc/repo-buildroot-manifest'
 SET_ACS = 'set-acs'
 VERSIONFILE = '/etc/version'
+TIMEOUTFILE = '/tmp/cwmp/acs_timeout'
+
+
+def _has_wifi():
+  try:
+    PYNETIFCONF('eth2').get_index()
+    return True
+  except IOError:
+    return False
 
 
 class PlatformConfig(platform_config.PlatformConfigMeta):
@@ -84,8 +94,16 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
     platform_config.PlatformConfigMeta.__init__(self)
     self._ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self.acs_timeout = None
-    self.acs_timeout_interval = random.randrange(ACSTIMEOUTMIN, ACSTIMEOUTMAX)
+    self.default_acs_timeout = random.randrange(ACSTIMEOUTMIN, ACSTIMEOUTMAX)
     self.acs_timeout_url = None
+
+  def ACSTimeout(self, filename, default):
+    """Get timeout value from file for testing."""
+    try:
+      return int(open(filename).readline().strip())
+    except (IOError, ValueError):
+      pass
+    return default
 
   def ConfigDir(self):
     return CONFIGDIR
@@ -125,8 +143,7 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
   def _AcsAccessTimeout(self):
     """Timeout for AcsAccess.
 
-    There has been no successful connection to ACS in self.acs_timeout_interval
-    seconds.
+    There has been no successful connection to ACS in acs timeout seconds.
     """
     try:
       os.remove(ACSCONNECTED)
@@ -152,8 +169,9 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
       self.acs_timeout_url = url
     if not self.acs_timeout:
       self.acs_timeout = self._ioloop.add_timeout(
-          datetime.timedelta(seconds=self.acs_timeout_interval),
-          self._AcsAccessTimeout)
+          datetime.timedelta(
+              seconds=self.ACSTimeout(TIMEOUTFILE, self.default_acs_timeout)),
+              self._AcsAccessTimeout)
 
   def AcsAccessSuccess(self, url):
     """Called when a session with the ACS successfully concludes."""
@@ -472,7 +490,17 @@ class IP(tr181.Device_v2_2.Device.IP):
   def __init__(self):
     super(IP, self).__init__()
     self.Unexport('ULAPrefix')
-    self.InterfaceList = {}
+    self.InterfaceList = {
+        1: dm.ipinterface.IPInterfaceLinux26(
+            ifname='eth0', lowerlayers='Device.Ethernet.Interface.1'),
+        2: dm.ipinterface.IPInterfaceLinux26(
+            ifname='eth1', lowerlayers='Device.MoCA.Interface.1'),
+        256: dm.ipinterface.IPInterfaceLinux26(
+            ifname='br0', lowerlayers='Device.Ethernet.Interface.256'),
+    }
+    if _has_wifi():
+      self.InterfaceList[3] = dm.ipinterface.IPInterfaceLinux26(
+          ifname='eth2', lowerlayers='')  # no tr181 Wifi yet
     self.ActivePortList = {}
     self.Diagnostics = IPDiagnostics()
 
@@ -577,16 +605,9 @@ class LANDevice(BASE98IGD.LANDevice):
     self.Unexport(objects='LANHostConfigManagement')
     self.Unexport(lists='LANUSBInterfaceConfig')
     self.WLANConfigurationList = {}
-    if self._has_wifi():
+    if _has_wifi():
       wifi = dm.brcmwifi.BrcmWifiWlanConfiguration('eth2')
       self.WLANConfigurationList = {'1': wifi}
-
-  def _has_wifi(self):
-    try:
-      PYNETIFCONF('eth2').get_index()
-      return True
-    except IOError:
-      return False
 
   @property
   def LANWLANConfigurationNumberOfEntries(self):

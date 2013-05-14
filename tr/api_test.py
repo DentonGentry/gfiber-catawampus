@@ -128,8 +128,11 @@ class ApiTest(unittest.TestCase):
     self.assertEqual(result, [('%s.word' % name, 'word1')])
     self.assertEqual(changes, 5)
 
-    (idxlist, status) = cpe.AddObjects('Test.Thingy.', 7, 0)
+    (objidx_list, status) = cpe.X_CATAWAMPUS_ORG_AddObjects(
+        [('Test.Thingy.', 5), ('Test.Thingy.', 2)], 0)
     self.assertEqual(status, 0)
+    self.assertEqual(len(objidx_list), 2)
+    idxlist = objidx_list[0][1] + objidx_list[1][1]
     self.assertEqual(len(set(idxlist)), 7)
     result = cpe.GetParameterValues([('Test.Thingy.%d' % int(idx))
                                      for idx in idxlist])
@@ -190,7 +193,7 @@ class ParameterAttrsTest(unittest.TestCase):
     cpe.parameter_attrs.CheckForTriggers()
     self.assertEqual(1, len(set_notification_arg[0]))
     self.assertEqual('SomeParam', set_notification_arg[0][0][0])
-    self.assertEqual('Trigger', set_notification_arg[0][0][1])
+    self.assertEqual(root.SomeParam, set_notification_arg[0][0][1])
     self.assertEqual(1, new_session_called[0])
 
 

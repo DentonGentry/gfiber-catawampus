@@ -330,5 +330,14 @@ class CpeManagementServerTest(unittest.TestCase):
     self.assertEqual(orig.CWMPRetryMinimumWaitInterval * 2,
                      cpe_ms.CWMPRetryMinimumWaitInterval)
 
+  def testGetSessionTimeout(self):
+    cpe_ms = ms.CpeManagementServer(
+        platform_config=FakePlatformConfig(), port=0, ping_path='/')
+    self.assertEqual(cpe_ms.GetTimeout('/no_such_file_at_this_path'), 60)
+    self.assertEqual(
+        cpe_ms.GetTimeout('testdata/cpe_management_server/garbage'), 60)
+    self.assertEqual(
+        cpe_ms.GetTimeout('testdata/cpe_management_server/timeout'), 120)
+
 if __name__ == '__main__':
   unittest.main()

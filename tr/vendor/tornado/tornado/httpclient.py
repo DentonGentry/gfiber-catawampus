@@ -234,7 +234,8 @@ class HTTPRequest(object):
                  proxy_password='', allow_nonstandard_methods=False,
                  validate_cert=True, ca_certs=None,
                  allow_ipv6=None,
-                 client_key=None, client_cert=None):
+                 client_key=None, client_cert=None,
+                 fresh_connect=False):
         """Creates an `HTTPRequest`.
 
         All parameters except `url` are optional.
@@ -285,6 +286,8 @@ class HTTPRequest(object):
            `simple_httpclient` and true in `curl_httpclient`
         :arg string client_key: Filename for client SSL key, if any
         :arg string client_cert: Filename for client SSL certificate, if any
+        :arg fresh_connect: For curl_httpclient, set the FRESH_CONNECT flag for
+           this request.
         """
         if headers is None:
             headers = httputil.HTTPHeaders()
@@ -318,6 +321,7 @@ class HTTPRequest(object):
         self.allow_ipv6 = allow_ipv6
         self.client_key = client_key
         self.client_cert = client_cert
+        self.fresh_connect = fresh_connect
         self.start_time = monotime()
 
 

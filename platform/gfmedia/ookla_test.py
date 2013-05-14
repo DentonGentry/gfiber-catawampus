@@ -20,12 +20,18 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import datetime
 import os
 import shutil
 import unittest
 import google3
 import tr.mainloop
 import ookla
+
+
+class TimeNow(object):
+  def timetuple(self):
+    return (2013, 1, 2, 3, 4, 5)
 
 
 class OoklaTest(unittest.TestCase):
@@ -35,6 +41,7 @@ class OoklaTest(unittest.TestCase):
     self.loop = tr.mainloop.MainLoop()
     ookla.SPEEDTEST = os.path.join(os.getcwd(), 'testdata/ookla/OoklaClient')
     ookla.SPEEDTESTDIR = '/tmp/ookla_test.%d' % os.getpid()
+    ookla.TIMENOW = TimeNow
 
   def tearDown(self):
     shutil.rmtree(ookla.SPEEDTESTDIR, ignore_errors=True)
@@ -59,6 +66,8 @@ class OoklaTest(unittest.TestCase):
     self.assertEqual(licenseexpected, licenseactual)
     self.assertEqual(ooklatest.Output, 'Speedtest output\n')
     self.assertEqual(ooklatest.DiagnosticsState, 'Complete')
+    self.assertEqual(ooklatest.LastResultTime,
+                     datetime.datetime(2013, 1, 2, 3, 4, 5))
 
   def testSpeedtestFails(self):
     ooklatest = ookla.Speedtest(self.loop.ioloop)

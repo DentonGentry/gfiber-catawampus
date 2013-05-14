@@ -20,6 +20,7 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 import datetime
 import time
 import traceback
+import xml.sax.saxutils
 
 import google3
 import api
@@ -41,7 +42,7 @@ def Soapify(value):
   elif isinstance(value, datetime.datetime):
     return ('xsd:dateTime', cwmpdate.format(value))
   else:
-    return ('xsd:string', unicode(value))
+    return ('xsd:string', unicode(xml.sax.saxutils.escape(value)))
 
 
 class Encode(object):
@@ -132,11 +133,13 @@ class Encode(object):
         xml.ParameterKey(str(parameter_key))
     return xml
 
-  def AddObjects(self, object_name, count, parameter_key):
+  def X_CATAWAMPUS_ORG_AddObjects(self, objcount_list, parameter_key):
     with self._Envelope() as xml:
-      with xml['cwmp:AddObject']:
-        xml.ObjectName(str(object_name))
-        xml.Count(str(count))
+      with xml['cwmp:X_CATAWAMPUS_ORG_AddObjects']:
+        for object_name, count in objcount_list:
+          with xml.Object:
+            xml.ObjectName(str(object_name))
+            xml.Count(str(count))
         xml.ParameterKey(str(parameter_key))
     return xml
 
@@ -199,6 +202,9 @@ class SoapHandler(object):
       except api.SetParameterErrors as e:
         faults = self._ExceptionListToFaultList(e.error_list)
         result = soap.SetParameterValuesFault(xml, faults)
+      except api.AddObjectsErrors as e:
+        faults = self._ExceptionListToFaultList(e.error_list)
+        result = soap.AddObjectsFault(xml, faults)
       except KeyError as e:
         result = soap.SimpleFault(
             xml, cpefault=soap.CpeFault.INVALID_PARAM_NAME,
@@ -305,13 +311,20 @@ class CPE(SoapHandler):
       xml.Status(str(int(status)))
     return xml
 
-  def AddObjects(self, xml, req):
-    self._CheckObjectName(req.ObjectName)
-    idxlist, status = self.impl.AddObjects(req.ObjectName, int(req.Count),
-                                           req.ParameterKey)
-    with xml['cwmp:AddObjectsResponse']:
-      for idx in idxlist:
-        xml.InstanceNumber(str(idx))
+  def X_CATAWAMPUS_ORG_AddObjects(self, xml, req):
+    objcount_list = []
+    for key, obj in req.iteritems():
+      if key == 'Object':
+        self._CheckObjectName(obj.ObjectName)
+        objcount_list.append((obj.ObjectName, int(obj.Count)))
+    objidx_list, status = self.impl.X_CATAWAMPUS_ORG_AddObjects(
+        objcount_list, req.ParameterKey)
+    with xml['cwmp:X_CATAWAMPUS_ORG_AddObjectsResponse']:
+      for object_name, idxlist in objidx_list:
+        with xml.Object:
+          xml.ObjectName(object_name)
+          for idx in idxlist:
+            xml.InstanceNumber(str(idx))
       xml.Status(str(int(status)))
     return xml
 
@@ -328,8 +341,8 @@ class CPE(SoapHandler):
     # (Name, InternetGatewayDevice.PeriodicStatistics.SampleSet.0.Status)
     # (Notification, true)
     # (NotificationChange, true)
-    self.impl.SetParameterAttributes(
-        dict(req.ParameterList.SetParameterAttributesStruct.iteritems()))
+    for spas in req.ParameterList:
+      self.impl.SetParameterAttributes(dict(spas.iteritems()))
     xml['cwmp:SetParameterAttributesResponse'](None)
     return xml
 

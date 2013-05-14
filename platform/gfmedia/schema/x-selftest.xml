@@ -47,12 +47,16 @@
       </parameter>
       <parameter name="Mode" access="readWrite">
         <description>The current self-test mode.  Set to None to disable
-          the test, or StressTest to enable the stress test.  Other kinds
-          of tests may be added in the future.</description>
+          the test, StressTest to enable the stress test, or Throughput to
+          run a LAN bandwidth test.  Other kinds of tests may be added in
+          the future.</description>
         <syntax>
           <string>
             <enumeration value="None"/>
+            <enumeration value="Success"/>
+            <enumeration value="Error"/>
             <enumeration value="StressTest"/>
+            <enumeration value="Throughput"/>
           </string>
         </syntax>
       </parameter>
@@ -61,6 +65,12 @@
           success.</description>
         <syntax>
           <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="LastResultTime" access="readOnly">
+        <description>The time of the most recent test run.</description>
+        <syntax>
+          <dateTime/>
         </syntax>
       </parameter>
       <parameter name="Log" access="readOnly">

@@ -92,7 +92,8 @@ class RemoteCommandStreamer(quotedblock.QuotedBlockStreamer):
 
   def CmdSet(self, name, value):
     """Set the given parameter to the given value."""
-    self.root.SetExportParam(name, value)
+    parent = self.root.SetExportParam(name, value)
+    parent.CommitTransaction()
     return [[name, value]]
 
   def _CmdList(self, name, recursive):

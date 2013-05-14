@@ -142,6 +142,16 @@ def SetParameterValuesFault(xml, faults):
   return xml
 
 
+def AddObjectsFault(xml, faults):
+  with Fault(xml, CpeFault.INVALID_ARGUMENTS, 'Invalid arguments') as xml:
+    for parameter, code, string in faults:
+      with xml.X_CATAWAMPUS_ORG_AddObjectsFault:
+        xml.ParameterName(parameter)
+        xml.FaultCode(str(int(code[0])))
+        xml.FaultString(string)
+  return xml
+
+
 def SimpleFault(xml, cpefault, faultstring):
   with Fault(xml, cpefault, faultstring) as xml:
     return xml
@@ -188,7 +198,7 @@ class NodeWrapper(object):
     return self._Get(key)
 
   def iteritems(self):
-    return self._dict.iteritems()
+    return self._list
 
   def __str__(self):
     out = []
