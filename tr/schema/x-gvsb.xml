@@ -52,6 +52,13 @@
         </string>
       </syntax>
     </parameter>
-
+    <parameter name="EpgUrl" access="readWrite">
+      <description>URL of the EPG feed, eg: https://tv.prod.gfsvc.com/static/epginfo/prod</description>
+      <syntax>
+        <string>
+          <size maxLength="1024"/>
+        </string>
+      </syntax>
+    </parameter>
   </model>
 </dm:document>

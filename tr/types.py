@@ -24,6 +24,7 @@ import datetime
 import errno
 import cwmpdate
 import helpers
+import mainloop
 
 
 class Attr(object):
@@ -263,11 +264,12 @@ class Date(Attr):
 class FileBacked(Attr):
   """An attribute that is actually a string stored in a file.
 
-  If the string is set to empty or None, deletes the file.  If the file
-  doesn't exist, the value is the empty string.
+  If delete_if_empty is True and the string is set to empty or None,
+  deletes the file.
+  If the file doesn't exist, the value is the empty string.
   """
 
-  def __init__(self, filename_ptr, attr):
+  def __init__(self, filename_ptr, attr, delete_if_empty=True):
     super(FileBacked, self).__init__(self)
     if isinstance(filename_ptr, basestring):
       # Handle it if someone just provides a filename directly instead
@@ -278,6 +280,7 @@ class FileBacked(Attr):
       # itself can be reassigned later, eg. by a unit test
       self.filename_ptr = filename_ptr
     self.validate = attr.validate
+    self.delete_if_empty = delete_if_empty
 
   def __get__(self, obj, _):
     if obj is None:
@@ -294,14 +297,24 @@ class FileBacked(Attr):
     except ValueError:
       return ''
 
-  def __set__(self, obj, value):
-    value = self.validate(obj, value)
+  def _WriteEmpty(self):
+    if self.delete_if_empty:
+      helpers.Unlink(self.filename_ptr[0])
+    else:
+      helpers.WriteFileAtomic(self.filename_ptr[0], '')
+
+  @mainloop.WaitUntilIdle
+  def WriteFile(self, value):
     # pylint: disable-msg=g-explicit-bool-comparison
     if value is None or value == '':
-      helpers.Unlink(self.filename_ptr[0])
+      self._WriteEmpty()
     else:
       helpers.WriteFileAtomic(self.filename_ptr[0],
                               unicode(value).rstrip().encode('utf-8') + '\n')
+
+  def __set__(self, obj, value):
+    value = self.validate(obj, value)
+    self.WriteFile(value)
 
 
 class Trigger(object):
