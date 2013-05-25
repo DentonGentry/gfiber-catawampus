@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # unittest requires method names starting in 'test'
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """Unit tests for download.py."""
 
@@ -150,8 +150,8 @@ class DownloadTest(unittest.TestCase):
     return 123456.0
 
   def QCheckBoring(self, dl, args):
-    """Check get_queue_state() fields which don't change, and return qstate."""
-    q = dl.get_queue_state()
+    """Check GetQueueState() fields which don't change, and return qstate."""
+    q = dl.GetQueueState()
     self.assertEqual(q.CommandKey, args['command_key'])
     self.assertTrue(q.IsDownload)
     self.assertEqual(q.FileType, args['file_type'])
@@ -182,12 +182,12 @@ class DownloadTest(unittest.TestCase):
     self.assertEqual(self.QCheckBoring(dl, kwargs), 1)  # 1: Not Yet Started
 
     # Step 1: Wait delay_seconds
-    dl.do_start()
+    dl.DoStart()
     self.assertEqual(ioloop.timeout, _Delta(kwargs['delay_seconds']))
     self.assertEqual(self.QCheckBoring(dl, kwargs), 1)  # 1: Not Yet Started
 
     # Step 2: HTTP Download
-    dl.timer_callback()
+    dl.TimerCallback()
     self.assertEqual(len(mock_http_downloads), 1)
     http = mock_http_downloads[0]
     self.assertEqual(http.url, kwargs['url'])
@@ -215,7 +215,7 @@ class DownloadTest(unittest.TestCase):
     self.assertEqual(self.QCheckBoring(dl, kwargs), 2)  # 2: In process
 
     # Step 5: Send Transfer Complete
-    dl.reboot_callback(0, '')
+    dl.RebootCallback(0, '')
     self.assertTrue(cmpl.transfer_complete_called)
     self.assertEqual(cmpl.command_key, kwargs['command_key'])
     self.assertEqual(cmpl.faultcode, 0)
@@ -226,7 +226,7 @@ class DownloadTest(unittest.TestCase):
     self.assertEqual(self.QCheckBoring(dl, kwargs), 3)  # 3: Cleaning up
 
     # Step 6: Wait for Transfer Complete Response
-    self.assertFalse(dl.cleanup())
+    self.assertFalse(dl.Cleanup())
     self.assertEqual(self.QCheckBoring(dl, kwargs), 3)  # 3: Cleaning up
 
   def testDownloadFailed(self):
@@ -246,11 +246,11 @@ class DownloadTest(unittest.TestCase):
                            ioloop=ioloop)
 
     # Step 1: Wait delay_seconds
-    dl.do_start()
+    dl.DoStart()
     self.assertEqual(ioloop.timeout, _Delta(kwargs['delay_seconds']))
 
     # Step 2: HTTP Download
-    dl.timer_callback()
+    dl.TimerCallback()
     self.assertEqual(len(mock_http_downloads), 1)
     http = mock_http_downloads[0]
     self.assertEqual(http.url, kwargs['url'])
@@ -283,11 +283,11 @@ class DownloadTest(unittest.TestCase):
                            ioloop=ioloop)
 
     # Step 1: Wait delay_seconds
-    dl.do_start()
+    dl.DoStart()
     self.assertEqual(ioloop.timeout, _Delta(kwargs['delay_seconds']))
 
     # Step 2: HTTP Download
-    dl.timer_callback()
+    dl.TimerCallback()
     self.assertEqual(len(mock_http_downloads), 1)
     http = mock_http_downloads[0]
     self.assertEqual(http.url, kwargs['url'])
@@ -328,11 +328,11 @@ class DownloadTest(unittest.TestCase):
                            ioloop=ioloop)
 
     # Step 1: Wait delay_seconds
-    dl.do_start()
+    dl.DoStart()
     self.assertEqual(ioloop.timeout, _Delta(kwargs['delay_seconds']))
 
     # Step 2: HTTP Download
-    dl.timer_callback()
+    dl.TimerCallback()
     self.assertEqual(len(mock_http_downloads), 1)
     http = mock_http_downloads[0]
     self.assertEqual(http.url, kwargs['url'])
@@ -368,14 +368,14 @@ class DownloadTest(unittest.TestCase):
     dl = download.Download(stateobj=stateobj,
                            transfer_complete_cb=cmpl.SendTransferComplete,
                            ioloop=ioloop)
-    dl.do_start()  # Step 1: Wait delay_seconds
-    dl.timer_callback()  # Step 2: HTTP Download
-    dl.download_complete_callback(0, None, None)  # Step 3: Install
-    self.assertTrue(dl.cleanup())
-    dl.installer_callback(0, None, must_reboot=True)  # Step 4: Reboot
-    self.assertTrue(dl.cleanup())
-    dl.reboot_callback(0, '')  # Step 5: Rebooted
-    self.assertFalse(dl.cleanup())
+    dl.DoStart()  # Step 1: Wait delay_seconds
+    dl.TimerCallback()  # Step 2: HTTP Download
+    dl.DownloadCompleteCallback(0, None, None)  # Step 3: Install
+    self.assertTrue(dl.Cleanup())
+    dl.InstallerCallback(0, None, must_reboot=True)  # Step 4: Reboot
+    self.assertTrue(dl.Cleanup())
+    dl.RebootCallback(0, '')  # Step 5: Rebooted
+    self.assertFalse(dl.Cleanup())
 
   def testCommandKey(self):
     kwargs = dict(command_key='testCommandKey')
@@ -401,25 +401,25 @@ class MockDownloadObj(object):
     self.done_cb = done_cb
     self.download_dir = download_dir
     self.ioloop = ioloop
-    self.do_start_called = False
+    self.DoStart_called = False
     self.immediate_complete_called = False
     self.faultcode = None
     self.faultstring = None
-    self.reboot_callback_called = False
+    self.RebootCallback_called = False
     mock_downloads.append(self)
 
-  def do_start(self):
-    self.do_start_called = True
+  def DoStart(self):
+    self.DoStart_called = True
 
   def do_immediate_complete(self, faultcode, faultstring):
     self.immediate_complete_called = True
     self.faultcode = faultcode
     self.faultstring = faultstring
 
-  def reboot_callback(self, faultcode, faultstring):
-    self.reboot_callback_called = True
+  def RebootCallback(self, faultcode, faultstring):
+    self.RebootCallback_called = True
 
-  def get_queue_state(self):
+  def GetQueueState(self):
     return 'This_is_not_a_real_queue_state.'
 
 
@@ -531,9 +531,9 @@ class DownloadManagerTest(unittest.TestCase):
     self.assertEqual(len(mock_downloads), numdl)
     for i in range(numdl):
       dl = mock_downloads[i]
-      self.assertFalse(dl.do_start_called)
+      self.assertFalse(dl.DoStart_called)
       self.assertFalse(dl.immediate_complete_called)
-      self.assertTrue(dl.reboot_callback_called)
+      self.assertTrue(dl.RebootCallback_called)
 
   def testRestoreNoCommandKey(self):
     (dm, _) = self.allocTestDM()
