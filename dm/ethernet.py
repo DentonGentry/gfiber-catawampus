@@ -58,11 +58,9 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
     numq: number of per-queue discard files to look for
   """
 
-  DuplexMode = tr.types.ReadOnlyString('Auto')
   Enable = tr.types.ReadOnlyBool(True)
   LowerLayers = tr.types.ReadOnlyString('')
   Name = tr.types.ReadOnlyString('')
-  MaxBitRate = tr.types.ReadOnlyInt(-1)
   Upstream = tr.types.ReadOnlyBool(False)
 
   def __init__(self, ifname, upstream=False, qfiles=None, numq=0, hipriq=0):
@@ -88,7 +86,7 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
   def Status(self):
     if not self._pynet.is_up():
       return 'Down'
-    (speed, duplex, auto, link_up) = self._pynet.get_link_info()
+    (_, _, _, link_up) = self._pynet.get_link_info()
     if link_up:
       return 'Up'
     else:
@@ -101,13 +99,30 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
         numq=self._numq, hipriq=self._hipriq)
 
   @property
+  def MaxBitRate(self):
+    (speed, _, _, _) = self._pynet.get_link_info()
+    return speed
+
+  @property
+  def DuplexMode(self):
+    (_, duplex, _, _) = self._pynet.get_link_info()
+    return 'Full' if duplex else 'Half'
+
+  # Initially, we interpreted DuplexMode and MaxBitRate to read back
+  # the configured settings. For example, they would return 'Auto'
+  # and -1. We added the X_CATAWAMPUS_ORG_ActualBitRate and
+  # X_CATAWAMPUS_ORG_ActualDuplexMode to provide the oper status.
+  # We've decided to make DuplexMode and MaxBitRate reflect the
+  # operational status after all, but retain these two for backwards
+  # compatibility.
+  @property
   def X_CATAWAMPUS_ORG_ActualBitRate(self):
-    (speed, duplex, auto, link_up) = self._pynet.get_link_info()
+    (speed, _, _, _) = self._pynet.get_link_info()
     return speed
 
   @property
   def X_CATAWAMPUS_ORG_ActualDuplexMode(self):
-    (speed, duplex, auto, link_up) = self._pynet.get_link_info()
+    (_, duplex, _, _) = self._pynet.get_link_info()
     return 'Full' if duplex else 'Half'
 
 
