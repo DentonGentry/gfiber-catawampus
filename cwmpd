@@ -49,6 +49,7 @@ fake-acs      Run a fake ACS (and auto-set --acs-url to that)
 no-cpe        Don't run a CPE (and thus never connect to ACS)
 cpe-listener  Let CPE listen for http requests (not TR-069 compliant)
 platform=     Activate the platform-specific device tree (see platform/ dir)
+ext-dir=      Activate any extension modules in this dir [%(ext_dir)s]
 close-stdio   Close stdout after listeners are running; exit when stdin closes
 ping_ip6dev=  Use the IPv6 address from dev for the CPE Ping address
 ca-certs=     SSL ca_certificates.crt file to use
@@ -65,13 +66,15 @@ def _GotData(loop, fd, flags):
 
 
 def main():
-  o = bup.options.Options(optspec)
+  cwmpdir = os.path.dirname(os.path.abspath(sys.argv[0]))
+  defargs = dict(ext_dir=os.environ.get('CWMPD_EXT_DIR', cwmpdir + '/ext'))
+  o = bup.options.Options(optspec % defargs)
   (opt, flags, extra) = o.parse(sys.argv[1:])  #pylint: disable-msg=W0612
 
   tornado.httpclient.AsyncHTTPClient.configure(
       'tornado.curl_httpclient.CurlAsyncHTTPClient')
   loop = tr.mainloop.MainLoop()
-  root = dm_root.DeviceModelRoot(loop, opt.platform)
+  root = dm_root.DeviceModelRoot(loop, opt.platform, opt.ext_dir)
   if opt.rcmd_port:
     loop.ListenInet((opt.listenip, opt.rcmd_port),
                     tr.rcommand.MakeRemoteCommandStreamer(root))

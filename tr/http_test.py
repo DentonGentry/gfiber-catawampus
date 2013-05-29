@@ -130,7 +130,7 @@ class HttpTest(tornado.testing.AsyncTestCase):
 
   def getCpe(self):
     dm_root.PLATFORMDIR = '../platform'
-    root = dm_root.DeviceModelRoot(self.io_loop, 'fakecpe')
+    root = dm_root.DeviceModelRoot(self.io_loop, 'fakecpe', ext_dir=None)
     cpe = api.CPE(root)
     dldir = tempfile.mkdtemp()
     self.removedirs.append(dldir)

@@ -3,6 +3,7 @@ default: all
 
 GPYLINT=gpylint --disable=W0403,W0613 \
 	  --init-hook='sys.path.append("."); import tr.fix_path'
+PYTHONPATH:=$(shell /bin/pwd):$(PYTHONPATH)
 
 
 all: tr/all

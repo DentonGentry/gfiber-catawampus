@@ -2,13 +2,19 @@ default: all
 
 all: stamp.parsed
 
-SCHEMA_IN = $(wildcard schema/tr-*.xml) $(wildcard schema/x-*.xml) $(wildcard ../platform/*/schema/x-*.xml)
+SCHEMA_IN = \
+	$(wildcard schema/tr-*.xml) \
+	$(wildcard schema/x-*.xml) \
+	$(wildcard ../platform/*/schema/x-*.xml) \
+	$(wildcard $(CWMPD_EXT_DIR)/x-*.xml) \
+	$(wildcard $(CWMPD_EXT_DIR)/*/x-*.xml)
 stamp.parsed: parse-schema.py ${SCHEMA_IN}
+	@echo "CWMPD_EXT_DIR is '$(CWMPD_EXT_DIR)'"
 	rm -f $@ $@.new tr???_*.py* ../platform/*/schema/x_*.py*
 	rm -rf std
 	./parse-schema.py ${SCHEMA_IN}
 	touch $@
-	
+
 stamp.validated: stamp.parsed *.py
 	rm -f $@ $@.new
 	( \

@@ -46,7 +46,8 @@ class MockManagement(object):
 
 class DeviceModelRootTest(unittest.TestCase):
   def testAddManagementServer(self):
-    root = dm_root.DeviceModelRoot(loop=None, platform=None)
+    root = dm_root.DeviceModelRoot(loop=None, platform=None,
+                                   ext_dir='ext_test')
     mgmt = MockManagement()
     root.add_management_server(mgmt)  # should do nothing.
 
@@ -62,6 +63,8 @@ class DeviceModelRootTest(unittest.TestCase):
                                BASE98.ManagementServer))
     self.assertTrue(isinstance(root.Device.ManagementServer,
                                BASE181.ManagementServer))
+    self.assertEqual(root.TestBaseExt, True)
+    self.assertEqual(root.TestSubExt, 97)  # auto-rounded to int
 
 
 if __name__ == '__main__':

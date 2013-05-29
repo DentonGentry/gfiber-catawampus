@@ -21,6 +21,9 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import glob
+import os.path
+import sys
 import google3
 import dm.catawampus
 import dm.management_server
@@ -34,7 +37,7 @@ def _RecursiveImport(name):
 class DeviceModelRoot(tr.core.Exporter):
   """A class to hold the device models."""
 
-  def __init__(self, loop, platform):
+  def __init__(self, loop, platform, ext_dir):
     tr.core.Exporter.__init__(self)
     if platform:
       self.device = _RecursiveImport('platform.%s.device' % platform)
@@ -45,6 +48,23 @@ class DeviceModelRoot(tr.core.Exporter):
     self.X_CATAWAMPUS_ORG_CATAWAMPUS = dm.catawampus.CatawampusDm()
     objects.append('X_CATAWAMPUS-ORG_CATAWAMPUS')
     self.Export(params=params, objects=objects)
+    if ext_dir:
+      extlist = (glob.glob(os.path.join(ext_dir, 'ext.py')) +
+                 glob.glob(os.path.join(ext_dir, '*/ext.py')))
+      sys.path.insert(0, os.path.abspath(ext_dir))
+      try:
+        extpath = os.path.join(ext_dir, 'ext.py')
+        if os.path.exists(extpath):
+          print 'Importing base extension: %r' % extpath
+          extmod = _RecursiveImport('ext')
+          extmod.Extend(self)
+        for extpath in glob.glob(os.path.join(ext_dir, '*/ext.py')):
+          print 'Importing extension: %r' % extpath
+          extname = os.path.split(os.path.split(extpath)[0])[1]
+          extmod = _RecursiveImport(extname + '.ext')
+          extmod.Extend(self)
+      finally:
+        sys.path.pop(0)
 
   def get_platform_config(self, ioloop):
     """Return the platform_config.py object for this platform."""
