@@ -45,8 +45,6 @@ import tr.core
 import tr.download
 import tr.tr181_v2_4 as tr181
 
-import optics
-
 
 BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
 PYNETIFCONF = pynetlinux.ifconfig.Interface
@@ -350,14 +348,6 @@ class Device(tr181.Device_v2_4.Device):
     self.DeviceInfo.Unexport('SupportedDataModelNumberOfEntries')
 
     self.ManagementServer = tr.core.TODO()
-
-    self.Optical = optics.Optical()
-
-    ts = self.DeviceInfo.TemperatureStatus
-
-    for IfIndex, IfModule in self.Optical.InterfaceList.iteritems():
-      ts.AddSensor(name=IfModule.ifname,
-                   sensor=optics.SensorReadFromI2C(IfModule))
 
     self.Export(objects=['PeriodicStatistics'])
     self.PeriodicStatistics = periodic_stats
