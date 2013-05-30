@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # unittest requires method names starting in 'test'
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """Unit tests for session.py."""
 
@@ -196,7 +196,7 @@ class SimpleCacheObject(object):
     self.cache_this_function_n += 1
 
   @session.cache
-  def cache_function_with_args(self, arg1, arg2):  #pylint: disable-msg=W0613
+  def cache_function_with_args(self, arg1, arg2):  # pylint: disable-msg=W0613
     self.cache_this_function_args_n += 1
 
 
@@ -249,6 +249,32 @@ class SessionCacheTest(unittest.TestCase):
     for i in range(10):
       t.cache_function_with_args(99, arg)
     self.assertEqual(t.cache_this_function_args_n, 11)
+
+
+RunAtEndTestResults = {}
+
+
+@session.RunAtEnd
+def setBarAtEnd(val):
+  RunAtEndTestResults['bar'] = val
+
+
+class RunAtEndTest(unittest.TestCase):
+  def setUp(self):
+    RunAtEndTestResults.clear()
+
+  @session.RunAtEnd
+  def setFooAtEnd(self, val):
+    RunAtEndTestResults['foo'] = val
+
+  def testRunAtEnd(self):
+    self.setFooAtEnd(1)
+    setBarAtEnd(2)
+    self.assertEqual(len(RunAtEndTestResults), 0)
+    session._RunAtEnd.runall()
+    self.assertEqual(len(RunAtEndTestResults), 2)
+    self.assertEqual(RunAtEndTestResults['foo'], 1)
+    self.assertEqual(RunAtEndTestResults['bar'], 2)
 
 
 if __name__ == '__main__':

@@ -19,9 +19,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import collections
 import datetime
-import errno
 import os
-import shutil
 import time
 import urlparse
 import google3
@@ -33,6 +31,7 @@ import core
 import helpers
 import http_download
 import persistobj
+import session
 
 
 # Persistent object storage filename
@@ -47,6 +46,7 @@ class Installer(object):
   expected to implement their own Install object, and set
   tr.download.INSTALLER = their object.
   """
+
   def install(self, file_type, target_filename, callback):
     INTERNAL_ERROR = 9002
     self.callback(faultcode=INTERNAL_ERROR,
@@ -123,9 +123,10 @@ class Download(object):
       stateobj: a PersistentObject to store state across reboots.
         This class requires that command_key and url attributes be present.
       transfer_complete_cb: function to send a TransferComplete message.
+      download_dir: directory to download to
       ioloop: Tornado ioloop. Unit tests can pass in a mock.
     """
-    self.stateobj = self._restore_dlstate(stateobj)
+    self.stateobj = self._RestoreDlstate(stateobj)
     self.transfer_complete_cb = transfer_complete_cb
     self.download_dir = download_dir
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
@@ -141,7 +142,7 @@ class Download(object):
   def CommandKey(self):
     return getattr(self.stateobj, 'command_key', None)
 
-  def _restore_dlstate(self, stateobj):
+  def _RestoreDlstate(self, stateobj):
     """Re-enter the state machine at a sane state.
 
     This state machine is supposed to download a file, install that file,
@@ -169,7 +170,7 @@ class Download(object):
       stateobj.Update(dlstate=self.START)
     return stateobj
 
-  def _schedule_timer(self):
+  def _ScheduleTimer(self):
     delay_seconds = getattr(self.stateobj, 'delay_seconds', 0)
     now = time.time()
     wait_start_time = self.stateobj.wait_start_time
@@ -183,19 +184,19 @@ class Download(object):
 
     self.wait_handle = self.ioloop.add_timeout(
         datetime.timedelta(seconds=when-now),
-        self.timer_callback)
+        self.TimerCallback)
 
-  def _new_download_object(self, stateobj):
+  def _NewDownloadObject(self, stateobj):
     url = getattr(stateobj, 'url', '')
     username = getattr(stateobj, 'username', None)
     password = getattr(stateobj, 'password', None)
     o = urlparse.urlparse(url)
     client = DOWNLOAD_CLIENT[o.scheme]
     return client(url=url, username=username, password=password,
-                  download_complete_cb=self.download_complete_callback,
+                  download_complete_cb=self.DownloadCompleteCallback,
                   download_dir=self.download_dir)
 
-  def _send_transfer_complete(self, faultcode, faultstring, start=0.0, end=0.0):
+  def _SendTransferComplete(self, faultcode, faultstring, start=0.0, end=0.0):
     event_code = getattr(self.stateobj, 'event_code', 'M Download')
     self.transfer_complete_cb(dl=self,
                               command_key=self.stateobj.command_key,
@@ -204,17 +205,17 @@ class Download(object):
                               starttime=start, endtime=end,
                               event_code=event_code)
 
-  def state_machine(self, event, faultcode=0, faultstring='',
-                    downloaded_file=None, must_reboot=False):
+  def StateMachine(self, event, faultcode=0, faultstring='',
+                   downloaded_file=None, must_reboot=False):
     dlstate = self.stateobj.dlstate
     if dlstate == self.START:
       if event == self.EV_START or event == self.EV_REBOOT_COMPLETE:
         self.stateobj.Update(dlstate=self.WAITING)
-        self._schedule_timer()
+        self._ScheduleTimer()
 
     elif dlstate == self.WAITING:
       if event == self.EV_TIMER:
-        self.download = self._new_download_object(self.stateobj)
+        self.download = self._NewDownloadObject(self.stateobj)
         self.stateobj.Update(dlstate=self.DOWNLOADING,
                              download_start_time=time.time())
         self.download.fetch()
@@ -230,10 +231,10 @@ class Download(object):
           target_filename = getattr(self.stateobj, 'target_filename', None)
           self.installer.install(file_type=file_type,
                                  target_filename=target_filename,
-                                 callback=self.installer_callback)
+                                 callback=self.InstallerCallback)
         else:
           self.stateobj.Update(dlstate=self.EXITING)
-          self._send_transfer_complete(faultcode, faultstring)
+          self._SendTransferComplete(faultcode, faultstring)
 
     elif dlstate == self.INSTALLING:
       if event == self.EV_INSTALL_COMPLETE:
@@ -248,11 +249,11 @@ class Download(object):
             self.stateobj.Update(dlstate=self.EXITING,
                                  download_complete_time=end)
             start = getattr(self.stateobj, 'download_start_time', 0.0)
-            self._send_transfer_complete(faultcode=0, faultstring='',
-                                         start=start, end=end)
+            self._SendTransferComplete(faultcode=0, faultstring='',
+                                       start=start, end=end)
         else:
           self.stateobj.Update(dlstate=self.EXITING)
-          self._send_transfer_complete(faultcode, faultstring)
+          self._SendTransferComplete(faultcode, faultstring)
 
     elif dlstate == self.REBOOTING:
       if event == self.EV_REBOOT_COMPLETE:
@@ -261,38 +262,38 @@ class Download(object):
         self.stateobj.Update(dlstate=self.EXITING, download_complete_time=end)
         if faultcode == 0:
           start = getattr(self.stateobj, 'download_start_time', 0.0)
-          self._send_transfer_complete(faultcode=0, faultstring='',
-                                       start=start, end=end)
+          self._SendTransferComplete(faultcode=0, faultstring='',
+                                     start=start, end=end)
         else:
-          self._send_transfer_complete(faultcode, faultstring)
+          self._SendTransferComplete(faultcode, faultstring)
 
     elif dlstate == self.EXITING:
       pass
 
-  def do_start(self):
-    return self.state_machine(self.EV_START)
+  def DoStart(self):
+    return self.StateMachine(self.EV_START)
 
-  def timer_callback(self):
+  def TimerCallback(self):
     """Called by timer code when timeout expires."""
-    return self.state_machine(self.EV_TIMER)
+    return self.StateMachine(self.EV_TIMER)
 
-  def download_complete_callback(self, faultcode, faultstring, tmpfile):
+  def DownloadCompleteCallback(self, faultcode, faultstring, tmpfile):
     print 'Download complete callback.'
     name = tmpfile and tmpfile.name or None
     self.downloaded_fileobj = tmpfile  # keep this around or it auto-deletes
     self.downloaded_file = name
-    return self.state_machine(self.EV_DOWNLOAD_COMPLETE,
-                              faultcode, faultstring,
-                              downloaded_file=name)
+    return self.StateMachine(self.EV_DOWNLOAD_COMPLETE,
+                             faultcode, faultstring,
+                             downloaded_file=name)
 
-  def installer_callback(self, faultcode, faultstring, must_reboot):
-    return self.state_machine(self.EV_INSTALL_COMPLETE, faultcode, faultstring,
-                              must_reboot=must_reboot)
+  def InstallerCallback(self, faultcode, faultstring, must_reboot):
+    return self.StateMachine(self.EV_INSTALL_COMPLETE, faultcode, faultstring,
+                             must_reboot=must_reboot)
 
-  def reboot_callback(self, faultcode, faultstring):
-    return self.state_machine(self.EV_REBOOT_COMPLETE, faultcode, faultstring)
+  def RebootCallback(self, faultcode, faultstring):
+    return self.StateMachine(self.EV_REBOOT_COMPLETE, faultcode, faultstring)
 
-  def cleanup(self):
+  def Cleanup(self):
     """Attempt to stop all activity and clean up resources.
 
     Returns:
@@ -312,7 +313,7 @@ class Download(object):
       self.download = None
     self.stateobj.Delete()
 
-  def get_queue_state(self):
+  def GetQueueState(self):
     """Data needed for GetQueuedTransfers/GetAllQueuedTransfers RPC."""
     q = collections.namedtuple(
         'queued_transfer_struct',
@@ -367,9 +368,14 @@ class DownloadManager(object):
     """Initiate a new download, handling a tr-69 Download RPC.
 
     Args:
-      command_key, file_type, url, username, password, file_size:
-      target_filename, delay_seconds: as defined in tr-69 Amendment 3
-        (page 82 of $SPEC)
+      command_key: as defined in tr-69 Amendment 3 (page 82 of $SPEC)
+      file_type: as defined in tr-69 Amendment 3 (page 82 of $SPEC)
+      url: as defined in tr-69 Amendment 3 (page 82 of $SPEC)
+      username: as defined in tr-69 Amendment 3 (page 82 of $SPEC)
+      password: as defined in tr-69 Amendment 3 (page 82 of $SPEC)
+      file_size: as defined in tr-69 Amendment 3 (page 82 of $SPEC)
+      target_filename: as defined in tr-69 Amendment 3 (page 82 of $SPEC)
+      delay_seconds: as defined in tr-69 Amendment 3 (page 82 of $SPEC)
 
     Raises:
       core.ResourcesExceededError: too many simultaneous downloads
@@ -411,7 +417,7 @@ class DownloadManager(object):
                      transfer_complete_cb=self.TransferCompleteCallback,
                      download_dir=self.download_dir)
     self._downloads.append(dl)
-    dl.do_start()
+    dl.DoStart()
 
     return (1, 0.0, 0.0)
 
@@ -435,18 +441,18 @@ class DownloadManager(object):
                        transfer_complete_cb=self.TransferCompleteCallback,
                        download_dir=self.download_dir)
       self._downloads.append(dl)
-      dl.reboot_callback(0, None)
+      dl.RebootCallback(0, None)
 
   def TransferCompleteResponseReceived(self):
     dl = self._pending_complete.pop()
-    dl.cleanup()
+    dl.Cleanup()
 
   def GetAllQueuedTransfers(self):
     transfers = list()
     for dl in self._downloads:
-      transfers.append(dl.get_queue_state())
+      transfers.append(dl.GetQueueState())
     for dl in self._pending_complete:
-      transfers.append(dl.get_queue_state())
+      transfers.append(dl.GetQueueState())
     return transfers
 
   def CancelTransfer(self, command_key):
@@ -462,7 +468,7 @@ class DownloadManager(object):
     """
     for dl in self._downloads:
       if dl.CommandKey() == command_key:
-        faultstring = dl.cleanup()
+        faultstring = dl.Cleanup()
         if faultstring:
           raise core.CancelNotPermitted(faultstring)
         else:
@@ -472,11 +478,13 @@ class DownloadManager(object):
         raise core.CancelNotPermitted(
             'Installed, awaiting TransferCompleteResponse')
 
+  @session.RunAtEnd
   def _DelayedReboot(self):
     installer = INSTALLER('')
     installer.reboot()
 
   def RestoreReboots(self):
+    """Read state of Reboot RPCs in from storage."""
     pobjs = persistobj.GetPersistentObjects(objdir=self.config_dir,
                                             rootname=BOOTROOTNAME)
     reboots = []
@@ -491,9 +499,9 @@ class DownloadManager(object):
   def Reboot(self, command_key):
     """Reboot the system."""
     kwargs = dict(command_key=command_key)
-    pobj = persistobj.PersistentObject(objdir=self.config_dir, rootname=BOOTROOTNAME,
-                                       filename=None, **kwargs)
-    self.ioloop.add_callback(self._DelayedReboot)
+    persistobj.PersistentObject(objdir=self.config_dir, rootname=BOOTROOTNAME,
+                                filename=None, **kwargs)
+    self._DelayedReboot()
 
   def _MakeDirsIgnoreError(self, directory):
     """Make sure a directory exists."""
@@ -511,7 +519,7 @@ class DownloadManager(object):
 
 def main():
   # Generate diagram for Download state machine
-  import subprocess  #pylint: disable-msg=C6204
+  import subprocess  # pylint: disable-msg=C6204
   cmd = ['dot', '-Tpdf', '-odownloadStateMachine.pdf']
   p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
   print p.communicate(input=graphviz)[0]
