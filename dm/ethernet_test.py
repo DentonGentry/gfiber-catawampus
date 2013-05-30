@@ -50,12 +50,12 @@ class EthernetTest(unittest.TestCase):
     self.assertEqual(eth.PacketsSent, 10)
 
   def _CheckEthernetInterfaceParameters(self, ifname, upstream, eth, pynet):
-    self.assertEqual(eth.DuplexMode, 'Auto')
+    self.assertEqual(eth.DuplexMode, 'Full' if pynet.v_duplex else 'Half')
     self.assertEqual(eth.Enable, True)
     self.assertEqual(eth.LastChange, '0001-01-01T00:00:00Z')
     self.assertFalse(eth.LowerLayers)
     self.assertEqual(eth.MACAddress, pynet.v_mac)
-    self.assertEqual(eth.MaxBitRate, -1)
+    self.assertEqual(eth.MaxBitRate, pynet.v_speed)
     self.assertEqual(eth.Name, ifname)
     self.assertEqual(eth.Upstream, upstream)
     self.assertEqual(eth.X_CATAWAMPUS_ORG_ActualBitRate, pynet.v_speed)
