@@ -52,6 +52,7 @@ import gfibertv
 import gvsb
 import ookla
 import stbservice
+import ssh
 
 
 BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
@@ -671,10 +672,12 @@ def PlatformInit(name, device_model_root):
   device_model_root.InternetGatewayDevice = InternetGatewayDevice(
       dev_id, periodic_stats)
   device_model_root.X_GOOGLE_COM_GVSB = gvsb.Gvsb()
+  device_model_root.X_GOOGLE_COM_SSH = ssh.Ssh()
   tvrpc = gfibertv.GFiberTv('http://localhost:51834/xmlrpc')
   device_model_root.X_GOOGLE_COM_GFIBERTV = tvrpc
   objects.append('Device')
   objects.append('InternetGatewayDevice')
+  objects.append('X_GOOGLE-COM_SSH')
   objects.append('X_GOOGLE-COM_GVSB')
   objects.append('X_GOOGLE-COM_GFIBERTV')
   return (params, objects)

@@ -14,13 +14,14 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409
-#pylint: disable-msg=W0404
+# pylint: disable-msg=C6409
+# pylint: disable-msg=W0404
 #
 """Implement the TR-069 CWMP Sesion handling."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import collections
 import Cookie
 import functools
 import tornado.httpclient
@@ -118,6 +119,7 @@ class CwmpSession(object):
 
   def close(self):
     cache.flush()
+    _RunAtEnd.runall()
     self.http = None
     return self.ping_received
 
@@ -163,6 +165,52 @@ class cache(object):
   def _cache_key(self, *args):
     """Concatenate the function, object, and all arguments."""
     return '\0'.join([repr(x) for x in [self.func, self.obj, args]])
+
+
+class _RunAtEnd(object):
+  """A class to implement the @session.RunAtEnd decorator."""
+
+  _thefunctions = collections.deque()
+
+  @staticmethod
+  def runall():
+    """Run all staged methods."""
+    try:
+      while True:
+        func = _RunAtEnd._thefunctions.popleft()
+        func()
+    except IndexError:
+      pass
+
+  def __init__(self, func):
+    self.func = func
+
+  def RunItLater(self, *args, **kwargs):
+    deferred = functools.partial(self.func, *args, **kwargs)
+    self._thefunctions.append(deferred)
+
+
+def RunAtEnd(func):
+  """A decorator to run a function at the end of the CWMP session.
+
+  If a method is called N times during the session, it will be
+  run N times at the end of the session. All methods are run in
+  the order they were called.
+
+  Args:
+    func: the function the be called later.
+  Returns:
+    the defferal function.
+  """
+
+  # These w and ScheduleIt objects are are created once when you *declare*
+  # a @RunAtEnd function...
+  w = _RunAtEnd(func)
+
+  def ScheduleIt(*args, **kwargs):
+    # ...and ScheduleIt() is called when you *call* the declared function
+    w.RunItLater(*args, **kwargs)
+  return ScheduleIt
 
 
 def main():
