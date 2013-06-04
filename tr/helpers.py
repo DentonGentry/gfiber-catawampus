@@ -18,7 +18,15 @@
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import errno
+import grp
 import os
+import pwd
+
+
+# Unit tests can override these
+CHOWN = os.chown
+GETGID = grp.getgrnam
+GETUID = pwd.getpwnam
 
 
 def Unlink(filename):
@@ -38,6 +46,24 @@ def Unlink(filename):
       raise
 
 
+def _SetOwner(filename, owner, group):
+  """Set the user and group for filename.
+
+  Args:
+    filename: the path to the file to change ownership of
+    owner: the string name of the owning user, like 'daemon'
+    group: the string name of the owning group, like 'wheel'
+
+    None or the empty string means not to change the ownership.
+  """
+  uid = gid = -1
+  if owner:
+    uid = GETUID(owner).pw_uid
+  if group:
+    gid = GETGID(group).gr_gid
+  CHOWN(filename, uid, gid)
+
+
 class AtomicFile(object):
   """Like a normal file object, but atomically replaces file on close().
 
@@ -51,12 +77,16 @@ class AtomicFile(object):
   named 'filename' atomically.
   """
 
-  def __init__(self, filename):
+  def __init__(self, filename, owner=None, group=None):
     self.filename = filename
     self.file = None
+    self.owner = owner
+    self.group = group
 
   def __enter__(self):
-    self.file = open(self.filename + '.tmp', 'w')
+    filename = self.filename + '.tmp'
+    self.file = open(filename, 'w')
+    _SetOwner(filename, self.owner, self.group)
     return self.file
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
@@ -65,7 +95,7 @@ class AtomicFile(object):
       os.rename(self.filename + '.tmp', self.filename)
 
 
-def WriteFileAtomic(filename, data):
+def WriteFileAtomic(filename, data, owner=None, group=None):
   """A shortcut for calling AtomicFile with a static string as content."""
-  with AtomicFile(filename) as f:
+  with AtomicFile(filename, owner=owner, group=group) as f:
     f.write(data)

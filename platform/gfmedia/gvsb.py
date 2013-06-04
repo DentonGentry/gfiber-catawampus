@@ -46,7 +46,8 @@ class Gvsb(tr.x_gvsb_1_0.X_GOOGLE_COM_GVSB_v1_1):
   GvsbChannelLineup = tr.types.FileBacked(
       GVSBCHANNELFILE, tr.types.String(), delete_if_empty=False)
   GvsbKick = tr.types.FileBacked(
-      GVSBKICKFILE, tr.types.String(), delete_if_empty=False)
+      GVSBKICKFILE, tr.types.String(), delete_if_empty=False,
+      file_owner='video', file_group='video')
   GvsbServer = tr.types.FileBacked(
       GVSBSERVERFILE, tr.types.String(), delete_if_empty=False)
 

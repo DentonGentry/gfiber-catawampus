@@ -27,7 +27,26 @@ import unittest
 
 import google3
 import gvsb
+import tr.helpers
 import tr.mainloop
+
+
+def FakeChown(filename, uid, gid):
+  return
+
+
+class FakeDbThingy(object):
+  def __init__(self):
+    self.pw_uid = 0
+    self.gr_gid = 0
+
+
+def FakeGetUser(user):
+  return FakeDbThingy()
+
+
+def FakeGetGroup(group):
+  return FakeDbThingy()
 
 
 class GvsbTest(unittest.TestCase):
@@ -42,12 +61,18 @@ class GvsbTest(unittest.TestCase):
     self.GVSBSERVERFILE = gvsb.GVSBSERVERFILE
     self.GVSBCHANNELFILE = gvsb.GVSBCHANNELFILE
     self.GVSBKICKFILE = gvsb.GVSBKICKFILE
+    self.CHOWN = tr.helpers.CHOWN
+    self.GETGID = tr.helpers.GETGID
+    self.GETUID = tr.helpers.GETUID
     gvsb.EPGPRIMARYFILE[0] = str(os.path.join(tmpdir, 'epgprimaryfile'))
     gvsb.EPGSECONDARYFILE[0] = str(os.path.join(tmpdir, 'epgsecondaryfile'))
     gvsb.EPGURLFILE[0] = str(os.path.join(tmpdir, 'epgurlfile'))
     gvsb.GVSBSERVERFILE[0] = str(os.path.join(tmpdir, 'gvsbserverfile'))
     gvsb.GVSBCHANNELFILE[0] = str(os.path.join(tmpdir, 'gvsbchannelfile'))
     gvsb.GVSBKICKFILE[0] = str(os.path.join(tmpdir, 'gvsbkickfile'))
+    tr.helpers.CHOWN = FakeChown
+    tr.helpers.GETGID = FakeGetGroup
+    tr.helpers.GETUID = FakeGetUser
     self.tmpdir = tmpdir
 
   def tearDown(self):
@@ -58,6 +83,9 @@ class GvsbTest(unittest.TestCase):
     gvsb.GVSBSERVERFILE = self.GVSBSERVERFILE
     gvsb.GVSBCHANNELFILE = self.GVSBCHANNELFILE
     gvsb.GVSBKICKFILE = self.GVSBKICKFILE
+    tr.helpers.CHOWN = tr.helpers.CHOWN
+    tr.helpers.GETGID = tr.helpers.GETGID
+    tr.helpers.GETUID = tr.helpers.GETUID
 
   def testValidateExports(self):
     gv = gvsb.Gvsb()

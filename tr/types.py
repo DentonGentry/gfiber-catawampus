@@ -269,7 +269,8 @@ class FileBacked(Attr):
   If the file doesn't exist, the value is the empty string.
   """
 
-  def __init__(self, filename_ptr, attr, delete_if_empty=True):
+  def __init__(self, filename_ptr, attr, delete_if_empty=True,
+               file_owner=None, file_group=None):
     super(FileBacked, self).__init__(self)
     if isinstance(filename_ptr, basestring):
       # Handle it if someone just provides a filename directly instead
@@ -281,6 +282,8 @@ class FileBacked(Attr):
       self.filename_ptr = filename_ptr
     self.validate = attr.validate
     self.delete_if_empty = delete_if_empty
+    self.file_owner = file_owner
+    self.file_group = file_group
 
   def __get__(self, obj, _):
     if obj is None:
@@ -301,7 +304,9 @@ class FileBacked(Attr):
     if self.delete_if_empty:
       helpers.Unlink(self.filename_ptr[0])
     else:
-      helpers.WriteFileAtomic(self.filename_ptr[0], '')
+      helpers.WriteFileAtomic(self.filename_ptr[0], '',
+                              owner=self.file_owner,
+                              group=self.file_group)
 
   @mainloop.WaitUntilIdle
   def WriteFile(self, value):
@@ -310,7 +315,9 @@ class FileBacked(Attr):
       self._WriteEmpty()
     else:
       helpers.WriteFileAtomic(self.filename_ptr[0],
-                              unicode(value).rstrip().encode('utf-8') + '\n')
+                              unicode(value).rstrip().encode('utf-8') + '\n',
+                              owner=self.file_owner,
+                              group=self.file_group)
 
   def __set__(self, obj, value):
     value = self.validate(obj, value)
