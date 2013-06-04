@@ -205,6 +205,8 @@ class GfiberTvTests(unittest.TestCase):
     idx2 = int(idx2)
     idx3, newobj = gftv.AddExportObject('DeviceProperties', None)
     idx3 = int(idx3)
+    idx4, newobj = gftv.AddExportObject('DeviceProperties', None)
+    idx4 = int(idx4)
 
     gftv.DevicePropertiesList[idx].NickName = 'testroom'
     gftv.DevicePropertiesList[idx].SerialNumber = '12345'
@@ -216,6 +218,9 @@ class GfiberTvTests(unittest.TestCase):
     gftv.DevicePropertiesList[idx3].NickName = "Peter's Room"
     gftv.DevicePropertiesList[idx3].SerialNumber = '23456'
 
+    gftv.DevicePropertiesList[idx4].NickName = "War & Peace"
+    gftv.DevicePropertiesList[idx4].SerialNumber = '8675309'
+
     self.loop.RunOnce()
 
     # read the test file back in.
@@ -225,6 +230,7 @@ class GfiberTvTests(unittest.TestCase):
     self.assertTrue('12345/nickname=testroom\n' in lines)
     self.assertTrue('56789/nickname=\\u212ced_room__!\n' in lines)
     self.assertTrue("23456/nickname=Peter's Room\n" in lines)
+    self.assertTrue("8675309/nickname=War & Peace\n" in lines)
     self.assertTrue(last_line.startswith('serials='))
     split1 = last_line.split('=')
     self.assertEqual(2, len(split1))
@@ -232,6 +238,7 @@ class GfiberTvTests(unittest.TestCase):
     self.assertTrue('12345' in split2)
     self.assertTrue('56789' in split2)
     self.assertTrue('23456' in split2)
+    self.assertTrue('8675309' in split2)
 
   def testBtFiles(self):
     gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)

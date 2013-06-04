@@ -53,7 +53,7 @@ EASPORTFILE = ['/tmp/eas_service_port']
 
 def _SageEscape(s):
   """Encode a string so it's safe to include in a SageTV config file."""
-  return re.sub(re.compile(r"[^\w'\- !@#$%^*_+,.]", re.UNICODE), '_',
+  return re.sub(re.compile(r"[^\w'\- !@#$%^*_+,.&]", re.UNICODE), '_',
                 s.strip()).encode('unicode-escape')
 
 
