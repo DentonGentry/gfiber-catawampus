@@ -439,6 +439,15 @@ class STBServiceTest(unittest.TestCase):
       self.assertEqual(stats.AudioWatchdogs, 20)
       self.assertEqual(stats.AudioBytesDecoded, 21)
       self.assertEqual(stats.AudioPtsStcDifference, 22)
+      self.assertEqual(stats.VideoFifoDepth, 30)
+      self.assertEqual(stats.VideoDisplayQueueDepth, 31)
+      self.assertEqual(stats.VideoCabacQueueDepth, 32)
+      self.assertEqual(stats.VideoEnhancementFifoDepth, 33)
+      self.assertEqual(stats.VideoPts, 34)
+      self.assertEqual(stats.AudioFifoDepth, 35)
+      self.assertEqual(stats.AudioQueuedFrames, 36)
+      self.assertEqual(stats.AudioPts, 37)
+
     for i in range(7, 9):
       stats = ml[i].Total.X_CATAWAMPUS_ORG_DecoderStats
       self.assertEqual(stats.VideoBytesDecoded, 0)

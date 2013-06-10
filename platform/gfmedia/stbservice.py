@@ -823,6 +823,26 @@ class DecoderStats(CATA135STBTOTAL.X_CATAWAMPUS_ORG_DecoderStats):
     return long(self.data.get('VideoPtsStcDifference', 0))
 
   @property
+  def VideoFifoDepth(self):
+    return long(self.data.get('VideoFifoDepth', 0))
+
+  @property
+  def VideoDisplayQueueDepth(self):
+    return long(self.data.get('VideoDisplayQueueDepth', 0))
+
+  @property
+  def VideoCabacQueueDepth(self):
+    return long(self.data.get('VideoCabacQueueDepth', 0))
+
+  @property
+  def VideoEnhancementFifoDepth(self):
+    return long(self.data.get('VideoEnhancementFifoDepth', 0))
+
+  @property
+  def VideoPts(self):
+    return long(self.data.get('VideoPts', 0))
+
+  @property
   def AudioDecodedFrames(self):
     return long(self.data.get('AudioDecodedFrames', 0))
 
@@ -853,6 +873,27 @@ class DecoderStats(CATA135STBTOTAL.X_CATAWAMPUS_ORG_DecoderStats):
   @property
   def AudioPtsStcDifference(self):
     return long(self.data.get('AudioPtsStcDifference', 0))
+
+  @property
+  def AudioFifoDepth(self):
+    return long(self.data.get('AudioFifoDepth', 0))
+
+  @property
+  def AudioQueuedFrames(self):
+    return long(self.data.get('AudioQueuedFrames', 0))
+
+  @property
+  def AudioPts(self):
+    return long(self.data.get('AudioPts', 0))
+
+  @property
+  def AudioVideoPtsDifference(self):
+    audio_pts = long(self.data.get('AudioPts', 0))
+    video_pts = long(self.data.get('VideoPts', 0))
+    if audio_pts is not None and video_pts is not None:
+      return audio_pts - video_pts
+    else:
+      return 0
 
 
 class EPG(CATA135STB.X_CATAWAMPUS_ORG_ProgramMetadata.EPG):

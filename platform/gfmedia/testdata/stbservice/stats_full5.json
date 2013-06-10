@@ -42,6 +42,11 @@
             "VideoWatchdogs": 12,
             "VideoBytesDecoded": 13,
             "VideoPtsStcDifference": 14,
+            "VideoFifoDepth": 30,
+            "VideoDisplayQueueDepth": 31,
+            "VideoCabacQueueDepth": 32,
+            "VideoEnhancementFifoDepth": 33,
+            "VideoPts": 34,
             "AudioDecodedFrames": 15,
             "AudioDecodeErrors": 16,
             "AudioDummyFrames": 17,
@@ -49,7 +54,10 @@
             "AudioFifoUnderflows": 19,
             "AudioWatchdogs": 20,
             "AudioBytesDecoded": 21,
-            "AudioPtsStcDifference": 22
+            "AudioPtsStcDifference": 22,
+            "AudioFifoDepth": 35,
+            "AudioQueuedFrames": 36,
+            "AudioPts": 37
           }
         }
       ]

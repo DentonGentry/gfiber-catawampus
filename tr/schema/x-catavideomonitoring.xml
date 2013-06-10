@@ -294,6 +294,36 @@
           <unsignedInt/>
         </syntax>
       </parameter>
+      <parameter name="VideoFifoDepth" access="readOnly" activeNotify="canDeny">
+        <description>Current occupancy of the video decoder FIFO.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="VideoDisplayQueueDepth" access="readOnly" activeNotify="canDeny">
+        <description>Current occupancy of the video display FIFO (contains decoded frames ready for display).</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="VideoCabacQueueDepth" access="readOnly" activeNotify="canDeny">
+        <description>Current occupancy of the video Cabac FIFO. http://en.wikipedia.org/wiki/Context-adaptive_binary_arithmetic_coding</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="VideoEnhancementFifoDepth" access="readOnly" activeNotify="canDeny">
+        <description>Current occupancy of the video enhancement FIFO.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="VideoPts" access="readOnly" activeNotify="canDeny">
+        <description>Current PTS of the video decoder.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
       <parameter name="AudioDecodedFrames" access="readOnly" activeNotify="canDeny">
         <description>Total number of audio frames decoded.</description>
         <syntax>
@@ -307,37 +337,61 @@
         </syntax>
       </parameter>
       <parameter name="AudioDummyFrames" access="readOnly" activeNotify="canDeny">
-          <description>Total number of dummy frames filled by the decoder.</description>
+        <description>Total number of dummy frames filled by the decoder.</description>
         <syntax>
           <unsignedInt/>
         </syntax>
       </parameter>
       <parameter name="AudioFifoOverflows" access="readOnly" activeNotify="canDeny">
-          <description>Total number of FIFO overflows.</description>
+        <description>Total number of FIFO overflows.</description>
         <syntax>
           <unsignedInt/>
         </syntax>
       </parameter>
       <parameter name="AudioFifoUnderflows" access="readOnly" activeNotify="canDeny">
-          <description>Total number of FIFO underflows.</description>
+        <description>Total number of FIFO underflows.</description>
         <syntax>
           <unsignedInt/>
         </syntax>
       </parameter>
       <parameter name="AudioWatchdogs" access="readOnly" activeNotify="canDeny">
-          <description>Total number of watchdog events for the audio decoder.</description>
+        <description>Total number of watchdog events for the audio decoder.</description>
         <syntax>
           <unsignedInt/>
         </syntax>
       </parameter>
       <parameter name="AudioBytesDecoded" access="readOnly" activeNotify="canDeny">
-          <description>Total number of elementary stream bytes decoded.</description>
+        <description>Total number of elementary stream bytes decoded.</description>
         <syntax>
           <unsignedInt/>
         </syntax>
       </parameter>
       <parameter name="AudioPtsStcDifference" access="readOnly" activeNotify="canDeny">
-          <description>Current PTS-STC difference including lipsync adjustments.</description>
+        <description>Current PTS-STC difference including lipsync adjustments.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="AudioFifoDepth" access="readOnly" activeNotify="canDeny">
+        <description>Current depth of the audio decoder FIFO.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="AudioQueuedFrames" access="readOnly" activeNotify="canDeny">
+        <description>Current depth of decoded audio frames awaiting playout.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="AudioPts" access="readOnly" activeNotify="canDeny">
+        <description>Current PTS of the audio decoder.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="AudioVideoPtsDifference" access="readOnly" activeNotify="canDeny">
+        <description>Current difference in PTS between the main audio and video streams.</description>
         <syntax>
           <unsignedInt/>
         </syntax>
