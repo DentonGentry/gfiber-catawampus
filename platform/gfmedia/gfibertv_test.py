@@ -34,27 +34,25 @@ import tr.mainloop
 import gfibertv
 
 
+TvProperties = {}
+
 class TvPropertyRpcs(object):
   def __init__(self):
     self.running = True
-    self.properties = {
-        'Node1': {'Prop1': 'Prop1Value',
-                  'Prop2': 'Prop2Value'},
-        'Node2': {'Prop3': 'Prop3Value'}}
 
   def Quit(self):
     self.running = False
     return True
 
   def GetProperty(self, name, node):
-    return self.properties[node][name]
+    return TvProperties[node][name]
 
   def SetProperty(self, name, value, node):
-    self.properties[node][name] = value
+    TvProperties[node][name] = value
     return ''
 
   def ListNodes(self):
-    return self.properties.keys()
+    return TvProperties.keys()
 
   def Ping(self):
     return ''
@@ -89,6 +87,9 @@ class GfiberTvTests(unittest.TestCase):
   """Tests for gfibertv.py."""
 
   def setUp(self):
+    TvProperties.clear()
+    TvProperties['Node1'] = {'Prop1': 'Prop1Value', 'Prop2': 'Prop2Value'}
+    TvProperties['Node2'] = {'Prop3': 'Prop3Value'}
     srv_cv.acquire()
     self.server_thread = XmlRpcThread()
     self.server_thread.start()
@@ -181,6 +182,14 @@ class GfiberTvTests(unittest.TestCase):
     self.assertRaises(IndexError, lambda: tvrpc.Value)
     tvrpc.Node = 'Node3'
     self.assertRaises(IndexError, lambda: tvrpc.Value)
+
+  def testSetPropertyInteger(self):
+    tvrpc = gfibertv.Mailbox('http://localhost:%d' % srv_port)
+    tvrpc.Node = 'Node1'
+    tvrpc.Name = 'Prop1'
+    tvrpc.Value = 1
+    # RPC turns value into a string
+    self.assertEqual(TvProperties['Node1']['Prop1'], '1')
 
   def testSetPropertiesProtocolError(self):
     tvrpc = gfibertv.Mailbox('http://localhost:2')
