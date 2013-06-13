@@ -54,11 +54,14 @@ class DeviceModelRoot(tr.core.Exporter):
       sys.path.insert(0, os.path.abspath(ext_dir))
       try:
         extpath = os.path.join(ext_dir, 'ext.py')
+        if not os.path.exists(extpath):
+          extpath = os.path.join(ext_dir, 'ext.pyc')
         if os.path.exists(extpath):
           print 'Importing base extension: %r' % extpath
           extmod = _RecursiveImport('ext')
           extmod.Extend(self)
-        for extpath in glob.glob(os.path.join(ext_dir, '*/ext.py')):
+        for extpath in (glob.glob(os.path.join(ext_dir, '*/ext.py'))
+                        + glob.glob(os.path.join(ext_dir, '*/ext.pyc'))):
           print 'Importing extension: %r' % extpath
           extname = os.path.split(os.path.split(extpath)[0])[1]
           extmod = _RecursiveImport(extname + '.ext')
