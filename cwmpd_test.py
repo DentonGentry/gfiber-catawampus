@@ -47,6 +47,7 @@ class RunserverTest(unittest.TestCase):
     server = subprocess.Popen(['./cwmpd',
                                '--rcmd-port', '0',
                                '--unix-path', self.sockname,
+                               '--ext-dir', 'ext_test',
                                '--close-stdio'] + args,
                               stdout=subprocess.PIPE, stdin=subprocess.PIPE)
     try:
