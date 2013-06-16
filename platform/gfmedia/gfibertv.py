@@ -49,6 +49,7 @@ EASADDRFILE = ['/tmp/eas_service_address']
 EASFIPSFILE = ['/tmp/eas_fips']
 EASHEARTBEATFILE = ['/tmp/eas_heartbeat']
 EASPORTFILE = ['/tmp/eas_service_port']
+TCPALGORITHM = ['/config/tcp_congestion_control']
 
 
 def _SageEscape(s):
@@ -79,6 +80,7 @@ class GFiberTv(BASETV):
   EASServicePort = tr.types.FileBacked(EASPORTFILE, tr.types.String())
   f = tr.types.FileBacked(EASHEARTBEATFILE, tr.types.Date())
   EASHeartbeatTimestamp = tr.types.ReadOnly(f)
+  TcpAlgorithm = tr.types.FileBacked(TCPALGORITHM, tr.types.String())
 
   def __init__(self, mailbox_url):
     super(GFiberTv, self).__init__()
