@@ -2,7 +2,6 @@
 
 __author__ = 'anandkhare@google.com (Anand Khare)'
 
-import os.path
 import google3
 import tornado.ioloop
 import tornado.web
@@ -22,7 +21,8 @@ class DiagnosticsHandler(tornado.web.RequestHandler):
 
 
 settings = {
-    'static_path': os.path.join(os.path.dirname(__file__), 'static'),
+    'static_path': 'static',
+    'template_path': '.',
 }
 
 
