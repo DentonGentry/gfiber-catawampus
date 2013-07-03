@@ -1,3 +1,5 @@
+#!/usr/bin/python
+#
 """Implementation of the read-only Diagnostics UI."""
 
 __author__ = 'anandkhare@google.com (Anand Khare)'
@@ -35,3 +37,4 @@ application = tornado.web.Application([
 if __name__ == '__main__':
   application.listen(8880)
   tornado.ioloop.IOLoop.instance().start()
+
