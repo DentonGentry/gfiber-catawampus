@@ -8,7 +8,7 @@ INSTALL?=install
 
 install:
 	$(INSTALL) -d $(DSTDIR) $(DSTDIR)/diagui $(DSTDIR)/diagui/static
-	$(INSTALL) -D -m 0755 diagui.py $(DSTDIR)/diagui
+	$(INSTALL) -D -m 0755 diaguid $(DSTDIR)/diagui
 	$(INSTALL) -D -m 0644 *.html $(DSTDIR)/diagui
 	$(INSTALL) -D -m 0644 static/*.css $(DSTDIR)/diagui/static
 	$(INSTALL) -D -m 0644 *.py $(DSTDIR)/diagui
