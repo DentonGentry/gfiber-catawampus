@@ -10,7 +10,7 @@ install:
 	$(INSTALL) -d $(DSTDIR) $(DSTDIR)/diagui $(DSTDIR)/diagui/static
 	$(INSTALL) -D -m 0755 diaguid $(DSTDIR)/diagui
 	$(INSTALL) -D -m 0644 *.html $(DSTDIR)/diagui
-	$(INSTALL) -D -m 0644 static/*.css $(DSTDIR)/diagui/static
+	$(INSTALL) -D -m 0644 static/*.css static/*.js $(DSTDIR)/diagui/static
 	$(INSTALL) -D -m 0644 *.py $(DSTDIR)/diagui
 
 test: all $(wildcard *_test.py)
