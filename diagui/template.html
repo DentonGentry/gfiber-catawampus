@@ -5,10 +5,18 @@
     <script src="static/jquery-1.10.2.js"></script>
     <title>Google Fiber Portal</title>
     <script>
-      $.getJSON('content.json', function(data) {
-        $("#username").text(data.username);
-        $("#password").text(data.password);
-        $("#domain").text(data.domain);
+      function getContent() {
+          $.getJSON('content.json', function(data) {
+            $("#username").text(data.username);
+            $("#password").text(data.password);
+            $("#domain").text(data.domain);
+          });
+        }
+      $(document).ready(function() {
+        getContent();
+        setInterval(function() {
+          getContent()
+        }, 10000);
       });
     </script>
   </head>
