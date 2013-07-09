@@ -135,6 +135,25 @@ class PeriodicStatisticsTest(unittest.TestCase):
 
     m.VerifyAll()
 
+  def testSampleDatetime(self):
+    obj_name = 'Fakeroot.Foo.Bar.'
+    obj_param = 'Baz'
+    sampled_param = periodic_statistics.PeriodicStatistics.SampleSet.Parameter()
+    sampled_param.Enable = True
+    sampled_param.Reference = obj_name + obj_param
+    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
+    m = mox.Mox()
+    mock_root = m.CreateMock(tr.core.Exporter)
+    dt = datetime.datetime(2013, 7, 8, 12, 0, 1)
+    mock_root.GetExport(mox.IsA(str)).AndReturn(dt)
+    m.ReplayAll()
+
+    sample_set.SetCpeAndRoot(cpe=object(), root=mock_root)
+    sample_set.SetParameter('1', sampled_param)
+    sample_set.CollectSample()
+    m.VerifyAll()
+    self.assertEqual('2013-07-08T12:00:01Z', sampled_param.Values)
+
 
 class SampleSetTest(unittest.TestCase):
   def setUp(self):

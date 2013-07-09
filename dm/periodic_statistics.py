@@ -23,6 +23,7 @@ __author__ = 'jnewlin@google.com (John Newlin)'
 
 import datetime
 import time
+import tr.api_soap
 import tr.cwmpbool
 import tr.session
 import tr.tr157_v1_3
@@ -469,7 +470,8 @@ class PeriodicStatistics(BASE157PS):
         try:
           # TODO(jnewlin): Update _suspect_data.
           current_value = self._root.GetExport(self.Reference)
-          self._values.append(str(current_value))
+          (_, xmlsafe) = tr.api_soap.Soapify(current_value)
+          self._values.append(xmlsafe)
           self._sample_times.append((start_time, current_time))
         except (KeyError, AttributeError, IndexError):
           pass
