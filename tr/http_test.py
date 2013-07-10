@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # unittest requires method names starting in 'test'
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """Unit tests for http.py."""
 
@@ -22,7 +22,6 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import cStringIO
 import datetime
-import mox
 import os
 import shutil
 import sys
@@ -32,7 +31,9 @@ import unittest
 import xml.etree.ElementTree as ET
 
 import google3
+
 import dm_root
+import mox
 import tornado.httpclient
 import tornado.ioloop
 import tornado.testing
@@ -222,12 +223,13 @@ class HttpTest(tornado.testing.AsyncTestCase):
 
     headers = tornado.httputil.HTTPHeaders()
     headers.add('Set-Cookie', 'CWMPSID=0123456789abcdef; Secure')
-    headers.add('Set-Cookie', 'AnotherCookie=987654321; Domain=.example.com; Path=/; Expires=Wed, 20-Jan-2038 00:00:01 GMT; HttpOnly')
-    buffer = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">cwmpID</cwmp:ID><cwmp:HoldRequests soapenv:mustUnderstand="1">1</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:InformResponse><MaxEnvelopes>1</MaxEnvelopes></cwmp:InformResponse></soapenv:Body></soapenv:Envelope>'
+    headers.add('Set-Cookie',
+                ('AnotherCookie=987654321; Domain=.example.com; Path=/; '
+                 'Expires=Wed, 20-Jan-2038 00:00:01 GMT; HttpOnly'))
+    msg = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">cwmpID</cwmp:ID><cwmp:HoldRequests soapenv:mustUnderstand="1">1</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:InformResponse><MaxEnvelopes>1</MaxEnvelopes></cwmp:InformResponse></soapenv:Body></soapenv:Envelope>'  # pylint: disable-msg=g-line-too-long
 
-    httpresp = tornado.httpclient.HTTPResponse(ht.fetch_req, 200,
-                                               headers=headers,
-                                               buffer=cStringIO.StringIO(buffer))
+    httpresp = tornado.httpclient.HTTPResponse(
+        ht.fetch_req, 200, headers=headers, buffer=cStringIO.StringIO(msg))
     ht.fetch_callback(httpresp)
 
     self.advance_time += 10
@@ -242,7 +244,7 @@ class HttpTest(tornado.testing.AsyncTestCase):
     # Create mocks of ioloop, and stubout the time function.
     m = mox.Mox()
     ioloop_mock = m.CreateMock(tornado.ioloop.IOLoop)
-    m.StubOutWithMock(cpe_machine, "_NewSession")
+    m.StubOutWithMock(cpe_machine, '_NewSession')
     StubOutMonotime(m)
 
     # First call to _NewSession should get the time and trigger a new session
@@ -326,6 +328,19 @@ class HttpTest(tornado.testing.AsyncTestCase):
     cpe_machine.event_queue.append(10)
     cpe_machine.event_queue.clear()
     m.VerifyAll()
+
+  def testEncodeInform(self):
+    cpe_machine = self.getCpe()
+    cpe_machine.NewPeriodicSession()
+    inform = cpe_machine.EncodeInform()
+    self.assertTrue(len(inform))
+    self.assertTrue('2 PERIODIC' in inform)
+    self.assertFalse('4 VALUE CHANGE' in inform)
+    cpe_machine.event_queue.append(('4 VALUE CHANGE', None))
+    inform = cpe_machine.EncodeInform()
+    self.assertTrue(len(inform))
+    self.assertTrue('2 PERIODIC' in inform)
+    self.assertTrue('4 VALUE CHANGE' in inform)
 
 
 class TestManagementServer(object):
