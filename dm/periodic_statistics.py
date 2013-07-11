@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """Implementation of tr-157 collection of periodic statistics."""
 
@@ -327,14 +327,18 @@ class PeriodicStatistics(BASE157PS):
 
     def FetchSamplesTriggered(self):
       """Check if FetchSamples would have triggered on this sample."""
-      if self._fetch_samples <= 0:
+      # If there are no samples, it's not triggered.
+      if self._samples_collected == 0:
         return False
-      samples_this_period = self._samples_collected % self._report_samples
-      # I'm sure there's a better way to do this, I just can't think
-      # of it.  Want the repeating set of [1..N] not [0..N-1]
-      if samples_this_period == 0:
-        samples_this_period = self._report_samples
-      return samples_this_period == self._fetch_samples
+
+      # Per spec: To disable this trigger mechanism and still collect sampled
+      # statistics, FetchSamples can be set to either 0 or a value greater
+      # than ReportSamples.
+      if self._fetch_samples <= 0 or self._fetch_samples > self._report_samples:
+        return False
+
+      # Check for a multiple of fetch_samples for the trigger.
+      return (self._samples_collected % self._fetch_samples) == 0
 
     def PassiveNotification(self):
       """Check if passive notification is enabled."""
@@ -371,8 +375,9 @@ class PeriodicStatistics(BASE157PS):
       return _MakeSampleSeconds(self._sample_times)
 
     def SetAttributes(self, attrs):
-      """Sets attributes on this object.  The following attributes are
-      supported:
+      """Sets attributes on this object.
+
+      These attributes are supported:
         Notification: boolean.  Only takes affect if NotificationChange is
                       also sent and True.
         AccessList: Array of zero or more entities for which write access

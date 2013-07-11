@@ -410,15 +410,15 @@ class SampleSetTest(unittest.TestCase):
     self.assertTrue(sample_set.FetchSamplesTriggered())
     sample_set._samples_collected = 10
     self.assertFalse(sample_set.FetchSamplesTriggered())
-    sample_set._samples_collected = 17
+    sample_set._samples_collected = 14
     self.assertTrue(sample_set.FetchSamplesTriggered())
-    sample_set._samples_collected = 27
+    sample_set._samples_collected = 21
     self.assertTrue(sample_set.FetchSamplesTriggered())
     # Make sure 0 doesn't do anything
     sample_set._fetch_samples = 0
     sample_set._samples_collected = 10
     self.assertFalse(sample_set.FetchSamplesTriggered())
-    # and if FetchSamples > ReportSamples do nothing
+    # and if FetchSamples > ReportSamples
     sample_set._fetch_samples = 11
     sample_set._samples_collected = 11
     self.assertFalse(sample_set.FetchSamplesTriggered())
