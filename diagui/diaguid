@@ -1,54 +1,14 @@
 #!/usr/bin/python
 #
-"""Implementation of the read-only Diagnostics UI."""
+"""Command to start server in diagui.py."""
 
 __author__ = 'anandkhare@google.com (Anand Khare)'
 
-import google3
-import tornado.ioloop
-import tornado.web
+import diagui
 
-
-# TODO(anandkhare): conditionally redirect only when needed
-class MainHandler(tornado.web.RequestHandler):
-  """If RG's connectivity to cloud is healthy, redirect to fiber.google.com."""
-
-  def get(self):    # pylint: disable=g-bad-name
-    self.redirect('https://fiber.google.com')
-
-
-class DiagnosticsHandler(tornado.web.RequestHandler):
-  """If no connectivity, display local diagnostics UI."""
-
-  def get(self):    # pylint: disable=g-bad-name
-    self.render('template.html')
-
-
-class JsonHandler(tornado.web.RequestHandler):
-  """Provides JSON-formatted content to be displayed in the UI."""
-
-  def get(self):    # pylint: disable=g-bad-name
-    data = dict(username='bransonfamily',
-                password='configured',
-                domain='home.bransonfamily.com')
-    self.set_header('Content-Type', 'text/javascript')
-    self.write(tornado.escape.json_encode(data))
-
-
-settings = {
-    'static_path': 'static',
-    'template_path': '.',
-}
-
-
-application = tornado.web.Application([
-    (r'/', MainHandler),
-    (r'/diagnostics', DiagnosticsHandler),
-    (r'/content.json', JsonHandler),
-], **settings)
 
 # Listen for requests at port 8880
 if __name__ == '__main__':
-  application.listen(8880)
-  tornado.ioloop.IOLoop.instance().start()
-
+  inst = diagui.DiaguiSettings()
+  inst.listen(8880)
+  inst.ioloop.start()
