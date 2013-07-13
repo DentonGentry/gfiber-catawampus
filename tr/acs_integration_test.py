@@ -77,6 +77,7 @@ class TestDeviceModelRoot(core.Exporter):
     params.append('DateTimeParameter')
     params.append('StringParameter')
     params.append('ReadOnlyParameter')
+    params.append('InvalidXMLParameter')
     self.SubObject = TestDeviceModelObject()
     self.ItemList = {}
     self.Item2List = {}
@@ -93,6 +94,7 @@ class TestDeviceModelRoot(core.Exporter):
     self.FloatParameter = 3.14159
     self.DateTimeParameter = datetime.datetime(1999, 12, 31, 23, 59, 58)
     self.StringParameter = 'StringParameter'
+    self.InvalidXMLParameter = '&<>'
 
   @property
   def RaiseIndexError(self):
@@ -532,6 +534,19 @@ class GetParamsRpcTest(unittest.TestCase):
     self.assertEqual(params[3].find('Value').get(XSINS + 'type'), 'xsd:dateTime')
     self.assertEqual(params[4].find('Value').get(XSINS + 'type'), 'xsd:string')
 
+  def testXmlEscaping(self):
+    cpe = getCpe()
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterValues><ParameterNames soapenc:arrayType="{urn:dslforum-org:cwmp-1-2}string[1]"><ns3:string xmlns="urn:dslforum-org:cwmp-1-2" xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" xmlns:ns3="urn:dslforum-org:cwmp-1-2">InvalidXMLParameter</ns3:string></ParameterNames></cwmp:GetParameterValues></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+
+    root = ET.fromstring(str(responseXml))
+    params = root.findall(
+        SOAPNS + 'Body/' + CWMPNS +
+        'GetParameterValuesResponse/ParameterList/ParameterValueStruct')
+    self.assertEqual(len(params), 1)
+    self.assertGreaterEqual(str(responseXml).find('&amp;&lt;&gt;'), 0)
+    self.assertEqual(params[0].find('Value').text, '&<>')
+
   def testGetParamName(self):
     cpe = getCpe()
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterNames><ParameterPath/><NextLevel>true</NextLevel></cwmp:GetParameterNames></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
@@ -542,7 +557,7 @@ class GetParamsRpcTest(unittest.TestCase):
     names = root.findall(
         SOAPNS + 'Body/' + CWMPNS +
         'GetParameterNamesResponse/ParameterList/ParameterInfoStruct/Name')
-    self.assertEqual(len(names), 14)
+    self.assertEqual(len(names), 15)
 
   def testGetParamNameRecursive(self):
     cpe = getCpe(simpleroot=True)
