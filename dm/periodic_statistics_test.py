@@ -3,7 +3,7 @@
 # Copyright 2012 Google Inc. All Rights Reserved.
 #
 # unittest requires method names starting in 'test'
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """Unit tests for periodic_statistics.py."""
 
@@ -30,10 +30,11 @@ class FakeWLAN(tr.core.Exporter):
 
 class PeriodicStatisticsTest(unittest.TestCase):
   def setUp(self):
+    self.save_time_func = periodic_statistics.TIMEFUNC
     self.ps = periodic_statistics.PeriodicStatistics()
 
   def tearDown(self):
-    pass
+    periodic_statistics.TIMEFUNC = self.save_time_func
 
   def testValidateExports(self):
     self.ps.ValidateExports()
@@ -100,13 +101,15 @@ class PeriodicStatisticsTest(unittest.TestCase):
     sample_set.SetParameter('1', sampled_param)
     sample_set.ReportSamples = 1
     sample_set._sample_start_time = 10
-    sample_set.CollectSample(20)
+    periodic_statistics.TIMEFUNC = lambda: 20
+    sample_set.CollectSample()
     self.assertEqual('10', sample_set.SampleSeconds)
     self.assertEqual('10', sampled_param.SampleSeconds)
     self.assertEqual('1000', sampled_param.Values)
     # Take a second sample
     sample_set._sample_start_time = 25
-    sample_set.CollectSample(30)
+    periodic_statistics.TIMEFUNC = lambda: 30
+    sample_set.CollectSample()
     self.assertEqual('5', sample_set.SampleSeconds)
     self.assertEqual('5', sampled_param.SampleSeconds)
     self.assertEqual('2000', sampled_param.Values)
@@ -114,15 +117,18 @@ class PeriodicStatisticsTest(unittest.TestCase):
     # change the ReportSamples
     sample_set.ReportSamples = 3
     sample_set._sample_start_time = 24
-    sample_set.CollectSample(30)
+    periodic_statistics.TIMEFUNC = lambda: 30
+    sample_set.CollectSample()
     sample_set._sample_start_time = 33
-    sample_set.CollectSample(40)
+    periodic_statistics.TIMEFUNC = lambda: 40
+    sample_set.CollectSample()
     self.assertEqual('5,6,7', sample_set.SampleSeconds)
     self.assertEqual('5,6,7', sampled_param.SampleSeconds)
     self.assertEqual('2000,3000,4000', sampled_param.Values)
     # This next sample should cause the oldest sample to be discarded.
     sample_set._sample_start_time = 42
-    sample_set.CollectSample(50)
+    periodic_statistics.TIMEFUNC = lambda: 50
+    sample_set.CollectSample()
     self.assertEqual('6,7,8', sample_set.SampleSeconds)
     self.assertEqual('6,7,8', sampled_param.SampleSeconds)
     self.assertEqual('3000,4000,5000', sampled_param.Values)
@@ -157,6 +163,7 @@ class PeriodicStatisticsTest(unittest.TestCase):
 
 class SampleSetTest(unittest.TestCase):
   def setUp(self):
+    self.save_time_func = periodic_statistics.TIMEFUNC
     self.ps = periodic_statistics.PeriodicStatistics()
     self.m = mox.Mox()
     self.mock_root = self.m.CreateMock(tr.core.Exporter)
@@ -166,6 +173,7 @@ class SampleSetTest(unittest.TestCase):
 
   def tearDown(self):
     self.m.VerifyAll()
+    periodic_statistics.TIMEFUNC = self.save_time_func
 
   def testValidateExports(self):
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
@@ -272,9 +280,10 @@ class SampleSetTest(unittest.TestCase):
     mock_param1.Reference = 'Fake.Param.One'
     mock_param2.Reference = 'Fake.Param.Two'
     sample_set.ClearSamplingData()
-    mock_param1.CollectSample(start_time=10, current_time=20)
-    mock_param2.CollectSample(start_time=10, current_time=20)
-    sample_set.SetSampleTrigger(20)
+    periodic_statistics.TIMEFUNC = lambda: 20
+    mock_param1.CollectSample(start_time=10)
+    mock_param2.CollectSample(start_time=10)
+    sample_set.SetSampleTrigger()
     obj_name = 'Device.PeriodicStatistics.SampleSet.0'
     param_name = obj_name + '.Status'
     mock_root.GetCanonicalName(sample_set).AndReturn(obj_name)
@@ -292,7 +301,8 @@ class SampleSetTest(unittest.TestCase):
     sample_set._report_samples = 1
     sample_set.Enable = 'True'
     sample_set._attributes['Notification'] = 1
-    sample_set.CollectSample(20)
+    periodic_statistics.TIMEFUNC = lambda: 20
+    sample_set.CollectSample()
 
   def testActiveNotify(self):
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
@@ -305,9 +315,11 @@ class SampleSetTest(unittest.TestCase):
     mock_param2 = self.m.CreateMock(PARAMETER)
     mock_param1.Reference = 'Fake.Param.One'
     mock_param2.Reference = 'Fake.Param.Two'
-    mock_param1.CollectSample(start_time=10, current_time=20)
-    mock_param2.CollectSample(start_time=10, current_time=20)
-    sample_set.SetSampleTrigger(20)
+    periodic_statistics.TIMEFUNC = lambda: 20
+    mock_param1.CollectSample(start_time=10)
+    mock_param2.CollectSample(start_time=10)
+    periodic_statistics.TIMEFUNC = lambda: 20
+    sample_set.SetSampleTrigger()
     obj_name = 'Device.PeriodicStatistics.SampleSet.0'
     param_name = obj_name + '.Status'
     sample_set.ClearSamplingData()
@@ -327,7 +339,8 @@ class SampleSetTest(unittest.TestCase):
     sample_set.Enable = 'True'
     sample_set._attributes['Notification'] = 2
     sample_set._sample_start_time = 10
-    sample_set.CollectSample(20)
+    periodic_statistics.TIMEFUNC = lambda: 20
+    sample_set.CollectSample()
 
   def testClearSamplingData(self):
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
@@ -354,16 +367,29 @@ class SampleSetTest(unittest.TestCase):
     self.assertEqual(0, len(param2._values))
 
   def testCalcTimeToNext(self):
+    # Test with no sample period set.
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
     sample_set._sample_interval = 60
-    self.assertEqual(60, sample_set.CalcTimeToNextSample(0))
+    start_time = time.mktime((2000, 7, 7, 6, 0, 0, -1, -1, -1))
+    self.assertEqual(60, sample_set.CalcTimeToNextSample(start_time))
+    self.assertEqual(50, sample_set.CalcTimeToNextSample(start_time+10))
+    self.assertEqual(10, sample_set.CalcTimeToNextSample(start_time+50))
+    self.assertEqual(10, sample_set.CalcTimeToNextSample(start_time+50+60*30))
+    sample_set._sample_interval = 3600
+    self.assertEqual(3600, sample_set.CalcTimeToNextSample(start_time))
+    self.assertEqual(3599, sample_set.CalcTimeToNextSample(start_time+1))
+    self.assertEqual(3599, sample_set.CalcTimeToNextSample(start_time+3601))
+
     sample_set.TimeReference = '2012-06-1T1:00:00.0Z'
     sample_set._sample_interval = 15  # Every 15 seconds.
-
     # Check time to sample if current time is 5 seconds after the timeref.
+    # And check that it works if samples collected is > 0
     current_time = time.mktime((2012, 6, 1, 1, 0, 5, -1, -1, -1))
     time_till_sample = sample_set.CalcTimeToNextSample(current_time)
     self.assertEqual(10, time_till_sample)
+    sample_set._samples_collected = 10
+    self.assertEqual(10, time_till_sample)
+    sample_set._samples_collected = 0
 
     # Check time to sample if current time is 16 seconds after the timeref.
     current_time = time.mktime((2012, 6, 1, 1, 0, 16, -1, -1, -1))
