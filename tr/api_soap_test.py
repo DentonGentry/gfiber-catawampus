@@ -93,8 +93,10 @@ class ApiSoapTest(unittest.TestCase):
     dt2 = datetime.datetime(1999, 12, 31, 23, 59, 58)
     self.assertEqual(api_soap.Soapify(dt2),
                      ('xsd:dateTime', '1999-12-31T23:59:58Z'))
-    self.assertEqual(api_soap.Soapify('Invalid XML characters &<>'),
-                     ('xsd:string', 'Invalid XML characters &amp;&lt;&gt;'))
+    # If someone adds XML escaping in Soapify it will break this test.
+    # Do not "fix" the test. XML escaping is handled at a higher
+    # layer, see testXmlEscaping in acs_integration_test.py.
+    self.assertEqual(api_soap.Soapify('&&&'), ('xsd:string', '&&&'))
 
 
 if __name__ == '__main__':

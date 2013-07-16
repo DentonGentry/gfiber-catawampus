@@ -475,8 +475,8 @@ class PeriodicStatistics(BASE157PS):
         try:
           # TODO(jnewlin): Update _suspect_data.
           current_value = self._root.GetExport(self.Reference)
-          (_, xmlsafe) = tr.api_soap.Soapify(current_value)
-          self._values.append(xmlsafe)
+          (_, soapstring) = tr.api_soap.Soapify(current_value)
+          self._values.append(soapstring)
           self._sample_times.append((start_time, current_time))
         except (KeyError, AttributeError, IndexError):
           pass

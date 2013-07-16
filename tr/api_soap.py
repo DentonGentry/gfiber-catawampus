@@ -42,7 +42,7 @@ def Soapify(value):
   elif isinstance(value, datetime.datetime):
     return ('xsd:dateTime', cwmpdate.format(value))
   else:
-    return ('xsd:string', unicode(xml.sax.saxutils.escape(value)))
+    return ('xsd:string', unicode(value))
 
 
 class Encode(object):
