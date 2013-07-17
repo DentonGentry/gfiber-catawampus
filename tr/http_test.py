@@ -92,7 +92,7 @@ class MockHttpClient(object):
     mock_http_client_stop()
 
 
-class MockPlatformConfig(object):
+class MockAcsConfig(object):
   def GetAcsUrl(self):
     return 'http://example.com/cwmp'
 
@@ -141,7 +141,7 @@ class HttpTest(tornado.testing.AsyncTestCase):
     cpe_machine = http.Listen(ip=None, port=0,
                               ping_path='/ping/http_test',
                               acs=None, cpe=cpe, cpe_listener=False,
-                              platform_config=MockPlatformConfig(),
+                              acs_config=MockAcsConfig(),
                               ioloop=self.io_loop)
     return cpe_machine
 

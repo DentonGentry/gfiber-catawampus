@@ -29,6 +29,7 @@ import dm.periodic_statistics
 import dm.storage
 import platform_config
 import tornado.ioloop
+import tr.acs_config
 import tr.core
 import tr.download
 import tr.tr181_v2_2 as tr181
@@ -44,29 +45,14 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
   """PlatformConfig for FakeCPE."""
 
   def __init__(self, ioloop=None):
-    platform_config.PlatformConfigMeta.__init__(self)
+    super(PlatformConfig, self).__init__()
+    tr.acs_config.SET_ACS = '/bin/true'
 
   def ConfigDir(self):
     return '/tmp/catawampus.%s/config/' % FakeCPEInstance()
 
   def DownloadDir(self):
     return '/tmp/catawampus.%s/download/' % FakeCPEInstance()
-
-  def GetAcsUrl(self):
-    """FakeCPE requires a --acs_url parameter, there is no platform handling."""
-    return None
-
-  def SetAcsUrl(self, unused_url):
-    raise AttributeError('URL is read-only')
-
-  def InvalidateAcsUrl(self, unused_url):
-    raise AttributeError('Cannot invalidate URL')
-
-  def AcsAccessAttempt(self, url):
-    pass
-
-  def AcsAccessSuccess(self, url):
-    pass
 
 
 class InstallerFakeCPE(tr.download.Installer):

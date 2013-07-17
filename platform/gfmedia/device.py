@@ -63,9 +63,6 @@ PYNETIFCONF = pynetlinux.ifconfig.Interface
 INTERNAL_ERROR = 9002
 
 # Unit tests can override these with fake data
-ACSCONNECTED = '/tmp/gpio/ledcontrol/acsconnected'
-ACSTIMEOUTMIN = 2*60*60
-ACSTIMEOUTMAX = 4*60*60
 CONFIGDIR = '/config/tr69'
 DOWNLOADDIR = '/tmp'
 GINSTALL = '/bin/ginstall.py'
@@ -75,9 +72,7 @@ NAND_MB = '/proc/sys/dev/repartition/nand_size_mb'
 PROC_CPUINFO = '/proc/cpuinfo'
 REBOOT = '/bin/tr69_reboot'
 REPOMANIFEST = '/etc/repo-buildroot-manifest'
-SET_ACS = 'set-acs'
 VERSIONFILE = '/etc/version'
-TIMEOUTFILE = '/tmp/cwmp/acs_timeout'
 
 
 def _has_wifi():
@@ -92,95 +87,13 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
   """PlatformConfig for GFMedia devices."""
 
   def __init__(self, ioloop=None):
-    platform_config.PlatformConfigMeta.__init__(self)
-    self._ioloop = ioloop or tornado.ioloop.IOLoop.instance()
-    self.acs_timeout = None
-    self.default_acs_timeout = random.randrange(ACSTIMEOUTMIN, ACSTIMEOUTMAX)
-    self.acs_timeout_url = None
-
-  def ACSTimeout(self, filename, default):
-    """Get timeout value from file for testing."""
-    try:
-      return int(open(filename).readline().strip())
-    except (IOError, ValueError):
-      pass
-    return default
+    super(PlatformConfig, self).__init__()
 
   def ConfigDir(self):
     return CONFIGDIR
 
   def DownloadDir(self):
     return DOWNLOADDIR
-
-  def GetAcsUrl(self):
-    setacs = subprocess.Popen([SET_ACS, 'print'], stdout=subprocess.PIPE)
-    out, _ = setacs.communicate(None)
-    return setacs.returncode == 0 and out.strip() or ''
-
-  def SetAcsUrl(self, url):
-    set_acs_url = url.strip() or 'clear'
-    rc = subprocess.call(args=[SET_ACS, 'cwmp', set_acs_url])
-    if rc != 0:
-      raise AttributeError('set-acs failed')
-
-  def _BlessAcsUrl(self, url):
-    set_acs_url = url.strip() or 'clear'
-    rc = subprocess.call(args=[SET_ACS, 'bless', set_acs_url])
-    if rc != 0:
-      raise AttributeError('set-acs failed')
-
-  def InvalidateAcsUrl(self, url):
-    try:
-      subprocess.check_call(args=[SET_ACS, 'timeout', url.strip()])
-    except subprocess.CalledProcessError:
-      return False
-    return True
-
-  def _AcsAccessClearTimeout(self):
-    if self.acs_timeout:
-      self._ioloop.remove_timeout(self.acs_timeout)
-      self.acs_timeout = None
-
-  def _AcsAccessTimeout(self):
-    """Timeout for AcsAccess.
-
-    There has been no successful connection to ACS in acs timeout seconds.
-    """
-    try:
-      os.remove(ACSCONNECTED)
-    except OSError as e:
-      if e.errno != errno.ENOENT:
-        raise
-      # No such file == harmless
-
-    try:
-      rc = subprocess.call(args=[SET_ACS, 'timeout',
-                                 self.acs_timeout_url.strip()])
-    except OSError:
-      rc = -1
-
-    if rc != 0:
-      # Log the failure
-      print '%s timeout %s failed %d' % (SET_ACS, self.acs_timeout_url, rc)
-
-  def AcsAccessAttempt(self, url):
-    """Called when a connection to the ACS is attempted."""
-    if url != self.acs_timeout_url:
-      self._AcsAccessClearTimeout()  # new ACS, restart timer
-      self.acs_timeout_url = url
-    if not self.acs_timeout:
-      self.acs_timeout = self._ioloop.add_timeout(
-          datetime.timedelta(
-              seconds=self.ACSTimeout(TIMEOUTFILE, self.default_acs_timeout)),
-              self._AcsAccessTimeout)
-
-  def AcsAccessSuccess(self, url):
-    """Called when a session with the ACS successfully concludes."""
-    self._AcsAccessClearTimeout()
-    # We only *need* to create a 0 byte file, but write URL for debugging
-    with open(ACSCONNECTED, 'w') as f:
-      f.write(url)
-    self._BlessAcsUrl(url)
 
 
 class DeviceId(dm.device_info.DeviceIdMeta):

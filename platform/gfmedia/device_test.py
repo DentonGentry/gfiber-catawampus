@@ -46,7 +46,6 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def setUp(self):
     super(DeviceTest, self).setUp()
-    self.old_ACSCONNECTED = device.ACSCONNECTED
     self.old_CONFIGDIR = device.CONFIGDIR
     self.old_GINSTALL = device.GINSTALL
     self.old_HNVRAM = device.HNVRAM
@@ -55,16 +54,13 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.old_PROC_CPUINFO = device.PROC_CPUINFO
     self.old_REBOOT = device.REBOOT
     self.old_REPOMANIFEST = device.REPOMANIFEST
-    self.old_SET_ACS = device.SET_ACS
     self.old_VERSIONFILE = device.VERSIONFILE
     self.install_cb_called = False
     self.install_cb_faultcode = None
     self.install_cb_faultstring = None
-    self.old_TIMEOUTFILE = device.TIMEOUTFILE
 
   def tearDown(self):
     super(DeviceTest, self).tearDown()
-    device.ACSCONNECTED = self.old_ACSCONNECTED
     device.CONFIGDIR = self.old_CONFIGDIR
     device.GINSTALL = self.old_GINSTALL
     device.HNVRAM = self.old_HNVRAM
@@ -73,9 +69,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     device.PROC_CPUINFO = self.old_PROC_CPUINFO
     device.REBOOT = self.old_REBOOT
     device.REPOMANIFEST = self.old_REPOMANIFEST
-    device.SET_ACS = self.old_SET_ACS
     device.VERSIONFILE = self.old_VERSIONFILE
-    device.TIMEOUTFILE = self.old_TIMEOUTFILE
 
   def testGetSerialNumber(self):
     did = device.DeviceId()
@@ -178,60 +172,6 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.assertTrue(self.install_cb_called)
     self.assertEqual(self.install_cb_faultcode, 9002)
     self.assertTrue(self.install_cb_faultstring)
-
-  def testSetAcs(self):
-    device.SET_ACS = 'testdata/device/set-acs'
-    scriptout = tempfile.NamedTemporaryFile()
-    os.environ['TESTOUTPUT'] = scriptout.name
-    pc = device.PlatformConfig(ioloop=MockIoloop())
-    self.assertEqual(pc.GetAcsUrl(), 'bar')
-    pc.SetAcsUrl('foo')
-    self.assertEqual(scriptout.read().strip(), 'cwmp foo')
-
-  def testClearAcs(self):
-    device.SET_ACS = 'testdata/device/set-acs'
-    scriptout = tempfile.NamedTemporaryFile()
-    os.environ['TESTOUTPUT'] = scriptout.name
-    pc = device.PlatformConfig(ioloop=MockIoloop())
-    pc.SetAcsUrl('')
-    self.assertEqual(scriptout.read().strip(), 'cwmp clear')
-
-  def testAcsAccess(self):
-    device.SET_ACS = 'testdata/device/set-acs'
-    scriptout = tempfile.NamedTemporaryFile()
-    os.environ['TESTOUTPUT'] = scriptout.name
-    ioloop = MockIoloop()
-    tmpdir = tempfile.mkdtemp()
-    tmpfile = os.path.join(tmpdir, 'acsconnected')
-    self.assertRaises(OSError, os.stat, tmpfile)  # File does not exist yet
-    device.ACSCONNECTED = tmpfile
-    pc = device.PlatformConfig(ioloop)
-    acsurl = 'this is the acs url'
-
-    # Simulate ACS connection
-    pc.AcsAccessAttempt(acsurl)
-    pc.AcsAccessSuccess(acsurl)
-    self.assertTrue(os.stat(tmpfile))
-    self.assertEqual(open(tmpfile, 'r').read(), acsurl)
-    self.assertTrue(ioloop.timeout)
-    self.assertTrue(ioloop.callback)
-
-    # Simulate timeout
-    pc.AcsAccessAttempt(acsurl)
-    scriptout.truncate()
-    ioloop.callback()
-    self.assertRaises(OSError, os.stat, tmpfile)
-    self.assertEqual(scriptout.read().strip(), 'timeout ' + acsurl)
-
-    # cleanup
-    shutil.rmtree(tmpdir)
-
-  def testGetAcsUrlTimeout(self):
-    device.TIMEOUTFILE = 'testdata/device/garbage'
-    pc = device.PlatformConfig(ioloop=MockIoloop())
-    self.assertEqual(pc.ACSTimeout('/no_such_file_at_this_path', 60), 60)
-    self.assertEqual(pc.ACSTimeout('testdata/device/garbage', 60), 60)
-    self.assertEqual(pc.ACSTimeout('testdata/device/timeout', 60), 120)
 
 
 if __name__ == '__main__':

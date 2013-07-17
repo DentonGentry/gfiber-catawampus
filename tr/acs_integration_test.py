@@ -217,7 +217,7 @@ class MockDownloadManager(object):
     self.reboot_command_key = command_key
 
 
-class FakePlatformConfig(object):
+class FakeAcsConfig(object):
   def GetAcsUrl(self):
     return None
 
@@ -229,7 +229,7 @@ def getCpeAndModel(simpleroot=False):
   cpe_machine = http.Listen(ip=None, port=0,
                             ping_path='/ping/acs_integration_test',
                             acs=None, cpe=cpe, cpe_listener=False,
-                            platform_config=FakePlatformConfig())
+                            acs_config=FakeAcsConfig())
   return cpe_machine, root
 
 

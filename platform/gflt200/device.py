@@ -15,20 +15,17 @@
 
 # TR-069 has mandatory attribute names that don't comply with policy
 # Modified based on Denton's device.py for Bruno Platform
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
-"""Data Model for GFiber ONU"""
+"""Data Model for GFiber ONU."""
 
 __author__ = 'zixia@google.com (Ted Huang)'
 
 # Modified based on gfmedia/device.py by Denton Gentry
 
 
-import datetime
 import fcntl
 import os
-import sys
-import random
 import subprocess
 import traceback
 
@@ -53,9 +50,6 @@ PYNETIFCONF = pynetlinux.ifconfig.Interface
 INTERNAL_ERROR = 9002
 
 # Unit tests can override these with fake data
-ACSCONNECTED = '/tmp/acsconnected'
-ACSTIMEOUTMIN = 2*60*60
-ACSTIMEOUTMAX = 4*60*60
 CONFIGDIR = '/config/tr69'
 DOWNLOADDIR = '/tmp'
 SYSVAR = '/usr/bin/sysvar_cmd'
@@ -64,7 +58,6 @@ PRISMINSTALL = 'prisminstall.py'
 PROC_CPUINFO = '/proc/cpuinfo'
 REBOOT = 'tr69_reboot'
 REPOMANIFEST = '/etc/repo-buildroot-manifest'
-SET_ACS = 'set-acs'
 VERSIONFILE = '/etc/version'
 
 
@@ -72,11 +65,8 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
   """PlatformConfig for GFLT200 devices."""
 
   def __init__(self, ioloop=None):
-    platform_config.PlatformConfigMeta.__init__(self)
+    super(PlatformConfig, self).__init__()
     self._ioloop = ioloop or tornado.ioloop.IOLoop.instance()
-    self.acs_timeout = None
-    self.acs_timeout_interval = random.randrange(ACSTIMEOUTMIN, ACSTIMEOUTMAX)
-    self.acs_timeout_url = None
 
   def ConfigDir(self):
     return CONFIGDIR
@@ -84,82 +74,13 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
   def DownloadDir(self):
     return DOWNLOADDIR
 
-  def GetAcsUrl(self):
-    setacs = subprocess.Popen([SET_ACS, 'print'], stdout=subprocess.PIPE)
-    out, _ = setacs.communicate(None)
-    return setacs.returncode == 0 and out.strip() or ''
 
-  def SetAcsUrl(self, url):
-    set_acs_url = url.strip() or 'clear'
-    rc = subprocess.call(args=[SET_ACS, 'cwmp', set_acs_url])
-    if rc != 0:
-      raise AttributeError('set-acs failed')
-
-  def _BlessAcsUrl(self, url):
-    set_acs_url = url.strip() or 'clear'
-    rc = subprocess.call(args=[SET_ACS, 'bless', set_acs_url])
-    if rc != 0:
-      raise AttributeError('set-acs failed')
-
-  def InvalidateAcsUrl(self, url):
-    try:
-      subprocess.check_call(args=[SET_ACS, 'timeout', url.strip()])
-    except subprocess.CalledProcessError:
-      return False
-    return True
-
-  def _AcsAccessClearTimeout(self):
-    if self.acs_timeout:
-      self._ioloop.remove_timeout(self.acs_timeout)
-      self.acs_timeout = None
-
-  def _AcsAccessTimeout(self):
-    """Timeout for AcsAccess.
-
-    There has been no successful connection to ACS in self.acs_timeout_interval
-    seconds.
-    """
-    try:
-      os.remove(ACSCONNECTED)
-    except OSError as e:
-      if e.errno != errno.ENOENT:
-        raise
-      # No such file == harmless
-
-    try:
-      rc = subprocess.call(args=[SET_ACS, 'timeout',
-                                 self.acs_timeout_url.strip()])
-    except OSError:
-      rc = -1
-
-    if rc != 0:
-      # Log the failure
-      print '%s timeout %s failed %d' % (SET_ACS, self.acs_timeout_url, rc)
-
-  def AcsAccessAttempt(self, url):
-    """Called when a connection to the ACS is attempted."""
-    if url != self.acs_timeout_url:
-      self._AcsAccessClearTimeout()  # new ACS, restart timer
-      self.acs_timeout_url = url
-    if not self.acs_timeout:
-      self.acs_timeout = self._ioloop.add_timeout(
-          datetime.timedelta(seconds=self.acs_timeout_interval),
-          self._AcsAccessTimeout)
-
-  def AcsAccessSuccess(self, url):
-    """Called when a session with the ACS successfully concludes."""
-    self._AcsAccessClearTimeout()
-    # We only *need* to create a 0 byte file, but write URL for debugging
-    with open(ACSCONNECTED, 'w') as f:
-      f.write(url)
-    self._BlessAcsUrl(url)
-
-
-# TODO: (zixia) based on real hardware chipset
+# TODO(zixia): based on real hardware chipset
 class DeviceId(dm.device_info.DeviceIdMeta):
+  """DeviceId for the GFLT200 devices."""
 
   def _GetSysVarParam(self, param, default):
-    """Get device statistics from SYSVAR partition"""
+    """Get device statistics from SYSVAR partition."""
 
     cmd = [SYSVAR, '-g', param]
     devnull = open('/dev/null', 'w')
@@ -227,6 +148,7 @@ class DeviceId(dm.device_info.DeviceIdMeta):
 
 
 class Installer(tr.download.Installer):
+  """Control install of new software on device."""
 
   def __init__(self, filename, ioloop=None):
     tr.download.Installer.__init__(self)
@@ -387,7 +309,7 @@ class InternetGatewayDevice(BASE98IGD):
     self.PeriodicStatistics = periodic_stats
 
 
-def PlatformInit(name, device_model_root):
+def PlatformInit(unused_name, device_model_root):
   """Create platform-specific device models and initialize platform."""
   tr.download.INSTALLER = Installer
   params = []

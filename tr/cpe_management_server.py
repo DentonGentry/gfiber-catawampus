@@ -67,14 +67,13 @@ class ServerParameters(object):
 class CpeManagementServer(object):
   """Inner class implementing tr-98 & 181 ManagementServer."""
 
-  def __init__(self, platform_config, port, ping_path,
+  def __init__(self, acs_config, port, ping_path,
                acs_url=None, get_parameter_key=None,
                start_periodic_session=None, ioloop=None,
                restrict_acs_hosts=None):
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self.restrict_acs_hosts = restrict_acs_hosts
     self.acs_url = acs_url
-    self.platform_config = platform_config
     self.port = port
     self.ping_path = ping_path
     self.get_parameter_key = get_parameter_key
@@ -83,7 +82,7 @@ class CpeManagementServer(object):
     self._periodic_callback = None
     self._start_periodic_timeout = None
     self.config_copy = None
-
+    self._acs_config = acs_config
     self.config = ServerParameters()
     self.ConfigurePeriodicInform()
 
@@ -197,7 +196,7 @@ class CpeManagementServer(object):
       except ValueError as e:
         print 'Supplied acs_url %r is invalid (%s)' % (self.acs_url, e)
 
-    url = self.platform_config.GetAcsUrl()
+    url = self._acs_config.GetAcsUrl()
     max_attempts = 20
     while url and max_attempts:
       try:
@@ -205,12 +204,12 @@ class CpeManagementServer(object):
         return url
       except ValueError as e:
         print 'Invalidating url %r (%s)' % (url, e)
-        if not self.platform_config.InvalidateAcsUrl(url):
+        if not self._acs_config.InvalidateAcsUrl(url):
           print ('set-acs failed to invalidate url!'
                  'Something is extremely broken.')
           sys.exit(100)
         url = None
-      url = self.platform_config.GetAcsUrl()
+      url = self._acs_config.GetAcsUrl()
       max_attempts -= 1
     # If we get here, there is no valid platform url.
     return None
@@ -220,7 +219,7 @@ class CpeManagementServer(object):
     if self.acs_url:
       self.acs_url = value
     else:
-      self.platform_config.SetAcsUrl(value)
+      self._acs_config.SetAcsUrl(value)
 
   URL = property(GetURL, SetURL, None, 'tr-98/181 ManagementServer.URL')
 
