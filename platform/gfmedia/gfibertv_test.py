@@ -140,6 +140,11 @@ class GfiberTvTests(unittest.TestCase):
     os.unlink(self.easport_fname)
     gfibertv.EASPORTFILE[0] = self.easport_fname
 
+    (tcpalgorithm_handle, self.tcpalgorithm_fname) = tempfile.mkstemp(dir=self.tmpdir)
+    os.close(tcpalgorithm_handle)
+    os.unlink(self.tcpalgorithm_fname)
+    gfibertv.TCPALGORITHM[0] = self.tcpalgorithm_fname
+
   def tearDown(self):
     xmlrpclib.ServerProxy('http://localhost:%d' % srv_port).Quit()
     self.server_thread.join()
@@ -347,6 +352,17 @@ class GfiberTvTests(unittest.TestCase):
     self.assertEqual(dvrspace.PermanentMBytes, 1)
     self.assertEqual(dvrspace.TransientFiles, 20)
     self.assertEqual(dvrspace.TransientMBytes, 2)
+
+  def testTcpAlgorithm(self):
+    open(self.tcpalgorithm_fname, 'w').write('westwood')
+    gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
+    self.assertEqual(gftv.TcpAlgorithm, 'westwood')
+    gftv.TcpAlgorithm = ''
+    self.loop.RunOnce()
+    self.assertFalse(os.path.exists(self.tcpalgorithm_fname))
+    gftv.TcpAlgorithm = 'foo'
+    self.loop.RunOnce()
+    self.assertEqual(open(self.tcpalgorithm_fname).read(), 'foo\n')
 
 
 if __name__ == '__main__':

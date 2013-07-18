@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """Implementation of tr-157 collection of periodic statistics."""
 
@@ -23,9 +23,15 @@ __author__ = 'jnewlin@google.com (John Newlin)'
 
 import datetime
 import time
+import tr.api_soap
 import tr.cwmpbool
 import tr.session
 import tr.tr157_v1_3
+
+
+def _timefunc():
+  return time.time()
+
 
 # TODO(jnewlin): Denton has suggested that we might need to import a newer
 # version of the schema.
@@ -34,6 +40,11 @@ BASE157PS = tr.tr157_v1_3.InternetGatewayDevice_v1_7.PeriodicStatistics
 CALC_MODES = frozenset(
     ['Latest', 'Minimum', 'Maximum', 'Average'])
 SAMPLE_MODES = frozenset(['Current', 'Change'])
+# The spec says when TimeReference isn't set, we can pick the phase.  This
+# seems as good as any other.  Set the phase to start at the beginning of
+# a day/hour/minute/second.
+DEFAULT_TIME_REF_SEC = time.mktime((1970, 1, 1, 0, 0, 0, -1, -1, -1))
+TIMEFUNC = _timefunc
 
 
 def _MakeSampleSeconds(sample_times):
@@ -224,9 +235,9 @@ class PeriodicStatistics(BASE157PS):
         self._cpe.ioloop.remove_timeout(self._pending_timeout)
         self._pending_timeout = None
 
-    def SetSampleTrigger(self, current_time=None):
+    def SetSampleTrigger(self):
       """Sets the timeout to collect the next sample."""
-      current_time = current_time if current_time else time.time()
+      current_time = TIMEFUNC()
       self.RemoveTimeout()
       self._sample_start_time = current_time
       time_to_sample = self.CalcTimeToNextSample(current_time)
@@ -262,21 +273,17 @@ class PeriodicStatistics(BASE157PS):
         self.StopSampling()
 
     def CalcTimeToNextSample(self, current_time):
-      """Return time until the next sample should be collected."""
-      # The simple case, if TimeReference is not set, the time till next
-      # sample is simply the SampleInterval.
-      # If we've already collected one sample, just keep incrementing
-      # at the sample interval, no need to realign with the clock each sample.
-      if self._samples_collected != 0 or not self._time_reference:
-        return max(1, self._sample_interval)
-
+      # Don't allow intervals less than 1, that could be bad.
+      interval = max(1, self._sample_interval)
       # self._time_reference is a datetime object.
-      time_ref = time.mktime(self._time_reference.timetuple())
-      delta_seconds = (current_time - time_ref) % self._sample_interval
-      tts = int(round(self._sample_interval - delta_seconds))
+      ref_seconds = DEFAULT_TIME_REF_SEC
+      if self._time_reference is not None:
+        ref_seconds = time.mktime(self._time_reference.timetuple())
+      delta_seconds = (current_time - ref_seconds) % interval
+      tts = int(round(interval - delta_seconds))
       return max(1, tts)
 
-    def CollectSample(self, current_time=None):
+    def CollectSample(self):
       """Collects a sample for each of the Parameters.
 
       Iterate over all of the Parameter objects and collect samples
@@ -284,9 +291,6 @@ class PeriodicStatistics(BASE157PS):
       back to the ACS that the sampling is finished.  If another sample
       is required, setup a trigger to collect the next sample.
       TODO(jnewlin): Add code to trigger the ACS.
-
-      Args:
-        current_time: The current time, usually from time.time()
       """
       self.RemoveTimeout()
       if not self._root or not self._cpe:
@@ -297,23 +301,19 @@ class PeriodicStatistics(BASE157PS):
       # stats collections and/or actual ACS sessions.
       tr.session.cache.flush()
 
-      current_time = current_time if current_time else time.time()
+      use_time = TIMEFUNC()
       sample_start_time = self._sample_start_time
       if not sample_start_time:
-        sample_start_time = current_time
+        sample_start_time = use_time
       self._sample_start_time = None
-      sample_end_time = current_time
+      sample_end_time = use_time
       self._samples_collected += 1
       self._sample_times.append((sample_start_time, sample_end_time))
       # This will keep just the last ReportSamples worth of samples.
       self._sample_times = self._sample_times[-self._report_samples:]
 
       for key in self._parameter_list:
-        self._parameter_list[key].CollectSample(
-            start_time=sample_start_time, current_time=current_time)
-
-      if self._enable:
-        self.SetSampleTrigger(current_time)
+        self._parameter_list[key].CollectSample(start_time=sample_start_time)
 
       if self.FetchSamplesTriggered():
         if self.PassiveNotification() or self.ActiveNotification():
@@ -324,16 +324,25 @@ class PeriodicStatistics(BASE157PS):
           if self.ActiveNotification():
             self._cpe.NewValueChangeSession()
 
+      # Do this last to get the trigger better aligned with when it's
+      # supposed to fire.
+      if self._enable:
+        self.SetSampleTrigger()
+
     def FetchSamplesTriggered(self):
       """Check if FetchSamples would have triggered on this sample."""
-      if self._fetch_samples <= 0:
+      # If there are no samples, it's not triggered.
+      if self._samples_collected == 0:
         return False
-      samples_this_period = self._samples_collected % self._report_samples
-      # I'm sure there's a better way to do this, I just can't think
-      # of it.  Want the repeating set of [1..N] not [0..N-1]
-      if samples_this_period == 0:
-        samples_this_period = self._report_samples
-      return samples_this_period == self._fetch_samples
+
+      # Per spec: To disable this trigger mechanism and still collect sampled
+      # statistics, FetchSamples can be set to either 0 or a value greater
+      # than ReportSamples.
+      if self._fetch_samples <= 0 or self._fetch_samples > self._report_samples:
+        return False
+
+      # Check for a multiple of fetch_samples for the trigger.
+      return (self._samples_collected % self._fetch_samples) == 0
 
     def PassiveNotification(self):
       """Check if passive notification is enabled."""
@@ -370,8 +379,9 @@ class PeriodicStatistics(BASE157PS):
       return _MakeSampleSeconds(self._sample_times)
 
     def SetAttributes(self, attrs):
-      """Sets attributes on this object.  The following attributes are
-      supported:
+      """Sets attributes on this object.
+
+      These attributes are supported:
         Notification: boolean.  Only takes affect if NotificationChange is
                       also sent and True.
         AccessList: Array of zero or more entities for which write access
@@ -460,16 +470,16 @@ class PeriodicStatistics(BASE157PS):
         """Sets the root of the hierarchy, needed for GetExport."""
         self._root = root
 
-      def CollectSample(self, start_time=None, current_time=None):
+      def CollectSample(self, start_time):
         """Collects one new sample point."""
-        current_time = current_time if current_time else time.time()
-        start_time = start_time if start_time else current_time
+        current_time = TIMEFUNC()
         if not self.Enable:
           return
         try:
           # TODO(jnewlin): Update _suspect_data.
           current_value = self._root.GetExport(self.Reference)
-          self._values.append(str(current_value))
+          (_, soapstring) = tr.api_soap.Soapify(current_value)
+          self._values.append(soapstring)
           self._sample_times.append((start_time, current_time))
         except (KeyError, AttributeError, IndexError):
           pass

@@ -76,6 +76,12 @@
           <unsignedInt/>
         </syntax>
       </parameter>
+      <parameter name="TcpAlgorithm" access="readWrite">
+        <description>TCP congestion control algorithm to use by default. This setting takes effect after reboot.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
 
       <object name="DvrSpace." access="readOnly" minEntries="1" maxEntries="1">
         <parameter name="PermanentFiles" access="readOnly">

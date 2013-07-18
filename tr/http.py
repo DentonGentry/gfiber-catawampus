@@ -289,16 +289,22 @@ class CPEStateMachine(object):
       # periodic inform.  So it's not a bug if there is no value change
       # event in the event queue.
 
-      # Take all of the parameters and put union them with the another
-      # set that has been previously sent.  When we receive an inform
-      # from the ACS we clear the _sent version.  This fixes a bug where
-      # we send this list of params to the ACS, followed by a PerioidStat
-      # adding itself to the list here, followed by getting an ack from the
-      # ACS where we clear the list.  Now we just clear the list of the
-      # params that was sent when the ACS acks.
+      # Take all of the parameters and union them with another set that has
+      # been previously sent.  When we receive an inform from the ACS we clear
+      # the _sent version.  This fixes a bug where we send this list of params
+      # to the ACS, followed by a PerioidStat adding itself to the list here,
+      # followed by getting an ack from the ACS where we clear the list.  Now
+      # we just clear the list of the params that was sent when the ACS acks.
       self._changed_parameters_sent.update(self._changed_parameters)
       self._changed_parameters.clear()
-      parameter_list += self._changed_parameters_sent
+      if self._changed_parameters_sent:
+        # Per spec: Whenever a parameter change is sent in the Inform message
+        # due to a non-zero Notification setting, the Event code "4 VALUE
+        # CHANGE" MUST be included in the list of Events.
+        vc_event = ('4 VALUE CHANGE', None)
+        if vc_event not in events:
+          events.append(vc_event)
+        parameter_list += self._changed_parameters_sent
     except (AttributeError, KeyError):
       pass
     req = self.encode.Inform(root=self.cpe.root, events=events,
@@ -318,6 +324,7 @@ class CPEStateMachine(object):
     self.Send(cmpl)
 
   def GetNext(self):
+    """Return next request to process."""
     if not self.session:
       return None
     if self.session.inform_required():
@@ -330,6 +337,7 @@ class CPEStateMachine(object):
     return ''
 
   def Run(self):
+    """Run one transaction with the ACS."""
     print 'RUN'
     if not self.session:
       print 'No ACS session, returning.'
@@ -389,6 +397,7 @@ class CPEStateMachine(object):
     self.session.http.fetch(req, self.GotResponse)
 
   def GotResponse(self, response):
+    """Callback function invoked with the response an HTTP query to the ACS."""
     self.outstanding = None
     print 'CPE RECEIVED (at %s):' % time.ctime()
     if not self.session:
@@ -494,7 +503,7 @@ class CPEStateMachine(object):
     # In this case, don't start the new inform, wait for the session
     # retry.  The retry has a maximum timer of periodic session.
     reason = '2 PERIODIC'
-    if not (reason, None) in self.event_queue:
+    if (reason, None) not in self.event_queue:
       self._NewSession(reason)
 
   def SetNotificationParameters(self, parameters):
@@ -522,7 +531,7 @@ class CPEStateMachine(object):
       return
 
     reason = '4 VALUE CHANGE'
-    if not (reason, None) in self.event_queue:
+    if (reason, None) not in self.event_queue:
       self._NewSession(reason)
 
   def PingReceived(self):
@@ -567,6 +576,7 @@ class CPEStateMachine(object):
 def Listen(ip, port, ping_path, acs, cpe, cpe_listener, platform_config,
            acs_url=None, ping_ip6dev=None, fetch_args=None, ioloop=None,
            restrict_acs_hosts=None):
+  """Listens for "pings" that start a new session with the ACS."""
   if not ping_path:
     ping_path = '/ping/%x' % random.getrandbits(120)
   while ping_path.startswith('/'):

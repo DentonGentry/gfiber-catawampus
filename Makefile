@@ -11,6 +11,7 @@ all: tr/all
 test: all \
   tr/test \
   dm/test \
+  diagui/test \
   platform/fakecpe/test \
   platform/gfmedia/test \
   platform/gflt200/test \
@@ -43,7 +44,7 @@ DSTDIR?=/tmp/catawampus/
 INSTALL=install
 PYTHON?=python
 
-install:
+install: diagui/install
 	$(INSTALL) -d $(DSTDIR) $(DSTDIR)/tr  $(DSTDIR)/tr/vendor \
 		$(DSTDIR)/tr/vendor/bup/lib/bup $(DSTDIR)/tr/vendor/pynetlinux \
 		$(DSTDIR)/tr/vendor/tornado $(DSTDIR)/tr/vendor/tornado/tornado \
@@ -80,3 +81,4 @@ install:
 %/all:; $(MAKE) -C $* all
 %/test:; $(MAKE) -C $* test
 %/clean:; $(MAKE) -C $* clean
+%/install:; $(MAKE) -C $* install
