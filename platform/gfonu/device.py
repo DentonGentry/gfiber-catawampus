@@ -62,7 +62,7 @@ VERSIONFILE = '/etc/version'
 
 
 class PlatformConfig(platform_config.PlatformConfigMeta):
-  """PlatformConfig for GFLT200 devices."""
+  """PlatformConfig for GFLT devices."""
 
   def __init__(self, ioloop=None):
     super(PlatformConfig, self).__init__()
@@ -77,7 +77,7 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
 
 # TODO(zixia): based on real hardware chipset
 class DeviceId(dm.device_info.DeviceIdMeta):
-  """DeviceId for the GFLT200 devices."""
+  """DeviceId for the GFLT devices."""
 
   def _GetSysVarParam(self, param, default):
     """Get device statistics from SYSVAR partition."""
@@ -112,7 +112,7 @@ class DeviceId(dm.device_info.DeviceIdMeta):
 
   @property
   def ModelName(self):
-    return self._GetSysVarParam('PLATFORM_NAME', default='GFLT200')
+    return self._GetSysVarParam('PLATFORM_NAME', default='UnknownModel')
 
   @property
   def Description(self):
@@ -140,7 +140,7 @@ class DeviceId(dm.device_info.DeviceIdMeta):
 
   @property
   def ProductClass(self):
-    return self._GetSysVarParam('PLATFORM_NAME', default='GFLT200')
+    return self._GetSysVarParam('PLATFORM_NAME', default='UnknownModel')
 
   @property
   def ModemFirmwareVersion(self):
