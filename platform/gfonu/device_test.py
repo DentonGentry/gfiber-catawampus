@@ -76,7 +76,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def testModelName(self):
     did = device.DeviceId()
-    self.assertEqual(did.ModelName, 'GFLT200')
+    self.assertEqual(did.ModelName, 'UnknownModel')
 
   def testSoftwareVersion(self):
     did = device.DeviceId()

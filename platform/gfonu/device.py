@@ -32,6 +32,7 @@ import traceback
 import google3
 
 import dm.device_info
+import dm.ds6923_optical
 import dm.igd_time
 import dm.periodic_statistics
 import dm.temperature
@@ -45,6 +46,9 @@ import tr.tr181_v2_4 as tr181
 
 BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
 PYNETIFCONF = pynetlinux.ifconfig.Interface
+
+# File to find the name of the current running platform.  Override for test.
+PLATFORM_FILE = '/etc/platform'
 
 # tr-69 error codes
 INTERNAL_ERROR = 9002
@@ -252,6 +256,9 @@ class Device(tr181.Device_v2_4.Device):
     self.Unexport(objects='USB')
     self.Unexport(objects='Users')
     self.Unexport(objects='WiFi')
+    with open(PLATFORM_FILE) as f:
+      if f.read().strip() == 'GFLT110':
+        self.Optical = dm.ds6923_optical.Ds6923Optical()
 
     # DeficeInfo is defined under tr181.Device_v2_4,
     # not tr181.Device_v2_4.Device, so still need to Export here
