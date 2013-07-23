@@ -309,7 +309,8 @@ class InternetGatewayDevice(BASE98IGD):
     self.PeriodicStatistics = periodic_stats
 
 
-def PlatformInit(unused_name, device_model_root):
+# pylint: disable-msg=unused-argument
+def PlatformInit(name, device_model_root):
   """Create platform-specific device models and initialize platform."""
   tr.download.INSTALLER = Installer
   params = []
