@@ -135,8 +135,8 @@ def IntFromFile(filename):
 def _IntOrNegativeOne(result, name):
   try:
     string = result.group(name)
-    return int(string, base=0)
-  except (ValueError, KeyError):
+    return int(str(string), base=0)
+  except (ValueError, KeyError, TypeError):
     return -1
 
 
