@@ -63,6 +63,7 @@ PROC_CPUINFO = '/proc/cpuinfo'
 REBOOT = 'tr69_reboot'
 REPOMANIFEST = '/etc/repo-buildroot-manifest'
 VERSIONFILE = '/etc/version'
+GFLT110_OPTICAL_I2C_ADDR = 0x51
 
 
 class PlatformConfig(platform_config.PlatformConfigMeta):
@@ -258,7 +259,7 @@ class Device(tr181.Device_v2_4.Device):
     self.Unexport(objects='WiFi')
     with open(PLATFORM_FILE) as f:
       if f.read().strip() == 'GFLT110':
-        self.Optical = dm.ds6923_optical.Ds6923Optical()
+        self.Optical = dm.ds6923_optical.Ds6923Optical(GFLT110_OPTICAL_I2C_ADDR)
 
     # DeficeInfo is defined under tr181.Device_v2_4,
     # not tr181.Device_v2_4.Device, so still need to Export here
