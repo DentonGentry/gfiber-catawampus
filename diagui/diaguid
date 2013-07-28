@@ -9,17 +9,30 @@ import tornado.ioloop
 import tornado.web
 
 
-# If RG's connectivity to cloud is healthy, redirect to fiber.google.com
 # TODO(anandkhare): conditionally redirect only when needed
 class MainHandler(tornado.web.RequestHandler):
+  """If RG's connectivity to cloud is healthy, redirect to fiber.google.com."""
+
   def get(self):    # pylint: disable=g-bad-name
     self.redirect('https://fiber.google.com')
 
 
-# If no connectivity, display local diagnostics UI
 class DiagnosticsHandler(tornado.web.RequestHandler):
+  """If no connectivity, display local diagnostics UI."""
+
   def get(self):    # pylint: disable=g-bad-name
     self.render('template.html')
+
+
+class JsonHandler(tornado.web.RequestHandler):
+  """Provides JSON-formatted content to be displayed in the UI."""
+
+  def get(self):    # pylint: disable=g-bad-name
+    data = dict(username='bransonfamily',
+                password='configured',
+                domain='home.bransonfamily.com')
+    self.set_header('Content-Type', 'text/javascript')
+    self.write(tornado.escape.json_encode(data))
 
 
 settings = {
@@ -31,6 +44,7 @@ settings = {
 application = tornado.web.Application([
     (r'/', MainHandler),
     (r'/diagnostics', DiagnosticsHandler),
+    (r'/content.json', JsonHandler),
 ], **settings)
 
 # Listen for requests at port 8880

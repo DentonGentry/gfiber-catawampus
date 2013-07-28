@@ -2,7 +2,23 @@
 <html>
   <head>
     <link rel="stylesheet" type="text/css" href="static/style.css">
+    <script src="static/jquery-1.10.2.js"></script>
     <title>Google Fiber Portal</title>
+    <script>
+      function getContent() {
+          $.getJSON('content.json', function(data) {
+            $("#username").text(data.username);
+            $("#password").text(data.password);
+            $("#domain").text(data.domain);
+          });
+        }
+      $(document).ready(function() {
+        getContent();
+        setInterval(function() {
+          getContent()
+        }, 10000);
+      });
+    </script>
   </head>
   <body>
     <h1> Google fiber </h1>
@@ -16,127 +32,8 @@
     <input type="submit" value="Download diagnostic information" id="b1">
     <input type="submit" value="Restart" id="b2">
     <br><br>
-    <table>
-      <tr>
-        <td>ACS inform:</td>
-        <td>OK (May 21 2013 18:58:41 + 700)
-      </tr>
-      <tr>
-         <td>Software version:</td>
-         <td>3.16a</td>
-      </tr>
-      <tr>
-         <td>Uptime:</td>
-         <td>76:28:39</td>
-      </tr>
-      <tr>
-         <td>Temperature:</td>
-         <td>54 C</td>
-      </tr>
-      <tr>
-         <td>Fiber jack:</td>
-         <td>Up</td>
-      </tr>
-      <tr>
-         <td>WAN MAC:</td>
-         <td>1a:2b:3c:4d:5e:6f</td>
-      </tr>
-      <tr>
-        <td>WAN IP(last):</td>
-        <td>63.28.214.97</td>
-      </tr>
-      <tr>
-        <td></td>
-        <td>2001:0db8:0123:4567:89ab:cdef:1234:5678</td>
-      </tr>
-     <tr>
-        <td>LAN IP:</td>
-        <td>192.168.1.1</td>
-      </tr>
-     <tr>
-        <td>Subnet Mask:</td>
-        <td>255.255.255.0</td>
-      </tr>
-     <tr>
-        <td>DHCP start address:</td>
-        <td>192.158.1.100</td>
-      </tr>
-      <tr>
-        <td>DHCP end address:</td>
-        <td>192.168.1.254</td>
-      </tr>
-      <tr>
-        <td>Wired LAN MAC:</td>
-        <td>6a:5b:4c:3d:2e:1f</td>
-      </tr>
-      <tr>
-        <td>Wired LAN Status:</td>
-        <td>Up</td>
-      </tr>
-      <tr>
-        <td>Wired Devices:</td>
-        <td>Living Room (TV box,6a:5b:4c:3d:2e:1f)
-      </tr>
-      <tr>
-        <td></td>
-        <td>Dad's Computer</td>
-      </tr>
-      <tr>
-        <td>2.4GHz SSID:</td>
-        <td>BransonFamilyNetwork</td>
-      </tr>
-      <tr>
-        <td>5 GHz SSID:</td>
-        <td>(same)</td>
-      </tr>
-      <tr>
-        <td>WPA2-PSK:</td>
-        <td>(configured)</td>
-      </tr>
-      <tr>
-        <td>Wireless LAN MAC:</td>
-        <td>3a:1b:4c:1d:5e:9f</td>
-      </tr>
-      <tr>
-        <td>Wireless LAN Status:</td>
-        <td>Up</td>
-      </tr>
-      <tr>
-        <td>Wireless Devices:</td>
-        <td>Dad's Phone(6a:5b:4c:3d:2e:1f</td>
-      </tr>
-      <tr>
-        <td>UPnP:</td>
-        <td>On</td>
-      </tr>
-      <tr>
-        <td>Port Forwarding:</td>
-        <td>80-80: Dad's computer(6a:5b:4c:3d:2e:1f)</td>
-      </tr>
-      <tr>
-        <td></td>
-        <td>443-443: Dad's Computer (6a:5b:4c:3d:2e:1f)</td>
-      </tr>
-
-      <tr>
-        <td>DMZ device</td>
-        <td>Wireless device(2) (6a:5b:4c:3d:2e:1f)</td>
-      </tr>
-      <tr>
-        <td>Dynamic DNS Service:</td>
-        <td>DynDNS</td>
-      </tr>
-      <tr>
-        <td>Username:</td>
-        <td>bransonfamily</td>
-      </tr>
-      <tr>
-        <td>Password:</td>
-        <td>(configured)</td>
-      </tr>
-      <tr>
-        <td>Domain/hostname:</td>
-        <td>home.bransonfamily.com</td>
-      </tr>
+    Username: <span id="username"></span><br>
+    Password: <span id="password"></span><br>
+    Domain/hostname: <span id="domain"></span><br>
   </body>
 </html>
