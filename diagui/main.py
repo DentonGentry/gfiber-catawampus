@@ -5,10 +5,11 @@
 __author__ = 'anandkhare@google.com (Anand Khare)'
 
 import hashlib
+import os
 import google3
-import tr.pyinotify
 import tornado.ioloop
 import tornado.web
+import tr.pyinotify
 
 
 # TODO(anandkhare): conditionally redirect only when needed
@@ -67,9 +68,11 @@ class DiaguiSettings(tornado.web.Application):
   """Defines settings for the server and notifier."""
 
   def __init__(self):
+    self.pathname = os.path.dirname(__file__)
+    staticpath = os.path.join(self.pathname, 'static')
     self.settings = {
-        'static_path': 'static',
-        'template_path': '.',
+        'static_path': staticpath,
+        'template_path': self.pathname,
     }
     super(DiaguiSettings, self).__init__([
         (r'/', MainHandler),
@@ -83,16 +86,17 @@ class DiaguiSettings(tornado.web.Application):
     self.callbacklist = []
     self.notifier = tr.pyinotify.TornadoAsyncNotifier(
         self.wm, self.ioloop, callback=self.AlertNotifiers)
-    self.wdd = self.wm.add_watch('./Testdata', self.mask)
-    self.GetLatestDict()
+    self.wdd = self.wm.add_watch(
+        os.path.join(self.pathname, 'Testdata'), self.mask)
+    self.UpdateLatestDict()
 
   def AlertNotifiers(self, notifier):
-    self.GetLatestDict()
+    self.UpdateLatestDict()
     for i in self.callbacklist[:]:
       i()
 
-  def GetLatestDict(self):
-    f = open('Testdata/testdata')
+  def UpdateLatestDict(self):
+    f = open(os.path.join(self.pathname, 'Testdata/testdata'))
     self.data = dict(line.decode('utf-8').strip().split(None, 1) for line in f)
     self.newchecksum = hashlib.sha1(unicode(
         sorted(list(self.data.items()))).encode('utf-8')).hexdigest()
