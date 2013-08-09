@@ -6,7 +6,7 @@ __author__ = 'anandkhare@google.com (Anand Khare)'
 
 import hashlib
 import google3
-import pyinotify
+import tr.pyinotify
 import tornado.ioloop
 import tornado.web
 
@@ -78,10 +78,10 @@ class DiaguiSettings(tornado.web.Application):
     ], **self.settings)
 
     self.ioloop = tornado.ioloop.IOLoop.instance()
-    self.wm = pyinotify.WatchManager()
-    self.mask = pyinotify.IN_CLOSE_WRITE
+    self.wm = tr.pyinotify.WatchManager()
+    self.mask = tr.pyinotify.IN_CLOSE_WRITE
     self.callbacklist = []
-    self.notifier = pyinotify.TornadoAsyncNotifier(
+    self.notifier = tr.pyinotify.TornadoAsyncNotifier(
         self.wm, self.ioloop, callback=self.AlertNotifiers)
     self.wdd = self.wm.add_watch('./Testdata', self.mask)
     self.GetLatestDict()
