@@ -28,6 +28,7 @@ import bup.options
 import tornado.autoreload
 import tornado.httpclient
 import dm_root
+import tr.acs_config
 import tr.api
 import tr.core
 import tr.http
@@ -111,7 +112,7 @@ def main():
                                    acs=acs, cpe=cpe,
                                    restrict_acs_hosts=opt.restrict_acs_hosts,
                                    cpe_listener=opt.cpe_listener,
-                                   platform_config=pc,
+                                   acs_config=tr.acs_config.AcsConfig(),
                                    acs_url=opt.acs_url,
                                    ping_ip6dev=opt.ping_ip6dev,
                                    fetch_args=fetch_args)

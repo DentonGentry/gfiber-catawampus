@@ -171,9 +171,9 @@ class CPEStateMachine(object):
     fetch_args: kwargs to pass to HTTPClient.fetch
   """
 
-  def __init__(self, ip, cpe, listenport, platform_config, ping_path,
-               acs_url=None, ping_ip6dev=None, fetch_args=None, ioloop=None,
-               restrict_acs_hosts=None):
+  def __init__(self, ip, cpe, listenport, acs_config,
+               ping_path, acs_url=None, ping_ip6dev=None, fetch_args=None,
+               ioloop=None, restrict_acs_hosts=None):
     self.cpe = cpe
     self.cpe_soap = api_soap.CPE(self.cpe)
     self.encode = api_soap.Encode()
@@ -189,14 +189,14 @@ class CPEStateMachine(object):
     self.ping_ip6dev = ping_ip6dev
     self.fetch_args = fetch_args or dict()
     self.rate_limit_seconds = 60
-    self.platform_config = platform_config
     self.previous_ping_time = 0
     self.ping_timeout_pending = None
     self._changed_parameters = set()
     self._changed_parameters_sent = set()
     self._fresh_connect = False
+    self._acs_config = acs_config
     self.cpe_management_server = cpe_management_server.CpeManagementServer(
-        acs_url=acs_url, platform_config=platform_config, port=listenport,
+        acs_url=acs_url, acs_config=acs_config, port=listenport,
         ping_path=ping_path, get_parameter_key=cpe.getParameterKey,
         start_periodic_session=self.NewPeriodicSession, ioloop=self.ioloop,
         restrict_acs_hosts=restrict_acs_hosts)
@@ -350,7 +350,7 @@ class CPEStateMachine(object):
       print 'Idle CWMP session, terminating.'
       self.outstanding = None
       ping_received = self.session.close()
-      self.platform_config.AcsAccessSuccess(self.session.acs_url)
+      self._acs_config.AcsAccessSuccess(self.session.acs_url)
       self.session = None
       self.retry_count = 0  # Successful close
       if self._changed_parameters:
@@ -381,7 +381,7 @@ class CPEStateMachine(object):
     else:
       # Empty message
       self.session.state_update(cpe_to_acs_empty=True)
-    self.platform_config.AcsAccessAttempt(self.session.acs_url)
+    self._acs_config.AcsAccessAttempt(self.session.acs_url)
     print('CPE POST (at {0!s}):\n'
           'ACS URL: {1!r}\n'
           '{2!s}\n'
@@ -573,7 +573,7 @@ class CPEStateMachine(object):
     self.cpe.startup()
 
 
-def Listen(ip, port, ping_path, acs, cpe, cpe_listener, platform_config,
+def Listen(ip, port, ping_path, acs, cpe, cpe_listener, acs_config,
            acs_url=None, ping_ip6dev=None, fetch_args=None, ioloop=None,
            restrict_acs_hosts=None):
   """Listens for "pings" that start a new session with the ACS."""
@@ -583,8 +583,8 @@ def Listen(ip, port, ping_path, acs, cpe, cpe_listener, platform_config,
     ping_path = ping_path[1:]
   fetch_args = fetch_args or dict()
   cpe_machine = CPEStateMachine(ip=ip, cpe=cpe, listenport=port,
-                                platform_config=platform_config,
                                 ping_path=ping_path,
+                                acs_config=acs_config,
                                 restrict_acs_hosts=restrict_acs_hosts,
                                 acs_url=acs_url, ping_ip6dev=ping_ip6dev,
                                 fetch_args=fetch_args, ioloop=ioloop)
