@@ -27,6 +27,7 @@ import google3
 import bup.options
 import tornado.autoreload
 import tornado.httpclient
+import diagui.main
 import dm_root
 import tr.acs_config
 import tr.api
@@ -57,6 +58,7 @@ ca-certs=     SSL ca_certificates.crt file to use
 client-cert=  SSL client certificate to use
 client-key=   SSL client private key to use
 restrict-acs-hosts= Domain names allowed for ACS URL.  Default=unrestricted.  Example: 'google.com gfsvc.com'
+diagui        Listen for diagui requests on port 8880
 """
 
 
@@ -128,6 +130,10 @@ def main():
       loop.ioloop.add_handler(sys.stdin.fileno(),
                               lambda *args: _GotData(loop, *args),
                               loop.ioloop.READ)
+
+  if opt.diagui:
+    inst = diagui.main.DiaguiSettings()
+    inst.listen(8880)
 
   loop.Start()
 

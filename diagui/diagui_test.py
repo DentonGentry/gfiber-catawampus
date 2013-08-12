@@ -5,9 +5,9 @@ __author__ = 'anandkhare@google.com (Anand Khare)'
 import ast
 import unittest
 import google3
+import diagui.main
 import tornado.httpclient
 import tr.mainloop
-import diagui
 
 
 class AsynchFetch(object):
@@ -69,7 +69,7 @@ domain home.allenfamily.com
     f.write(test_data)
     f.close()
     url_temp = self.url_string + self.checksum
-    app = diagui.DiaguiSettings()
+    app = diagui.main.DiaguiSettings()
     app.listen(8880)
     response1 = AsynchFetch(url_temp)
     response2 = AsynchFetch(url_temp)
