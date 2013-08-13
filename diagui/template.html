@@ -7,34 +7,56 @@
     <title>Google Fiber Portal</title>
     <script>
       var obj1 = {"checksum": 0};
+      function populatefield(element, val) {
+        $(element + " .value").append('<li></li>');
+        $(element + " .value li").text(val);
+      }
+      function multivaluefield(element, val) {
+        var a = [];
+        var i = 0;
+        for (key in val){
+          a[i] = key;
+          i++;
+        }
+        for (var j = 0; j<i; j++) {
+          $(element + ' .value').append('<li id=' + j + '></li>');
+          $(element + ' .value #' + j).text(a[j] + ' ' + val[a[j]]);
+        }
+      }
       function getContent() {
           $.getJSON('content.json', obj1 , function(data) {
-            $("#acs").text(data.acs);
-            $("#softversion").text(data.softversion);
-            $("#uptime").text(data.uptime);
-            $("#temperature").text(data.temperature);
-            $("#fiberjack").text(data.fiberjack);
-            $("#wanmac").text(data.wanmac);
-            $("#wanip").text(data.wanip);
-            $("#lanip").text(data.lanip);
-            $("#subnetmask").text(data.subnetmask);
-            $("#dhcpstart").text(data.dhcpstart);
-            $("#dhcpend").text(data.dhcpend);
-            $("#wiredlanmac").text(data.wiredlanmac);
-            $("#wiredlanstatus").text(data.wiredlanstatus);
-            $("#wireddevices").text(data.wireddevices);
-            $("#ssid24").text(data.ssid24);
-            $("#ssid5").text(data.ssid5);
-            $("#wpa2").text(data.wpa2);
-            $("#wirelesslanmac").text(data.wirelesslanmac);
-            $("#wirelesslanstatus").text(data.wirelesslanstatus);
-            $("#wirelessdevices").text(data.wirelessdevices);
-            $("#upnp").text(data.upnp);
-            $("#portforwarding").text(data.portforwarding);
-            $("#dmzdevice").text(data.dmzdevice);
-            $("#dyndns").text(data.dyndns);
-            $("#username").text(data.username);
-            $("#domain").text(data.domain);
+            populatefield('#acs', data.acs);
+            populatefield('#softversion', data.softversion);
+            populatefield('#uptime', data.uptime);
+            var temp = data.temperature;
+            if (jQuery.isEmptyObject(temp)){
+              populatefield('#temperature', 'Not Found');
+            }
+            else{
+              multivaluefield('#temperature', temp);
+            }
+            populatefield('#fiberjack', data.fiberjack);
+            populatefield('#wanmac', data.wanmac);
+            populatefield('#wanip', data.wanip);
+            populatefield('#lanip', data.lanip);
+            populatefield('#subnetmask', data.subnetmask);
+            populatefield('#dhcpstart', data.dhcpstart);
+            populatefield('#dhcpend', data.dhcpend);
+            populatefield('#wiredlanmac', data.wiredlanmac);
+            populatefield('#wiredlanstatus', data.wiredlanstatus);
+            populatefield('#wireddevices', data.wireddevices);
+            populatefield('#ssid24', data.ssid24);
+            populatefield('#ssid5', data.ssid5);
+            populatefield('#wpa2', data.wpa2);
+            populatefield('#wirelesslanmac', data.wirelesslanmac);
+            populatefield('#wirelesslanstatus', data.wirelesslanstatus);
+            populatefield('#wirelessdevices', data.wirelessdevices);
+            populatefield('#upnp', data.upnp);
+            populatefield('#portforwarding', data.portforwarding);
+            populatefield('#dmzdevice', data.dmzdevice);
+            populatefield('#dyndns', data.dyndns);
+            populatefield('#username', data.username);
+            populatefield('#domain', data.domain);
             obj1.checksum = data.checksum
             getContent();
           });
@@ -42,7 +64,7 @@
       $(document).ready(function() {
         $.ajaxSetup({ cache: false });
         $("#diaginfo").hide();
-        $("#d3").click(function(){
+        $("#d3").click(function() {
           if ($("#diaginfo").is(":visible")) {
             $("#arrow").html("&#9660");
             $("#diaginfo").hide();
@@ -67,56 +89,56 @@
         If you'd like to speak to an agent, you may call 1-800-GO-FIBER.
       </div>
     </div>
-    <div id="d3"><span id="arrow">&#9660</span> &nbsp &nbsp Diagnostic information...</div>
-    <div id="diaginfo">
-      <input type="submit" value="Download diagnostic information" id="b1">
-      <input type="submit" value="Restart" id="b2">
-      <div id="d4">
+    <div id = "d3"><span id = "arrow">&#9660</span> &nbsp &nbsp Diagnostic information...</div>
+    <div id = "diaginfo">
+      <input type = "submit" value="Download diagnostic information" id = "b1">
+      <input type = "submit" value="Restart" id = "b2">
+      <div id = "d4">
         <p>
-         ACS inform: <span id="acs"></span>
+         <div id = "acs"><span class = "name">ACS inform: </span><ul class = "value"></ul></div>
         </p>
         <p>
-         Software Version: <span id="softversion"></span><br>
-         Uptime: <span id="uptime"></span><br>
-         Temperature: <span id="temperature"></span><br>
-         Fiber jack: <span id="fiberjack"></span><br>
+         <div id = "softversion"><span class = "name">Software Version:</span><ul class = "value"></ul></div>
+         <div id = "uptime"><span class = "name">Uptime:</span><ul class = "value"></ul></div>
+         <div id = "temperature"><span class = "name">Temperature:</span><ul class = "value"></ul></div>
+         <div id = "fiberjack"><span class = "name">Fiber jack:</span><ul class = "value"></ul></div>
         </p>
         <p>
-         WAN MAC: <span id="wanmac"></span><br>
-         WAN IP (last): <span id="wanip"></span><br>
+         <div id = "wanmac"><span class = "name">WAN MAC:</span><ul class = "value"></ul></div>
+         <div id = "wanip"><span class = "name">WAN IP (last):</span><ul class = "value"></ul></div>
         </p>
         <p>
-         LAN IP: <span id="lanip"></span><br>
-         Subnet Mask: <span id="subnetmask"></span><br>
-         DHCP start address: <span id="dhcpstart"></span><br>
-         DHCP end address: <span id="dhcpend"></span><br>
+         <div id = "lanip"><span class = "name">LAN IP:</span><ul class = "value"></ul></div>
+         <div id = "subnetmask"><span class = "name">Subnet Mask:</span><ul class = "value"></ul></div>
+         <div id = "dhcpstart"><span class = "name">DHCP start address:</span><ul class = "value"></ul></div>
+         <div id = "dhcpend"><span class = "name">DHCP end address:</span><ul class = "value"></ul></div>
         </p>
         <p>
-         Wired LAN MAC: <span id="wiredlanmac"></span><br>
-         Wired LAN Status: <span id="wiredlanstatus"></span><br>
-         Wired devices: <span id="wireddevices"></span><br>
+         <div id = "wiredlanmac"><span class = "name">Wired LAN MAC:</span><ul class = "value"></ul></div>
+         <div id = "wiredlanstatus"><span class = "name">Wired LAN Status:</span><ul class = "value"></ul></div>
+         <div id = "wireddevices"><span class = "name">Wired devices:</span><ul class = "value"></ul></div>
         </p>
         <p>
-         2.4 GHz SSID: <span id="ssid24"></span><br>
-         5 GHz SSID: <span id="ssid5"></span><br>
-         WPA2-PSK: <span id="wpa2"></span><br>
+         <div id = "ssid24"><span class = "name">2.4 GHz SSID:</span><ul class = "value"></ul></div>
+         <div id = "ssid5"><span class = "name">5 GHz SSID:</span><ul class = "value"></ul></div>
+         <div id = "wpa2"><span class = "name">WPA2-PSK:</span><ul class = "value"></ul></div>
         </p>
         <p>
-         Wireless LAN MAC: <span id="wirelesslanmac"></span><br>
-         Wireless LAN Status: <span id="wirelesslanstatus"></span><br>
-         Wireless devices: <span id="wirelessdevices"></span><br>
+         <div id = "wirelesslanmac"><span class = "name">Wireless LAN MAC:</span><ul class = "value"></ul></div>
+         <div id = "wirelesslanstatus"><span class = "name">Wireless LAN Status:</span><ul class = "value"></ul></div>
+         <div id = "wirelessdevices"><span class = "name">Wireless devices:</span><ul class = "value"></ul></div>
         </p>
         <p>
-         UPnP: <span id="upnp"></span><br>
-         Port forwarding: <span id="portforwarding"></span><br>
+         <div id = "upnp"><span class = "name">UPnP:</span><ul class = "value"></ul></div>
+         <div id = "portforwarding"><span class = "name">Port forwarding:</span><ul class = "value"></ul></div>
         </p>
         <p>
-         DMZ device: <span id="dmzdevice"></span>
+         <div id = "dmzdevice"><span class = "name">DMZ device:</span><ul class = "value"></ul></div>
         </p>
         <p>
-         Dynamic DNS Service: <span id="dyndns"></span><br>
-         Username: <span id="username"></span><br>
-         Domain/hostname: <span id="domain"></span><br>
+         <div id = "dyndns"><span class = "name">Dynamic DNS Service:</span><ul class = "value"></ul></div>
+         <div id = "username"><span class = "name">Username:</span><ul class = "value"></ul></div>
+         <div id = "domain"><span class = "name">Domain/hostname:</span><ul class = "value"></ul></div>
         </p>
       </div>
     </div>

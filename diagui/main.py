@@ -88,9 +88,19 @@ class DiaguiSettings(tornado.web.Application):
   def UpdateLatestDict(self):
     f = open(os.path.join(self.pathname, 'Testdata/testdata'))
     self.data = dict(line.decode('utf-8').strip().split(None, 1) for line in f)
-    self.data['softversion'] = self.root.Device.DeviceInfo.SoftwareVersion
-    self.data['uptime'] = self.root.Device.DeviceInfo.UpTime
-    self.data['username'] = self.root.Device.ManagementServer.Username
+    if self.root:
+      deviceinfo = self.root.Device.DeviceInfo
+      self.data['softversion'] = deviceinfo.SoftwareVersion
+      self.data['uptime'] = deviceinfo.UpTime
+      self.data['username'] = self.root.Device.ManagementServer.Username
+      tempstatus = deviceinfo.TemperatureStatus
+      t = dict()
+      try:
+        for i, sensor in tempstatus.TemperatureSensorList.iteritems():
+          t[sensor.Name] = sensor.Value
+        self.data['temperature'] = t
+      except AttributeError:
+        pass
     newchecksum = hashlib.sha1(unicode(
         sorted(list(self.data.items()))).encode('utf-8')).hexdigest()
     self.data['checksum'] = newchecksum

@@ -68,7 +68,7 @@ domain home.allenfamily.com
     f.write(test_data)
     f.close()
     url_temp = self.url_string + self.checksum
-    app = diagui.main.DiaguiSettings()
+    app = diagui.main.DiaguiSettings(None)
     app.listen(8880)
     response1 = AsynchFetch(url_temp)
     response2 = AsynchFetch(url_temp)
