@@ -131,7 +131,7 @@ def main():
                               loop.ioloop.READ)
 
   if opt.diagui:
-    inst = diagui.main.DiaguiSettings()
+    inst = diagui.main.DiaguiSettings(root)
     inst.listen(8880)
 
   loop.Start()
