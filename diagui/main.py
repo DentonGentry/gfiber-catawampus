@@ -30,12 +30,9 @@ class DiagnosticsHandler(tornado.web.RequestHandler):
 class JsonHandler(tornado.web.RequestHandler):
   """Provides JSON-formatted content to be displayed in the UI."""
 
-  def initialize(self):    # pylint: disable=g-bad-name
-    self.oldchecksum = self.get_argument('checksum')
-
   @tornado.web.asynchronous
   def get(self):    # pylint: disable=g-bad-name
-    if self.oldchecksum != self.application.newchecksum:
+    if self.get_argument('checksum') != self.application.data['checksum']:
       try:
         self.set_header('Content-Type', 'text/javascript')
         self.write(tornado.escape.json_encode(self.application.data))
@@ -46,15 +43,7 @@ class JsonHandler(tornado.web.RequestHandler):
       self.application.callbacklist.append(self.ReturnData)
 
   def ReturnData(self):
-    # print "checking if checksums are the same and print them if not"
-    # print self.returndata
-    # if not self.connection_closed:
-    # print oldchecksum
-    # print newchecksum
-    # print "--------------------"
-    if self.oldchecksum != self.application.newchecksum:
-      # print oldchecksum
-      # print newchecksum
+    if self.get_argument('checksum') != self.application.data['checksum']:
       self.application.callbacklist.remove(self.ReturnData)
       try:
         self.set_header('Content-Type', 'text/javascript')
@@ -67,9 +56,11 @@ class JsonHandler(tornado.web.RequestHandler):
 class DiaguiSettings(tornado.web.Application):
   """Defines settings for the server and notifier."""
 
-  def __init__(self):
+  def __init__(self, root):
+    self.root = root
     self.pathname = os.path.dirname(__file__)
     staticpath = os.path.join(self.pathname, 'static')
+    self.UpdateLatestDict()
     self.settings = {
         'static_path': staticpath,
         'template_path': self.pathname,
@@ -88,7 +79,6 @@ class DiaguiSettings(tornado.web.Application):
         self.wm, self.ioloop, callback=self.AlertNotifiers)
     self.wdd = self.wm.add_watch(
         os.path.join(self.pathname, 'Testdata'), self.mask)
-    self.UpdateLatestDict()
 
   def AlertNotifiers(self, notifier):
     self.UpdateLatestDict()
@@ -98,7 +88,10 @@ class DiaguiSettings(tornado.web.Application):
   def UpdateLatestDict(self):
     f = open(os.path.join(self.pathname, 'Testdata/testdata'))
     self.data = dict(line.decode('utf-8').strip().split(None, 1) for line in f)
-    self.newchecksum = hashlib.sha1(unicode(
+    self.data['softversion'] = self.root.Device.DeviceInfo.SoftwareVersion
+    self.data['uptime'] = self.root.Device.DeviceInfo.UpTime
+    self.data['username'] = self.root.Device.ManagementServer.Username
+    newchecksum = hashlib.sha1(unicode(
         sorted(list(self.data.items()))).encode('utf-8')).hexdigest()
-    self.data['checksum'] = self.newchecksum
+    self.data['checksum'] = newchecksum
 

@@ -62,7 +62,6 @@ portforwarding 80-80: Dad\'s Computer (6a:5b:4c:3d:2e:1f)
 dmzdevice Wireless Device (1) (6a:5b:4c:3d:2e:1f)
 dyndns DynDNS
 username allenfamily
-password (configured)
 domain home.allenfamily.com
 """
     f = open('Testdata/testdata', 'w')
@@ -103,7 +102,6 @@ portforwarding 80-80: Dad\'s Computer (6a:5b:4c:3d:2e:1f)
 dmzdevice Wireless Device (1) (6a:5b:4c:3d:2e:1f)
 dyndns DynDNS
 username allenfamily
-password (configured)
 domain home.allenfamily.com
 """
     f = open('Testdata/testdata', 'w')
