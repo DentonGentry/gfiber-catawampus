@@ -145,6 +145,11 @@ class GfiberTvTests(unittest.TestCase):
     os.unlink(self.tcpalgorithm_fname)
     gfibertv.TCPALGORITHM[0] = self.tcpalgorithm_fname
 
+    (uicontrol_handle, self.uicontrol_fname) = tempfile.mkstemp(dir=self.tmpdir)
+    os.close(uicontrol_handle)
+    os.unlink(self.uicontrol_fname)
+    gfibertv.UICONTROLURLFILE[0] = self.uicontrol_fname
+
   def tearDown(self):
     xmlrpclib.ServerProxy('http://localhost:%d' % srv_port).Quit()
     self.server_thread.join()
@@ -363,6 +368,14 @@ class GfiberTvTests(unittest.TestCase):
     gftv.TcpAlgorithm = 'foo'
     self.loop.RunOnce()
     self.assertEqual(open(self.tcpalgorithm_fname).read(), 'foo\n')
+
+  def testOreganoFile(self):
+    open(self.uicontrol_fname, 'w').write('http://uicontrol\n')
+    gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
+    self.assertEqual(gftv.UiControlUrl, 'http://uicontrol')
+    gftv.UiControlUrl = 'http://cilantro'
+    self.loop.RunOnce()
+    self.assertEqual(open(self.uicontrol_fname).read(), 'http://cilantro\n')
 
 
 if __name__ == '__main__':
