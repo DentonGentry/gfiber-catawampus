@@ -53,6 +53,17 @@ class JsonHandler(tornado.web.RequestHandler):
         pass
 
 
+class RestartHandler(tornado.web.RequestHandler):
+  """Restart the network box."""
+
+  def get(self):    # pylint: disable=g-bad-name
+    self.render('restarting.html')
+
+  def post(self):    # pylint: disable=g-bad-name
+    self.redirect('/restart')
+    os.system('(sleep 5; reboot) &')
+
+
 class DiaguiSettings(tornado.web.Application):
   """Defines settings for the server and notifier."""
 
@@ -64,11 +75,13 @@ class DiaguiSettings(tornado.web.Application):
     self.settings = {
         'static_path': staticpath,
         'template_path': self.pathname,
+        'xsrf_cookies': True,
     }
     super(DiaguiSettings, self).__init__([
         (r'/', MainHandler),
         (r'/diagnostics', DiagnosticsHandler),
         (r'/content.json', JsonHandler),
+        (r'/restart', RestartHandler),
     ], **self.settings)
 
     self.ioloop = tornado.ioloop.IOLoop.instance()

@@ -74,6 +74,31 @@
             $("#diaginfo").show();
           }
         });
+        $("#downloadbutton").click(function() {
+          newwindow = window.open('', '');
+          var toprint = $('#main').html();
+          var csslink = newwindow.document.createElement('link');
+          csslink.setAttribute('rel', 'stylesheet');
+          csslink.setAttribute('type', 'text/css');
+          csslink.setAttribute('href', 'static/style.css');
+          newwindow.document.writeln(toprint);
+          newwindow.document.head.appendChild(csslink);
+          newwindow.document.close();
+          newwindow.focus();
+          newwindow.print();
+          newwindow.close();
+        });
+        var args = {'_xsrf': ''};
+        function getCookie(name) {
+          var r = document.cookie.match("\\b" + name + "=([^;]*)\\b");
+          return r ? r[1] : undefined;
+        }
+        $("#restartbutton").click(function() {
+          args._xsrf = getCookie('_xsrf');
+          $.post('restart', args, function(data) {
+            window.location.assign('restart');
+          });
+        });
         getContent();
       });
     </script>
@@ -91,8 +116,8 @@
     </div>
     <div id = "d3"><span id = "arrow">&#9660</span> &nbsp &nbsp Diagnostic information...</div>
     <div id = "diaginfo">
-      <input type = "submit" value="Download diagnostic information" id = "b1">
-      <input type = "submit" value="Restart" id = "b2">
+      <input type = "button" value="Download diagnostic information" id = "downloadbutton">
+      <input type = "submit" value="Restart" id = "restartbutton">
       <div id = "d4">
         <p>
          <div id = "acs"><span class = "name">ACS inform: </span><ul class = "value"></ul></div>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="static/stylerestart.css">
+    <link rel="icon" href="static/favicon.ico">
+      <title>Google Fiber Portal</title>
+      <script src="static/jquery-1.10.2.js"></script>
+      <script>
+        var rebootstart = false;
+        self.setInterval(function() {
+          $.ajax({
+            type: 'GET',
+            timeout: 8000,
+            error: function() {
+              rebootstart = true;
+            },
+            success: function() {
+              if (rebootstart == true) {
+                window.location.assign("/diagnostics");
+              }
+            }
+          });
+        }, 1000);
+      </script>
+  </head>
+  <body>
+    <img src = "static/logo.png" id= "title">
+    <div id="wait">Please wait while your network box restarts... </div>
+  </body>
+</html>
