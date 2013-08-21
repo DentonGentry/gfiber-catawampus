@@ -28,12 +28,11 @@
             populatefield('#acs', data.acs);
             populatefield('#softversion', data.softversion);
             populatefield('#uptime', data.uptime);
-            var temp = data.temperature;
-            if (jQuery.isEmptyObject(temp)){
+            if (jQuery.isEmptyObject(data.temperature)){
               populatefield('#temperature', 'Not Found');
             }
             else{
-              multivaluefield('#temperature', temp);
+              multivaluefield('#temperature', data.temperature);
             }
             populatefield('#fiberjack', data.fiberjack);
             populatefield('#wanmac', data.wanmac);
@@ -42,14 +41,22 @@
             populatefield('#subnetmask', data.subnetmask);
             populatefield('#dhcpstart', data.dhcpstart);
             populatefield('#dhcpend', data.dhcpend);
-            populatefield('#wiredlanmac', data.wiredlanmac);
-            populatefield('#wiredlanstatus', data.wiredlanstatus);
+            if (jQuery.isEmptyObject(data.wiredlan)){
+              populatefield('#wiredlan', 'Not Found');
+            }
+            else{
+              multivaluefield('#wiredlan', data.wiredlan);
+            }
             populatefield('#wireddevices', data.wireddevices);
             populatefield('#ssid24', data.ssid24);
             populatefield('#ssid5', data.ssid5);
             populatefield('#wpa2', data.wpa2);
-            populatefield('#wirelesslanmac', data.wirelesslanmac);
-            populatefield('#wirelesslanstatus', data.wirelesslanstatus);
+            if (jQuery.isEmptyObject(data.wirelesslan)){
+              populatefield('#wirelesslan', 'Not Found');
+            }
+            else{
+              multivaluefield('#wirelesslan', data.wirelesslan);
+            }
             populatefield('#wirelessdevices', data.wirelessdevices);
             populatefield('#upnp', data.upnp);
             populatefield('#portforwarding', data.portforwarding);
@@ -103,7 +110,7 @@
         If you'd like to speak to an agent, you may call 1-800-GO-FIBER.
       </div>
     </div>
-    <div id = "d3"><span id = "arrow">&#9660</span> &nbsp &nbsp Diagnostic information...</div>
+    <div id = "d3"><span id = "arrow">&#9660</span> &nbsp &nbsp Click here for Diagnostic information...</div>
     <div id = "diaginfo">
       <input type = "button" value="Download diagnostic information" id = "downloadbutton">
       <form action='/restart' method='post'>
@@ -131,8 +138,7 @@
          <div id = "dhcpend"><span class = "name">DHCP end address:</span><ul class = "value"></ul></div>
         </p>
         <p>
-         <div id = "wiredlanmac"><span class = "name">Wired LAN MAC:</span><ul class = "value"></ul></div>
-         <div id = "wiredlanstatus"><span class = "name">Wired LAN Status:</span><ul class = "value"></ul></div>
+         <div id = "wiredlan"><span class = "name">Wired LAN:</span><ul class = "value"></ul></div>
          <div id = "wireddevices"><span class = "name">Wired devices:</span><ul class = "value"></ul></div>
         </p>
         <p>
@@ -141,8 +147,7 @@
          <div id = "wpa2"><span class = "name">WPA2-PSK:</span><ul class = "value"></ul></div>
         </p>
         <p>
-         <div id = "wirelesslanmac"><span class = "name">Wireless LAN MAC:</span><ul class = "value"></ul></div>
-         <div id = "wirelesslanstatus"><span class = "name">Wireless LAN Status:</span><ul class = "value"></ul></div>
+         <div id = "wirelesslan"><span class = "name">Wireless LAN:</span><ul class = "value"></ul></div>
          <div id = "wirelessdevices"><span class = "name">Wireless devices:</span><ul class = "value"></ul></div>
         </p>
         <p>

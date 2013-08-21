@@ -114,6 +114,16 @@ class DiaguiSettings(tornado.web.Application):
         self.data['temperature'] = t
       except AttributeError:
         pass
+      t = dict()
+      for i, interface in self.root.Device.Ethernet.InterfaceList.iteritems():
+        t[interface.MACAddress] = interface.Status
+      self.data['wiredlan'] = t
+      x = self.root.InternetGatewayDevice.LANDeviceList
+      t = dict()
+      for i, landevice in x.iteritems():
+        for j, wlanconfig in landevice.WLANConfigurationList.iteritems():
+          t[wlanconfig.BSSID] = wlanconfig.Status
+      self.data['wirelesslan'] = t
     newchecksum = hashlib.sha1(unicode(
         sorted(list(self.data.items()))).encode('utf-8')).hexdigest()
     self.data['checksum'] = newchecksum

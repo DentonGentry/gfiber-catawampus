@@ -163,7 +163,6 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
     self.Unexport(objects='DNS')
     self.Unexport(objects='DSL')
     self.Unexport(objects='DSLite')
-    self.Unexport(objects='Ethernet')
     self.Unexport(objects='Firewall')
     self.Unexport(objects='GatewayInfo')
     self.Unexport(objects='HPNA')
@@ -196,6 +195,21 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
 
     self.Export(objects=['PeriodicStatistics'])
     self.PeriodicStatistics = periodic_stats
+
+    self.Ethernet = EthernetFakeCPE()
+
+
+class EthernetFakeCPE(tr181.Device_v2_2.Device.Ethernet):
+  """Implements Ethernet for FakeCPE platform."""
+
+  def __init__(self):
+    super(EthernetFakeCPE, self).__init__()
+    self.InterfaceNumberOfEntries = 0
+    self.LinkNumberOfEntries = 0
+    self.VLANTerminationNumberOfEntries = 0
+    self.InterfaceList = {}
+    self.LinkList = {}
+    self.VLANTerminationList = {}
 
 
 class InternetGatewayDeviceFakeCPE(BASE98IGD):
