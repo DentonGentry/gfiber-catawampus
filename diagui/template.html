@@ -12,15 +12,20 @@
         $(element + " .value li").text(val);
       }
       function multivaluefield(element, val) {
-        var a = [];
-        var i = 0;
-        for (key in val){
-          a[i] = key;
-          i++;
+        if (jQuery.isEmptyObject(val)){
+          populatefield(element, 'n/a');
         }
-        for (var j = 0; j<i; j++) {
-          $(element + ' .value').append('<li id=' + j + '></li>');
-          $(element + ' .value #' + j).text(a[j] + ' ' + val[a[j]]);
+        else {
+          var a = [];
+          var i = 0;
+          for (key in val) {
+            a[i] = key;
+            i++;
+          }
+          for (var j = 0; j<i; j++) {
+            $(element + ' .value').append('<li id=' + j + '></li>');
+            $(element + ' .value #' + j).text(a[j] + ' ' + val[a[j]]);
+          }
         }
       }
       function getContent() {
@@ -28,12 +33,7 @@
             populatefield('#acs', data.acs);
             populatefield('#softversion', data.softversion);
             populatefield('#uptime', data.uptime);
-            if (jQuery.isEmptyObject(data.temperature)){
-              populatefield('#temperature', 'Not Found');
-            }
-            else{
-              multivaluefield('#temperature', data.temperature);
-            }
+            multivaluefield('#temperature', data.temperature);
             populatefield('#fiberjack', data.fiberjack);
             populatefield('#wanmac', data.wanmac);
             populatefield('#wanip', data.wanip);
@@ -41,23 +41,13 @@
             populatefield('#subnetmask', data.subnetmask);
             populatefield('#dhcpstart', data.dhcpstart);
             populatefield('#dhcpend', data.dhcpend);
-            if (jQuery.isEmptyObject(data.wiredlan)){
-              populatefield('#wiredlan', 'Not Found');
-            }
-            else{
-              multivaluefield('#wiredlan', data.wiredlan);
-            }
+            multivaluefield('#wiredlan', data.wiredlan);
             populatefield('#wireddevices', data.wireddevices);
             populatefield('#ssid24', data.ssid24);
             populatefield('#ssid5', data.ssid5);
-            populatefield('#wpa2', data.wpa2);
-            if (jQuery.isEmptyObject(data.wirelesslan)){
-              populatefield('#wirelesslan', 'Not Found');
-            }
-            else{
-              multivaluefield('#wirelesslan', data.wirelesslan);
-            }
-            populatefield('#wirelessdevices', data.wirelessdevices);
+            multivaluefield('#wpa2', data.wpa2);
+            multivaluefield('#wirelesslan', data.wirelesslan);
+            multivaluefield('#wirelessdevices', data.wirelessdevices);
             populatefield('#upnp', data.upnp);
             populatefield('#portforwarding', data.portforwarding);
             populatefield('#dmzdevice', data.dmzdevice);
@@ -138,7 +128,7 @@
          <div id = "dhcpend"><span class = "name">DHCP end address:</span><ul class = "value"></ul></div>
         </p>
         <p>
-         <div id = "wiredlan"><span class = "name">Wired LAN:</span><ul class = "value"></ul></div>
+         <div id = "wiredlan"><span class = "name">Wired LAN MAC:</span><ul class = "value"></ul></div>
          <div id = "wireddevices"><span class = "name">Wired devices:</span><ul class = "value"></ul></div>
         </p>
         <p>
@@ -147,7 +137,7 @@
          <div id = "wpa2"><span class = "name">WPA2-PSK:</span><ul class = "value"></ul></div>
         </p>
         <p>
-         <div id = "wirelesslan"><span class = "name">Wireless LAN:</span><ul class = "value"></ul></div>
+         <div id = "wirelesslan"><span class = "name">Wireless LAN MAC:</span><ul class = "value"></ul></div>
          <div id = "wirelessdevices"><span class = "name">Wireless devices:</span><ul class = "value"></ul></div>
         </p>
         <p>

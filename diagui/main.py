@@ -103,10 +103,13 @@ class DiaguiSettings(tornado.web.Application):
     self.data = dict(line.decode('utf-8').strip().split(None, 1) for line in f)
     if self.root:
       deviceinfo = self.root.Device.DeviceInfo
+      tempstatus = deviceinfo.TemperatureStatus
+      landevlist = self.root.InternetGatewayDevice.LANDeviceList
+
       self.data['softversion'] = deviceinfo.SoftwareVersion
       self.data['uptime'] = deviceinfo.UpTime
       self.data['username'] = self.root.Device.ManagementServer.Username
-      tempstatus = deviceinfo.TemperatureStatus
+
       t = dict()
       try:
         for i, sensor in tempstatus.TemperatureSensorList.iteritems():
@@ -114,17 +117,50 @@ class DiaguiSettings(tornado.web.Application):
         self.data['temperature'] = t
       except AttributeError:
         pass
+
       t = dict()
       for i, interface in self.root.Device.Ethernet.InterfaceList.iteritems():
-        t[interface.MACAddress] = interface.Status
+        t[interface.MACAddress] = '(%s)' % interface.Status
       self.data['wiredlan'] = t
-      x = self.root.InternetGatewayDevice.LANDeviceList
-      t = dict()
-      for i, landevice in x.iteritems():
-        for j, wlanconfig in landevice.WLANConfigurationList.iteritems():
-          t[wlanconfig.BSSID] = wlanconfig.Status
-      self.data['wirelesslan'] = t
+
+      wlan = dict()
+      devices = dict()
+      wpa = dict()
+      self.data['ssid5'] = ''
+
+      for i, dev in landevlist.iteritems():
+        for j, wlconf in dev.WLANConfigurationList.iteritems():
+          if wlconf.Channel in range(1, 12):
+            self.data['ssid24'] = wlconf.SSID
+            if wlconf.WPAAuthenticationMode == 'PSKAuthentication':
+              wpa['2.4 GHz'] = '(configured)'
+            wlan[wlconf.BSSID] = '(2.4 GHz) (%s)' % wlconf.Status
+            for k, assoc in wlconf.AssociatedDeviceList.iteritems():
+              devices[assoc.AssociatedDeviceMACAddress] = (
+                  '(2.4 GHz) (Authentication State: %s)'
+                  % assoc.AssociatedDeviceAuthenticationState)
+
+          else:
+            self.data['ssid5'] = wlconf.SSID
+            if wlconf.WPAAuthenticationMode == 'PSKAuthentication':
+              wpa['5 GHz'] = '(configured)'
+            wlan[wlconf.BSSID] = '(5 GHz) (%s)' % wlconf.Status
+            for k, assoc in wlconf.AssociatedDeviceList.iteritems():
+              devices[assoc.AssociatedDeviceMACAddress] = (
+                  '(5 GHz) (Authentication State: %s)'
+                  % assoc.AssociatedDeviceAuthenticationState)
+
+      self.data['wirelesslan'] = wlan
+      self.data['wirelessdevices'] = devices
+      self.data['wpa2'] = wpa
+
+      if self.data['ssid24'] is '':
+        self.data['ssid24'] = 'n/a'
+      if self.data['ssid5'] == self.data['ssid24']:
+        self.data['ssid5'] = '(same)'
+      elif self.data['ssid5'] is '':
+        self.data['ssid5'] = 'n/a'
+
     newchecksum = hashlib.sha1(unicode(
         sorted(list(self.data.items()))).encode('utf-8')).hexdigest()
     self.data['checksum'] = newchecksum
-
