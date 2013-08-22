@@ -32,6 +32,7 @@ class JsonHandler(tornado.web.RequestHandler):
 
   @tornado.web.asynchronous
   def get(self):    # pylint: disable=g-bad-name
+    self.application.UpdateLatestDict()
     if self.get_argument('checksum') != self.application.data['checksum']:
       try:
         self.set_header('Content-Type', 'text/javascript')
@@ -67,11 +68,11 @@ class RestartHandler(tornado.web.RequestHandler):
 class DiaguiSettings(tornado.web.Application):
   """Defines settings for the server and notifier."""
 
-  def __init__(self, root):
+  def __init__(self, root, cpemach):
     self.root = root
+    self.cpemach = cpemach
     self.pathname = os.path.dirname(__file__)
     staticpath = os.path.join(self.pathname, 'static')
-    self.UpdateLatestDict()
     self.settings = {
         'static_path': staticpath,
         'template_path': self.pathname,
@@ -102,10 +103,17 @@ class DiaguiSettings(tornado.web.Application):
     f = open(os.path.join(self.pathname, 'Testdata/testdata'))
     self.data = dict(line.decode('utf-8').strip().split(None, 1) for line in f)
     if self.root:
+      self.data['subnetmask'] = ''
+
       deviceinfo = self.root.Device.DeviceInfo
       tempstatus = deviceinfo.TemperatureStatus
       landevlist = self.root.InternetGatewayDevice.LANDeviceList
+      etherlist = self.root.Device.Ethernet.InterfaceList
 
+      if self.cpemach.last_success_response:
+        self.data['acs'] = 'OK (%s)' % self.cpemach.last_success_response
+      else:
+        self.data['acs'] = 'Never Contacted'
       self.data['softversion'] = deviceinfo.SoftwareVersion
       self.data['uptime'] = deviceinfo.UpTime
       self.data['username'] = self.root.Device.ManagementServer.Username
@@ -119,9 +127,25 @@ class DiaguiSettings(tornado.web.Application):
         pass
 
       t = dict()
-      for i, interface in self.root.Device.Ethernet.InterfaceList.iteritems():
+      for i, inter in self.root.Device.IP.InterfaceList.iteritems():
+        for j, ip4 in inter.IPv4AddressList.iteritems():
+          t[ip4.IPAddress] = '(%s)' % ip4.Status
+          self.data['subnetmask'] = ip4.SubnetMask
+        for j, ip6 in inter.IPv6AddressList.iteritems():
+          if ip6.IPAddress[:4] != 'fe80':
+            t[ip6.IPAddress] = '(%s)' % ip6.Status
+      self.data['lanip'] = t
+
+      t = dict()
+      for i, interface in etherlist.iteritems():
         t[interface.MACAddress] = '(%s)' % interface.Status
       self.data['wiredlan'] = t
+
+      t = dict()
+      for i, inter in self.root.Device.MoCA.InterfaceList.iteritems():
+        for j, dev in inter.AssociatedDeviceList.iteritems():
+          t[dev.NodeID] = dev.MACAddress
+      self.data['wireddevices'] = t
 
       wlan = dict()
       devices = dict()
@@ -154,13 +178,24 @@ class DiaguiSettings(tornado.web.Application):
       self.data['wirelessdevices'] = devices
       self.data['wpa2'] = wpa
 
-      if self.data['ssid24'] is '':
-        self.data['ssid24'] = 'n/a'
-      if self.data['ssid5'] == self.data['ssid24']:
-        self.data['ssid5'] = '(same)'
-      elif self.data['ssid5'] is '':
-        self.data['ssid5'] = 'n/a'
+      if self.data['ssid24']:
+        if self.data['ssid5'] == self.data['ssid24']:
+          self.data['ssid5'] = '(same)'
+
+      try:
+        self.data['upnp'] = self.root.UPnP.Device.Enable
+      except AttributeError:
+        self.data['upnp'] = 'Off'
+
+      try:
+        dns = self.root.DNS.SD.ServiceList
+        for i, serv in dns.iteritems():
+          self.data['dyndns'] = serv.InstanceName
+          self.data['domain'] = serv.Domain
+      except AttributeError:
+        pass
 
     newchecksum = hashlib.sha1(unicode(
         sorted(list(self.data.items()))).encode('utf-8')).hexdigest()
     self.data['checksum'] = newchecksum
+

@@ -8,8 +8,13 @@
     <script>
       var obj1 = {"checksum": 0};
       function populatefield(element, val) {
-        $(element + " .value").append('<li></li>');
-        $(element + " .value li").text(val);
+        if (val == '') {
+          populatefield(element, 'n/a');
+        }
+        else {
+          $(element + " .value").append('<li></li>');
+          $(element + " .value li").text(val);
+        }
       }
       function multivaluefield(element, val) {
         if (jQuery.isEmptyObject(val)){
@@ -37,12 +42,12 @@
             populatefield('#fiberjack', data.fiberjack);
             populatefield('#wanmac', data.wanmac);
             populatefield('#wanip', data.wanip);
-            populatefield('#lanip', data.lanip);
+            multivaluefield('#lanip', data.lanip);
             populatefield('#subnetmask', data.subnetmask);
             populatefield('#dhcpstart', data.dhcpstart);
             populatefield('#dhcpend', data.dhcpend);
             multivaluefield('#wiredlan', data.wiredlan);
-            populatefield('#wireddevices', data.wireddevices);
+            multivaluefield('#wireddevices', data.wireddevices);
             populatefield('#ssid24', data.ssid24);
             populatefield('#ssid5', data.ssid5);
             multivaluefield('#wpa2', data.wpa2);

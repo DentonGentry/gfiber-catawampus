@@ -200,6 +200,7 @@ class CPEStateMachine(object):
         ping_path=ping_path, get_parameter_key=cpe.getParameterKey,
         start_periodic_session=self.NewPeriodicSession, ioloop=self.ioloop,
         restrict_acs_hosts=restrict_acs_hosts)
+    self.last_success_response = 0
 
   def EventQueueHandler(self):
     """Called if the event queue goes beyond the maximum threshold."""
@@ -400,6 +401,7 @@ class CPEStateMachine(object):
     """Callback function invoked with the response an HTTP query to the ACS."""
     self.outstanding = None
     print 'CPE RECEIVED (at %s):' % time.ctime()
+    self.last_success_response = time.ctime()
     if not self.session:
       print 'Session terminated, ignoring ACS message.'
       return

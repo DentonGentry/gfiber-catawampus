@@ -169,10 +169,8 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
     self.Unexport(objects='HomePlug')
     self.Unexport(objects='Hosts')
     self.Unexport(objects='IEEE8021x')
-    self.Unexport(objects='IP')
     self.Unexport(objects='IPv6rd')
     self.Unexport(objects='LANConfigSecurity')
-    self.Unexport(objects='MoCA')
     self.Unexport(objects='NAT')
     self.Unexport(objects='NeighborDiscovery')
     self.Unexport(objects='PPP')
@@ -197,10 +195,11 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
     self.PeriodicStatistics = periodic_stats
 
     self.Ethernet = EthernetFakeCPE()
-
+    self.IP = IPFakeCPE()
+    self.MoCA = MoCAFakeCPE()
 
 class EthernetFakeCPE(tr181.Device_v2_2.Device.Ethernet):
-  """Implements Ethernet for FakeCPE platform."""
+  """Implements Device_v2_2.Device.Ethernet for FakeCPE platform."""
 
   def __init__(self):
     super(EthernetFakeCPE, self).__init__()
@@ -210,6 +209,23 @@ class EthernetFakeCPE(tr181.Device_v2_2.Device.Ethernet):
     self.InterfaceList = {}
     self.LinkList = {}
     self.VLANTerminationList = {}
+
+
+class IPFakeCPE(tr181.Device_v2_2.Device.IP):
+  """Implements Device_v2_2.Device.IP for FakeCPE Platform."""
+
+  def __init__(self):
+    super(IPFakeCPE, self).__init__()
+    self.InterfaceList = {}
+
+
+class MoCAFakeCPE(tr181.Device_v2_2.Device.MoCA):
+  """Implements Device_v2_2.Device.MoCA for FakeCPE Platform."""
+
+  def __init__(self):
+    super(MoCAFakeCPE, self).__init__()
+    self.InterfaceNumberOfEntries = 0
+    self.InterfaceList = {}
 
 
 class InternetGatewayDeviceFakeCPE(BASE98IGD):
