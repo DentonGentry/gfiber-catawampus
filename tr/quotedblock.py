@@ -93,7 +93,11 @@ class QuotedBlockProtocol(object):
       self.partial_line = line
     else:
       self.partial_line = ''
-      return self.GotLine(line.decode('utf-8'))
+      try:
+        return self.GotLine(line.decode('utf-8'))
+      except UnicodeDecodeError as e:
+        print 'GotData: error decoding "%s", %s' % (line, e)
+        return None
 
   def GotLine(self, line):
     """Call this method every time you receive a parseable line of data.

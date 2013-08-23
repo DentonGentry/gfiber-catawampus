@@ -150,10 +150,15 @@ class LineReader(object):
     except EOFError:
       self.stream.close()
       return
+    except IOError as e:
+      print 'Error writting to socket: %s' % e
+      self.stream.close()
+      return
 
     try:
       self._StartRead()
-    except IOError:
+    except IOError as e:
+      print 'Error reading from socket: %s' % e
       self.stream.close()
 
   def Write(self, bytestring):
