@@ -195,6 +195,18 @@ class DiaguiSettings(tornado.web.Application):
       except AttributeError:
         pass
 
+      # TODO: Verify if these are the correct values.
+      try:
+        wan = self.root.InternetGatewayDevice.WANDeviceList
+      except AttributeError:
+        pass
+      else:
+        for i, dev in wan.iteritems():
+          for j, conn in dev.WANConnectionDeviceList.iteritems():
+            for k, ipconn in conn.WANIPConnectionList.iteritems():
+              self.data['wanmac'] = ipconn.MACAddress
+              self.data['wanip'] = ipconn.ExternalIPAddress
+
     newchecksum = hashlib.sha1(unicode(
         sorted(list(self.data.items()))).encode('utf-8')).hexdigest()
     self.data['checksum'] = newchecksum

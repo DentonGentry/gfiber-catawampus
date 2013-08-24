@@ -6,11 +6,14 @@
       <title>Google Fiber Portal</title>
       <script src="static/jquery-1.10.2.js"></script>
       <script>
+        var msec_timeout_first = 15000;
+        var msec_timeout_after = 8000;
+        var msec_between_requests = 1000;
         var rebootstart = false;
         self.setInterval(function() {
           $.ajax({
             type: 'GET',
-            timeout: 8000,
+            timeout: msec_timeout_first,
             error: function() {
               rebootstart = true;
             },
@@ -20,7 +23,11 @@
               }
             }
           });
-        }, 1000);
+        }, msec_between_requests);
+        self.setTimeout(function() {
+          $('#wait').text('Lost contact with the network box. Please call Tech support at 1-800-GO-FIBER');
+          msec_timeout_first = msec_timeout_after;
+        }, 60000);
       </script>
   </head>
   <body>
