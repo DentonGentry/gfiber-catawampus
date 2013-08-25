@@ -52,7 +52,8 @@ install: diagui/install
 		$(DSTDIR)/tr/vendor/pbkdf2 $(DSTDIR)/tr/vendor/curtain \
 		$(DSTDIR)/platform $(DSTDIR)/platform/gfmedia $(DSTDIR)/platform/gfonu \
 		$(DSTDIR)/platform/fakecpe $(DSTDIR)/dm
-	$(INSTALL) -D -m 0755 set-acs cwmp cwmpd $(DSTDIR)
+	$(INSTALL) -D -m 0755 cwmp cwmpd $(DSTDIR)
+	$(INSTALL) -D -m 0755 set-acs $(DSTBINDIR)
 	$(INSTALL) -D -m 0644 *.py $(DSTDIR)
 	$(INSTALL) -D -m 0644 tr/*.py $(DSTDIR)/tr
 	$(INSTALL) -D -m 0644 dm/*.py $(DSTDIR)/dm
