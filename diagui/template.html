@@ -35,6 +35,7 @@
       }
       function getContent() {
           $.getJSON('content.json', obj1 , function(data) {
+            $('.value').empty();
             populatefield('#acs', data.acs);
             populatefield('#softversion', data.softversion);
             populatefield('#uptime', data.uptime);
