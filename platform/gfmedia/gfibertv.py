@@ -49,6 +49,7 @@ EASADDRFILE = ['/tmp/eas_service_address']
 EASFIPSFILE = ['/tmp/eas_fips']
 EASHEARTBEATFILE = ['/tmp/eas_heartbeat']
 EASPORTFILE = ['/tmp/eas_service_port']
+UICONTROLURLFILE = [ '/tmp/oregano_url' ]
 TCPALGORITHM = ['/config/tcp_congestion_control']
 
 
@@ -81,6 +82,7 @@ class GFiberTv(BASETV):
   f = tr.types.FileBacked(EASHEARTBEATFILE, tr.types.Date())
   EASHeartbeatTimestamp = tr.types.ReadOnly(f)
   TcpAlgorithm = tr.types.FileBacked(TCPALGORITHM, tr.types.String())
+  UiControlUrl = tr.types.FileBacked(UICONTROLURLFILE, tr.types.String())
 
   def __init__(self, mailbox_url):
     super(GFiberTv, self).__init__()

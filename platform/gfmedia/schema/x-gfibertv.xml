@@ -82,6 +82,12 @@
           <string/>
         </syntax>
       </parameter>
+      <parameter name="UiControlUrl" access="readWrite">
+        <description>URL for UI Control.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
 
       <object name="DvrSpace." access="readOnly" minEntries="1" maxEntries="1">
         <parameter name="PermanentFiles" access="readOnly">
