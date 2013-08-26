@@ -66,7 +66,7 @@ domain home.allenfamily.com
     f.write(test_data)
     f.close()
     url_temp = self.url_string + self.checksum
-    app = diagui.main.DiaguiSettings(None)
+    app = diagui.main.DiaguiSettings(None, None)
     app.listen(8880)
     response1 = AsynchFetch(url_temp)
     response2 = AsynchFetch(url_temp)
@@ -91,8 +91,7 @@ wireddevices Living Room (TV box, 6a:5b:4c:3d:2e:1f)
 ssid24 AllenFamilyNetwork
 ssid5 (same)
 wpa2 (configured)
-wirelesslanmac 3a:1b:4c:1d:5e:9f
-wirelesslanstatus Up
+wirelesslan 3a:1b:4c:1d:5e:9f Up
 wirelessdevices Dad\'s Phone (6a:5b:4c:3d:2e:1f)
 upnp O
 portforwarding 80-80: Dad\'s Computer (6a:5b:4c:3d:2e:1f)
