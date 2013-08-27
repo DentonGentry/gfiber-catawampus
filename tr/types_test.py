@@ -28,6 +28,7 @@ import google3
 import mainloop
 import tr.types
 
+
 TEST_FILE = 'testobject.tmp'
 TEST2_FILE = 'testobject2.tmp'
 
@@ -58,6 +59,14 @@ class TestObject(object):
   @vv.validator
   def vv(self, value):
     return value + 1
+
+
+class NotifierTestObject(object):
+  a = tr.types.Int(0)
+  b = tr.types.Int(5)
+
+def ChangeValues(obj):
+  obj.b = obj.a
 
 
 class TriggerObject(object):
@@ -356,6 +365,22 @@ class TypesTest(unittest.TestCase):
     type(obj).u.Set(self, long(30595169952))
     obj2.i = long(30595169952L)
     obj2.u = long(30595169952L)
+
+  def testNotifications(self):
+    obj = NotifierTestObject()
+    obj1 = NotifierTestObject()
+    tr.types.AddNotifier(type(obj), 'a', ChangeValues)
+    tr.types.AddNotifier(type(obj1), 'a', ChangeValues)
+    self.assertNotEqual(obj.a, obj.b)
+    obj.b = 7
+    self.assertEquals(obj.a, 0)
+    self.assertEquals(obj.b, 7)
+    self.assertEquals(obj1.a, 0)
+    self.assertEquals(obj1.b, 5)
+    obj.a = 10
+    self.assertEquals(obj.a, obj.b)
+    self.assertEquals(obj1.a, 0)
+    self.assertEquals(obj1.b, 5)
 
 
 if __name__ == '__main__':
