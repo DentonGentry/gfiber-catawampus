@@ -31,13 +31,10 @@ import subprocess
 
 import google3
 
-import tornado.ioloop
-
 # Unit tests can override these with fake data
-ACSCONNECTED = '/tmp/acsconnected'
-ACSTIMEOUTMIN = 2*60*60
-ACSTIMEOUTMAX = 4*60*60
-SET_ACS = os.path.dirname(os.path.abspath(__file__)) + '/../set-acs'
+ACSCONTACT = '/tmp/cwmp/acscontact'
+ACSCONNECTED = '/tmp/cwmp/acsconnected'
+SET_ACS = 'set-acs'
 
 
 class AcsConfig(object):
@@ -48,20 +45,6 @@ class AcsConfig(object):
   with the cwmpd software.  If a vendor wants to modify how ACS handling is
   done, modifying the set-acs script is the best place to do that.
   """
-
-  def __init__(self, ioloop=None):
-    self._ioloop = ioloop or tornado.ioloop.IOLoop.instance()
-    self.acs_timeout = None
-    self.acs_timeout_interval = random.randrange(ACSTIMEOUTMIN, ACSTIMEOUTMAX)
-    self.acs_timeout_url = None
-
-  def ACSTimeout(self, filename, default):
-    """Get timeout value from file for testing."""
-    try:
-      return int(open(filename).readline().strip())
-    except (IOError, ValueError):
-      pass
-    return default
 
   def GetAcsUrl(self):
     """Return the current ACS_URL."""
@@ -114,47 +97,15 @@ class AcsConfig(object):
       return False
     return True
 
-  def _AcsAccessClearTimeout(self):
-    if self.acs_timeout:
-      self._ioloop.remove_timeout(self.acs_timeout)
-      self.acs_timeout = None
-
-  def _AcsAccessTimeout(self):
-    """Timeout for AcsAccess.
-
-    There has been no successful connection to ACS in self.acs_timeout_interval
-    seconds.
-    """
-    try:
-      os.remove(ACSCONNECTED)
-    except OSError as e:
-      if e.errno != errno.ENOENT:
-        raise
-      # No such file == harmless
-
-    try:
-      rc = subprocess.call(args=[SET_ACS, 'timeout',
-                                 self.acs_timeout_url.strip()])
-    except OSError:
-      rc = -1
-
-    if rc != 0:
-      # Log the failure
-      print '%s timeout %s failed %d' % (SET_ACS, self.acs_timeout_url, rc)
-
   def AcsAccessAttempt(self, url):
     """Called before attempting to initiate a connection with the ACS.
 
     Args:
       url: the ACS_URL being contacted.
     """
-    if url != self.acs_timeout_url:
-      self._AcsAccessClearTimeout()  # new ACS, restart timer
-      self.acs_timeout_url = url
-    if not self.acs_timeout:
-      self.acs_timeout = self._ioloop.add_timeout(
-          datetime.timedelta(seconds=self.acs_timeout_interval),
-          self._AcsAccessTimeout)
+    # We only *need* to create a 0 byte file, but write URL for debugging
+    with open(ACSCONTACT, 'w') as f:
+      f.write(url)
 
   def AcsAccessSuccess(self, url):
     """Called at the end of every successful ACS session.
@@ -162,7 +113,6 @@ class AcsConfig(object):
     Args:
       url: the ACS_URL being contacted.
     """
-    self._AcsAccessClearTimeout()
     # We only *need* to create a 0 byte file, but write URL for debugging
     with open(ACSCONNECTED, 'w') as f:
       f.write(url)

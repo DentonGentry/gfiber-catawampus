@@ -28,19 +28,8 @@ import tempfile
 import unittest
 
 import google3
-import tornado.ioloop
 import tornado.testing
 import acs_config
-
-
-class MockIoloop(object):
-  def __init__(self):
-    self.timeout = None
-    self.callback = None
-
-  def add_timeout(self, timeout, callback, unused_monotonic=None):
-    self.timeout = timeout
-    self.callback = callback
 
 
 class AcsConfigTest(tornado.testing.AsyncTestCase):
@@ -48,67 +37,57 @@ class AcsConfigTest(tornado.testing.AsyncTestCase):
 
   def setUp(self):
     super(AcsConfigTest, self).setUp()
+    self.old_ACSCONTACT = acs_config.ACSCONTACT
     self.old_ACSCONNECTED = acs_config.ACSCONNECTED
     self.old_SET_ACS = acs_config.SET_ACS
+    acs_config.SET_ACS = 'testdata/acs_config/set-acs'
+    self.scriptout = tempfile.NamedTemporaryFile()
+    os.environ['TESTOUTPUT'] = self.scriptout.name
 
   def tearDown(self):
     super(AcsConfigTest, self).tearDown()
+    acs_config.ACSCONTACT = self.old_ACSCONTACT
     acs_config.ACSCONNECTED = self.old_ACSCONNECTED
     acs_config.SET_ACS = self.old_SET_ACS
+    self.scriptout = None  # File will delete itself
 
   def testSetAcs(self):
-    acs_config.SET_ACS = 'testdata/acs_config/set-acs'
-    scriptout = tempfile.NamedTemporaryFile()
-    os.environ['TESTOUTPUT'] = scriptout.name
-    ac = acs_config.AcsConfig(ioloop=MockIoloop())
+    ac = acs_config.AcsConfig()
     self.assertEqual(ac.GetAcsUrl(), 'bar')
     ac.SetAcsUrl('foo')
-    self.assertEqual(scriptout.read().strip(), 'cwmp foo')
+    self.assertEqual(self.scriptout.read().strip(), 'cwmp foo')
 
   def testClearAcs(self):
-    acs_config.SET_ACS = 'testdata/acs_config/set-acs'
-    scriptout = tempfile.NamedTemporaryFile()
-    os.environ['TESTOUTPUT'] = scriptout.name
-    ac = acs_config.AcsConfig(ioloop=MockIoloop())
+    ac = acs_config.AcsConfig()
     ac.SetAcsUrl('')
-    self.assertEqual(scriptout.read().strip(), 'cwmp clear')
+    self.assertEqual(self.scriptout.read().strip(), 'cwmp clear')
 
   def testAcsAccess(self):
-    acs_config.SET_ACS = 'testdata/acs_config/set-acs'
-    scriptout = tempfile.NamedTemporaryFile()
-    os.environ['TESTOUTPUT'] = scriptout.name
-    ioloop = MockIoloop()
     tmpdir = tempfile.mkdtemp()
-    tmpfile = os.path.join(tmpdir, 'acsconnected')
-    self.assertRaises(OSError, os.stat, tmpfile)  # File does not exist yet
-    acs_config.ACSCONNECTED = tmpfile
-    ac = acs_config.AcsConfig(ioloop)
+    acscontact = os.path.join(tmpdir, 'acscontact')
+    self.assertRaises(OSError, os.stat, acscontact)  # File does not exist yet
+    acs_config.ACSCONTACT = acscontact
+    acsconnected = os.path.join(tmpdir, 'acsconnected')
+    self.assertRaises(OSError, os.stat, acsconnected)
+    acs_config.ACSCONNECTED = acsconnected
+    ac = acs_config.AcsConfig()
+
     acsurl = 'this is the acs url'
 
-    # Simulate ACS connection
+    # Simulate ACS connection attempt
     ac.AcsAccessAttempt(acsurl)
-    ac.AcsAccessSuccess(acsurl)
-    self.assertTrue(os.stat(tmpfile))
-    self.assertEqual(open(tmpfile, 'r').read(), acsurl)
-    self.assertTrue(ioloop.timeout)
-    self.assertTrue(ioloop.callback)
+    self.assertTrue(os.stat(acscontact))
+    self.assertEqual(open(acscontact, 'r').read(), acsurl)
+    self.assertRaises(OSError, os.stat, acsconnected)
 
-    # Simulate timeout
-    ac.AcsAccessAttempt(acsurl)
-    scriptout.truncate()
-    ioloop.callback()
-    self.assertRaises(OSError, os.stat, tmpfile)
-    self.assertEqual(scriptout.read().strip(), 'timeout ' + acsurl)
+    # Simulate ACS connection success
+    ac.AcsAccessSuccess(acsurl)
+    self.assertTrue(os.stat(acscontact))
+    self.assertTrue(os.stat(acsconnected))
+    self.assertEqual(open(acsconnected, 'r').read(), acsurl)
 
     # cleanup
     shutil.rmtree(tmpdir)
-
-  def testGetAcsUrlTimeout(self):
-    acs_config.TIMEOUTFILE = 'testdata/acs_config/garbage'
-    ac = acs_config.AcsConfig(ioloop=MockIoloop())
-    self.assertEqual(ac.ACSTimeout('/no_such_file_at_this_path', 60), 60)
-    self.assertEqual(ac.ACSTimeout('testdata/acs_config/garbage', 60), 60)
-    self.assertEqual(ac.ACSTimeout('testdata/acs_config/timeout', 60), 120)
 
 
 if __name__ == '__main__':
