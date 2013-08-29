@@ -44,11 +44,12 @@ DSTDIR?=/tmp/catawampus/
 INSTALL=install
 PYTHON?=python
 
-install: diagui/install
+install: diagui/install tr/vendor/i2c/install
 	$(INSTALL) -d $(DSTDIR) $(DSTDIR)/tr  $(DSTDIR)/tr/vendor \
 		$(DSTDIR)/tr/vendor/bup/lib/bup $(DSTDIR)/tr/vendor/pynetlinux \
 		$(DSTDIR)/tr/vendor/tornado $(DSTDIR)/tr/vendor/tornado/tornado \
 		$(DSTDIR)/tr/vendor/tornado/tornado/platform \
+                $(DSTDIR)/tr/vendor/i2c \
 		$(DSTDIR)/tr/vendor/pbkdf2 $(DSTDIR)/tr/vendor/curtain \
 		$(DSTDIR)/platform $(DSTDIR)/platform/gfmedia $(DSTDIR)/platform/gfonu \
 		$(DSTDIR)/platform/fakecpe $(DSTDIR)/dm
