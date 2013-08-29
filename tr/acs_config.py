@@ -32,7 +32,8 @@ import subprocess
 import google3
 
 # Unit tests can override these with fake data
-ACSCONTACT = '/tmp/cwmp/acscontact'
+CWMP_TMP_DIR = '/tmp/cwmp'
+ACSCONTACT = CWMP_TMP_DIR + '/acscontact'
 ACSCONNECTED = '/tmp/cwmp/acsconnected'
 SET_ACS = 'set-acs'
 
