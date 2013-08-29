@@ -10,6 +10,7 @@ import google3
 import tornado.ioloop
 import tornado.web
 import tr.pyinotify
+import tr.types
 
 
 # TODO(anandkhare): conditionally redirect only when needed
@@ -71,6 +72,8 @@ class DiaguiSettings(tornado.web.Application):
   def __init__(self, root, cpemach):
     self.root = root
     self.cpemach = cpemach
+    if self.root:
+      tr.types.AddNotifier(type(self.root.Device.Ethernet), 'InterfaceNumberOfEntries', self.AlertNotifiers)
     self.pathname = os.path.dirname(__file__)
     staticpath = os.path.join(self.pathname, 'static')
     self.settings = {
@@ -94,7 +97,7 @@ class DiaguiSettings(tornado.web.Application):
     self.wdd = self.wm.add_watch(
         os.path.join(self.pathname, 'Testdata'), self.mask)
 
-  def AlertNotifiers(self, notifier):
+  def AlertNotifiers(self, obj):
     self.UpdateLatestDict()
     for i in self.callbacklist[:]:
       i()

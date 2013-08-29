@@ -49,6 +49,7 @@ class Attr(object):
 
   def __init__(self, init=None):
     self.init = init
+    self.callbacklist = []
 
   def _MakeAttrs(self, obj):
     try:
@@ -69,12 +70,12 @@ class Attr(object):
     try:
       return d[id(self)]
     except KeyError:
-      if self.init is not None:
-        self.__set__(obj, self.init)
-      else:
+      if self.init is None:
         # special case: if init==None, don't do consistency checking, in
         # order to support initially-invalid variables
-        d[id(self)] = self.init
+        self._SetWithoutNotify(obj, None)
+      else:
+        self._SetWithoutNotify(obj, self.validate(obj, self.init))
       return d[id(self)]
 
   def validate(self, obj, value):  # pylint: disable-msg=unused-argument
@@ -150,9 +151,14 @@ class Attr(object):
     self.validate = fn
     return self
 
-  def __set__(self, obj, value):
+  def _SetWithoutNotify(self, obj, value):
     d = self._MakeAttrs(obj)
-    d[id(self)] = self.validate(obj, value)
+    d[id(self)] = value
+
+  def __set__(self, obj, value):
+    self._SetWithoutNotify(obj, self.validate(obj, value))
+    for i in self.callbacklist:
+      i(obj)
 
 
 class Bool(Attr):
@@ -319,8 +325,7 @@ class FileBacked(Attr):
                               owner=self.file_owner,
                               group=self.file_group)
 
-  def __set__(self, obj, value):
-    value = self.validate(obj, value)
+  def _SetWithoutNotify(self, obj, value):
     self.WriteFile(value)
 
 
@@ -516,3 +521,22 @@ def tryattr(obj, attrname, value):
     return validator(obj, value)
   else:
     return value
+
+
+def AddNotifier(cls, attrname, notifier):
+  """Registers the notifier with the given attribute of the class.
+
+     And adds the notifier to the attribute's callbacklist. Now, whenever
+     __set__() is called on the attribute of the class, all the registered
+     notifiers are notified and hence, all the callback functions in the list
+     are called. We only add a notifier on a class (type) and not an instance
+     of a class. This is because we want to add notifiers on all objects of a
+     particular type (and not just a single object), so that all those notifiers
+     are notified whenever the attribute value of that class is set.
+  """
+
+  if not isinstance(cls, type):
+    raise TypeError('AddNotifier can only be registered on a class, not an instance')
+  prop = getattr(cls, attrname)
+  prop.callbacklist.append(notifier)
+

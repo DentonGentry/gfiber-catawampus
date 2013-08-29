@@ -198,13 +198,15 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
     self.IP = IPFakeCPE()
     self.MoCA = MoCAFakeCPE()
 
+
 class EthernetFakeCPE(tr181.Device_v2_2.Device.Ethernet):
   """Implements Device_v2_2.Device.Ethernet for FakeCPE platform."""
 
+  InterfaceNumberOfEntries = tr.types.Int(0)
+  LinkNumberOfEntries = tr.types.Int(0)
+
   def __init__(self):
     super(EthernetFakeCPE, self).__init__()
-    self.InterfaceNumberOfEntries = 0
-    self.LinkNumberOfEntries = 0
     self.VLANTerminationNumberOfEntries = 0
     self.InterfaceList = {}
     self.LinkList = {}
