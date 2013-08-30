@@ -70,9 +70,11 @@ domain home.allenfamily.com
     app.listen(8880)
     response1 = AsynchFetch(url_temp)
     response2 = AsynchFetch(url_temp)
-    tr.mainloop.MainLoop().Start(1)
+    MainLoop = tr.mainloop.MainLoop()
+    MainLoop.Start(1)
     self.assertEqual(response1.ReturnResponseBody(),
                      response2.ReturnResponseBody())
+    self.assertNotEqual(response1.ReturnResponseBody(), None)
     self.checksum = ast.literal_eval(response1.ReturnResponseBody()).get(
         'checksum')
     test_data = """acs OK (May 21 2013 18:58:41+700)
@@ -106,10 +108,10 @@ domain home.allenfamily.com
     url_temp = self.url_string + self.checksum
     response1_new = AsynchFetch(url_temp)
     response2_new = AsynchFetch(url_temp)
-    tr.mainloop.MainLoop().Start(1)
+    MainLoop.Start(1)
     self.assertEqual(response1_new.ReturnResponseBody(),
                      response2_new.ReturnResponseBody())
-
+    self.assertNotEqual(response1_new.ReturnResponseBody(), None)
     self.assertNotEqual(response1.ReturnResponseBody(),
                         response1_new.ReturnResponseBody())
 
