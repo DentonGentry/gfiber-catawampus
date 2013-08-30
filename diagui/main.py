@@ -74,6 +74,8 @@ class DiaguiSettings(tornado.web.Application):
     self.cpemach = cpemach
     if self.root:
       tr.types.AddNotifier(type(self.root.Device.Ethernet), 'InterfaceNumberOfEntries', self.AlertNotifiers)
+      # TODO(anandkhare): Add notifiers on more parameters using the same format
+      # as above, as and when they are implemented using types.py.
     self.pathname = os.path.dirname(__file__)
     staticpath = os.path.join(self.pathname, 'static')
     self.settings = {
@@ -103,6 +105,8 @@ class DiaguiSettings(tornado.web.Application):
       i()
 
   def UpdateLatestDict(self):
+    """Updates the dictionary and checksum value."""
+
     f = open(os.path.join(self.pathname, 'Testdata/testdata'))
     self.data = dict(line.decode('utf-8').strip().split(None, 1) for line in f)
     if self.root:
