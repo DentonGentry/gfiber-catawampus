@@ -21,6 +21,7 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import errno
 import os.path
 import sys
 import google3
@@ -69,6 +70,13 @@ def _GotData(loop, fd, flags):
 
 
 def main():
+  try:
+    os.mkdir(tr.acs_config.CWMP_TMP_DIR)
+  except OSError, e:
+    if e.errno == errno.EEXIST:
+      pass
+    else:
+      raise
   cwmpdir = os.path.dirname(os.path.abspath(sys.argv[0]))
   defargs = dict(ext_dir=os.environ.get('CWMPD_EXT_DIR', cwmpdir + '/ext'))
   o = bup.options.Options(optspec % defargs)
