@@ -27,6 +27,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import calendar
 import datetime
 import os
+import shutil
 import subprocess
 import google3
 import tornado.ioloop
@@ -106,6 +107,7 @@ class Speedtest(CATA181SPEED):
     self.requested = False
     print 'speedtest starting.'
     try:
+      shutil.rmtree(path=SPEEDTESTDIR, ignore_errors=True)
       os.mkdir(SPEEDTESTDIR)
       self._WriteLicense()
     except (IOError, OSError):
