@@ -39,6 +39,7 @@ import dm.temperature
 import platform_config
 import pynetlinux
 import tornado.ioloop
+import tr.acs_config
 import tr.core
 import tr.download
 import tr.tr181_v2_4 as tr181
@@ -72,6 +73,7 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
   def __init__(self, ioloop=None):
     super(PlatformConfig, self).__init__()
     self._ioloop = ioloop or tornado.ioloop.IOLoop.instance()
+    tr.acs_config.ACSCONNECTED = '/tmp/ledmonitor/acsconnected'
 
   def ConfigDir(self):
     return CONFIGDIR
