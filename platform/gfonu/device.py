@@ -60,10 +60,11 @@ DOWNLOADDIR = '/tmp'
 SYSVAR = '/usr/bin/sysvar_cmd'
 SYSVAR_ERROR = '<<ERROR CODE>>'
 PRISMINSTALL = 'prisminstall.py'
-PROC_CPUINFO = '/proc/cpuinfo'
 REBOOT = 'tr69_reboot'
+MODELNAMEFILE = '/etc/platform'
+HWVERSIONFILE = '/sys/devices/platform/board/hw_ver'
+SWVERSIONFILE = '/etc/version'
 REPOMANIFEST = '/etc/repo-buildroot-manifest'
-VERSIONFILE = '/etc/version'
 GFLT110_OPTICAL_I2C_ADDR = 0x51
 
 
@@ -82,9 +83,20 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
     return DOWNLOADDIR
 
 
-# TODO(zixia): based on real hardware chipset
 class DeviceId(dm.device_info.DeviceIdMeta):
   """DeviceId for the GFLT devices."""
+
+  def _GetOneLine(self, filename, default):
+    """Get device statistics from file."""
+    try:
+      with open(filename, 'r') as f:
+        out = f.readline().strip()
+        if out and len(out) > 1:
+          return out
+        else:
+          return default
+    except IOError:
+      return default
 
   def _GetSysVarParam(self, param, default):
     """Get device statistics from SYSVAR partition."""
@@ -119,7 +131,7 @@ class DeviceId(dm.device_info.DeviceIdMeta):
 
   @property
   def ModelName(self):
-    return self._GetSysVarParam('PLATFORM_NAME', default='UnknownModel')
+    return self._GetOneLine(MODELNAMEFILE, default='UnknownModel')
 
   @property
   def Description(self):
@@ -127,11 +139,11 @@ class DeviceId(dm.device_info.DeviceIdMeta):
 
   @property
   def SerialNumber(self):
-    return self._GetSysVarParam('SERIAL_NO', default='666666666666')
+    return self._GetSysVarParam('SERIAL_NO', default='000000000000')
 
   @property
   def HardwareVersion(self):
-    return self._GetSysVarParam('HW_REV', default='1.0')
+    return self._GetOneLine(HWVERSIONFILE, default='1.0')
 
   @property
   def AdditionalHardwareVersion(self):
@@ -139,15 +151,15 @@ class DeviceId(dm.device_info.DeviceIdMeta):
 
   @property
   def SoftwareVersion(self):
-    return self._GetSysVarParam('SW_REV', default='1.0')
+    return self._GetOneLine(SWVERSIONFILE, default='1.0')
 
   @property
   def AdditionalSoftwareVersion(self):
-    return self._GetSysVarParam('REPOMANIFEST', default='0.0')
+    return self._GetOneLine(REPOMANIFEST, default='0.0')
 
   @property
   def ProductClass(self):
-    return self._GetSysVarParam('PLATFORM_NAME', default='UnknownModel')
+    return self._GetOneLine(MODELNAMEFILE, default='UnknownModel')
 
   @property
   def ModemFirmwareVersion(self):
