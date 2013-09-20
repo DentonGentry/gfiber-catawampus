@@ -20,7 +20,10 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import cStringIO
+# pylint: disable-msg=g-bad-import-order,unused-import
+import epoll_fix  # this needs to be first, before any tornado imports
+# pylint: enable-msg=g-bad-import-order,unused-import
+
 import datetime
 import os
 import shutil
@@ -38,16 +41,14 @@ import tornado.httpclient
 import tornado.ioloop
 import tornado.testing
 import tornado.util
+import tornado.web
 
 import api
 import cwmpdate
-import download
 import http
 import session
 
 
-mock_http_client_stop = None
-mock_http_clients = []
 SOAPNS = '{http://schemas.xmlsoap.org/soap/envelope/}'
 CWMPNS = '{urn:dslforum-org:cwmp-1-2}'
 
@@ -75,56 +76,98 @@ def StubOutMonotime(moxinstance):
     moxinstance.StubOutWithMock(time, 'time')
 
 
-class MockHttpClient(object):
-  def __init__(self, **kwargs):
-    self.ResetMock()
-    mock_http_clients.append(self)
-
-  def ResetMock(self):
-    self.req = None
-    self.fetch_called = False
+class WrapHttpClient(object):
+  def __init__(self, oldclient, stopfunc, **kwargs):
+    self.stopfunc = stopfunc
+    self.realclient = oldclient(**kwargs)
 
   def fetch(self, req, callback):
     print '%s: fetching: %s %s' % (self, req, callback)
-    self.fetch_req = req
-    self.fetch_callback = callback
-    self.fetch_called = True
-    mock_http_client_stop()
+    def mycallback(httpresponse):
+      print 'WrapHTTP request: finished request for %r' % req.url
+      callback(httpresponse)
+      self.stopfunc()
+    self.realclient.fetch(req, mycallback)
+
+  def close(self):
+    self.realclient.close()
+
+  def handle_callback_exception(self, callback):
+    self.realclient.handle_callback_exception(callback)
 
 
 class MockAcsConfig(object):
+  def __init__(self, port):
+    self.port = port
+
   def GetAcsUrl(self):
-    return 'http://example.com/cwmp'
+    return 'http://:::%d/cwmp' % self.port
 
-  def AcsAccessAttempt(self, url):
+  def AcsAccessAttempt(self, unused_url):
     pass
 
-  def AcsAccessSuccess(self, url):
+  def AcsAccessSuccess(self, unused_url):
     pass
 
 
-class HttpTest(tornado.testing.AsyncTestCase):
+class LinearHttpHandler(tornado.web.RequestHandler):
+  def initialize(self, callback):
+    self.callback = callback
+
+  def _handle(self):
+    print 'LinearHttpHandler: got %r request for %r' % (self.request.method,
+                                                        self.request.path)
+    self.callback(self)
+
+  @tornado.web.asynchronous
+  def get(self):
+    return self._handle()
+
+  @tornado.web.asynchronous
+  def post(self):
+    return self._handle()
+
+
+class HttpTest(tornado.testing.AsyncHTTPTestCase):
   def setUp(self):
-    super(HttpTest, self).setUp()
+    self.old_HTTPCLIENT = session.HTTPCLIENT
+    def _WrapWrapper(**kwargs):
+      return WrapHttpClient(self.old_HTTPCLIENT, self.stop, **kwargs)
+    session.HTTPCLIENT = _WrapWrapper
+    self.app = tornado.web.Application(
+        [
+            ('/cwmp', LinearHttpHandler,
+             dict(callback=self.HttpRequestReceived)),
+            ('/redir.*', LinearHttpHandler,
+             dict(callback=self.HttpRequestReceived)),
+        ])
+    super(HttpTest, self).setUp()  # calls get_app(), so self.app must exist
+    self.requestlog = []
     self.old_monotime = GetMonotime()
     self.advance_time = 0
-    self.old_HTTPCLIENT = session.HTTPCLIENT
-    session.HTTPCLIENT = MockHttpClient
-    global mock_http_client_stop
-    mock_http_client_stop = self.stop
     self.removedirs = list()
     self.removefiles = list()
-    del mock_http_clients[:]
 
   def tearDown(self):
+    session.HTTPCLIENT = self.old_HTTPCLIENT
     super(HttpTest, self).tearDown()
     SetMonotime(self.old_monotime)
-    session.HTTPCLIENT = self.old_HTTPCLIENT
     for d in self.removedirs:
       shutil.rmtree(d)
     for f in self.removefiles:
       os.remove(f)
-    del mock_http_clients[:]
+
+  def get_app(self):
+    return self.app
+
+  def HttpRequestReceived(self, handler):
+    self.requestlog.append(handler)
+    self.stop()
+
+  def NextHandler(self):
+    while not self.requestlog:
+      self.wait()
+    return self.requestlog.pop(0)
 
   def advanceTime(self):
     return 420000.0 + self.advance_time
@@ -141,7 +184,7 @@ class HttpTest(tornado.testing.AsyncTestCase):
     cpe_machine = http.Listen(ip=None, port=0,
                               ping_path='/ping/http_test',
                               acs=None, cpe=cpe, cpe_listener=False,
-                              acs_config=MockAcsConfig(),
+                              acs_config=MockAcsConfig(self.get_http_port()),
                               ioloop=self.io_loop)
     return cpe_machine
 
@@ -149,31 +192,31 @@ class HttpTest(tornado.testing.AsyncTestCase):
     SetMonotime(self.advanceTime)
     cpe_machine = self.getCpe()
     cpe_machine.Startup()
-    self.wait()
 
-    self.assertEqual(len(mock_http_clients), 1)
-    ht = mock_http_clients[0]
-    self.assertTrue(ht.fetch_called)
+    h = self.NextHandler()
+    self.assertEqual(h.request.method, 'POST')
 
-    root = ET.fromstring(ht.fetch_req.body)
+    root = ET.fromstring(h.request.body)
     envelope = root.find(SOAPNS + 'Body/' + CWMPNS + 'Inform/MaxEnvelopes')
     self.assertTrue(envelope is not None)
     self.assertEqual(envelope.text, '1')
+
+    self.assertEqual(len(self.requestlog), 0)
 
   def testCurrentTime(self):
     SetMonotime(self.advanceTime)
     cpe_machine = self.getCpe()
     cpe_machine.Startup()
-    self.wait()
 
-    self.assertEqual(len(mock_http_clients), 1)
-    ht = mock_http_clients[0]
-    self.assertTrue(ht.fetch_called)
+    h = self.NextHandler()
+    self.assertEqual(h.request.method, 'POST')
 
-    root = ET.fromstring(ht.fetch_req.body)
+    root = ET.fromstring(h.request.body)
     ctime = root.find(SOAPNS + 'Body/' + CWMPNS + 'Inform/CurrentTime')
     self.assertTrue(ctime is not None)
     self.assertTrue(cwmpdate.valid(ctime.text))
+
+    self.assertEqual(len(self.requestlog), 0)
 
   def testLookupDevIP6(self):
     http.PROC_IF_INET6 = 'testdata/http/if_inet6'
@@ -186,27 +229,22 @@ class HttpTest(tornado.testing.AsyncTestCase):
     SetMonotime(self.advanceTime)
     cpe_machine = self.getCpe()
     cpe_machine.Startup()
-    self.wait(timeout=20)
 
-    self.assertEqual(len(mock_http_clients), 1)
-    ht = mock_http_clients[0]
-    self.assertTrue(ht.fetch_called)
+    h = self.NextHandler()
+    self.assertEqual(h.request.method, 'POST')
 
-    root = ET.fromstring(ht.fetch_req.body)
+    root = ET.fromstring(h.request.body)
     retry = root.find(SOAPNS + 'Body/' + CWMPNS + 'Inform/RetryCount')
     self.assertTrue(retry is not None)
     self.assertEqual(retry.text, '0')
 
     # Fail the first request
-    httpresp = tornado.httpclient.HTTPResponse(ht.fetch_req, 404)
-    ht.fetch_callback(httpresp)
-
+    h.send_error(404)
+    self.wait(timeout=20)  # wait for client request to finish and setup retry
     self.advance_time += 10
-    self.wait(timeout=20)
-    self.assertEqual(len(mock_http_clients), 2)
-    ht = mock_http_clients[1]
+    h = self.NextHandler()
 
-    root = ET.fromstring(ht.fetch_req.body)
+    root = ET.fromstring(h.request.body)
     retry = root.find(SOAPNS + 'Body/' + CWMPNS + 'Inform/RetryCount')
     self.assertTrue(retry is not None)
     self.assertEqual(retry.text, '1')
@@ -215,27 +253,51 @@ class HttpTest(tornado.testing.AsyncTestCase):
     SetMonotime(self.advanceTime)
     cpe_machine = self.getCpe()
     cpe_machine.Startup()
-    self.wait(timeout=20)
 
-    self.assertEqual(len(mock_http_clients), 1)
-    ht = mock_http_clients[0]
-    self.assertTrue(ht.fetch_called)
+    h = self.NextHandler()
+    self.assertTrue(h.request.method, 'POST')
 
-    headers = tornado.httputil.HTTPHeaders()
-    headers.add('Set-Cookie', 'CWMPSID=0123456789abcdef; Secure')
-    headers.add('Set-Cookie',
-                ('AnotherCookie=987654321; Domain=.example.com; Path=/; '
-                 'Expires=Wed, 20-Jan-2038 00:00:01 GMT; HttpOnly'))
     msg = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">cwmpID</cwmp:ID><cwmp:HoldRequests soapenv:mustUnderstand="1">1</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:InformResponse><MaxEnvelopes>1</MaxEnvelopes></cwmp:InformResponse></soapenv:Body></soapenv:Envelope>'  # pylint: disable-msg=g-line-too-long
 
-    httpresp = tornado.httpclient.HTTPResponse(
-        ht.fetch_req, 200, headers=headers, buffer=cStringIO.StringIO(msg))
-    ht.fetch_callback(httpresp)
+    h.set_cookie('CWMPSID', '0123456789abcdef')
+    h.set_cookie('AnotherCookie', '987654321', domain='.example.com',
+                 path='/', expires_days=1)
+    h.write(msg)
+    h.finish()
 
-    self.advance_time += 10
-    self.wait(timeout=20)
-    self.assertEqual(ht.fetch_req.headers['Cookie'],
-                     ' AnotherCookie=987654321; CWMPSID=0123456789abcdef')
+    h = self.NextHandler()
+    self.assertEqual(h.request.headers['Cookie'],
+                     'AnotherCookie=987654321; CWMPSID=0123456789abcdef')
+
+  def testRedirect(self):
+    SetMonotime(self.advanceTime)
+    cpe_machine = self.getCpe()
+    cpe_machine.Startup()
+
+    h = self.NextHandler()
+    urlbase = 'http://:::%d' % self.get_http_port()
+    self.assertEqual(h.request.method, 'POST')
+    self.assertEqual(h.request.path, '/cwmp')
+    h.redirect(urlbase + '/redir7', status=307)
+    self.assertTrue('<soap' in h.request.body)
+
+    h = self.NextHandler()
+    self.assertEqual(h.request.method, 'POST')
+    self.assertEqual(h.request.path, '/redir7')
+    h.redirect(urlbase + '/redir1', status=301)
+    self.assertTrue('<soap' in h.request.body)
+
+    h = self.NextHandler()
+    self.assertEqual(h.request.method, 'POST')
+    self.assertEqual(h.request.path, '/redir1')
+    h.redirect(urlbase + '/redir2', status=302)
+    self.assertTrue('<soap' in h.request.body)
+
+    h = self.NextHandler()
+    self.assertEqual(h.request.method, 'POST')
+    self.assertEqual(h.request.path, '/redir2')
+    print h.request.body
+    self.assertTrue('<soap' in h.request.body)
 
   def testNewPingSession(self):
     cpe_machine = self.getCpe()

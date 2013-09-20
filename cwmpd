@@ -14,20 +14,21 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409
-#pylint: disable-msg=W0404
+# pylint: disable-msg=C6409,W0404
 #
 """The main server process for our TR-069 CPE device."""
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
+
+# pylint: disable-msg=g-bad-import-order
+import tr.epoll_fix  # this needs to be first, before any tornado imports
+# pylint: enable-msg=g-bad-import-order
 
 import errno
 import os.path
 import sys
 import google3
 import bup.options
-import tornado.autoreload
-import tornado.httpclient
 import diagui.main
 import dm_root
 import tr.acs_config
@@ -63,8 +64,7 @@ diagui        Listen for diagui requests on port 8880
 """
 
 
-#pylint: disable-msg=W0613
-def _GotData(loop, fd, flags):
+def _GotData(loop, fd, unused_flags):
   if not os.read(fd, 1024):
     loop.ioloop.stop()
 
@@ -80,13 +80,11 @@ def main():
   cwmpdir = os.path.dirname(os.path.abspath(sys.argv[0]))
   defargs = dict(ext_dir=os.environ.get('CWMPD_EXT_DIR', cwmpdir + '/ext'))
   o = bup.options.Options(optspec % defargs)
-  (opt, flags, extra) = o.parse(sys.argv[1:])  #pylint: disable-msg=W0612
+  (opt, unused_flags, unused_extra) = o.parse(sys.argv[1:])
 
   if not opt.platform:
     o.fatal('You must specify a --platform')
 
-  tornado.httpclient.AsyncHTTPClient.configure(
-      'tornado.curl_httpclient.CurlAsyncHTTPClient')
   loop = tr.mainloop.MainLoop()
   root = dm_root.DeviceModelRoot(loop, opt.platform, opt.ext_dir)
   if opt.rcmd_port:

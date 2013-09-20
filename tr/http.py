@@ -32,6 +32,7 @@ import time
 import urllib
 
 from curtain import digest
+import pycurl
 import tornado.httpclient
 import tornado.ioloop
 import tornado.util
@@ -158,6 +159,16 @@ class Handler(tornado.web.RequestHandler):
       self.write(str(result))
 
 
+REDIRECT_ON_301 = 1
+REDIRECT_ON_302 = 2
+
+def CurlCreator(oldcreator, *args, **kwargs):
+  """Set some pycurl options that tornado doesn't otherwise use."""
+  curl = oldcreator(*args, **kwargs)
+  curl.setopt(pycurl.POST301, REDIRECT_ON_301 | REDIRECT_ON_302)
+  return curl
+
+
 class CPEStateMachine(object):
   """A tr-69 Customer Premises Equipment implementation.
 
@@ -174,6 +185,13 @@ class CPEStateMachine(object):
   def __init__(self, ip, cpe, listenport, acs_config,
                ping_path, acs_url=None, ping_ip6dev=None, fetch_args=None,
                ioloop=None, restrict_acs_hosts=None):
+    tornado.httpclient.AsyncHTTPClient.configure(
+        'tornado.curl_httpclient.CurlAsyncHTTPClient')
+    # pylint: disable-msg=protected-access
+    oldcreate = tornado.curl_httpclient._curl_create
+    tornado.curl_httpclient._curl_create = (
+        lambda *args, **kwargs: CurlCreator(oldcreate, *args, **kwargs))
+    # pylint: enable-msg=protected-access
     self.cpe = cpe
     self.cpe_soap = api_soap.CPE(self.cpe)
     self.encode = api_soap.Encode()
@@ -235,6 +253,7 @@ class CPEStateMachine(object):
     return 0
 
   def _GetLocalAddr(self):
+    """Get the local socket address we *would* use if we were connected."""
     if self.my_configured_ip is not None:
       return self.my_configured_ip
     if self.ping_ip6dev is not None:
@@ -401,6 +420,7 @@ class CPEStateMachine(object):
     """Callback function invoked with the response an HTTP query to the ACS."""
     self.outstanding = None
     print 'CPE RECEIVED (at %s):' % time.ctime()
+    print 'Effective URL was: %r' % response.effective_url
     self.last_success_response = time.ctime()
     if not self.session:
       print 'Session terminated, ignoring ACS message.'
@@ -470,6 +490,7 @@ class CPEStateMachine(object):
       self._NewPingSession()
 
   def _NewPingSession(self):
+    """Start a new session in response to a ping request."""
     if self.session:
       # $SPEC3 3.2.2 initiate at most one new session after this one closes.
       self.session.ping_received = True
