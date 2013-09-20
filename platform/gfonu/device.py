@@ -57,9 +57,9 @@ INTERNAL_ERROR = 9002
 # Unit tests can override these with fake data
 CONFIGDIR = '/config/tr69'
 DOWNLOADDIR = '/tmp'
-SYSVAR = '/usr/bin/sysvar_cmd'
+SYSVAR = 'sysvar_cmd'
 SYSVAR_ERROR = '<<ERROR CODE>>'
-PRISMINSTALL = 'prisminstall.py'
+GINSTALL = 'ginstall.py'
 REBOOT = 'tr69_reboot'
 MODELNAMEFILE = '/etc/platform'
 HWVERSIONFILE = '/sys/devices/platform/board/hw_ver'
@@ -194,14 +194,17 @@ class Installer(tr.download.Installer):
                           'Installer: file %r does not exist.' % self.filename)
       return False
 
-    cmd = [PRISMINSTALL, '--tar={0}'.format(self.filename)]
+    # TODO(jnewlin): Remove the --skiploadersig once the new version of ginstall
+    # is integrated down from the cpe2.0 branch.
+    cmd = [GINSTALL, '--tar={0}'.format(self.filename), '--partition=other', 
+           '--skiploadersig']
     try:
-      self._prisminstall = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+      self._ginstall = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     except OSError:
       self._call_callback(INTERNAL_ERROR, 'Unable to start installer process')
       return False
 
-    fd = self._prisminstall.stdout.fileno()
+    fd = self._ginstall.stdout.fileno()
     fcntl.fcntl(fd, fcntl.F_SETFL, os.O_NONBLOCK)
     self._ioloop.add_handler(fd, self.on_stdout, self._ioloop.READ)
     return True
@@ -211,7 +214,7 @@ class Installer(tr.download.Installer):
     subprocess.call(cmd)
 
   def on_stdout(self, fd, unused_events):
-    """Called whenever the prisminstall process prints to stdout."""
+    """Called whenever the ginstall process prints to stdout."""
     # drain the pipe
     inp = ''
     try:
@@ -219,13 +222,13 @@ class Installer(tr.download.Installer):
     except OSError:   # returns EWOULDBLOCK
       pass
     if inp and inp.strip() != '.':
-      print 'prisminstall: %s' % inp.strip()
-    if self._prisminstall.poll() >= 0:
-      self._ioloop.remove_handler(self._prisminstall.stdout.fileno())
-      if self._prisminstall.returncode == 0:
+      print 'ginstall: %s' % inp.strip()
+    if self._ginstall.poll() >= 0:
+      self._ioloop.remove_handler(self._ginstall.stdout.fileno())
+      if self._ginstall.returncode == 0:
         self._call_callback(0, '')
       else:
-        print 'prisminstall: exit code %d' % self._prisminstall.poll()
+        print 'ginstall: exit code %d' % self._ginstall.poll()
         self._call_callback(INTERNAL_ERROR, 'Unable to install image.')
 
 

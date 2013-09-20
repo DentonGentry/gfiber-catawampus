@@ -51,7 +51,8 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     super(DeviceTest, self).setUp()
     self.old_CONFIGDIR = device.CONFIGDIR
     self.old_DOWNLOADDIR = device.DOWNLOADDIR
-    self.old_PRISMINSTALL = device.PRISMINSTALL
+    self.old_GINSTALL = device.GINSTALL
+    self.old_PROC_CPUINFO = device.PROC_CPUINFO
     self.old_REBOOT = device.REBOOT
     self.old_MODELNAMEFILE = device.MODELNAMEFILE
     self.old_HWVERSIONFILE = device.HWVERSIONFILE
@@ -65,7 +66,8 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     super(DeviceTest, self).tearDown()
     device.CONFIGDIR = self.old_CONFIGDIR
     device.DOWNLOADDIR = self.old_DOWNLOADDIR
-    device.PRISMINSTALL = self.old_PRISMINSTALL
+    device.GINSTALL = self.old_GINSTALL
+    device.PROC_CPUINFO = self.old_PROC_CPUINFO
     device.REBOOT = self.old_REBOOT
     device.MODELNAMEFILE = self.old_MODELNAMEFILE
     device.HWVERSIONFILE = self.old_HWVERSIONFILE
@@ -121,7 +123,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.stop()
 
   def testBadInstaller(self):
-    device.PRISMINSTALL = '/dev/null'
+    device.GINSTALL = '/dev/null'
     inst = device.Installer('/dev/null', ioloop=self.io_loop)
     inst.install(file_type='1 Firmware Upgrade Image',
                  target_filename='',
@@ -131,7 +133,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.assertTrue(self.install_cb_faultstring)
 
   def testInstallerStdout(self):
-    device.PRISMINSTALL = 'testdata/device/installer_128k_stdout'
+    device.GINSTALL = 'testdata/device/installer_128k_stdout'
     inst = device.Installer('testdata/device/imagefile', ioloop=self.io_loop)
     inst.install(file_type='1 Firmware Upgrade Image',
                  target_filename='',
@@ -143,7 +145,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.assertTrue(self.install_cb_must_reboot)
 
   def testInstallerFailed(self):
-    device.PRISMINSTALL = 'testdata/device/installer_fails'
+    device.GINSTALL = 'testdata/device/installer_fails'
     inst = device.Installer('testdata/device/imagefile', ioloop=self.io_loop)
     inst.install(file_type='1 Firmware Upgrade Image',
                  target_filename='',
