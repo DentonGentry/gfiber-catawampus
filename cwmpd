@@ -82,6 +82,9 @@ def main():
   o = bup.options.Options(optspec % defargs)
   (opt, flags, extra) = o.parse(sys.argv[1:])  #pylint: disable-msg=W0612
 
+  if not opt.platform:
+    o.fatal('You must specify a --platform')
+
   tornado.httpclient.AsyncHTTPClient.configure(
       'tornado.curl_httpclient.CurlAsyncHTTPClient')
   loop = tr.mainloop.MainLoop()
