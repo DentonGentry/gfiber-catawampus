@@ -52,10 +52,11 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.old_CONFIGDIR = device.CONFIGDIR
     self.old_DOWNLOADDIR = device.DOWNLOADDIR
     self.old_PRISMINSTALL = device.PRISMINSTALL
-    self.old_PROC_CPUINFO = device.PROC_CPUINFO
     self.old_REBOOT = device.REBOOT
+    self.old_MODELNAMEFILE = device.MODELNAMEFILE
+    self.old_HWVERSIONFILE = device.HWVERSIONFILE
+    self.old_SWVERSIONFILE = device.SWVERSIONFILE
     self.old_REPOMANIFEST = device.REPOMANIFEST
-    self.old_VERSIONFILE = device.VERSIONFILE
     self.install_cb_called = False
     self.install_cb_faultcode = None
     self.install_cb_faultstring = None
@@ -65,32 +66,52 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     device.CONFIGDIR = self.old_CONFIGDIR
     device.DOWNLOADDIR = self.old_DOWNLOADDIR
     device.PRISMINSTALL = self.old_PRISMINSTALL
-    device.PROC_CPUINFO = self.old_PROC_CPUINFO
     device.REBOOT = self.old_REBOOT
+    device.MODELNAMEFILE = self.old_MODELNAMEFILE
+    device.HWVERSIONFILE = self.old_HWVERSIONFILE
+    device.SWVERSIONFILE = self.old_SWVERSIONFILE
     device.REPOMANIFEST = self.old_REPOMANIFEST
-    device.VERSIONFILE = self.old_VERSIONFILE
 
   def testGetSerialNumber(self):
     did = device.DeviceId()
-    self.assertEqual(did.SerialNumber, '666666666666')
+    self.assertEqual(did.SerialNumber, '000000000000')
 
   def testModelName(self):
     did = device.DeviceId()
+    device.MODELNAMEFILE = 'testdata/device/platform'
+    self.assertEqual(did.ModelName, 'GFLT200')
+
+    device.MODELNAMEFILE = 'testdata/device/platform_empty'
+    self.assertEqual(did.ModelName, 'UnknownModel')
+
+    device.MODELNAMEFILE = 'testdata/device/platform_err'
     self.assertEqual(did.ModelName, 'UnknownModel')
 
   def testSoftwareVersion(self):
     did = device.DeviceId()
+    device.SWVERSIONFILE = 'testdata/device/version'
+    self.assertEqual(did.SoftwareVersion, '1.2.3')
+
+    device.SWVERSIONFILE = 'testdata/device/version_err'
     self.assertEqual(did.SoftwareVersion, '1.0')
 
   def testAdditionalSoftwareVersion(self):
     did = device.DeviceId()
+    device.REPOMANIFEST = 'testdata/device/repomanifest'
+    self.assertEqual(did.AdditionalSoftwareVersion,
+                     'platform 1111111111111111111111111111111111111111')
+
+    device.REPOMANIFEST = 'testdata/device/repomanifest_err'
     self.assertEqual(did.AdditionalSoftwareVersion, '0.0')
 
-  # TODO: (zixia) change based on real hardware chipset
   def testGetHardwareVersion(self):
-    device.PROC_CPUINFO = 'testdata/device/proc_cpuinfo'
     did = device.DeviceId()
-    self.assertEqual(did.HardwareVersion, '1.0')
+    device.HWVERSIONFILE = 'testdata/device/hw_ver'
+    self.assertEqual(did.HardwareVersion, '1.3')
+
+  def testAdditionalHardwareVersion(self):
+    did = device.DeviceId()
+    self.assertEqual(did.AdditionalHardwareVersion, '0.0')
 
   def install_callback(self, faultcode, faultstring, must_reboot):
     self.install_cb_called = True
