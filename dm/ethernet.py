@@ -86,11 +86,13 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
   def Status(self):
     if not self._pynet.is_up():
       return 'Down'
-    (_, _, _, link_up) = self._pynet.get_link_info()
-    if link_up:
+    (_, _, _, link_up) = self._GetLinkInfo()
+    if link_up is None:
+      return 'Unknown'
+    elif link_up:
       return 'Up'
     else:
-      return 'Dormant'
+      return 'Down'
 
   @property
   def Stats(self):
@@ -100,13 +102,19 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
 
   @property
   def MaxBitRate(self):
-    (speed, _, _, _) = self._pynet.get_link_info()
-    return speed
+    (speed, _, _, _) = self._GetLinkInfo()
+    return speed or 0  # follow the same convention as get_link_info(),
+                       # in which 0 stands for "unknown".
 
   @property
   def DuplexMode(self):
-    (_, duplex, _, _) = self._pynet.get_link_info()
-    return 'Full' if duplex else 'Half'
+    (_, duplex, _, _) = self._GetLinkInfo()
+    if duplex is None:
+      return 'Unknown'
+    elif duplex:
+      return 'Full'
+    else:
+      return 'Half'
 
   # Initially, we interpreted DuplexMode and MaxBitRate to read back
   # the configured settings. For example, they would return 'Auto'
@@ -117,10 +125,20 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
   # compatibility.
   @property
   def X_CATAWAMPUS_ORG_ActualBitRate(self):
-    (speed, _, _, _) = self._pynet.get_link_info()
-    return speed
+    return self.MaxBitRate
 
   @property
   def X_CATAWAMPUS_ORG_ActualDuplexMode(self):
-    (_, duplex, _, _) = self._pynet.get_link_info()
-    return 'Full' if duplex else 'Half'
+    return self.DuplexMode
+
+  def _GetLinkInfo(self):
+    """Call self._pynet.get_link_info() and handle any IOErrors.
+
+    Returns:
+       the same tuple as self._pynet.get_link_info(); if there's been
+       an error, returns a bunch of Nones.
+    """
+    try:
+      return self._pynet.get_link_info()
+    except IOError:
+      return (None, None, None, None)

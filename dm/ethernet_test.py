@@ -50,17 +50,22 @@ class EthernetTest(unittest.TestCase):
     self.assertEqual(eth.PacketsSent, 10)
 
   def _CheckEthernetInterfaceParameters(self, ifname, upstream, eth, pynet):
-    self.assertEqual(eth.DuplexMode, 'Full' if pynet.v_duplex else 'Half')
+    if pynet.v_duplex is None:
+      self.assertEqual(eth.DuplexMode, 'Unknown')
+    elif pynet.v_duplex:
+      self.assertEqual(eth.DuplexMode, 'Full')
+    else:
+      self.assertEqual(eth.DuplexMode, 'Half')
     self.assertEqual(eth.Enable, True)
     self.assertEqual(eth.LastChange, '0001-01-01T00:00:00Z')
     self.assertFalse(eth.LowerLayers)
-    self.assertEqual(eth.MACAddress, pynet.v_mac)
+    if hasattr(pynet, 'v_mac'):
+      self.assertEqual(eth.MACAddress, pynet.v_mac)
     self.assertEqual(eth.MaxBitRate, pynet.v_speed)
     self.assertEqual(eth.Name, ifname)
     self.assertEqual(eth.Upstream, upstream)
-    self.assertEqual(eth.X_CATAWAMPUS_ORG_ActualBitRate, pynet.v_speed)
-    self.assertEqual(eth.X_CATAWAMPUS_ORG_ActualDuplexMode,
-                     'Full' if pynet.v_duplex else 'Half')
+    self.assertEqual(eth.X_CATAWAMPUS_ORG_ActualBitRate, eth.MaxBitRate)
+    self.assertEqual(eth.X_CATAWAMPUS_ORG_ActualDuplexMode, eth.DuplexMode)
 
   def testValidateExports(self):
     eth = ethernet.EthernetInterfaceLinux26('foo0')
@@ -90,6 +95,15 @@ class EthernetTest(unittest.TestCase):
     MockPynet.v_link_up = False
     eth = ethernet.EthernetInterfaceLinux26('foo0')
     self._CheckEthernetInterfaceParameters('foo0', upstream, eth, MockPynet)
+
+  def testIOError(self):
+
+    ethernet.PYNETIFCONF = MockIOErrorPynet
+
+    upstream = False
+    eth = ethernet.EthernetInterfaceLinux26('foo0')
+    self._CheckEthernetInterfaceParameters('foo0', upstream, eth,
+                                           MockIOErrorPynet)
 
   def testDiscardFramePresence(self):
     # Content of DiscardFrameCnts is tested in netdev_test.py.
@@ -124,6 +138,27 @@ class MockPynet(object):
 
   def get_link_info(self):
     return (self.v_speed, self.v_duplex, self.v_auto, self.v_link_up)
+
+
+class MockIOErrorPynet(object):
+  """A mock pynetlinux.ifconfig.Interface that raises IOError on every call."""
+
+  v_speed = 0
+  v_duplex = None
+  v_auto = None
+  v_link_up = None
+
+  def __init__(self, ifname):
+    self.ifname = ifname
+
+  def is_up(self):
+    raise IOError('mock IOError')
+
+  def get_mac(self):
+    raise IOError('mock IOError')
+
+  def get_link_info(self):
+    raise IOError('mock IOError')
 
 
 if __name__ == '__main__':

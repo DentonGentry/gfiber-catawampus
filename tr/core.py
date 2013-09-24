@@ -56,7 +56,12 @@ class AutoDict(object):
                getitem=None, setitem=None, delitem=None):
     self.__name = name
     self.__iteritems = iteritems or self._Bad('iteritems')
-    self.__getitem = getitem or self._Bad('getitem')
+    if getitem:
+      self.__getitem = getitem
+    elif iteritems:
+      self.__getitem = self._GetItemFromIterItems
+    else:
+      self.__getitem = self._Bad('getitem')
     self.__setitem = setitem or self._Bad('setitem')
     self.__delitem = delitem or self._Bad('delitem')
 
@@ -67,6 +72,12 @@ class AutoDict(object):
       raise NotImplementedError('%r must override %s'
                                 % (self.__name, funcname))
     return Fn
+
+  def _GetItemFromIterItems(self, key):
+    for (k, v) in self.iteritems():  # pylint: disable-msg=W0612
+      if k == key:
+        return v
+    raise KeyError(key)
 
   def iteritems(self):  # pylint: disable-msg=C6409
     return self.__iteritems()

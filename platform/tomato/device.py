@@ -32,6 +32,7 @@ import dm.periodic_statistics
 import dm.storage
 import dm.traceroute
 import platform_config
+import pynetlinux
 import tornado.ioloop
 import tr.acs_config
 import tr.core
@@ -296,15 +297,19 @@ class Ethernet(tr181.Device_v2_2.Device.Ethernet):
 
   def __init__(self):
     super(Ethernet, self).__init__()
-    self.InterfaceList = {
-# TODO(zve): figure out what's causing the SchemaError and put these back in
-#            (root.Ethernet.Interface.Status is exported but does not exist)
-#
-#        '1': dm.ethernet.EthernetInterfaceLinux26(ifname='eth0'),
-#        '256': dm.ethernet.EthernetInterfaceLinux26(ifname='br0')
-    }
+
+    self.InterfaceList = tr.core.AutoDict(
+        'InterfaceList', iteritems=self._InterfaceListIterItems)
+
     self.VLANTerminationList = {}
     self.LinkList = {}
+
+  def _InterfaceListIterItems(self):
+    """Iterate over InterfaceList."""
+    for index, interface in enumerate(pynetlinux.ifconfig.iterifs(False)):
+      key = str(index)
+      value = dm.ethernet.EthernetInterfaceLinux26(ifname=interface.name)
+      yield key, value
 
   @property
   def InterfaceNumberOfEntries(self):
@@ -333,17 +338,19 @@ class IP(tr181.Device_v2_2.Device.IP):
   def __init__(self):
     super(IP, self).__init__()
     self.Unexport('ULAPrefix')
-    self.InterfaceList = {
-# TODO(zve): figure out what's causing the SchemaError and put these back in
-#            (root.IP.Interface.Status is exported but does not exist)
-#
-#        1: dm.ipinterface.IPInterfaceLinux26(
-#            ifname='eth0', lowerlayers='Device.Ethernet.Interface.1'),
-#        256: dm.ipinterface.IPInterfaceLinux26(
-#            ifname='br0', lowerlayers='Device.Ethernet.Interface.256')
-    }
+    self.InterfaceList = tr.core.AutoDict(
+        'InterfaceList', iteritems=self._InterfaceListIterItems)
     self.ActivePortList = {}
     self.Diagnostics = IPDiagnostics()
+
+  def _InterfaceListIterItems(self):
+    """Iterate over InterfaceList."""
+    for index, interface in enumerate(pynetlinux.ifconfig.iterifs(False)):
+      key = str(index)
+      value = dm.ipinterface.IPInterfaceLinux26(
+          ifname=interface.name,
+          lowerlayers='Device.Ethernet.Interface.%d' % index)
+      yield key, value
 
   @property
   def InterfaceNumberOfEntries(self):
