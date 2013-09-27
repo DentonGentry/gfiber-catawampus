@@ -53,10 +53,3 @@ class Bridging(BASEBRIDGE):
   @property
   def FilterNumberOfEntries(self):
     return len(self.FilterList)
-
-
-def main():
-  pass
-
-if __name__ == '__main__':
-  main()

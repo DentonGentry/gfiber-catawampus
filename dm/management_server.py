@@ -198,10 +198,3 @@ class ManagementServer98(BASEMGMT98):
       return delattr(self.mgmt, name)
     else:
       return BASEMGMT98.__delattr__(self, name)
-
-
-def main():
-  pass
-
-if __name__ == '__main__':
-  main()

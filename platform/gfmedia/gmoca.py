@@ -64,10 +64,3 @@ class GMoCA(tr.x_gmoca_1_0.X_GOOGLE_COM_GMOCA_v1_0):
         continue
     cdata.write(compr.flush())
     return base64.b64encode(cdata.getvalue())
-
-
-def main():
-  pass
-
-if __name__ == '__main__':
-  main()

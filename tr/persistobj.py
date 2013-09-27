@@ -150,10 +150,3 @@ def GetPersistentObjects(objdir, rootname=''):
       continue
     objs.append(obj)
   return objs
-
-
-def main():
-  pass
-
-if __name__ == '__main__':
-  main()

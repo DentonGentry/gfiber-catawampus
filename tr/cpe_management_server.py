@@ -360,10 +360,3 @@ class CpeManagementServer(object):
     except (IOError, ValueError):
       pass
     return default
-
-
-def main():
-  pass
-
-if __name__ == '__main__':
-  main()

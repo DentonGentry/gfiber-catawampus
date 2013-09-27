@@ -124,10 +124,3 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
   def X_CATAWAMPUS_ORG_ActualDuplexMode(self):
     (_, duplex, _, _) = self._pynet.get_link_info()
     return 'Full' if duplex else 'Half'
-
-
-def main():
-  pass
-
-if __name__ == '__main__':
-  main()

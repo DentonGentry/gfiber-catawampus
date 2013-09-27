@@ -1021,9 +1021,3 @@ class BrcmWlanAssociatedDevice(CATA98WIFI.AssociatedDevice):
   @property
   def X_CATAWAMPUS_ORG_Active(self):
     return True if self._assoc.IdleSeconds < 120 else False
-
-def main():
-  print tr.core.DumpSchema(BrcmWifiWlanConfiguration)
-
-if __name__ == '__main__':
-  main()

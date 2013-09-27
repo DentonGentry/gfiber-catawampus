@@ -104,10 +104,3 @@ class TimeTZ(BASE98IGD.Time):
 
   LocalTimeZoneName = property(GetLocalTimeZoneName, SetLocalTimeZoneName, None,
                                'InternetGatewayDevice.Time.LocalTimeZoneName')
-
-
-def main():
-  pass
-
-if __name__ == '__main__':
-  main()
