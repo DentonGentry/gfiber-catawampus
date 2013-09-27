@@ -43,6 +43,7 @@ class PeriodicStatisticsTest(unittest.TestCase):
     self.mock_cpe = self.m.CreateMock(tr.http.CPEStateMachine)
     self.mock_ioloop = self.m.CreateMock(tornado.ioloop.IOLoop)
     self.mock_cpe.ioloop = self.mock_ioloop
+    self.m.StubOutWithMock(self.mock_ioloop, 'add_callback')
     self.ps.SetCpe(self.mock_cpe)
     self.ps.SetRoot(self.mock_h)
 
@@ -126,6 +127,7 @@ class PeriodicStatisticsTest(unittest.TestCase):
     sampled_param.Reference = obj_name + obj_param
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
     self.mock_h.GetExport(mox.IsA(str)).AndReturn(1000)
+    self.mock_ioloop.add_callback(mox.IgnoreArg())
     self.m.ReplayAll()
 
     sample_set.SetCpeAndRoot(cpe=self.mock_cpe, root=self.mock_h)
@@ -147,6 +149,8 @@ class PeriodicStatisticsTest(unittest.TestCase):
     self.mock_h.GetExport(mox.IsA(str)).AndReturn(3000)
     self.mock_h.GetExport(mox.IsA(str)).AndReturn(4000)
     self.mock_h.GetExport(mox.IsA(str)).AndReturn(5000)
+    periodic_statistics._EnableFlush()
+    self.mock_ioloop.add_callback(mox.IgnoreArg())
     self.m.ReplayAll()
 
     sample_set.SetCpeAndRoot(cpe=self.mock_cpe, root=self.mock_h)
@@ -200,6 +204,8 @@ class PeriodicStatisticsTest(unittest.TestCase):
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
     dt = datetime.datetime(2013, 7, 8, 12, 0, 1)
     self.mock_h.GetExport(mox.IsA(str)).AndReturn(dt)
+    periodic_statistics._EnableFlush()
+    self.mock_ioloop.add_callback(mox.IgnoreArg())
     self.m.ReplayAll()
 
     sample_set.SetCpeAndRoot(cpe=self.mock_cpe, root=self.mock_h)
@@ -241,6 +247,7 @@ class SampleSetTest(unittest.TestCase):
     self.mock_cpe = self.m.CreateMock(tr.http.CPEStateMachine)
     self.mock_ioloop = self.m.CreateMock(tornado.ioloop.IOLoop)
     self.mock_cpe.ioloop = self.mock_ioloop
+    self.m.StubOutWithMock(self.mock_ioloop, 'add_callback')
     self.ps.SetCpe(self.mock_cpe)
     self.ps.SetRoot(self.mock_h)
 
@@ -378,6 +385,8 @@ class SampleSetTest(unittest.TestCase):
     sample_set.CollectSample()
 
   def testActiveNotify(self):
+    periodic_statistics._EnableFlush()
+    self.mock_ioloop.add_callback(mox.IgnoreArg())
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
     self.m.StubOutWithMock(sample_set, 'ClearSamplingData')
     self.m.StubOutWithMock(sample_set, 'SetSampleTrigger')

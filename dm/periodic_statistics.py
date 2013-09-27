@@ -59,6 +59,35 @@ def _MakeSampleSeconds(sample_times):
   return ','.join(deltas)
 
 
+_needs_flush = True
+
+
+def _EnableFlush():
+  global _needs_flush
+  _needs_flush = True
+
+
+def _FlushIfNewStatsSession(loop):
+  """Flush the tr.session cache, but max once per ioloop iteration.
+
+  This takes advantage of the fact that all add_callback() calls are run
+  together, separately from timeouts.  So each SampleSet has its own timeout,
+  and (if multiple ones trigger in a single iteration) this function gets
+  called more than once, but only flushes once.  After all those timeouts
+  run, _EnableFlush() might get called one or many times, which just sets
+  a bool (so there's no point deduplicating the calls) that allows another
+  cache flush when more timeouts occur.
+
+  Args:
+    loop: the tornado ioloop object to use for flush control.
+  """
+  global _needs_flush
+  if _needs_flush:
+    loop.add_callback(_EnableFlush)
+    tr.session.cache.flush()
+    _needs_flush = False
+
+
 class PeriodicStatistics(BASE157PS):
   """An implementation of tr157 PeriodicStatistics sampling."""
 
@@ -305,7 +334,7 @@ class PeriodicStatistics(BASE157PS):
       # We're starting what is effectively a CWMP session, one without such
       # trifling details as an ACS. We don't want stale data from previous
       # stats collections and/or actual ACS sessions.
-      tr.session.cache.flush()
+      _FlushIfNewStatsSession(self._cpe.ioloop)
 
       use_time = TIMEFUNC()
       sample_start_time = self._sample_start_time

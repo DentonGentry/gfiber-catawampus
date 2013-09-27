@@ -148,6 +148,8 @@ class cache(object):
   @staticmethod
   def flush():
     """Flush all cached data."""
+    if cache._thecache:
+      print 'Flushing session cache (%d entries)' % len(cache._thecache)
     cache._thecache.clear()
 
   def __init__(self, func):
