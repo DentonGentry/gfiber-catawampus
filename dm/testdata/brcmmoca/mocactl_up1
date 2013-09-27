@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ x"$1" = "xshow" ] && [ x"$2" = x"--status" ] ; then
+if [ "$1" = "show" ] && [ "$2" = "--status" ]; then
 echo "           MoCA Status(General)
 ==================================
 vendorId                  : 32          HwVersion                 : 0x742500b0

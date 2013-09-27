@@ -2,7 +2,7 @@
 
 target=${BASH_ARGV[1]}
 
-if [ $target = ::1 ] ; then
+if [ $target = ::1 ]; then
 echo "traceroute to ::1 (::1), 30 hops max, 80 byte packets
  1  localhost (::1)  0.018 ms  0.007 ms  0.005 ms
 "

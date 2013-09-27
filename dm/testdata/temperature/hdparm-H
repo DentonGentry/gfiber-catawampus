@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ x"$1" = "x-H" ] && [ x"$2" = x"/dev/sda" ] ; then
+if [ "$1" = "-H" ] && [ "$2" = "/dev/sda" ]; then
 echo "
 /dev/sda:
  drive temperature (celsius) is:  50

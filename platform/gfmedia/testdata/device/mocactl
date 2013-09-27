@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ x"$1" = "xshow" ] && [ x"$2" = x"--status" ] ; then
+if [ "$1" = "show" ] && [ "$2" = "--status" ]; then
 echo "           MoCA Status(General)
 ==================================
 vendorId                  : 32          HwVersion                 : 0x12345678
@@ -37,7 +37,7 @@ Link Reset Count          : 0
 =================================="
 fi
 
-if [ x"$1" = "xshow" ] && [ x"$2" = x"--config" ] ; then
+if [ "$1" = "show" ] && [ "$2" = "--config" ]; then
 echo "        MoCA Configuration
 ==================================
 maxFrameSize                : 6148 bytes
@@ -119,7 +119,7 @@ loopbackEn                  : 0
 =================================="
 fi
 
-if [ x"$1" = "xshow" ] && [ x"$2" = x"--initparms" ] ; then
+if [ "$1" = "show" ] && [ "$2" = "--initparms" ]; then
 echo "        MoCA InitTime Configuration
 =============================================
 Operating Version          : 1.1
@@ -167,7 +167,7 @@ Password Hash              : 1234
 ============================================="
 fi
 
-if [ x"$1" = "xshow" ] && [ x"$2" = x"--stats" ] ; then
+if [ "$1" = "show" ] && [ "$2" = "--stats" ]; then
 echo "       MoCA Stats(General)
 ==================================
 inUcPkts             : 0        inDiscardPktsEcl     : 0
@@ -223,7 +223,7 @@ RX_P3_ERROR                      : 0
 RX_P1_GCD_ERROR                  : 0"
 fi
 
-if [ x"$1" = "xshowtbl" ] && [ x"$2" = x"--nodestatus" ] ; then
+if [ "$1" = "showtbl" ] && [ "$2" = "--nodestatus" ]; then
 echo "           MoCA Node Status Table
 =============================================
 Node                             : 0
@@ -331,7 +331,7 @@ Tx Bcast Bit Loading Info            Tx Map Bit Loading Info
 --------------------------------    -------------------------------"
 fi
 
-if [ x"$1" = "xshowtbl" ] && [ x"$2" = x"--nodestats" ] ; then
+if [ "$1" = "showtbl" ] && [ "$2" = "--nodestats" ]; then
 echo "        MoCA Node Statistics Table
 =============================================
 Node                             : 0
@@ -401,7 +401,7 @@ NODE_RX_P1_GCD_ERROR                  : 0
 ============================================="
 fi
 
-if [ x"$1" = "xshowtbl" ] && [ x"$2" = x"--ucfwd" ] ; then
+if [ "$1" = "showtbl" ] && [ "$2" = "--ucfwd" ]; then
 echo "MoCA Unicast Forwarding Table
 =======================================================
 No   MAC Address        DestNodeId
@@ -412,13 +412,13 @@ No   MAC Address        DestNodeId
 ======================================================="
 fi
 
-if [ x"$1" = "xshowtbl" ] && [ x"$2" = x"--mcfwd" ] ; then
+if [ "$1" = "showtbl" ] && [ "$2" = "--mcfwd" ]; then
 echo "MoCA Multicast Forwarding Table
 =======================================================
 ======================================================="
 fi
 
-if [ x"$1" = "xshowtbl" ] && [ x"$2" = x"--srcaddr" ] ; then
+if [ "$1" = "showtbl" ] && [ "$2" = "--srcaddr" ]; then
 echo "                MoCA Source Address Table
 =======================================================
 No   MAC Address       SelfNodeId

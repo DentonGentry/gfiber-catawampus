@@ -1,22 +1,22 @@
 #!/bin/sh
 
-if [ x"$1" = "xget" ] && [ x"$2" = "xwps_mfstring" ] ; then
+if [ "$1" = "get" ] && [ "$2" = "wps_mfstring" ]; then
   echo "ASUSTeK Computer Inc."
 fi
 
-if [ x"$1" = "xget" ] && [ x"$2" = "xwps_modelnum" ] ; then
+if [ "$1" = "get" ] && [ "$2" = "wps_modelnum" ]; then
   echo "RT-N16"
 fi
 
-if [ x"$1" = "xget" ] && [ x"$2" = "xhardware_version" ] ; then
+if [ "$1" = "get" ] && [ "$2" = "hardware_version" ]; then
   echo "RT-N16-00-07-01-00"
 fi
 
-if [ x"$1" = "xget" ] && [ x"$2" = "xet0macaddr" ] ; then
+if [ "$1" = "get" ] && [ "$2" = "et0macaddr" ]; then
   echo "12:34:56:78:9A:BC"
 fi
 
-if [ x"$1" = "xget" ] && [ x"$2" = "xbuildno" ] ; then
+if [ "$1" = "get" ] && [ "$2" = "buildno" ]; then
   echo "20130102030405"
 fi
 

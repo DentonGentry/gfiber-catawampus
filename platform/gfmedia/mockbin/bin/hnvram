@@ -1,10 +1,10 @@
 #!/bin/sh
 
-if [ x"$1" = "x-r" ] && [ x"$2" = "x1ST_SERIAL_NUMBER" ] ; then
+if [ "$1" = "-r" ] && [ "$2" = "1ST_SERIAL_NUMBER" ]; then
   echo "1ST_SERIAL_NUMBER=000000001"
 fi
 
-if [ x"$1" = "x-r" ] && [ x"$2" = "xPLATFORM_NAME" ] ; then
+if [ "$1" = "-r" ] && [ "$2" = "PLATFORM_NAME" ]; then
   echo "PLATFORM_NAME=FakeGFMedia"
 fi
 

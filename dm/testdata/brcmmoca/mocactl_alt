@@ -2,7 +2,7 @@
 
 # Alternate values for various unit tests.
 
-if [ x"$1" = "xshow" ] && [ x"$2" = x"--initparms" ] ; then
+if [ "$1" = "show" ] && [ "$2" = "--initparms" ]; then
 echo "        MoCA InitTime Configuration
 =============================================
 Operating Version          : 2.0
@@ -50,7 +50,7 @@ Password Hash              : 1234
 ============================================="
 fi
 
-if [ x"$1" = "xshow" ] && [ x"$2" = x"--config" ] ; then
+if [ "$1" = "show" ] && [ "$2" = "--config" ]; then
 echo "        MoCA Configuration
 ==================================
 maxFrameSize                : 6148 bytes
@@ -132,7 +132,7 @@ loopbackEn                  : 0
 =================================="
 fi
 
-if [ x"$1" = "xshow" ] && [ x"$2" = x"--status" ] ; then
+if [ "$1" = "show" ] && [ "$2" = "--status" ]; then
 echo "           MoCA Status(General)
 ==================================
 vendorId                  : 32          HwVersion                 : 0x12345678
