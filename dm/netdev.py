@@ -152,10 +152,3 @@ class NetdevStatsLinux26(object):
       except (IndexError, ValueError):
         continue
     return total
-
-
-def main():
-  pass
-
-if __name__ == '__main__':
-  main()

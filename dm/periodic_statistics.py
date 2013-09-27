@@ -499,10 +499,3 @@ class PeriodicStatistics(BASE157PS):
           length = 1
         self._sample_times = self._sample_times[-length:]
         self._values = self._values[-length:]
-
-
-def main():
-  pass
-
-if __name__ == '__main__':
-  main()

@@ -196,10 +196,3 @@ class Ssh(tr.x_ssh_1_0.X_GOOGLE_COM_SSH_v1_1):
           self.config.enabled = True
         except subprocess.CalledProcessError:
           self.config.enabled = False
-
-
-def main():
-  pass
-
-if __name__ == '__main__':
-  main()

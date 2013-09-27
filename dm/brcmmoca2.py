@@ -503,10 +503,3 @@ class BrcmMoca(BASE181MOCA):
   @property
   def InterfaceNumberOfEntries(self):
     return len(self.InterfaceList)
-
-
-def main():
-  pass
-
-if __name__ == '__main__':
-  main()

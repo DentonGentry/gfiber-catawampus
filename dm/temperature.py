@@ -364,10 +364,3 @@ class FanReadFileRPS(CATA181DI.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
   @property
   def DesiredPercentage(self):
     return -1
-
-def main():
-  pass
-
-
-if __name__ == '__main__':
-  main()

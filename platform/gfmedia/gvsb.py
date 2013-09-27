@@ -59,10 +59,3 @@ class Gvsb(tr.x_gvsb_1_0.X_GOOGLE_COM_GVSB_v1_1):
     self.GvsbChannelLineup = '0'
     self.GvsbKick = ''
     self.GvsbServer = ''
-
-
-def main():
-  pass
-
-if __name__ == '__main__':
-  main()

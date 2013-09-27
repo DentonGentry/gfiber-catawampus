@@ -130,10 +130,3 @@ class WEPKey98(WLANDEV.WEPKey):
     super(WEPKey98, self).__init__()
     self.Unexport('Alias')
     self.WEPKey = ''
-
-
-def main():
-  pass
-
-if __name__ == '__main__':
-  main()
