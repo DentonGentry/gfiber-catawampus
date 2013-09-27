@@ -1,18 +1,18 @@
 #!/bin/sh
 
-if [ x"$1" = "x-r" ] && [ x"$2" = "x1ST_SERIAL_NUMBER" ] ; then
+if [ "$1" = "-r" ] && [ "$2" = "1ST_SERIAL_NUMBER" ]; then
   echo "1ST_SERIAL_NUMBER=123456789"
 fi
 
-if [ x"$1" = "x-r" ] && [ x"$2" = "xPLATFORM_NAME" ] ; then
+if [ "$1" = "-r" ] && [ "$2" = "PLATFORM_NAME" ]; then
   echo "PLATFORM_NAME=ModelName"
 fi
 
-if [ x"$1" = "x-r" ] && [ x"$2" = "xGPN" ] ; then
+if [ "$1" = "-r" ] && [ "$2" = "GPN" ]; then
   echo "GPN=PartNumber"
 fi
 
-if [ x"$1" = "x-r" ] && [ x"$2" = "xHW_REV" ] ; then
+if [ "$1" = "-r" ] && [ "$2" = "HW_REV" ]; then
   echo "HW_REV=rev"
 fi
 

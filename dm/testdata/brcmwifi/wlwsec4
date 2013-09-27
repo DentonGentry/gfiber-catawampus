@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ x"$3" = "xwsec" ] ; then
+if [ "$3" = "wsec" ]; then
   echo "4"
 fi
 exit 0

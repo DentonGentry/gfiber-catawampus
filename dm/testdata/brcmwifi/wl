@@ -1,60 +1,60 @@
 #!/bin/sh
 
-if [ $3 = pwr_percent ] ; then
+if [ $3 = pwr_percent ]; then
   echo 25
 fi
 
-if [ $3 = bssid ] ; then
+if [ $3 = bssid ]; then
   echo 01:23:45:67:89:ab
 fi
 
-if [ $3 = country ] ; then
+if [ $3 = country ]; then
   echo "US (US/16) UNITED STATES"
 fi
 
-if [ $3 = rateset ] ; then
+if [ $3 = rateset ]; then
   echo "[ 1(b) 2(b) 5.5(b) 6 9 11(b) 12 18 24 36 48 54 ]"
   echo "MCS SET : [ 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 ]"
 fi
 
-if [ $3 = interference ] ; then
+if [ $3 = interference ]; then
   echo "All interference mitigation is disabled. (mode 0)"
 fi
 
-if [ $3 = closed ] ; then
+if [ $3 = closed ]; then
   echo 0
 fi
 
-if [ $3 = radio ] ; then
+if [ $3 = radio ]; then
   # This may look backwards, that radio off returns 0x001 while on returns
   # 0x0000, but I assure you it is correct.
   echo 0x0001
 fi
 
-if [ $3 = wsec ] ; then
+if [ $3 = wsec ]; then
   echo 0
 fi
 
-if [ $3 = bss ] ; then
+if [ $3 = bss ]; then
   echo up
 fi
 
-if [ $3 = channel ] ; then
+if [ $3 = channel ]; then
   echo "# wl channel"
   echo "No scan in progress."
   echo "current mac channel     1"
   echo "target channel  2"
 fi
 
-if [ $3 = channels ] ; then
+if [ $3 = channels ]; then
   echo 1 2 3 4 5 6 7 8 9 10 11 36 40 44 48 52 56 60 64 100 104 108 112 116 120 124 128 132 136 140 149 153 157 161 165
 fi
 
-if [ $3 = ssid ] ; then
+if [ $3 = ssid ]; then
   echo Current SSID: \"MySSID\"
 fi
 
-if [ $3 = counters ] ; then
+if [ $3 = counters ]; then
   echo "txframe 1 txbyte 2 txretrans 3 txerror 4 rxframe 5 rxbyte 6 rxerror 7"
   echo "txprshort 8 txdmawar 9 txnobuf 10 txnoassoc 11 txchit 12 txcmiss 13"
   echo "reset 14 txserr 15 txphyerr 16 txphycrs 17 txfail 18 tbtt 19"
@@ -94,13 +94,13 @@ if [ $3 = counters ] ; then
   echo "txmpdu_sgi 134 rxmpdu_sgi 135 txmpdu_stbc 136 rxmpdu_stbc 137"
 fi
 
-if [ $3 = assoclist ] ; then
+if [ $3 = assoclist ]; then
   echo "assoclist A0:B0:C0:00:00:01"
   echo "assoclist A0:B0:C0:00:00:02"
   echo "assoclist A0:B0:C0:00:00:03"
 fi
 
-if [ $3 = sta_info ] && [ "$4" = "A0:B0:C0:00:00:01" ] ; then
+if [ $3 = sta_info ] && [ "$4" = "A0:B0:C0:00:00:01" ]; then
 echo "STA A0:B0:C0:00:00:01:"
 echo "   rateset [ 1 2 5.5 6 9 11 12 18 24 36 48 54 ]"
 echo "   idle 1 seconds"
@@ -117,7 +117,7 @@ echo "   rx decrypt succeeds: 5"
 echo "   rx decrypt failures: 6"
 fi
 
-if [ $3 = sta_info ] && [ "$4" = "A0:B0:C0:00:00:02" ] ; then
+if [ $3 = sta_info ] && [ "$4" = "A0:B0:C0:00:00:02" ]; then
 echo "STA A0:B0:C0:00:00:02:"
 echo "   rateset [ 1 2 5.5 6 9 11 12 18 24 36 48 ]"
 echo "   idle 2 seconds"
@@ -134,7 +134,7 @@ echo "   rx decrypt succeeds: 11"
 echo "   rx decrypt failures: 12"
 fi
 
-if [ $3 = sta_info ] && [ "$4" = "A0:B0:C0:00:00:03" ] ; then
+if [ $3 = sta_info ] && [ "$4" = "A0:B0:C0:00:00:03" ]; then
 echo "STA A0:B0:C0:00:00:03:"
 echo "   rateset [ 1 2 5.5 6 9 11 12 18 24 36 ]"
 echo "   idle 300 seconds"
