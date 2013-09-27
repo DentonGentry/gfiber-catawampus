@@ -298,7 +298,6 @@ class PeriodicStatistics(BASE157PS):
       for each of those.  If this is the last sample, optionally signal
       back to the ACS that the sampling is finished.  If another sample
       is required, setup a trigger to collect the next sample.
-      TODO(jnewlin): Add code to trigger the ACS.
       """
       self.RemoveTimeout()
       if not self._root or not self._cpe:
