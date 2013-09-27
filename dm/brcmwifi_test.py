@@ -111,8 +111,10 @@ class BrcmWifiTest(unittest.TestCase):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     self.assertEqual(bw.Status, 'Up')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlbssdown'
+    tr.session.cache.flush()
     self.assertEqual(bw.Status, 'Disabled')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlbsserr'
+    tr.session.cache.flush()
     self.assertEqual(bw.Status, 'Error')
 
   def testChannel(self):
@@ -151,6 +153,7 @@ class BrcmWifiTest(unittest.TestCase):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     self.assertEqual(bw.SSID, 'MySSID')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlssidempty'
+    tr.session.cache.flush()
     self.assertEqual(bw.SSID, '')
 
   def testValidateSSID(self):
@@ -187,6 +190,7 @@ class BrcmWifiTest(unittest.TestCase):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     self.assertEqual(bw.BSSID, '01:23:45:67:89:ab')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlempty'
+    tr.session.cache.flush()
     self.assertEqual(bw.BSSID, '00:00:00:00:00:00')
 
   def testValidateBSSID(self):
@@ -215,6 +219,7 @@ class BrcmWifiTest(unittest.TestCase):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     self.assertEqual(bw.RegulatoryDomain, 'US')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlcountry.jp'
+    tr.session.cache.flush()
     self.assertEqual(bw.RegulatoryDomain, 'JP')
 
   def testInvalidRegulatoryDomain(self):
@@ -242,6 +247,7 @@ class BrcmWifiTest(unittest.TestCase):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     self.assertEqual(bw.BasicDataTransmitRates, '1,2,5.5,11')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlrateset2'
+    tr.session.cache.flush()
     self.assertEqual(bw.BasicDataTransmitRates, '1,2,5.5,11,16.445')
 
   def testOperationalRateSet(self):
@@ -249,6 +255,7 @@ class BrcmWifiTest(unittest.TestCase):
     self.assertEqual(bw.OperationalDataTransmitRates,
                      '1,2,5.5,6,9,11,12,18,24,36,48,54')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlrateset2'
+    tr.session.cache.flush()
     self.assertEqual(bw.OperationalDataTransmitRates, '1,2,5.5,7.5,11,16.445')
 
   def testTransmitPower(self):
@@ -284,17 +291,22 @@ class BrcmWifiTest(unittest.TestCase):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     self.assertFalse(bw.AutoRateFallBackEnabled)
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlinterference1'
+    tr.session.cache.flush()
     self.assertFalse(bw.AutoRateFallBackEnabled)
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlinterference2'
+    tr.session.cache.flush()
     self.assertFalse(bw.AutoRateFallBackEnabled)
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlinterference3'
+    tr.session.cache.flush()
     self.assertTrue(bw.AutoRateFallBackEnabled)
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlinterference4'
+    tr.session.cache.flush()
     self.assertTrue(bw.AutoRateFallBackEnabled)
 
   def testSetAutoRateFallBackEnabled(self):
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
+    tr.session.cache.flush()
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     bw.StartTransaction()
     bw.Enable = 'True'
@@ -321,6 +333,7 @@ class BrcmWifiTest(unittest.TestCase):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     self.assertTrue(bw.SSIDAdvertisementEnabled)
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlclosed1'
+    tr.session.cache.flush()
     self.assertFalse(bw.SSIDAdvertisementEnabled)
 
   def testSetSSIDAdvertisementEnabled(self):
@@ -328,6 +341,7 @@ class BrcmWifiTest(unittest.TestCase):
     bw.StartTransaction()
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
+    tr.session.cache.flush()
     bw.Enable = 'True'
     bw.RadioEnabled = 'True'
     out.truncate()
@@ -351,11 +365,13 @@ class BrcmWifiTest(unittest.TestCase):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     self.assertFalse(bw.RadioEnabled)
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlradioon'
+    tr.session.cache.flush()
     self.assertTrue(bw.RadioEnabled)
 
   def testSetRadioEnabled(self):
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
+    tr.session.cache.flush()
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     bw.StartTransaction()
     bw.Enable = 'True'
@@ -376,6 +392,7 @@ class BrcmWifiTest(unittest.TestCase):
   def testNoEnable(self):
     (script, out) = self.MakeTestScript()
     brcmwifi.WL_EXE = script.name
+    tr.session.cache.flush()
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     bw.Enable = 'False'
     output = out.read()
@@ -395,27 +412,35 @@ class BrcmWifiTest(unittest.TestCase):
     self.assertEqual(bw.IEEE11iEncryptionModes, 'X_CATAWAMPUS-ORG_None')
     self.assertEqual(bw.WPAEncryptionModes, 'X_CATAWAMPUS-ORG_None')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec1'
+    tr.session.cache.flush()
     self.assertEqual(bw.IEEE11iEncryptionModes, 'WEPEncryption')
     self.assertEqual(bw.WPAEncryptionModes, 'WEPEncryption')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec2'
+    tr.session.cache.flush()
     self.assertEqual(bw.IEEE11iEncryptionModes, 'TKIPEncryption')
     self.assertEqual(bw.WPAEncryptionModes, 'TKIPEncryption')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec3'
+    tr.session.cache.flush()
     self.assertEqual(bw.IEEE11iEncryptionModes, 'WEPandTKIPEncryption')
     self.assertEqual(bw.WPAEncryptionModes, 'WEPandTKIPEncryption')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec4'
+    tr.session.cache.flush()
     self.assertEqual(bw.IEEE11iEncryptionModes, 'AESEncryption')
     self.assertEqual(bw.WPAEncryptionModes, 'AESEncryption')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec5'
+    tr.session.cache.flush()
     self.assertEqual(bw.IEEE11iEncryptionModes, 'WEPandAESEncryption')
     self.assertEqual(bw.WPAEncryptionModes, 'WEPandAESEncryption')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec6'
+    tr.session.cache.flush()
     self.assertEqual(bw.IEEE11iEncryptionModes, 'TKIPandAESEncryption')
     self.assertEqual(bw.WPAEncryptionModes, 'TKIPandAESEncryption')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec7'
+    tr.session.cache.flush()
     self.assertEqual(bw.IEEE11iEncryptionModes, 'WEPandTKIPandAESEncryption')
     self.assertEqual(bw.WPAEncryptionModes, 'WEPandTKIPandAESEncryption')
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wlwsec15'
+    tr.session.cache.flush()
     self.assertEqual(bw.IEEE11iEncryptionModes, 'WEPandTKIPandAESEncryption')
     self.assertEqual(bw.WPAEncryptionModes, 'WEPandTKIPandAESEncryption')
 

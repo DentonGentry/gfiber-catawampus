@@ -44,6 +44,7 @@ import pynetlinux
 import tornado.ioloop
 import tr.core
 import tr.download
+import tr.session
 import tr.tr098_v1_2
 import tr.tr181_v2_2 as tr181
 import tr.x_catawampus_tr181_2_0
@@ -65,12 +66,12 @@ INTERNAL_ERROR = 9002
 # Unit tests can override these with fake data
 CONFIGDIR = '/config/tr69'
 DOWNLOADDIR = '/tmp'
-GINSTALL = '/bin/ginstall.py'
-HNVRAM = '/usr/bin/hnvram'
+GINSTALL = 'ginstall.py'
+HNVRAM = 'hnvram'
 LEDSTATUS = '/tmp/gpio/ledstate'
 NAND_MB = '/proc/sys/dev/repartition/nand_size_mb'
 PROC_CPUINFO = '/proc/cpuinfo'
-REBOOT = '/bin/tr69_reboot'
+REBOOT = 'tr69_reboot'
 REPOMANIFEST = '/etc/repo-buildroot-manifest'
 VERSIONFILE = '/etc/version'
 
@@ -106,6 +107,7 @@ class DeviceId(dm.device_info.DeviceIdMeta):
     except IOError:
       return default
 
+  @tr.session.cache
   def _GetNvramParam(self, param, default=''):
     """Return a parameter from NVRAM, like the serial number.
 

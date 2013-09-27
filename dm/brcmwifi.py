@@ -58,7 +58,7 @@ EM_FIPS = 0x80  # Not enumerated in tr-98
 EM_WAPI = 0x100  # Not enumerated in tr-98
 
 # Unit tests can override these.
-WL_EXE = '/usr/bin/wl'
+WL_EXE = 'wl'
 WL_SLEEP = 3  # Broadcom recommendation for 3 second sleep before final join.
 # Broadcom recommendation for delay while scanning for a channel
 WL_AUTOCHAN_SLEEP = 2
@@ -112,6 +112,7 @@ class Wl(object):
     out, _ = wl.communicate(None)
     return out
 
+  @tr.session.cache
   def GetWlCounters(self):
     """Returns a dict() with the value of every 'wl counters' stat."""
     out = self._SubprocessWithOutput(['counters'])
@@ -166,6 +167,7 @@ class Wl(object):
     """Put device into AP mode."""
     self._SubprocessCall(['ap', '1'])
 
+  @tr.session.cache
   def GetAssociatedDevices(self):
     """Return a list of MAC addresses of associated STAs."""
     out = self._SubprocessWithOutput(['assoclist'])
@@ -177,6 +179,7 @@ class Wl(object):
         stations.append(sta.group(1))
     return stations
 
+  @tr.session.cache
   def GetAssociatedDevice(self, mac):
     """Return information about as associated STA.
 
@@ -212,6 +215,7 @@ class Wl(object):
         ad.IdleSeconds = IntOrZero(idle.group(1))
     return ad
 
+  @tr.session.cache
   def GetAutoRateFallBackEnabled(self):
     """Return WLANConfiguration.AutoRateFallBackEnabled as a boolean."""
     out = self._SubprocessWithOutput(['interference'])
@@ -222,16 +226,19 @@ class Wl(object):
       mode = int(result.group(1))
     return True if mode == 3 or mode == 4 else False
 
+  @tr.session.cache
   def SetAutoRateFallBackEnabled(self, value):
     """Set WLANConfiguration.AutoRateFallBackEnabled, expects a boolean."""
     interference = 4 if value else 3
     self._SubprocessCall(['interference', str(interference)])
 
+  @tr.session.cache
   def GetBasicDataTransmitRates(self):
     out = self._SubprocessWithOutput(['rateset'])
     basic_re = re.compile(r'([0123456789]+(?:\.[0123456789]+)?)\(b\)')
     return ','.join(basic_re.findall(out))
 
+  @tr.session.cache
   def GetBSSID(self):
     out = self._SubprocessWithOutput(['bssid'])
     bssid_re = re.compile(r'((?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})')
@@ -253,6 +260,7 @@ class Wl(object):
       return False
     return True
 
+  @tr.session.cache
   def GetBssStatus(self):
     out = self._SubprocessWithOutput(['bss'])
     lower = out.strip().lower()
@@ -267,6 +275,7 @@ class Wl(object):
     status = 'up' if enable else 'down'
     self._SubprocessCall(['bss', status])
 
+  @tr.session.cache
   def GetChannel(self):
     out = self._SubprocessWithOutput(['channel'])
     chan_re = re.compile(r'current mac channel(?:\s+)(\d+)')
@@ -314,6 +323,7 @@ class Wl(object):
             EM_WEP | EM_TKIP | EM_AES: 'WEPandTKIPandAESEncryption'}
     return bmap.get(bitmap)
 
+  @tr.session.cache
   def GetEncryptionModes(self):
     out = self._SubprocessWithOutput(['wsec'])
     try:
@@ -337,6 +347,7 @@ class Wl(object):
     self._SubprocessCall(['join', str(ssid), 'imode', 'bss',
                           'amode', str(amode)])
 
+  @tr.session.cache
   def GetOperationalDataTransmitRates(self):
     out = self._SubprocessWithOutput(['rateset'])
     oper_re = re.compile(r'([0123456789]+(?:\.[0123456789]+)?)')
@@ -349,6 +360,7 @@ class Wl(object):
   def SetPMK(self, value):
     self._SubprocessCall(['set_pmk', value])
 
+  @tr.session.cache
   def GetPossibleChannels(self):
     out = self._SubprocessWithOutput(['channels'])
     if out:
@@ -357,6 +369,7 @@ class Wl(object):
     else:
       return ''
 
+  @tr.session.cache
   def GetRadioEnabled(self):
     out = self._SubprocessWithOutput(['radio'])
     # This may look backwards, but I assure you it is correct. If the
@@ -370,6 +383,7 @@ class Wl(object):
     radio = 'on' if value else 'off'
     self._SubprocessCall(['radio', radio])
 
+  @tr.session.cache
   def GetRegulatoryDomain(self):
     out = self._SubprocessWithOutput(['country'])
     fields = out.split()
@@ -394,6 +408,7 @@ class Wl(object):
     status = 'down' if do_reset else 'up'
     self._SubprocessCall([status])
 
+  @tr.session.cache
   def GetSSID(self):
     """Return current Wifi SSID."""
     out = self._SubprocessWithOutput(['ssid'])
@@ -416,6 +431,7 @@ class Wl(object):
       return False
     return True
 
+  @tr.session.cache
   def GetSSIDAdvertisementEnabled(self):
     out = self._SubprocessWithOutput(['closed'])
     return True if out.strip() == '0' else False
@@ -428,6 +444,7 @@ class Wl(object):
     sup_wpa = '1' if value else '0'
     self._SubprocessCall(['sup_wpa', sup_wpa])
 
+  @tr.session.cache
   def GetTransmitPower(self):
     out = self._SubprocessWithOutput(['pwr_percent'])
     return int(out.strip())
@@ -464,6 +481,7 @@ class Wl(object):
     status = 'on' if enable else 'off'
     self._SubprocessCall(['wepstatus', status])
 
+  @tr.session.cache
   def GetWpaAuth(self):
     return self._SubprocessWithOutput(['wpa_auth'])
 

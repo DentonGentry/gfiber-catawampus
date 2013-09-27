@@ -196,8 +196,9 @@ class SimpleCacheObject(object):
     self.cache_this_function_n += 1
 
   @session.cache
-  def cache_function_with_args(self, arg1, arg2):  # pylint: disable-msg=W0613
-    self.cache_this_function_args_n += 1
+  def cache_function_with_args(
+      self, arg1, arg2, x=0, y=0):  # pylint: disable-msg=W0613
+    self.cache_this_function_args_n += 1 + x + y
 
 
 @session.cache
@@ -244,11 +245,16 @@ class SessionCacheTest(unittest.TestCase):
     t = SimpleCacheObject()
     arg = [1, 2, [3, 4], [5, 6, [7, 8, [9, 10]]], 11, 12]
     for i in range(10):
-      t.cache_function_with_args(i, arg)
-    self.assertEqual(t.cache_this_function_args_n, 10)
+      t.cache_function_with_args(i, arg, x=5, y=7)
+    self.assertEqual(t.cache_this_function_args_n,
+                     10 * (1 + 5 + 7))
     for i in range(10):
+      t.cache_function_with_args(i, arg, x=5, y=7)
       t.cache_function_with_args(99, arg)
-    self.assertEqual(t.cache_this_function_args_n, 11)
+      t.cache_function_with_args(99, arg, y=9)
+    self.assertEqual(t.cache_this_function_args_n,
+                     10 * (1 + 5 + 7) +
+                     1 + (1 + 9))
 
 
 RunAtEndTestResults = {}

@@ -136,10 +136,7 @@ class DeviceInfo181Linux26(CATA181DEVICEINFO):
 
   def __getattr__(self, name):
     """Allows passthrough of parameters to the platform-supplied device_id."""
-    if hasattr(self._device_id, name):
-      return getattr(self._device_id, name)
-    else:
-      raise AttributeError('No such attribute %s' % name)
+    return getattr(self._device_id, name)
 
   @property
   def MemoryStatus(self):

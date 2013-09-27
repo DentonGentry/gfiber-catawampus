@@ -301,6 +301,7 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
   def AssociatedDeviceNumberOfEntries(self):
     return len(self.AssociatedDeviceList)
 
+  @tr.session.cache
   def _MocaCtlGetNodeIDs(self):
     """Return a list of active MoCA Node IDs."""
     mc = subprocess.Popen([MOCACTL, 'showtbl', '--nodestats'],
@@ -375,6 +376,7 @@ class BrcmMocaAssociatedDevice(CATA181MOCA.Interface.AssociatedDevice):
     self.ParseNodeStatus()
     self.ParseNodeStats()
 
+  @tr.session.cache
   def ParseNodeStatus(self):
     """Run mocactl show --nodestatus for this node, parse the output."""
     mc = subprocess.Popen([MOCACTL, 'show', '--nodestatus', str(self.NodeID)],
@@ -429,6 +431,7 @@ class BrcmMocaAssociatedDevice(CATA181MOCA.Interface.AssociatedDevice):
     type(self).X_CATAWAMPUS_ORG_RxBitloading.Set(self, '$BRCM1$' + rxbitl)
     type(self).X_CATAWAMPUS_ORG_TxBitloading.Set(self, '$BRCM1$' + txbitl)
 
+  @tr.session.cache
   def ParseNodeStats(self):
     """Run mocactl show --nodestats for this node, parse the output."""
     mc = subprocess.Popen([MOCACTL, 'show', '--nodestats', str(self.NodeID)],

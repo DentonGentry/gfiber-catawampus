@@ -124,6 +124,13 @@ class CwmpSession(object):
     return self.ping_received
 
 
+def _make_hashable(obj):
+  if isinstance(obj, collections.Hashable):
+    return obj
+  else:
+    return repr(obj)
+
+
 class cache(object):
   """A global cache of arbitrary data for the lifetime of one CWMP session.
 
@@ -153,18 +160,21 @@ class cache(object):
     self.obj = obj
     return functools.partial(self.__call__, obj)
 
-  def __call__(self, *args):
-    key = self._cache_key(args)
+  def __call__(self, *args, **kwargs):
+    key = self._cache_key(args, kwargs)
     try:
       return cache._thecache[key]
     except KeyError:
-      val = self.func(*args)
+      val = self.func(*args, **kwargs)
       cache._thecache[key] = val
       return val
 
-  def _cache_key(self, *args):
+  def _cache_key(self, args, kwargs):
     """Concatenate the function, object, and all arguments."""
-    return '\0'.join([repr(x) for x in [self.func, self.obj, args]])
+    return (_make_hashable(self.func),
+            _make_hashable(self.obj),
+            tuple(_make_hashable(x) for x in list(args)),
+            tuple(_make_hashable(x) for x in list(kwargs)))
 
 
 class _RunAtEnd(object):

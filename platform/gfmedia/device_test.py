@@ -29,6 +29,7 @@ import google3
 import tornado.ioloop
 import tornado.testing
 import device
+import tr.session
 
 
 class MockIoloop(object):
@@ -58,6 +59,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.install_cb_called = False
     self.install_cb_faultcode = None
     self.install_cb_faultstring = None
+    tr.session.cache.flush()
 
   def tearDown(self):
     super(DeviceTest, self).tearDown()
@@ -74,12 +76,15 @@ class DeviceTest(tornado.testing.AsyncTestCase):
   def testGetSerialNumber(self):
     did = device.DeviceId()
     device.HNVRAM = 'testdata/device/hnvram'
+    tr.session.cache.flush()
     self.assertEqual(did.SerialNumber, '123456789')
 
     device.HNVRAM = 'testdata/device/hnvramSN_Empty'
+    tr.session.cache.flush()
     self.assertEqual(did.SerialNumber, '000000000000')
 
     device.HNVRAM = 'testdata/device/hnvramSN_Err'
+    tr.session.cache.flush()
     self.assertEqual(did.SerialNumber, '000000000000')
 
   def testBadHnvram(self):
@@ -111,6 +116,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.assertEqual(did.HardwareVersion, 'rev')
 
     device.HNVRAM = 'testdata/device/hnvramFOO_Empty'
+    tr.session.cache.flush()
     self.assertEqual(did.HardwareVersion, '0')
 
     device.PROC_CPUINFO = 'testdata/device/proc_cpuinfo_b2'
