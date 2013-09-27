@@ -52,7 +52,6 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.old_CONFIGDIR = device.CONFIGDIR
     self.old_DOWNLOADDIR = device.DOWNLOADDIR
     self.old_GINSTALL = device.GINSTALL
-    self.old_PROC_CPUINFO = device.PROC_CPUINFO
     self.old_REBOOT = device.REBOOT
     self.old_MODELNAMEFILE = device.MODELNAMEFILE
     self.old_HWVERSIONFILE = device.HWVERSIONFILE
@@ -67,7 +66,6 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     device.CONFIGDIR = self.old_CONFIGDIR
     device.DOWNLOADDIR = self.old_DOWNLOADDIR
     device.GINSTALL = self.old_GINSTALL
-    device.PROC_CPUINFO = self.old_PROC_CPUINFO
     device.REBOOT = self.old_REBOOT
     device.MODELNAMEFILE = self.old_MODELNAMEFILE
     device.HWVERSIONFILE = self.old_HWVERSIONFILE
