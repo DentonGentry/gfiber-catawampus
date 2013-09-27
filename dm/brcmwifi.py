@@ -61,7 +61,7 @@ EM_WAPI = 0x100  # Not enumerated in tr-98
 WL_EXE = '/usr/bin/wl'
 WL_SLEEP = 3  # Broadcom recommendation for 3 second sleep before final join.
 # Broadcom recommendation for delay while scanning for a channel
-WL_AUTOCHAN_SLEEP = 2
+WL_AUTOCHAN_SLEEP = 3
 
 # Parameter enumerations
 BEACONS = frozenset(['None', 'Basic', 'WPA', '11i', 'BasicandWPA',
