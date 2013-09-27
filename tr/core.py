@@ -197,6 +197,12 @@ class Exporter(object):
     Walk through the tree and generate the canonical name for an
     object.  The tree walk starts with this object.
 
+    WARNING: This function is horribly slow! It really does visit every node
+    in the whole tree, even virtual ones, while looking for obj_to_find.
+    It's also possible that the object you're looking for is virtual and
+    is no longer in the tree (or has been replaced) by the time we try to
+    visit it, in which case it won't have a canonical name at all.
+
     Args:
       obj_to_find: The object to generate the canonical for.
     Returns:

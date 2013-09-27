@@ -139,6 +139,7 @@ class PeriodicStatistics(BASE157PS):
       self._attributes = dict()
       self._cpe = None
       self._root = None
+      self._canonicalname = None
       self._enable = False
       self._pending_timeout = None
       self._fetch_samples = 0
@@ -283,6 +284,13 @@ class PeriodicStatistics(BASE157PS):
       tts = int(round(interval - delta_seconds))
       return max(1, tts)
 
+    def _CanonicalName(self):
+      if not self._root:
+        return None
+      if not self._canonicalname:
+        self._canonicalname = self._root.GetCanonicalName(self)
+      return self._canonicalname
+
     def CollectSample(self):
       """Collects a sample for each of the Parameters.
 
@@ -317,7 +325,8 @@ class PeriodicStatistics(BASE157PS):
 
       if self.FetchSamplesTriggered():
         if self.PassiveNotification() or self.ActiveNotification():
-          param_name = self._root.GetCanonicalName(self)
+          print 'FetchSample: %r' % (self.Name,)
+          param_name = self._CanonicalName()
           param_name += '.Status'
           self._cpe.SetNotificationParameters(
               [(param_name, 'Trigger')])

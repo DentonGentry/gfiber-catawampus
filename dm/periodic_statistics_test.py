@@ -32,8 +32,16 @@ class PeriodicStatisticsTest(unittest.TestCase):
   def setUp(self):
     self.save_time_func = periodic_statistics.TIMEFUNC
     self.ps = periodic_statistics.PeriodicStatistics()
+    self.m = mox.Mox()
+    self.mock_root = self.m.CreateMock(tr.core.Exporter)
+    self.mock_cpe = self.m.CreateMock(tr.http.CPEStateMachine)
+    self.mock_ioloop = self.m.CreateMock(tornado.ioloop.IOLoop)
+    self.mock_cpe.ioloop = self.mock_ioloop
+    self.ps.SetCpe(self.mock_cpe)
+    self.ps.SetRoot(self.mock_root)
 
   def tearDown(self):
+    self.m.VerifyAll()
     periodic_statistics.TIMEFUNC = self.save_time_func
 
   def testValidateExports(self):
@@ -68,15 +76,12 @@ class PeriodicStatisticsTest(unittest.TestCase):
     sampled_param.Enable = True
     sampled_param.Reference = obj_name + obj_param
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
-    m = mox.Mox()
-    mock_root = m.CreateMock(tr.core.Exporter)
-    mock_root.GetExport(mox.IsA(str)).AndReturn(1000)
-    m.ReplayAll()
+    self.mock_root.GetExport(mox.IsA(str)).AndReturn(1000)
+    self.m.ReplayAll()
 
-    sample_set.SetCpeAndRoot(cpe=object(), root=mock_root)
+    sample_set.SetCpeAndRoot(cpe=self.mock_cpe, root=self.mock_root)
     sample_set.SetParameter('1', sampled_param)
     sample_set.CollectSample()
-    m.VerifyAll()
 
     # Check that the sampled_param updated it's values.
     self.assertEqual('1000', sampled_param.Values)
@@ -88,16 +93,14 @@ class PeriodicStatisticsTest(unittest.TestCase):
     sampled_param.Enable = True
     sampled_param.Reference = obj_name + obj_param
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
-    m = mox.Mox()
-    mock_root = m.CreateMock(tr.core.Exporter)
-    mock_root.GetExport(mox.IsA(str)).AndReturn(1000)
-    mock_root.GetExport(mox.IsA(str)).AndReturn(2000)
-    mock_root.GetExport(mox.IsA(str)).AndReturn(3000)
-    mock_root.GetExport(mox.IsA(str)).AndReturn(4000)
-    mock_root.GetExport(mox.IsA(str)).AndReturn(5000)
-    m.ReplayAll()
+    self.mock_root.GetExport(mox.IsA(str)).AndReturn(1000)
+    self.mock_root.GetExport(mox.IsA(str)).AndReturn(2000)
+    self.mock_root.GetExport(mox.IsA(str)).AndReturn(3000)
+    self.mock_root.GetExport(mox.IsA(str)).AndReturn(4000)
+    self.mock_root.GetExport(mox.IsA(str)).AndReturn(5000)
+    self.m.ReplayAll()
 
-    sample_set.SetCpeAndRoot(cpe=object(), root=mock_root)
+    sample_set.SetCpeAndRoot(cpe=self.mock_cpe, root=self.mock_root)
     sample_set.SetParameter('1', sampled_param)
     sample_set.ReportSamples = 1
     sample_set._sample_start_time = 10
@@ -139,8 +142,6 @@ class PeriodicStatisticsTest(unittest.TestCase):
     self.assertEqual('7,8', sampled_param.SampleSeconds)
     self.assertEqual('4000,5000', sampled_param.Values)
 
-    m.VerifyAll()
-
   def testSampleDatetime(self):
     obj_name = 'Fakeroot.Foo.Bar.'
     obj_param = 'Baz'
@@ -148,16 +149,13 @@ class PeriodicStatisticsTest(unittest.TestCase):
     sampled_param.Enable = True
     sampled_param.Reference = obj_name + obj_param
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
-    m = mox.Mox()
-    mock_root = m.CreateMock(tr.core.Exporter)
     dt = datetime.datetime(2013, 7, 8, 12, 0, 1)
-    mock_root.GetExport(mox.IsA(str)).AndReturn(dt)
-    m.ReplayAll()
+    self.mock_root.GetExport(mox.IsA(str)).AndReturn(dt)
+    self.m.ReplayAll()
 
-    sample_set.SetCpeAndRoot(cpe=object(), root=mock_root)
+    sample_set.SetCpeAndRoot(cpe=self.mock_cpe, root=self.mock_root)
     sample_set.SetParameter('1', sampled_param)
     sample_set.CollectSample()
-    m.VerifyAll()
     self.assertEqual('2013-07-08T12:00:01Z', sampled_param.Values)
 
 
@@ -168,6 +166,8 @@ class SampleSetTest(unittest.TestCase):
     self.m = mox.Mox()
     self.mock_root = self.m.CreateMock(tr.core.Exporter)
     self.mock_cpe = self.m.CreateMock(tr.http.CPEStateMachine)
+    self.mock_ioloop = self.m.CreateMock(tornado.ioloop.IOLoop)
+    self.mock_cpe.ioloop = self.mock_ioloop
     self.ps.SetCpe(self.mock_cpe)
     self.ps.SetRoot(self.mock_root)
 
@@ -204,29 +204,28 @@ class SampleSetTest(unittest.TestCase):
     self.assertEqual(10, sample_set.SampleInterval)
 
   def testCollectSample(self):
+    self.m.ReplayAll()
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
     self.ps.SampleSetList['0'] = sample_set
     start1_time = time.time()
     sample_set.CollectSample()
     end1_time = time.time()
     self.assertEqual(1, len(sample_set._sample_times))
-    self.assertTrue(start1_time <= sample_set._sample_times[0][0])
-    self.assertTrue(end1_time >= sample_set._sample_times[0][1])
+    self.assertLessEqual(start1_time, sample_set._sample_times[0][0])
+    self.assertGreaterEqual(end1_time, sample_set._sample_times[0][1])
     sample_set.CollectSample()
     self.assertEqual(2, len(sample_set._sample_times))
-    self.assertTrue(
-        sample_set._sample_times[0][0] < sample_set._sample_times[1][0])
-    self.assertTrue(
-        sample_set._sample_times[0][1] < sample_set._sample_times[1][1])
+    self.assertLess(
+        sample_set._sample_times[0][0], sample_set._sample_times[1][0])
+    self.assertLess(
+        sample_set._sample_times[0][1], sample_set._sample_times[1][1])
     self.assertEqual(sample_set.SampleSeconds, '0,0')
 
   def testSampleTrigger(self):
-    mock_ioloop = self.m.CreateMock(tornado.ioloop.IOLoop)
-    self.mock_cpe.ioloop = mock_ioloop
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
     self.ps.SampleSetList['0'] = sample_set
-    mock_ioloop.add_timeout(mox.IsA(datetime.timedelta),
-                            mox.IgnoreArg()).AndReturn(1)
+    self.mock_ioloop.add_timeout(mox.IsA(datetime.timedelta),
+                                 mox.IgnoreArg()).AndReturn(1)
     self.m.ReplayAll()
     sample_set.SetSampleTrigger()
 
@@ -273,8 +272,6 @@ class SampleSetTest(unittest.TestCase):
     self.m.StubOutWithMock(sample_set, 'ClearSamplingData')
     self.m.StubOutWithMock(sample_set, 'SetSampleTrigger')
     PARAMETER = periodic_statistics.PeriodicStatistics.SampleSet.Parameter
-    mock_cpe = self.m.CreateMock(tr.http.CPEStateMachine)
-    mock_root = self.m.CreateMock(tr.core.Exporter)
     mock_param1 = self.m.CreateMock(PARAMETER)
     mock_param2 = self.m.CreateMock(PARAMETER)
     mock_param1.Reference = 'Fake.Param.One'
@@ -286,14 +283,14 @@ class SampleSetTest(unittest.TestCase):
     sample_set.SetSampleTrigger()
     obj_name = 'Device.PeriodicStatistics.SampleSet.0'
     param_name = obj_name + '.Status'
-    mock_root.GetCanonicalName(sample_set).AndReturn(obj_name)
-    mock_cpe.SetNotificationParameters([(param_name, 'Trigger')])
+    self.mock_root.GetCanonicalName(sample_set).AndReturn(obj_name)
+    self.mock_cpe.SetNotificationParameters([(param_name, 'Trigger')])
     self.m.ReplayAll()
 
     self.assertEqual({}, sample_set._parameter_list)
     sample_set._parameter_list['1'] = mock_param1
     sample_set._parameter_list['2'] = mock_param2
-    sample_set.SetCpeAndRoot(cpe=mock_cpe, root=mock_root)
+    sample_set.SetCpeAndRoot(cpe=self.mock_cpe, root=self.mock_root)
     self.assertEqual(0, sample_set.FetchSamples)
     sample_set.FetchSamples = 1
     sample_set._sample_start_time = 10
@@ -309,8 +306,6 @@ class SampleSetTest(unittest.TestCase):
     self.m.StubOutWithMock(sample_set, 'ClearSamplingData')
     self.m.StubOutWithMock(sample_set, 'SetSampleTrigger')
     PARAMETER = periodic_statistics.PeriodicStatistics.SampleSet.Parameter
-    mock_cpe = self.m.CreateMock(tr.http.CPEStateMachine)
-    mock_root = self.m.CreateMock(tr.core.Exporter)
     mock_param1 = self.m.CreateMock(PARAMETER)
     mock_param2 = self.m.CreateMock(PARAMETER)
     mock_param1.Reference = 'Fake.Param.One'
@@ -323,15 +318,15 @@ class SampleSetTest(unittest.TestCase):
     obj_name = 'Device.PeriodicStatistics.SampleSet.0'
     param_name = obj_name + '.Status'
     sample_set.ClearSamplingData()
-    mock_root.GetCanonicalName(sample_set).AndReturn(obj_name)
-    mock_cpe.SetNotificationParameters([(param_name, 'Trigger')])
-    mock_cpe.NewValueChangeSession()
+    self.mock_root.GetCanonicalName(sample_set).AndReturn(obj_name)
+    self.mock_cpe.SetNotificationParameters([(param_name, 'Trigger')])
+    self.mock_cpe.NewValueChangeSession()
     self.m.ReplayAll()
 
     self.assertEqual({}, sample_set._parameter_list)
     sample_set._parameter_list['1'] = mock_param1
     sample_set._parameter_list['2'] = mock_param2
-    sample_set.SetCpeAndRoot(cpe=mock_cpe, root=mock_root)
+    sample_set.SetCpeAndRoot(cpe=self.mock_cpe, root=self.mock_root)
     self.assertEqual(0, sample_set.FetchSamples)
     sample_set.FetchSamples = 1
     self.assertEqual(1, sample_set.FetchSamples)
