@@ -40,37 +40,12 @@ import tornado.web
 
 import api_soap
 import cpe_management_server
+import cwmplog
 import monohelper
 import session
 
 PROC_IF_INET6 = '/proc/net/if_inet6'
 MAX_EVENT_QUEUE_SIZE = 64
-
-
-def _Shorten(s, prefixofs, suffixofs, maxlen):
-  """Shorten the given string if its length is >= maxlen.
-
-  Note: maxlen should generally be considerably bigger than
-  prefixofs + suffixofs.  It's disconcerting to a reader when
-  you have a "..." to replace 10 bytes, but it feels fine when the
-  "..." replaces 500 bytes.
-
-  Args:
-    s: the string to shorten.
-    prefixofs: the number of chars to keep at the beginning of s.
-    suffixofs: the number of chars to keep at the end of s.
-    maxlen: if the string is longer than this, shorten it.
-  Returns:
-    A shortened version of the string.
-  """
-  s = str(s)
-  if len(s) >= maxlen and not os.environ.get('DONT_SHORTEN'):
-    # When the string exceeds the limit, we deliberately shorten it to
-    # considerably less than the limit, because it's disconcerting when
-    # you have a "..." to replace 10 bytes, but it feels right when the
-    # "..." replaces 500 bytes.
-    s = s[0:prefixofs] + '\n........\n' + s[-suffixofs:]
-  return s
 
 
 class LimitDeque(collections.deque):
@@ -195,6 +170,7 @@ class CPEStateMachine(object):
     self.cpe = cpe
     self.cpe_soap = api_soap.CPE(self.cpe)
     self.encode = api_soap.Encode()
+    self.cwmplogger = cwmplog.Logger(full_logs=10)
     self.outstanding = None
     self.response_queue = []
     self.request_queue = []
@@ -402,12 +378,9 @@ class CPEStateMachine(object):
       # Empty message
       self.session.state_update(cpe_to_acs_empty=True)
     self._acs_config.AcsAccessAttempt(self.session.acs_url)
-    print('CPE POST (at {0!s}):\n'
-          'ACS URL: {1!r}\n'
-          '{2!s}\n'
-          '{3!s}'.format(time.ctime(), self.session.acs_url,
-                         _Shorten(headers, 768, 256, 2048),
-                         _Shorten(self.outstanding, 768, 256, 2048)))
+    print 'CPE POST (at %s):' % time.ctime()
+    print 'ACS URL: %s\n' % self.session.acs_url
+    print self.cwmplogger.LogSoapXML(self.outstanding)
     req = tornado.httpclient.HTTPRequest(
         url=self.session.acs_url, method='POST', headers=headers,
         body=self.outstanding, follow_redirects=True, max_redirects=5,
@@ -426,8 +399,7 @@ class CPEStateMachine(object):
       print 'Session terminated, ignoring ACS message.'
       return
     if not response.error:
-      print _Shorten(response.headers, 768, 256, 2048)
-      print _Shorten(response.body, 768, 256, 2048)
+      print self.cwmplogger.LogSoapXML(response.body)
       for cookie in response.headers.get_list('Set-Cookie'):
         self.session.cookies.load(cookie)
       if response.body:
