@@ -191,6 +191,10 @@ class Exporter(object):
     if lists:
       self.export_object_lists.remove(lists)
 
+  def Close(self):
+    """Called when an object is being deleted."""
+    pass
+
   def GetCanonicalName(self, obj_to_find):
     """Generate a canonical name for an object.
 
@@ -486,9 +490,14 @@ class Exporter(object):
     objlist = self.GetExport(name)
     idx = str(idx)
     try:
+      obj = None
       if _Int(idx) in objlist:
+        obj = objlist[_Int(idx)]
+        obj.Close()
         del objlist[_Int(idx)]
       else:
+        obj = objlist[idx]
+        obj.Close()
         del objlist[idx]
     except KeyError:
       raise KeyError((name, idx))

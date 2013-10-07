@@ -12,6 +12,7 @@ __author__ = 'jnewlin@google.com (John Newlin)'
 import datetime
 import time
 import unittest
+import weakref
 
 import google3
 import mox
@@ -59,6 +60,46 @@ class PeriodicStatisticsTest(unittest.TestCase):
     self.assertTrue(1 in self.ps.sample_sets[0]._parameter_list)
     self.assertTrue(0 in self.ps.sample_sets[1]._parameter_list)
     self.assertTrue(1 in self.ps.sample_sets[1]._parameter_list)
+    self.ps.ValidateExports()
+
+  def testDeleteSample(self):
+    self.ps.ValidateExports()
+    # Add some samples sets and check again.
+    self.ps.AddExportObject('SampleSet', '0')
+    self.ps.AddExportObject('SampleSet', '1')
+    self.assertTrue(0 in self.ps.sample_sets)
+    self.assertTrue(1 in self.ps.sample_sets)
+    self.ps.sample_sets[0].AddExportObject('Parameter', '0')
+    self.ps.sample_sets[0].AddExportObject('Parameter', '1')
+    self.ps.sample_sets[1].AddExportObject('Parameter', '0')
+    self.ps.sample_sets[1].AddExportObject('Parameter', '1')
+    sample_sets = [weakref.ref(self.ps.sample_sets[0]),
+                   weakref.ref(self.ps.sample_sets[1])]
+    params = [weakref.ref(self.ps.sample_sets[0]._parameter_list[0]),
+              weakref.ref(self.ps.sample_sets[0]._parameter_list[1]),
+              weakref.ref(self.ps.sample_sets[1]._parameter_list[0]),
+              weakref.ref(self.ps.sample_sets[1]._parameter_list[1])]
+    self.ps.ValidateExports()
+    self.ps.sample_sets[0].DeleteExportObject('Parameter', '1')
+    self.ps.sample_sets[1].DeleteExportObject('Parameter', '0')
+    self.assertIsNot(None, params[0]())
+    self.assertIs(None, params[1]())
+    self.assertIs(None, params[2]())
+    self.assertIsNot(None, params[3]())
+    self.assertTrue(0 in self.ps.sample_sets[0]._parameter_list)
+    self.assertFalse(1 in self.ps.sample_sets[0]._parameter_list)
+    self.assertFalse(0 in self.ps.sample_sets[1]._parameter_list)
+    self.assertTrue(1 in self.ps.sample_sets[1]._parameter_list)
+    self.ps.DeleteExportObject('SampleSet', '1')
+    self.assertIsNot(None, sample_sets[0]())
+    self.assertIs(None, sample_sets[1]())
+    self.assertIsNot(None, params[0]())
+    self.assertIs(None, params[1]())
+    self.assertIs(None, params[2]())
+    self.assertIs(None, params[3]())
+    self.assertTrue(0 in self.ps.sample_sets[0]._parameter_list)
+    self.assertFalse(1 in self.ps.sample_sets[0]._parameter_list)
+    self.assertFalse(1 in self.ps.sample_sets)
     self.ps.ValidateExports()
 
   def testSetCpeRoot(self):
