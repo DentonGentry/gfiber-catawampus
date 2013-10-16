@@ -183,6 +183,21 @@ class ParameterAttributes(object):
     self.timeout = self.ioloop.add_timeout(
         datetime.timedelta(0, REFRESH_TIMEOUT), self.CheckForTriggers)
 
+  def ClearParameterAttributes(self, name):
+    """Clear the attributes for a parameter.
+
+    Args:
+      name: The parameter having its attributes removed.
+    """
+    if name.endswith('.'):
+      # delete all the child objects that have this name as prefix.
+      children = [x for x in self.params.keys() if x.startswith(name)]
+      for child in children:
+        del self.params[child]
+      name = name[:-1]  # clear the '.' off the end.
+    if name in self.params:
+      del self.params[name]
+
   def SetParameterAttributes(self, attrs):
     """Set Attributes for a parameter.
 
@@ -543,6 +558,7 @@ class CPE(TR069Service):
   def DeleteObject(self, object_name, parameter_key):
     """Delete an object and its sub-objects/parameters."""
     assert object_name.endswith('.')
+    self.parameter_attrs.ClearParameterAttributes(object_name)
     path = object_name.split('.')
     self.root.DeleteExportObject('.'.join(path[:-2]), path[-2])
     self._SetParameterKey(parameter_key)

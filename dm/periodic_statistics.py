@@ -153,13 +153,26 @@ class PeriodicStatistics(BASE157PS):
     def GetParameter(self, key):
       return self._parameter_list[key]
 
+    def Close(self):
+      """Called when this object is no longer sampling."""
+      self.ParameterList = None
+      self._parameter_list.clear()
+      self.RemoveTimeout()
+
     def SetParameter(self, key, value):
       self._parameter_list[key] = value
       value.SetParent(self)
       value.SetRoot(self._root)
 
     def DelParameter(self, key):
-      del self._parameter_list[key]
+      if key in self._parameter_list:
+        del self._parameter_list[key]
+
+    def DelParameterByVal(self, val):
+      for k,v in self._parameter_list.iteritems():
+        if v == val:
+          del self._parameter_list[k]
+          break
 
     @property
     def ParameterNumberOfEntries(self):
@@ -432,6 +445,10 @@ class PeriodicStatistics(BASE157PS):
         self._sample_times = []
         self._suspect_data = []
         self._values = []
+
+      def Close(self):
+        """Called when this object is not longer collecting data."""
+        self._parent.DelParameterByVal(self)
 
       @property
       def CalculationMode(self):

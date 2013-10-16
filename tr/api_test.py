@@ -146,14 +146,16 @@ class ApiTest(unittest.TestCase):
     self.assertEqual(result[0], ('SomeParam', 'SomeParamValue'))
 
 
+class FakeAttrs(dict):
+  """Helper class used for testing Attributes."""
+  def __getattr__(self, item):
+    return self[item]
+
+  def __setattr__(self, item, value):
+    self[item] = value
+
 class ParameterAttrsTest(unittest.TestCase):
   def testSetAttr(self):
-    class FakeAttrs(dict):
-      def __getattr__(self, item):
-        return self[item]
-
-      def __setattr__(self, item, value):
-        self[item] = value
 
     root = TestSimpleRoot()
     cpe = api.CPE(root)
@@ -195,6 +197,18 @@ class ParameterAttrsTest(unittest.TestCase):
     self.assertEqual('SomeParam', set_notification_arg[0][0][0])
     self.assertEqual(root.SomeParam, set_notification_arg[0][0][1])
     self.assertEqual(1, new_session_called[0])
+
+  def testDeleteParam(self):
+    root = TestObject()
+    cpe = api.CPE(root)
+    (unused_idx, obj) = root.AddExportObject('Thingy', '1')
+    f = FakeAttrs()
+    f.Name = 'Thingy.1'
+    f.Notification = 2
+    cpe.SetParameterAttributes(f)
+    self.assertEqual(len(cpe.parameter_attrs.params), 1)
+    cpe.DeleteObject('Thingy.1.', 'fake-key')
+    self.assertEqual(len(cpe.parameter_attrs.params), 0)
 
 
 if __name__ == '__main__':
