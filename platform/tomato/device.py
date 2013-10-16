@@ -49,7 +49,7 @@ INTERNAL_ERROR = 9002
 
 # tr-69 file types
 FILETYPE_FIRMWARE_IMAGE = '1 Firmware Upgrade Image'
-FILETYPE_JFFS_IMAGE = 'X 001A11 JFFS Upgrade Image'  # 001A11 is Google Inc.
+FILETYPE_JFFS_IMAGE = 'X F88FCA JFFS Upgrade Image'  # F88FCA is Google Fiber
 
 # Unit tests can override these with fake data
 NVRAM = 'nvram'
@@ -194,7 +194,7 @@ class DeviceId(dm.device_info.DeviceIdMeta):
 
   @property
   def ManufacturerOUI(self):
-    return '001A11'  # Google Inc.
+    return 'F88FCA'  # Google Fiber
 
   @property
   def ModelName(self):
