@@ -74,7 +74,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def testGetManufacturerOUI(self):
     did = device.DeviceId()
-    self.assertEqual(did.ManufacturerOUI, '001A11')
+    self.assertEqual(did.ManufacturerOUI, 'F88FCA')
 
   def testGetModelName(self):
     did = device.DeviceId()
