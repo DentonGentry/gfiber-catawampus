@@ -305,10 +305,12 @@ class PhysicalMediumDiskLinux26(BASESTORAGE.PhysicalMedium):
     return DrivePerformance(self.dev)
 
   @property
+  @tr.session.cache
   def X_CATAWAMPUS_ORG_SmartAttributes(self):
     return SmartAttributes(self.dev)
 
   @property
+  @tr.session.cache
   def X_CATAWAMPUS_ORG_SataPHY(self):
     return SataPHY(self.dev)
 
