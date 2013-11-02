@@ -56,6 +56,16 @@ E2_RE = re.compile(r'Rx NoSync Errors\s+: (\d+)')
 NODE_RE = re.compile(r'\ANode\s*: (\d+)')
 
 
+def IsMoca1_1():
+  """Check for existence of the MoCA 1.1 utilities."""
+  cmd = [MOCACTL, '--version']
+  try:
+    rc = subprocess.call(cmd)
+    return True if rc == 0 else False
+  except OSError:
+    return False
+
+
 def IntOrZero(arg):
   try:
     return int(arg)
@@ -273,7 +283,8 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
   def CurrentOperFreq(self):
     freq = self._MocaCtlGetField(self._MocaCtlShowStatus, 'rfChannel')
     if freq:
-      return IntOrZero(freq.split()[0])
+      mhz = IntOrZero(freq.split()[0])
+      return int(mhz * 1e6)
     return 0
 
   @property

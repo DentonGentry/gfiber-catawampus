@@ -30,6 +30,7 @@ import subprocess
 import google3
 
 import dm.brcmmoca
+import dm.brcmmoca2
 import dm.brcmwifi
 import dm.device_info
 import dm.ethernet
@@ -341,12 +342,17 @@ class Moca(tr181.Device_v2_2.Device.MoCA):
 
   def __init__(self):
     tr181.Device_v2_2.Device.MoCA.__init__(self)
-    self.InterfaceList = {
-        '1': dm.brcmmoca.BrcmMocaInterface(
-            ifname='eth1',
-            qfiles='/sys/kernel/debug/bcmgenet/eth1/bcmgenet_discard_cnt_q%d',
-            numq=17,
-            hipriq=1)}
+    ifname = 'eth1'
+    qfiles = '/sys/kernel/debug/bcmgenet/eth1/bcmgenet_discard_cnt_q%d'
+    numq = 17
+    hipriq = 1
+    self.InterfaceList = {}
+    if dm.brcmmoca2.IsMoca2_0():
+      self.InterfaceList['1'] = dm.brcmmoca2.BrcmMocaInterface(
+          ifname=ifname, qfiles=qfiles, numq=numq, hipriq=hipriq)
+    elif dm.brcmmoca.IsMoca1_1():
+      self.InterfaceList['1'] = dm.brcmmoca.BrcmMocaInterface(
+          ifname=ifname, qfiles=qfiles, numq=numq, hipriq=hipriq)
 
   @property
   def InterfaceNumberOfEntries(self):

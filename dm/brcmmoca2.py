@@ -55,6 +55,16 @@ RATE_RE = re.compile(r'^phy_rate\s*:\s*(\d+)\s+Mbps')
 BITL_RE = re.compile(r'^\d+\s+-\s+\d+\s*:\s+([0-9a-fA-F]+)')
 
 
+def IsMoca2_0():
+  """Check for existence of the MoCA 2.0 utilities."""
+  cmd = [MOCAP, 'get', '--fw_version']
+  try:
+    rc = subprocess.call(cmd)
+    return True if rc == 0 else False
+  except OSError:
+    return False
+
+
 def IntOrZero(arg):
   try:
     return int(arg)

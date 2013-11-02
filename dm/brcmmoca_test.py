@@ -43,6 +43,14 @@ class MocaTest(unittest.TestCase):
     brcmmoca.PYNETIFCONF = self.old_PYNETIFCONF
     netdev.PROC_NET_DEV = self.old_PROC_NET_DEV
 
+  def testIsMoCA1_1(self):
+    brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl'
+    self.assertTrue(brcmmoca.IsMoca1_1())
+    brcmmoca.MOCACTL = 'testdata/brcmmoca/exit2'
+    self.assertFalse(brcmmoca.IsMoca1_1())
+    brcmmoca.MOCACTL = '/nosuchfile'
+    self.assertFalse(brcmmoca.IsMoca1_1())
+
   def testMocaInterfaceStatsGood(self):
     moca = brcmmoca.BrcmMocaInterfaceStatsLinux26('foo0')
     moca.ValidateExports()
