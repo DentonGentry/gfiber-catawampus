@@ -33,7 +33,9 @@ import google3
 
 import dm.device_info
 import dm.ds6923_optical
+import dm.ethernet
 import dm.igd_time
+import dm.mrvl88601_netstats
 import dm.periodic_statistics
 import dm.temperature
 import platform_config
@@ -66,6 +68,8 @@ HWVERSIONFILE = '/sys/devices/platform/board/hw_ver'
 SWVERSIONFILE = '/etc/version'
 REPOMANIFEST = '/etc/repo-buildroot-manifest'
 GFLT110_OPTICAL_I2C_ADDR = 0x51
+PON_STATS_DIR = '/sys/devices/platform/neta/anistats'
+ETH_STATS_DIR = '/sys/devices/platform/neta/unistats'
 
 
 class PlatformConfig(platform_config.PlatformConfigMeta):
@@ -232,6 +236,49 @@ class Installer(tr.download.Installer):
         self._call_callback(INTERNAL_ERROR, 'Unable to install image.')
 
 
+class EthernetInterfaceOnu(dm.ethernet.EthernetInterfaceLinux26):
+  """Implementation of Device.Ethernet.Interface for the Onu.
+
+  This just overrides the Stats property since getting stats for the ONU is
+  slightly different.
+  """
+
+  def __init__(self, ifname, stat_dir):
+    super(EthernetInterfaceOnu, self).__init__(ifname=ifname)
+    self.stat_dir = stat_dir
+
+  @property
+  def Stats(self):
+    return dm.mrvl88601_netstats.NetdevStatsMrvl88601(stat_dir=self.stat_dir)
+
+
+class Ethernet(tr181.Device_v2_4.Device.Ethernet):
+  """Implementation of tr-181 Device.Ethernet for gfonu platforms."""
+
+  def __init__(self):
+    tr181.Device_v2_4.Device.Ethernet.__init__(self)
+    self.InterfaceList = {
+        '1': EthernetInterfaceOnu('eth0', ETH_STATS_DIR),
+        '2': EthernetInterfaceOnu('pon0', PON_STATS_DIR),
+        '3': dm.ethernet.EthernetInterfaceLinux26(ifname='man'),
+        }
+    self.VLANTerminationList = {}
+    self.LinkList = {}
+    self.RMONStats = {}
+
+  @property
+  def InterfaceNumberOfEntries(self):
+    return len(self.InterfaceList)
+
+  @property
+  def VLANTerminationNumberOfEntries(self):
+    return len(self.VLANTerminationList)
+
+  @property
+  def LinkNumberOfEntries(self):
+    return len(self.LinkList)
+
+
 class Device(tr181.Device_v2_4.Device):
   """Device implementation for ONU device."""
 
@@ -245,7 +292,7 @@ class Device(tr181.Device_v2_4.Device):
     self.Unexport(objects='DNS')
     self.Unexport(objects='DSL')
     self.Unexport(objects='DSLite')
-    self.Unexport(objects='Ethernet')
+    self.Ethernet = Ethernet()
     self.Unexport(objects='Firewall')
     self.Unexport(objects='GatewayInfo')
     self.Unexport(objects='Ghn')
