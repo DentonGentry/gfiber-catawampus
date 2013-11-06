@@ -34,6 +34,7 @@ import dm.brcmmoca2
 import dm.brcmwifi
 import dm.device_info
 import dm.ethernet
+import dm.host
 import dm.igd_time
 import dm.ipinterface
 import dm.periodic_statistics
@@ -464,6 +465,7 @@ class Device(tr181.Device_v2_2.Device):
     self.Export(objects=['PeriodicStatistics'])
     self.PeriodicStatistics = periodic_stats
     self._AddTemperatureStuff()
+    self._AddHostsStuff()
 
   @property
   def InterfaceStackNumberOfEntries(self):
@@ -482,7 +484,6 @@ class Device(tr181.Device_v2_2.Device):
     self.Unexport(objects='GatewayInfo')
     self.Unexport(objects='HPNA')
     self.Unexport(objects='HomePlug')
-    self.Unexport(objects='Hosts')
     self.Unexport(objects='IEEE8021x')
     self.Unexport(objects='IPv6rd')
     self.Unexport(objects='LANConfigSecurity')
@@ -514,6 +515,18 @@ class Device(tr181.Device_v2_2.Device):
                        sensor=dm.temperature.SensorHdparm(drive))
       except OSError:
         pass
+
+  def _AddHostsStuff(self):
+    """Add tr-181 Device.Host implementation."""
+    # this is just a lookup table. It is harmless to have extra interfaces,
+    # like Wifi interfaces on GFMS100 (which has no wifi).
+    iflookup = {
+      'eth0': 'Device.Ethernet.Interface.1.',
+      'eth1': 'Device.MoCA.Interface.1.',
+      'eth1.0': 'Device.MoCA.Interface.1.',
+      'eth2': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.',
+    }
+    self.Hosts = dm.host.Hosts(iflookup, bridgename='br0')
 
 
 class LANDevice(BASE98IGD.LANDevice):
