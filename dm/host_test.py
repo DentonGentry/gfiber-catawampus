@@ -26,13 +26,20 @@ import google3
 import host
 
 
+def TimeNow():
+  return 1384057000.0
+
+
 class HostTest(unittest.TestCase):
   def setUp(self):
     self.old_SYS_CLASS_NET_PATH = host.SYS_CLASS_NET_PATH
     host.SYS_CLASS_NET_PATH = 'testdata/host/sys/class/net'
+    self.old_TIMENOW = host.TIMENOW
+    host.TIMENOW = TimeNow
 
   def tearDown(self):
     host.SYS_CLASS_NET_PATH = self.old_SYS_CLASS_NET_PATH
+    host.TIMENOW = self.old_TIMENOW
 
   def testValidateExports(self):
     hosts = host.Hosts()
@@ -118,6 +125,51 @@ class HostTest(unittest.TestCase):
   def testMissingFdbFile(self):
     iflookup = { 'eth0': 'Ethernet', 'eth1.0': 'MoCA', }
     h = host.Hosts(iflookup, bridgename='nonexistent0')
+    self.assertEqual(len(h.HostList), 0)
+
+  def testDnsmasqLeases(self):
+    h = host.Hosts(iflookup={}, dnsmasqfile='testdata/host/dnsmasq.leases')
+    self.assertEqual(len(h.HostList), 3)
+    found = 0
+    for hostentry in h.HostList.values():
+      self.assertEqual(hostentry.AddressSource, 'DHCP')
+      mac = hostentry.PhysAddress
+      if mac == '00:01:02:03:04:01':
+        found |= 1
+        self.assertEqual(hostentry.LeaseTimeRemaining, 0)
+        self.assertEqual(hostentry.ClientID, '')
+        self.assertEqual(hostentry.HostName, 'host-1')
+        ipl = hostentry.IPv4AddressList
+        self.assertEqual(len(ipl), 1)
+        self.assertEqual(ipl['1'].IPAddress, '192.168.1.1')
+      if mac == '00:01:02:03:04:02':
+        found |= 2
+        self.assertEqual(hostentry.LeaseTimeRemaining, 1000)
+        # 'client-id-2' == 636c69656e742d69642d32
+        self.assertEqual(hostentry.ClientID, '636c69656e742d69642d32')
+        self.assertEqual(hostentry.HostName, 'host-2')
+        self.assertEqual(len(hostentry.IPv4AddressList), 1)
+        ipl = hostentry.IPv4AddressList
+        self.assertEqual(len(ipl), 1)
+        self.assertEqual(ipl['1'].IPAddress, '192.168.1.2')
+      if mac == '00:01:02:03:04:03':
+        found |= 4
+        self.assertEqual(hostentry.LeaseTimeRemaining, 2000)
+        # 'client-id-3' == 636c69656e742d69642d33
+        self.assertEqual(hostentry.ClientID, '636c69656e742d69642d33')
+        self.assertEqual(hostentry.HostName, '')
+        self.assertEqual(len(hostentry.IPv4AddressList), 1)
+        ipl = hostentry.IPv4AddressList
+        self.assertEqual(len(ipl), 1)
+        self.assertEqual(ipl['1'].IPAddress, '192.168.1.3')
+    self.assertEqual(found, 7)
+
+  def testDnsmasqCorrupt(self):
+    h = host.Hosts(iflookup={}, dnsmasqfile='testdata/host/dnsmasq.corrupt')
+    self.assertEqual(len(h.HostList), 0)
+
+  def testMissingDnsmasqFile(self):
+    h = host.Hosts(iflookup={}, dnsmasqfile='/nonexistent')
     self.assertEqual(len(h.HostList), 0)
 
 
