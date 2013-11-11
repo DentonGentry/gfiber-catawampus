@@ -322,8 +322,10 @@ class Device(tr181.Device_v2_4.Device):
     self.Unexport(objects='Users')
     self.Unexport(objects='WiFi')
     with open(PLATFORM_FILE) as f:
-      if f.read().strip() == 'GFLT110':
+      if f.read().srip() == 'GFLT110':
         self.Optical = dm.ds6923_optical.Ds6923Optical(GFLT110_OPTICAL_I2C_ADDR)
+      else:
+        self.Unexport(objects='Optical')
 
     # DeficeInfo is defined under tr181.Device_v2_4,
     # not tr181.Device_v2_4.Device, so still need to Export here
