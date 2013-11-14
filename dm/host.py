@@ -23,8 +23,10 @@ Provides a way to discover network topologies.
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import binascii
 import os
 import struct
+import time
 import tr.session
 import tr.tr181_v2_6
 import tr.types
@@ -34,12 +36,14 @@ BASE181HOST = tr.tr181_v2_6.Device_v2_6.Device.Hosts.Host
 
 # Unit tests can override these
 SYS_CLASS_NET_PATH = "/sys/class/net"
+TIMENOW = time.time
 
 
 class Hosts(BASE181HOSTS):
   """Implement tr-181 Device.Hosts table."""
 
-  def __init__(self, iflookup=None, bridgename=None):
+  def __init__(self, iflookup=None, bridgename=None,
+               dnsmasqfile=None):
     """Device.Hosts.
 
     Args:
@@ -47,16 +51,21 @@ class Hosts(BASE181HOSTS):
         parameter paths. Ex:
         {'eth0': 'Device.Ethernet.Interface.1.',
          'eth1': 'Device.MoCA.Interface.1.'}
-      bridgename: name of tha Linuxe bridge device. Ex: 'br0'
+      bridgename: name of the Linux bridge device. Ex: 'br0'
+      dnsmasqfile: path to dnsmasq's dhcp.leases file.
     """
     super(Hosts, self).__init__()
     self.bridges = list()
     self.iflookup = dict()
+    self.dnsmasqleases = list()
     if iflookup:
       self.iflookup = iflookup
     if bridgename:
       x = bridgename if type(bridgename) == list else [bridgename]
       self.bridges.extend(x)
+    if dnsmasqfile:
+      x = dnsmasqfile if type(dnsmasqfile) == list else [dnsmasqfile]
+      self.dnsmasqleases.extend(x)
 
   def _GetInterfacesInBridge(self, brname):
     """Return list of all interfaces in brname. """
@@ -105,10 +114,46 @@ class Hosts(BASE181HOSTS):
         print '_GetHostsFromBridges unable to process %s' % brname
     return hosts
 
+  def _BinAsciitize(self, s):
+    if s == '*':
+      return ''
+    else:
+      return binascii.hexlify(s)
+
+  def _GetHostsFromDnsmasqLeases(self, hosts=None):
+    """Return dict of known hosts from dnsmasq leases file."""
+    if hosts is None:
+      hosts = dict()
+    now = int(TIMENOW())
+    for filename in self.dnsmasqleases:
+      line = ''
+      try:
+        with open(filename) as f:
+          for line in f:
+            (expiry, mac, ip, name, client_id) = line.split()
+            mac = mac.lower()
+            client_id = self._BinAsciitize(client_id)
+            name = '' if name == '*' else name
+            host = hosts.get(mac, dict())
+            host['PhysAddress'] = mac
+            ip4 = host.get('ip4', list())
+            ip4.append(ip)
+            host['ip4'] = ip4
+            host['AddressSource'] = 'DHCP'
+            remaining = max(int(expiry) - now, 0)
+            host['LeaseTimeRemaining'] = remaining
+            host['ClientID'] = client_id
+            host['HostName'] = name
+            hosts[mac] = host
+      except (OSError, IOError, ValueError):
+        print 'Unable to process dnsmasq %s : %s' % (filename, line)
+        continue
+
   @tr.session.cache
   def _GetHostList(self):
     hosts = dict()
     self._GetHostsFromBridges(hosts=hosts)
+    self._GetHostsFromDnsmasqLeases(hosts=hosts)
     host_list = dict()
     for idx, host in enumerate(hosts.values(), start=1):
       host_list[str(idx)] = Host(**host)
@@ -130,27 +175,28 @@ class Host(BASE181HOST):
   peristing only for the duration of one CWMP session.
   """
   Active = tr.types.ReadOnlyBool(True)
+  AddressSource = tr.types.ReadOnlyString('')
   AssociatedDevice = tr.types.ReadOnlyString('')
   ClientID = tr.types.ReadOnlyString('')
   DHCPClient = tr.types.ReadOnlyString('')
   HostName = tr.types.ReadOnlyString('')
   Layer1Interface = tr.types.ReadOnlyString('')
   Layer3Interface = tr.types.ReadOnlyString('')
-  LeaseTimeRemaining = tr.types.ReadOnlyInt(-1)
+  LeaseTimeRemaining = tr.types.ReadOnlyInt(0)
   PhysAddress = tr.types.ReadOnlyString('')
   UserClassID = tr.types.ReadOnlyString('')
   VendorClassID = tr.types.ReadOnlyString('')
 
   def __init__(self, PhysAddress='', ip4=None, ip6=None,
-               DHCPClient='', AssociatedDevice='',
+               DHCPClient='', AddressSource='None', AssociatedDevice='',
                Layer1Interface='', Layer3Interface='', HostName='',
                LeaseTimeRemaining=-1, VendorClassID='',
                ClientID='', UserClassID=''):
     super(Host, self).__init__()
     self.Unexport('Alias')
-    self.Unexport('AddressSource')  # Use DHCPClient instead
 
     type(self).AssociatedDevice.Set(self, AssociatedDevice)
+    type(self).AddressSource.Set(self, AddressSource)
     type(self).ClientID.Set(self, ClientID)
     type(self).DHCPClient.Set(self, DHCPClient)
     type(self).HostName.Set(self, HostName)
