@@ -78,7 +78,7 @@ class MocaTest(unittest.TestCase):
     self.assertEqual(moca.CurrentVersion, '1.1')
     self.assertEqual(moca.BackupNC, '5')
     self.assertFalse(moca.PrivacyEnabled)
-    self.assertEqual(moca.CurrentOperFreq, 999)
+    self.assertEqual(moca.CurrentOperFreq, 999000000)
     self.assertEqual(moca.LastOperFreq, 899)
     self.assertEqual(moca.NetworkCoordinator, 1)
     self.assertEqual(moca.NodeID, 2)
@@ -94,7 +94,7 @@ class MocaTest(unittest.TestCase):
     self.assertEqual(moca.HighestVersion, '1.1')
     self.assertEqual(moca.CurrentVersion, '1.1')
     self.assertFalse(moca.PrivacyEnabled)
-    self.assertEqual(moca.CurrentOperFreq, 999)
+    self.assertEqual(moca.CurrentOperFreq, 999000000)
 
   def testMocaInterfaceAlt(self):
     brcmmoca.MOCACTL = 'testdata/brcmmoca/mocactl_alt'
