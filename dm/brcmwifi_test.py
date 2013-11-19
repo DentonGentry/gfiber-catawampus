@@ -69,7 +69,7 @@ class BrcmWifiTest(unittest.TestCase):
 
   def VerifyCommonWlCommands(self, cmd, rmwep=0, wsec=0, primary_key=1,
                              wpa_auth=0, sup_wpa=1, amode='open',
-                             autochan=True):
+                             autochan=True, band='b'):
     # Verify the number of "rmwep #" commands, and remove them.
     l = [x for x in cmd.split('\n') if x]  # Suppress blank lines
     for i in range(rmwep, 4):
@@ -81,6 +81,8 @@ class BrcmWifiTest(unittest.TestCase):
     self.assertTrue(self.RmFromList(l, 'radio on'))
     self.assertTrue(self.RmFromList(l, 'ap 1'))
     self.assertTrue(self.RmFromList(l, 'bss down'))
+    self.assertTrue(self.RmFromList(l, 'down'))
+    self.assertTrue(self.RmFromList(l, 'band %s' % band))
     if autochan:
       self.assertTrue(self.RmFromList(l, 'down'))
       self.assertTrue(self.RmFromList(l, 'spect 0'))
@@ -704,8 +706,10 @@ class BrcmWifiTest(unittest.TestCase):
     # slightly.
     outlist = [x for x in output.split('\n') if x]
     self.assertEqual(outlist[0], '-i wifi0 radio on')
-    self.assertEqual(outlist[1], '-i wifi0 ap 1')
-    self.assertEqual(outlist[2], '-i wifi0 down')
+    self.assertEqual(outlist[1], '-i wifi0 down')
+    self.assertEqual(outlist[2], '-i wifi0 band b')
+    self.assertEqual(outlist[3], '-i wifi0 ap 1')
+    self.assertEqual(outlist[4], '-i wifi0 down')
     self.assertTrue(self.RmFromList(outlist, 'spect 0'))
     self.assertTrue(self.RmFromList(outlist, 'mpc 0'))
     self.assertTrue(self.RmFromList(outlist, 'up'))
@@ -715,6 +719,44 @@ class BrcmWifiTest(unittest.TestCase):
     self.assertTrue(self.RmFromList(outlist, 'down'))
     self.assertTrue(self.RmFromList(outlist, 'mpc 1'))
     self.assertTrue(self.RmFromList(outlist, 'spect 1'))
+
+  def testGetFrequencyBand(self):
+    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    self.assertTrue(bw.SupportedFrequencyBands, '2.4GHz,5GHz')
+    self.assertTrue(bw.OperatingFrequencyBand, '2.4GHz')
+    brcmwifi.WL_EXE = 'testdata/brcmwifi/wlchannel36'
+    self.assertTrue(bw.OperatingFrequencyBand, '5GHz')
+
+  def testSetOperatingFrequencyBand5GHz(self):
+    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    (script, out) = self.MakeTestScript()
+    brcmwifi.WL_EXE = script.name
+    bw.StartTransaction()
+    bw.Enable = 'True'
+    bw.RadioEnabled = 'True'
+    out.truncate()
+    bw.OperatingFrequencyBand = '5GHz'
+    bw.CommitTransaction()
+    output = out.read()
+    out.close()
+    outlist = self.VerifyCommonWlCommands(output, band='a')
+    self.assertFalse(outlist)
+
+  def testSetOperatingFrequencyBand2_4GHz(self):
+    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    (script, out) = self.MakeTestScript()
+    brcmwifi.WL_EXE = script.name
+    bw.StartTransaction()
+    bw.Enable = 'True'
+    bw.RadioEnabled = 'True'
+    out.truncate()
+    bw.OperatingFrequencyBand = '2.4GHz'
+    bw.CommitTransaction()
+    output = out.read()
+    out.close()
+    outlist = self.VerifyCommonWlCommands(output, band='b')
+    self.assertFalse(outlist)
+
 
 if __name__ == '__main__':
   unittest.main()

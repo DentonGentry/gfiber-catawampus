@@ -16,6 +16,28 @@
   </import>
 
   <model name="X_CATAWAMPUS-ORG_InternetGatewayDevice:1.0" base="InternetGatewayDevice:1.12">
+    <object base="InternetGatewayDevice.LANDevice.{i}.WLANConfiguration.{i}." access="readOnly" numEntriesParameter="LANWLANConfigurationNumberOfEntries" minEntries="0" maxEntries="unbounded">
+      <parameter name="SupportedFrequencyBands" access="readOnly">
+        <description>{{list}} List items indicate the frequency bands at which the radio can operate.</description>
+        <syntax>
+          <list/>
+          <string>
+            <enumeration value="2.4GHz"/>
+            <enumeration value="5GHz"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="OperatingFrequencyBand" access="readWrite">
+        <description>Indicates the frequency band at which the radio is operating. 
+If the radio supports multiple bands, and {{param}} is changed, then all parameters whose value is not valid for the new frequency band (e.g. {{param|Channel}}) MUST be set to a valid value (according to some CPE vendor-specific behavior).</description>
+        <syntax>
+          <string>
+            <enumerationRef targetParam="SupportedFrequencyBands"/>
+          </string>
+        </syntax>
+      </parameter>
+    </object>
+
     <object base="InternetGatewayDevice.LANDevice.{i}.WLANConfiguration.{i}.AssociatedDevice.{i}." access="readOnly" minEntries="0" maxEntries="unbounded" numEntriesParameter="TotalAssociations">
       <parameter name="X_CATAWAMPUS-ORG_LastDataDownlinkRate" access="readOnly" activeNotify="canDeny">
         <description>The data transmit rate in {{units}} that was most recently used for transmission from the access point to the associated device. (Taken from tr-181-2-0).</description>

@@ -1,0 +1,10 @@
+#!/bin/sh
+
+if [ $3 = channel ]; then
+  echo "# wl channel"
+  echo "No scan in progress."
+  echo "current mac channel     36"
+  echo "target channel  36"
+fi
+
+exit 0

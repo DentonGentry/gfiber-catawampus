@@ -233,6 +233,20 @@ class Wl(object):
     self._SubprocessCall(['interference', str(interference)])
 
   @tr.session.cache
+  def GetBand(self):
+    channel = self.GetChannel()
+    return '2.4GHz' if channel < 20 else '5GHz'
+
+  def SetBand(self, band):
+    x = 'b' if band == '2.4GHz' else 'a'
+    self._SubprocessCall(['band', str(x)])
+
+  def ValidateBand(self, band):
+    if band == '2.4GHz' or band == '5GHz':
+      return True
+    return False
+
+  @tr.session.cache
   def GetBasicDataTransmitRates(self):
     out = self._SubprocessWithOutput(['rateset'])
     basic_re = re.compile(r'([0123456789]+(?:\.[0123456789]+)?)\(b\)')
@@ -489,8 +503,15 @@ class Wl(object):
     self._SubprocessCall(['wpa_auth', str(value)])
 
 
-class BrcmWifiWlanConfiguration(BASE98WIFI):
+class BrcmWifiWlanConfiguration(CATA98WIFI):
   """An implementation of tr98 WLANConfiguration for Broadcom Wifi chipsets."""
+
+  DeviceOperationMode = tr.types.ReadOnlyString('InfrastructureAccessPoint')
+  Standard = tr.types.ReadOnlyString('n')
+  SupportedFrequencyBands = tr.types.ReadOnlyString('2.4GHz,5GHz')
+  UAPSDSupported = tr.types.ReadOnlyBool(False)
+  WEPEncryptionLevel = tr.types.ReadOnlyString('Disabled,40-bit,104-bit')
+  WMMSupported = tr.types.ReadOnlyBool(False)
 
   def __init__(self, ifname):
     super(BrcmWifiWlanConfiguration, self).__init__()
@@ -553,6 +574,7 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
     obj = WifiConfig()
     obj.p_auto_channel_enable = True
     obj.p_auto_rate_fallback_enabled = None
+    obj.p_band = '2.4GHz'
     obj.p_basic_authentication_mode = 'None'
     obj.p_basic_encryption_modes = 'WEPEncryption'
     obj.p_beacon_type = 'WPAand11i'
@@ -591,26 +613,6 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   @property
   def Stats(self):
     return BrcmWlanConfigurationStats(self._ifname)
-
-  @property
-  def Standard(self):
-    return 'n'
-
-  @property
-  def DeviceOperationMode(self):
-    return 'InfrastructureAccessPoint'
-
-  @property
-  def UAPSDSupported(self):
-    return False
-
-  @property
-  def WEPEncryptionLevel(self):
-    return 'Disabled,40-bit,104-bit'
-
-  @property
-  def WMMSupported(self):
-    return False
 
   @property
   def TotalAssociations(self):
@@ -871,6 +873,18 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
   WPAEncryptionModes = property(GetEncryptionModes, SetWPAEncryptionModes, None,
                                 'WLANConfiguration.WPAEncryptionModes')
 
+  def GetOperatingFrequencyBand(self):
+    return self.wl.GetBand()
+
+  def SetOperatingFrequencyBand(self, value):
+    if not self.wl.ValidateBand(value):
+      raise ValueError('Invalid OperatingFrequencyBand: %s' % value)
+    self.config.p_band = value
+
+  OperatingFrequencyBand = property(GetOperatingFrequencyBand,
+                                    SetOperatingFrequencyBand, None,
+                                    'WLANConfiguration.OperatingFrequencyBand')
+
   def _ConfigureBrcmWifi(self):
     """Issue commands to the wifi device to configure it.
 
@@ -886,6 +900,9 @@ class BrcmWifiWlanConfiguration(BASE98WIFI):
       return
 
     self.wl.SetRadioEnabled(True)
+    self.wl.SetReset(True)
+    if self.config.p_band:
+      self.wl.SetBand(self.config.p_band)
     self.wl.SetApMode()
     if self.config.p_auto_channel_enable:
       self.wl.DoAutoChannelSelect()
