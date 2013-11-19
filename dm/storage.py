@@ -485,8 +485,12 @@ class FlashMediumUbiLinux26(BASESTORAGE.X_CATAWAMPUS_ORG_FlashMedia):
   @property
   def CorrectedErrors(self):
     mtdnum = IntFromFile(os.path.join(SYS_UBI, self.Name, 'mtd_num'))
-    ecc = GETMTDSTATS(os.path.join(SLASHDEV, 'mtd' + str(mtdnum)))
-    return int(ecc.corrected)
+    try:
+      ecc = GETMTDSTATS(os.path.join(SLASHDEV, 'mtd' + str(mtdnum)))
+      return int(ecc.corrected)
+    except IOError as e:
+      print 'WARN: GetMtdStats: %s' % e
+      return -1
 
   @property
   def EraseBlockSize(self):
@@ -515,8 +519,12 @@ class FlashMediumUbiLinux26(BASESTORAGE.X_CATAWAMPUS_ORG_FlashMedia):
   @property
   def UncorrectedErrors(self):
     mtdnum = IntFromFile(os.path.join(SYS_UBI, self.Name, 'mtd_num'))
-    ecc = GETMTDSTATS(os.path.join(SLASHDEV, 'mtd' + str(mtdnum)))
-    return int(ecc.failed)
+    try:
+      ecc = GETMTDSTATS(os.path.join(SLASHDEV, 'mtd' + str(mtdnum)))
+      return int(ecc.failed)
+    except IOError as e:
+      print 'WARN: GetMtdStats: %s' % e
+      return -1
 
 
 class DrivePerformance(PHYSICALMEDIUM.X_CATAWAMPUS_ORG_DrivePerformance):
