@@ -21,6 +21,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import errno
 import glob
 import json
 import re
@@ -115,7 +116,12 @@ class GFiberTv(BASETV):
   def _ListNodes(self):
     try:
       nodes = self._rpcclient.ListNodes()
-    except (xmlrpclib.Fault, xmlrpclib.ProtocolError, IOError), e:
+    except IOError, e:
+      if e.errno == errno.ECONNREFUSED:
+        return []
+      else:
+        raise IndexError('Failure listing nodes: %s' % e)
+    except (xmlrpclib.Fault, xmlrpclib.ProtocolError), e:
       raise IndexError('Failure listing nodes: %s' % e)
     return [(str(node), self._GetNode(node)) for node in nodes]
 
