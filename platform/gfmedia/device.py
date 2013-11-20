@@ -23,6 +23,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import datetime
 import errno
 import fcntl
+import glob
 import os
 import random
 import subprocess
@@ -78,12 +79,20 @@ REPOMANIFEST = '/etc/repo-buildroot-manifest'
 VERSIONFILE = '/etc/version'
 
 
-def _has_wifi():
-  try:
-    PYNETIFCONF('eth2').get_index()
-    return True
-  except IOError:
-    return False
+def _ExistingInterfaces(ifcnames):
+  out = []
+  for ifcname in ifcnames:
+    try:
+      PYNETIFCONF(ifcname).get_index()
+      out.append(ifcname)
+    except IOError:
+      pass
+  return out
+
+
+def _WifiInterfaces():
+  # ath0/ath1 are Atheros interfaces; eth2 is bcmwifi on GFHD100
+  return _ExistingInterfaces(["ath0", "ath1", "eth2"])
 
 
 class PlatformConfig(platform_config.PlatformConfigMeta):
@@ -315,13 +324,18 @@ class Ethernet(tr181.Device_v2_2.Device.Ethernet):
 
   def __init__(self):
     tr181.Device_v2_2.Device.Ethernet.__init__(self)
-    self.InterfaceList = {
-        '1': dm.ethernet.EthernetInterfaceLinux26(
-            ifname='eth0',
-            qfiles='/sys/kernel/debug/bcmgenet/eth0/bcmgenet_discard_cnt_q%d',
-            numq=17,
-            hipriq=1),
-        '256': dm.ethernet.EthernetInterfaceLinux26(ifname='br0')}
+    self.InterfaceList = {}
+    if _ExistingInterfaces(['br0']):
+      self.InterfaceList['256'] = dm.ethernet.EthernetInterfaceLinux26(
+          ifname='br0')
+    for i, ifc in enumerate(_ExistingInterfaces(['lan0', 'eth0', 'wan0']), 1):
+      qprefix = '/sys/kernel/debug/bcmgenet/%s/bcmgenet_discard_cnt_q' % ifc
+      qglob = glob.glob(qprefix + '*')
+      self.InterfaceList[str(i)] = dm.ethernet.EthernetInterfaceLinux26(
+          ifname=ifc,
+          qfiles=(qprefix + '%d') if qglob else None,
+          numq=len(qglob),
+          hipriq=1 if qglob else 0)
     self.VLANTerminationList = {}
     self.LinkList = {}
 
@@ -343,8 +357,8 @@ class Moca(tr181.Device_v2_2.Device.MoCA):
 
   def __init__(self):
     tr181.Device_v2_2.Device.MoCA.__init__(self)
-    ifname = 'eth1'
-    qfiles = '/sys/kernel/debug/bcmgenet/eth1/bcmgenet_discard_cnt_q%d'
+    ifname = _ExistingInterfaces(['moca0', 'eth1'])[0]
+    qfiles = '/sys/kernel/debug/bcmgenet/%s/bcmgenet_discard_cnt_q%%d' % ifname
     numq = 17
     hipriq = 1
     self.InterfaceList = {}
@@ -413,17 +427,31 @@ class IP(tr181.Device_v2_2.Device.IP):
   def __init__(self):
     super(IP, self).__init__()
     self.Unexport('ULAPrefix')
-    self.InterfaceList = {
-        1: dm.ipinterface.IPInterfaceLinux26(
-            ifname='eth0', lowerlayers='Device.Ethernet.Interface.1'),
-        2: dm.ipinterface.IPInterfaceLinux26(
-            ifname='eth1', lowerlayers='Device.MoCA.Interface.1'),
-        256: dm.ipinterface.IPInterfaceLinux26(
-            ifname='br0', lowerlayers='Device.Ethernet.Interface.256'),
-    }
-    if _has_wifi():
-      self.InterfaceList[3] = dm.ipinterface.IPInterfaceLinux26(
-          ifname='eth2', lowerlayers='')  # no tr181 Wifi yet
+    self.InterfaceList = {}
+    if _ExistingInterfaces(['br0']):
+      self.InterfaceList[256] = dm.ipinterface.IPInterfaceLinux26(
+          ifname='br0', lowerlayers='Device.Ethernet.Interface.256')
+
+    # Maintain numbering consistency between GFHD100 and GFRG200.
+    # The LAN interface is first, then the MoCA interface, then the wifi
+    # interfaces (if any).  Then we'll add any additional interfaces.
+    lanifc = _ExistingInterfaces(['lan0', 'eth0'])
+    if lanifc:
+      self.InterfaceList[1] = dm.ipinterface.IPInterfaceLinux26(
+          ifname=lanifc[0], lowerlayers='Device.Ethernet.Interface.1')
+    mocaifc = _ExistingInterfaces(['moca0', 'eth1'])
+    if mocaifc:
+        self.InterfaceList[2] = dm.ipinterface.IPInterfaceLinux26(
+            ifname=mocaifc[0], lowerlayers='Device.MoCA.Interface.1')
+    i = 3
+    for wifc in _WifiInterfaces():
+      self.InterfaceList[i] = dm.ipinterface.IPInterfaceLinux26(
+          ifname=wifc, lowerlayers='')  # no tr181 Wifi yet
+      i += 1
+    for ethi, wanifc in enumerate(_ExistingInterfaces(['wan0']), 2):
+      self.InterfaceList[i] = dm.ipinterface.IPInterfaceLinux26(
+          ifname=wanifc, lowerlayers='Device.Ethernet.Interface.%d' % ethi)
+      i += 1
     self.ActivePortList = {}
     self.Diagnostics = IPDiagnostics()
 
@@ -521,9 +549,15 @@ class Device(tr181.Device_v2_2.Device):
     # this is just a lookup table. It is harmless to have extra interfaces,
     # like Wifi interfaces on GFMS100 (which has no wifi).
     iflookup = {
+      'lan0': 'Device.Ethernet.Interface.1.',
       'eth0': 'Device.Ethernet.Interface.1.',
+      'wan0': 'Device.Ethernet.Interface.2.',
       'eth1': 'Device.MoCA.Interface.1.',
       'eth1.0': 'Device.MoCA.Interface.1.',
+      'moca0': 'Device.MoCA.Interface.1.',
+      'moca0.0': 'Device.MoCA.Interface.1.',
+      'ath0': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.',
+      'ath1': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.2.',
       'eth2': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.',
     }
     self.Hosts = dm.host.Hosts(iflookup, bridgename='br0')
@@ -540,9 +574,10 @@ class LANDevice(BASE98IGD.LANDevice):
     self.Unexport(objects='LANHostConfigManagement')
     self.Unexport(lists='LANUSBInterfaceConfig')
     self.WLANConfigurationList = {}
-    if _has_wifi():
-      wifi = dm.brcmwifi.BrcmWifiWlanConfiguration('eth2')
-      self.WLANConfigurationList = {'1': wifi}
+    # TODO(apenwarr): support non-brcmwifi interfaces here
+    for i, wifc in enumerate(_ExistingInterfaces(['eth2']), 1):
+      wifi = dm.brcmwifi.BrcmWifiWlanConfiguration(wifc)
+      self.WLANConfigurationList = {str(i): wifi}
 
   @property
   def LANWLANConfigurationNumberOfEntries(self):

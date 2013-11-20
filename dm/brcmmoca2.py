@@ -220,6 +220,7 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
 
   @property
   def MACAddress(self):
+    print 'get MAC for %r' % self.Name
     return self._pynet.get_mac()
 
   @property

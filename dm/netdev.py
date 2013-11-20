@@ -139,8 +139,8 @@ class NetdevStatsLinux26(object):
           val = long(f.readline().strip())
           discard_cnts.append(val)
       except (IOError, ValueError, TypeError):
-        print 'WARN: _ReadDiscardStats %s : %d failed' % (qfiles, i)
-        discard_cnts.append(-1)
+        print 'WARN: _ReadDiscardStats %r failed' % (file_path,)
+        discard_cnts.append(0)
     return discard_cnts
 
   def _GetHighPrioDiscards(self, discards, hipriq):
