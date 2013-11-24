@@ -642,7 +642,8 @@ def PlatformInit(name, device_model_root):
       dev_id, periodic_stats)
   device_model_root.X_GOOGLE_COM_GVSB = gvsb.Gvsb()
   device_model_root.X_GOOGLE_COM_SSH = ssh.Ssh()
-  tvrpc = gfibertv.GFiberTv('http://localhost:51834/xmlrpc')
+  tvrpc = gfibertv.GFiberTv(mailbox_url='http://localhost:51834/xmlrpc',
+                            my_serial=dev_id.SerialNumber)
   device_model_root.X_GOOGLE_COM_GFIBERTV = tvrpc
   objects.append('Device')
   objects.append('InternetGatewayDevice')
