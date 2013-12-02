@@ -68,7 +68,6 @@ INTERNAL_ERROR = 9002
 
 # Unit tests can override these with fake data
 CONFIGDIR = '/config/tr69'
-DOWNLOADDIR = '/tmp'
 GINSTALL = 'ginstall.py'
 HNVRAM = 'hnvram'
 LEDSTATUS = '/tmp/gpio/ledstate'
@@ -105,7 +104,10 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
     return CONFIGDIR
 
   def DownloadDir(self):
-    return DOWNLOADDIR
+    if os.path.isdir('/var/media/swimage'):
+      return '/var/media/swimage'
+    else:
+      return '/tmp'
 
 
 class DeviceId(dm.device_info.DeviceIdMeta):
