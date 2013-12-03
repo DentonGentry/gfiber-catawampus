@@ -41,6 +41,7 @@ BASETV = tr.x_gfibertv_1_0.X_GOOGLE_COM_GFIBERTV_v1_0.X_GOOGLE_COM_GFIBERTV
 # These are lists so list[0] can be reassigned in a unit test to affect
 # the operation of tr.types.FileBacked.
 NICKFILE = ['/tmp/nicknames']
+MYNICKFILE = ['/config/nickname']
 BTDEVICES = ['/user/bsa/bt_devices.xml']
 BTHHDEVICES = ['/user/bsa/bt_hh_devices.xml']
 BTCONFIG = ['/user/bsa/bt_config.xml']
@@ -85,8 +86,15 @@ class GFiberTv(BASETV):
   TcpAlgorithm = tr.types.FileBacked(TCPALGORITHM, tr.types.String())
   UiControlUrl = tr.types.FileBacked(UICONTROLURLFILE, tr.types.String())
 
-  def __init__(self, mailbox_url):
+  def __init__(self, mailbox_url, my_serial=None):
+    """GFiberTV object.
+    Args:
+      mailbox_url: XML-RPC endpoint for Mailbox access.
+      my_serial: serial number of this device. A device nickname
+        for this serial number will be written to MYNICKFILE.
+    """
     super(GFiberTv, self).__init__()
+    self.my_serial = my_serial
     self.SelfTest = selftest.SelfTest()
     self.Export(objects=['SelfTest'])
     self.Mailbox = Mailbox(mailbox_url)
@@ -137,9 +145,10 @@ class GFiberTv(BASETV):
     NickName = tr.types.TriggerString()
     SerialNumber = tr.types.TriggerString()
 
-    def __init__(self, parent):
+    def __init__(self, parent, my_serial):
       super(GFiberTv._DeviceProperties, self).__init__()
       self.parent = parent
+      self.my_serial = my_serial
       self.Triggered = self.parent.Triggered
 
   def DeviceProperties(self):
@@ -153,7 +162,7 @@ class GFiberTv(BASETV):
     Returns:
       gfibertv.DeviceProperties
     """
-    return self._DeviceProperties(parent=self)
+    return self._DeviceProperties(parent=self, my_serial=self.my_serial)
 
   @property
   def DevicePropertiesNumberOfEntries(self):
@@ -168,6 +177,10 @@ class GFiberTv(BASETV):
         if device.SerialNumber and device.NickName:
           f.write('%s/nickname=%s\n' % (_SageEscape(device.SerialNumber),
                                         _SageEscape(device.NickName)))
+          if device.SerialNumber == self.my_serial:
+            with tr.helpers.AtomicFile(MYNICKFILE[0]) as sf:
+              # no _SageEscape(), this one is not a Java properties file.
+              sf.write(device.NickName)
           serials.append(device.SerialNumber)
       f.write('serials=%s\n' % ','.join(_SageEscape(i) for i in serials))
 

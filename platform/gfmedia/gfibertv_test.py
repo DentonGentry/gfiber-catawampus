@@ -102,10 +102,14 @@ class GfiberTvTests(unittest.TestCase):
 
     self.tmpdir = tempfile.mkdtemp()
     (nick_file_handle, self.nick_file_name) = tempfile.mkstemp(dir=self.tmpdir)
+    (my_nick_file_handle, self.my_nick_file_name) = tempfile.mkstemp(
+        dir=self.tmpdir)
     (tmp_file_handle, self.tmp_file_name) = tempfile.mkstemp(dir=self.tmpdir)
     os.close(nick_file_handle)
+    os.close(my_nick_file_handle)
     os.close(tmp_file_handle)
     gfibertv.NICKFILE[0] = self.nick_file_name
+    gfibertv.MYNICKFILE[0] = self.my_nick_file_name
     self.EASHEARTBEATFILE = gfibertv.EASHEARTBEATFILE[0]
 
     (btdevices_handle, self.btdevices_fname) = tempfile.mkstemp(dir=self.tmpdir)
@@ -258,6 +262,24 @@ class GfiberTvTests(unittest.TestCase):
     self.assertTrue('56789' in split2)
     self.assertTrue('23456' in split2)
     self.assertTrue('8675309' in split2)
+
+  def testMyNickname(self):
+    mailbox_url = 'http://localhost:%d' % srv_port
+    my_serial = '12345'
+    gftv = gfibertv.GFiberTv(mailbox_url=mailbox_url, my_serial=my_serial)
+    idx, newobj = gftv.AddExportObject('DeviceProperties', None)
+    idx = int(idx)
+    self.assertEqual(newobj, gftv.DevicePropertiesList[idx])
+    self.assertEqual(None, gftv.DevicePropertiesList[idx].NickName)
+
+    my_nickname = 'thisisme'
+    gftv.DevicePropertiesList[idx].NickName = my_nickname
+    gftv.DevicePropertiesList[idx].SerialNumber = '12345'
+
+    self.loop.RunOnce()
+
+    mynickfile = open(gfibertv.MYNICKFILE[0], 'r').read()
+    self.assertEqual(mynickfile, my_nickname)
 
   def testBtFiles(self):
     gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
