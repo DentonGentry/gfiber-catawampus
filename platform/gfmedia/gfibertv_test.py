@@ -22,7 +22,6 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import os
 import os.path
-import shutil
 import SimpleXMLRPCServer
 import tempfile
 import threading
@@ -30,6 +29,7 @@ import unittest
 import xmlrpclib
 import google3
 import tr.cwmpdate
+import tr.helpers
 import tr.mainloop
 import gfibertv
 
@@ -104,13 +104,10 @@ class GfiberTvTests(unittest.TestCase):
     (nick_file_handle, self.nick_file_name) = tempfile.mkstemp(dir=self.tmpdir)
     (my_nick_file_handle, self.my_nick_file_name) = tempfile.mkstemp(
         dir=self.tmpdir)
-    (tmp_file_handle, self.tmp_file_name) = tempfile.mkstemp(dir=self.tmpdir)
     os.close(nick_file_handle)
     os.close(my_nick_file_handle)
-    os.close(tmp_file_handle)
     gfibertv.NICKFILE[0] = self.nick_file_name
     gfibertv.MYNICKFILE[0] = self.my_nick_file_name
-    self.EASHEARTBEATFILE = gfibertv.EASHEARTBEATFILE[0]
 
     (btdevices_handle, self.btdevices_fname) = tempfile.mkstemp(dir=self.tmpdir)
     os.close(btdevices_handle)
@@ -157,7 +154,18 @@ class GfiberTvTests(unittest.TestCase):
   def tearDown(self):
     xmlrpclib.ServerProxy('http://localhost:%d' % srv_port).Quit()
     self.server_thread.join()
-    shutil.rmtree(self.tmpdir)
+    tr.helpers.Unlink(gfibertv.NICKFILE[0])
+    tr.helpers.Unlink(gfibertv.MYNICKFILE[0])
+    tr.helpers.Unlink(gfibertv.BTDEVICES[0])
+    tr.helpers.Unlink(gfibertv.BTHHDEVICES[0])
+    tr.helpers.Unlink(gfibertv.BTCONFIG[0])
+    tr.helpers.Unlink(gfibertv.BTNOPAIRING[0])
+    tr.helpers.Unlink(gfibertv.EASFIPSFILE[0])
+    tr.helpers.Unlink(gfibertv.EASADDRFILE[0])
+    tr.helpers.Unlink(gfibertv.EASPORTFILE[0])
+    tr.helpers.Unlink(gfibertv.TCPALGORITHM[0])
+    tr.helpers.Unlink(gfibertv.UICONTROLURLFILE[0])
+    os.rmdir(self.tmpdir)
 
   def testValidate(self):
     tv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
@@ -272,14 +280,14 @@ class GfiberTvTests(unittest.TestCase):
     self.assertEqual(newobj, gftv.DevicePropertiesList[idx])
     self.assertEqual(None, gftv.DevicePropertiesList[idx].NickName)
 
-    my_nickname = 'thisisme'
+    my_nickname = u'\u212ced\nroom\n\r!'
     gftv.DevicePropertiesList[idx].NickName = my_nickname
     gftv.DevicePropertiesList[idx].SerialNumber = '12345'
 
     self.loop.RunOnce()
 
-    mynickfile = open(gfibertv.MYNICKFILE[0], 'r').read()
-    self.assertEqual(mynickfile, my_nickname)
+    mynickfile = open(gfibertv.MYNICKFILE[0]).read()
+    self.assertEqual(mynickfile, my_nickname.encode('utf-8'))
 
   def testBtFiles(self):
     gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
