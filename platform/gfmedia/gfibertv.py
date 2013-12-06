@@ -179,8 +179,7 @@ class GFiberTv(BASETV):
                                         _SageEscape(device.NickName)))
           if device.SerialNumber == self.my_serial:
             with tr.helpers.AtomicFile(MYNICKFILE[0]) as sf:
-              # no _SageEscape(), this one is not a Java properties file.
-              sf.write(device.NickName)
+              sf.write(device.NickName.encode('utf-8'))
           serials.append(device.SerialNumber)
       f.write('serials=%s\n' % ','.join(_SageEscape(i) for i in serials))
 
