@@ -91,7 +91,11 @@ class NetdevStatsLinux26(object):
       type(self).PacketsReceived.Set(self, rxpkts)
       txpkts = long(ifstats[self._TX_PKTS])
       type(self).PacketsSent.Set(self, txpkts)
-      type(self).UnicastPacketsReceived.Set(self, rxpkts - rxmcast)
+      rxucast = rxpkts - rxmcast
+      if rxucast < 0:
+        # Driver probably exports 32 bit counters, and rxpkts wraps first.
+        rxucast = 0xffffffff - rxmcast + rxpkts
+      type(self).UnicastPacketsReceived.Set(self, rxucast)
 
       # Linux doesn't break out transmit uni/multi/broadcast, but we don't
       # want to return 0 for all of them. So we return all transmitted

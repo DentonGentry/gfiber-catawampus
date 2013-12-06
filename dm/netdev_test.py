@@ -99,6 +99,16 @@ class NetdevTest(unittest.TestCase):
     self.assertEqual(len(eth.X_CATAWAMPUS_ORG_DiscardFrameCnts), 0)
     self.assertEqual(eth.X_CATAWAMPUS_ORG_DiscardPacketsReceivedHipri, 0)
 
+  def testRxPacketsWrap(self):
+    """Rx Packets has wrapped back to zero, but Rx Multicast has not."""
+    netdev.PROC_NET_DEV = 'testdata/netdev/wrapped_net_dev'
+    eth = netdev.NetdevStatsLinux26('eth0')
+    self.assertEqual(eth.MulticastPacketsReceived, 10)
+    self.assertEqual(eth.PacketsReceived, 1)
+    # b/12022359 would try to set UnicastPacketsReceived negative, and result
+    # in a ValueError. We want to check that no exception is raised.
+    self.assertGreater(eth.UnicastPacketsReceived, 0)
+
 
 if __name__ == '__main__':
   unittest.main()
