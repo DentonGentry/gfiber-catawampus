@@ -36,10 +36,10 @@ class BrcmWifiTest(unittest.TestCase):
     self.assertEqual(wifi.Channel, 1)
     wifi.Channel = 2
     self.assertEqual(wifi.Channel, 2)
-    self.assertRaises(ValueError, wifi.SetChannel, 166)
-    self.assertRaises(ValueError, wifi.SetChannel, 14)
-    self.assertRaises(ValueError, wifi.SetChannel, 0)
-    self.assertRaises(ValueError, wifi.SetChannel, 20)
+    self.assertRaises(ValueError, setattr, wifi, 'Channel', 166)
+    self.assertRaises(ValueError, setattr, wifi, 'Channel', 14)
+    self.assertRaises(ValueError, setattr, wifi, 'Channel', 0)
+    self.assertRaises(ValueError, setattr, wifi, 'Channel', 20)
 
   def testSSID(self):
     wifi = fakewifi.FakeWifiWlanConfiguration()
@@ -89,34 +89,39 @@ class BrcmWifiTest(unittest.TestCase):
     self.assertTrue(wifi.SSIDAdvertisementEnabled)
     wifi.SSIDAdvertisementEnabled = False
     self.assertFalse(wifi.SSIDAdvertisementEnabled)
-    self.assertRaises(ValueError, wifi.SetSSIDAdvertisementEnabled, 'Invalid')
+    self.assertRaises(ValueError, setattr, wifi,
+                      'SSIDAdvertisementEnabled', 'Invalid')
 
   def testRadioEnabled(self):
     wifi = fakewifi.FakeWifiWlanConfiguration()
     self.assertFalse(wifi.RadioEnabled)
     wifi.RadioEnabled = True
     self.assertTrue(wifi.RadioEnabled)
-    self.assertRaises(ValueError, wifi.SetRadioEnabled, 'Invalid')
+    self.assertRaises(ValueError, setattr, wifi, 'RadioEnabled', 'Invalid')
 
   def testAutoRateFallBackEnabled(self):
     wifi = fakewifi.FakeWifiWlanConfiguration()
     self.assertFalse(wifi.AutoRateFallBackEnabled)
     wifi.AutoRateFallBackEnabled = True
     self.assertTrue(wifi.AutoRateFallBackEnabled)
-    self.assertRaises(ValueError, wifi.SetAutoRateFallBackEnabled, 'Invalid')
+    self.assertRaises(ValueError, setattr, wifi,
+                      'AutoRateFallBackEnabled', 'Invalid')
 
   def testEnable(self):
     wifi = fakewifi.FakeWifiWlanConfiguration()
     self.assertFalse(wifi.Enable)
     wifi.Enable = True
     self.assertTrue(wifi.Enable)
-    self.assertRaises(ValueError, wifi.SetEnable, 'Invalid')
+    self.assertRaises(ValueError, setattr, wifi, 'Enable', 'Invalid')
 
   def testInvalidEncryptionModes(self):
     wifi = fakewifi.FakeWifiWlanConfiguration()
-    self.assertRaises(ValueError, wifi.SetBasicEncryptionModes, 'invalid')
-    self.assertRaises(ValueError, wifi.SetIEEE11iEncryptionModes, 'invalid')
-    self.assertRaises(ValueError, wifi.SetWPAEncryptionModes, 'invalid')
+    self.assertRaises(ValueError, setattr, wifi,
+                      'BasicEncryptionModes', 'invalid')
+    self.assertRaises(ValueError, setattr, wifi,
+                      'IEEE11iEncryptionModes', 'invalid')
+    self.assertRaises(ValueError, setattr, wifi,
+                      'WPAEncryptionModes', 'invalid')
 
   def testBeaconType(self):
     wifi = fakewifi.FakeWifiWlanConfiguration()
@@ -136,11 +141,12 @@ class BrcmWifiTest(unittest.TestCase):
     self.assertEqual(wifi.BeaconType, 'WPAand11i')
     wifi.BeaconType = 'BasicandWPAand11i'
     self.assertEqual(wifi.BeaconType, 'BasicandWPAand11i')
-    self.assertRaises(ValueError, wifi.SetBeaconType, 'FooFi')
+    self.assertRaises(ValueError, setattr, wifi, 'BeaconType', 'FooFi')
 
   def testAuthenticationMode(self):
     wifi = fakewifi.FakeWifiWlanConfiguration()
-    self.assertRaises(ValueError, wifi.SetBasicAuthenticationMode, 'Invalid')
+    self.assertRaises(ValueError, setattr, wifi,
+                      'BasicAuthenticationMode', 'Invalid')
     wifi.BasicAuthenticationMode = 'None'
     self.assertEqual(wifi.BasicAuthenticationMode, 'None')
     wifi.BasicAuthenticationMode = 'SharedAuthentication'
@@ -152,14 +158,17 @@ class BrcmWifiTest(unittest.TestCase):
     self.assertEqual(wifi.IEEE11iAuthenticationMode, 'PSKAuthentication')
     wifi.IEEE11iEncryptionModes = 'AESEncryption'
     self.assertEqual(wifi.IEEE11iEncryptionModes, 'AESEncryption')
-    self.assertRaises(ValueError, wifi.SetIEEE11iAuthenticationMode, 'Invalid')
+    self.assertRaises(ValueError, setattr, wifi,
+                      'IEEE11iAuthenticationMode', 'Invalid')
 
     wifi.WPAAuthenticationMode = 'PSKAuthentication'
     self.assertEqual(wifi.WPAAuthenticationMode, 'PSKAuthentication')
     wifi.WPAEncryptionModes = 'TKIPEncryption'
     self.assertEqual(wifi.WPAEncryptionModes, 'TKIPEncryption')
-    self.assertRaises(ValueError, wifi.SetWPAAuthenticationMode, 'Invalid')
-    self.assertRaises(ValueError, wifi.SetWPAEncryptionModes, 'Invalid')
+    self.assertRaises(ValueError, setattr, wifi,
+                      'WPAAuthenticationMode', 'Invalid')
+    self.assertRaises(ValueError, setattr, wifi,
+                      'WPAEncryptionModes', 'Invalid')
 
   def testStats(self):
     wifi = fakewifi.FakeWifiWlanConfiguration()

@@ -23,11 +23,28 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import unittest
 
 import google3
+import fakewifi
 import host
+import platform.fakecpe.device
+import tr.tr098_v1_4
+
+
+BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
 
 
 def TimeNow():
   return 1384057000.0
+
+
+class TestDeviceModelRoot(tr.core.Exporter):
+  def __init__(self, tr98=None, tr181=None):
+    super(TestDeviceModelRoot, self).__init__()
+    if tr98:
+      self.InternetGatewayDevice = tr98
+      self.Export(['InternetGatewayDevice'])
+    if tr181:
+      self.Device = tr181
+      self.Export(['Device'])
 
 
 class HostTest(unittest.TestCase):
@@ -171,6 +188,56 @@ class HostTest(unittest.TestCase):
   def testMissingDnsmasqFile(self):
     h = host.Hosts(iflookup={}, dnsmasqfile='/nonexistent')
     self.assertEqual(len(h.HostList), 0)
+
+  def _GetFakeCPE(self, tr98=True, tr181=True):
+    igd = device = None
+    device_id = platform.fakecpe.device.DeviceIdFakeCPE()
+    if tr98:
+      igd = platform.fakecpe.device.InternetGatewayDeviceFakeCPE(
+          device_id=device_id)
+    if tr181:
+      device = platform.fakecpe.device.DeviceFakeCPE(device_id=device_id)
+    return TestDeviceModelRoot(tr98=igd, tr181=device)
+
+  def testWifiAssociatedDevices(self):
+    dmroot = self._GetFakeCPE(tr98=True, tr181=False)
+    hosts = host.Hosts(dmroot=dmroot)
+    self.assertEqual(len(hosts.HostList), 2)
+    found = 0
+    for h in hosts.HostList.values():
+      l1interface = 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.'
+      self.assertEqual(h.Layer1Interface, l1interface)
+      if h.PhysAddress == '00:01:02:03:04:05':
+        self.assertFalse(found & 0x1)
+        found |= 0x1
+        a = l1interface + 'AssociatedDevice.1'
+        self.assertEqual(h.AssociatedDevice, a)
+      elif h.PhysAddress == '00:01:02:03:04:06':
+        self.assertFalse(found & 0x2)
+        found |= 0x2
+        a = l1interface + 'AssociatedDevice.2'
+        self.assertEqual(h.AssociatedDevice, a)
+    self.assertEqual(found, 0x3)
+
+  def testMocaAssociatedDevices(self):
+    dmroot = self._GetFakeCPE(tr98=False, tr181=True)
+    hosts = host.Hosts(dmroot=dmroot)
+    self.assertEqual(len(hosts.HostList), 2)
+    found = 0
+    for h in hosts.HostList.values():
+      l1interface = 'Device.MoCA.Interface.1.'
+      self.assertEqual(h.Layer1Interface, l1interface)
+      if h.PhysAddress == '00:11:22:33:44:11':
+        self.assertFalse(found & 0x1)
+        found |= 0x1
+        a = l1interface + 'AssociatedDevice.1'
+        self.assertEqual(h.AssociatedDevice, a)
+      elif h.PhysAddress == '00:11:22:33:44:22':
+        self.assertFalse(found & 0x2)
+        found |= 0x2
+        a = l1interface + 'AssociatedDevice.2'
+        self.assertEqual(h.AssociatedDevice, a)
+    self.assertEqual(found, 0x3)
 
 
 if __name__ == '__main__':
