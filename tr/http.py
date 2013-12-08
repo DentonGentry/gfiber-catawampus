@@ -187,7 +187,6 @@ class CPEStateMachine(object):
     self.ping_timeout_pending = None
     self._changed_parameters = set()
     self._changed_parameters_sent = set()
-    self._fresh_connect = False
     self._acs_config = acs_config
     self.cpe_management_server = cpe_management_server.CpeManagementServer(
         acs_url=acs_url, acs_config=acs_config, port=listenport,
@@ -385,8 +384,7 @@ class CPEStateMachine(object):
         url=self.session.acs_url, method='POST', headers=headers,
         body=self.outstanding, follow_redirects=True, max_redirects=5,
         request_timeout=30.0, use_gzip=True, allow_ipv6=True,
-        fresh_connect=self._fresh_connect, **self.fetch_args)
-    self._fresh_connect = False
+        **self.fetch_args)
     self.session.http.fetch(req, self.GotResponse)
 
   def GotResponse(self, response):
@@ -411,9 +409,6 @@ class CPEStateMachine(object):
         self.session.state_update(acs_to_cpe_empty=True)
     else:
       print 'HTTP ERROR {0!s}: {1}'.format(response.code, response.error)
-      # If a 599 error is returned, then set a flag to force a fresh connection.
-      if response.code == 599:
-        self._fresh_connect = True
       self._ScheduleRetrySession()
     self.Run()
     return 200

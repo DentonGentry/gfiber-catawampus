@@ -354,11 +354,6 @@ def _curl_setup_request(curl, request, buffer, headers):
         # (but see version check in _process_queue above)
         curl.setopt(pycurl.IPRESOLVE, pycurl.IPRESOLVE_V4)
 
-    if request.fresh_connect:
-      curl.setopt(pycurl.FRESH_CONNECT, 1)
-    else:
-      curl.setopt(pycurl.FRESH_CONNECT, 0)
-
     # Set the request method through curl's irritating interface which makes
     # up names for almost every single method
     curl_options = {
