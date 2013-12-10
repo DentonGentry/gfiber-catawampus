@@ -34,6 +34,7 @@ import dm.brcmmoca
 import dm.brcmmoca2
 import dm.brcmwifi
 import dm.device_info
+import dm.dns
 import dm.ethernet
 import dm.host
 import dm.igd_time
@@ -486,6 +487,7 @@ class Device(tr181.Device_v2_2.Device):
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
     led = dm.device_info.LedStatusReadFromFile('LED', LEDSTATUS)
     self.DeviceInfo.AddLedStatus(led)
+    self.DNS = dm.dns.DNS()
     self.Ethernet = Ethernet()
     self.IP = IP()
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
@@ -507,7 +509,6 @@ class Device(tr181.Device_v2_2.Device):
     self.Unexport(objects='CaptivePortal')
     self.Unexport(objects='DHCPv4')
     self.Unexport(objects='DHCPv6')
-    self.Unexport(objects='DNS')
     self.Unexport(objects='DSL')
     self.Unexport(objects='DSLite')
     self.Unexport(objects='Firewall')

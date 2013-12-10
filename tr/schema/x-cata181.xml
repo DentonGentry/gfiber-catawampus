@@ -17,8 +17,16 @@
 
   <model name="X_CATAWAMPUS-ORG_Device:2.0" base="Device:2.4">
     <object base="Device." access="readOnly" minEntries="1" maxEntries="1"/>
-    <object base="Device.Ethernet." access="readOnly" minEntries="1" maxEntries="1"/>
 
+    <object name="Device.DNS." access="readOnly" minEntries="1" maxEntries="1"/>
+    <object name="Device.DNS.Diagnostics." access="readOnly" minEntries="1" maxEntries="1">
+      <parameter name="X_CATAWAMPUS-ORG_ExtraCheckServers" access="readWrite" activeNotify="canDeny">
+        <description>A comma-delimited list of DNS servers to check.</description>
+        <syntax><string><size maxLength="8192"/></string></syntax>
+      </parameter>
+    </object>
+
+    <object base="Device.Ethernet." access="readOnly" minEntries="1" maxEntries="1"/>
     <object base="Device.Ethernet.Interface.{i}." access="readOnly" numEntriesParameter="InterfaceNumberOfEntries" minEntries="0" maxEntries="unbounded">
       <parameter name="X_CATAWAMPUS-ORG_ActualBitRate" access="readOnly" dmr:previousParameter="MaxBitRate">
         <description>The current link speed of this interface (expressed in {{units}}).</description>
