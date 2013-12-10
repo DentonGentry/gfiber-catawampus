@@ -43,6 +43,9 @@ class TestObject(object):
   e = tr.types.Enum(['one', 'two', 'three', 7, None])
   e2 = tr.types.Enum(['thing'])
   d = tr.types.Date()
+  m = tr.types.MacAddr(init='')
+  ip4 = tr.types.IP4Addr()
+  ip6 = tr.types.IP6Addr()
   file = tr.types.FileBacked([TEST_FILE], tr.types.Bool())
   file2 = tr.types.FileBacked([TEST_FILE], tr.types.Bool(),
                               delete_if_empty=False)
@@ -89,6 +92,9 @@ class TriggerObject(object):
   a = tr.types.Trigger(tr.types.Attr())
   b = tr.types.TriggerBool()
   i = tr.types.TriggerInt()
+  m = tr.types.TriggerMacAddr(init='')
+  ip4 = tr.types.TriggerIP4Addr('1.2.3.4')
+  ip6 = tr.types.TriggerIP6Addr('1111:2222::3333:4444')
 
   v = tr.types.TriggerFloat()
   @v.validator
@@ -109,6 +115,9 @@ class ReadOnlyObject(object):
   s = tr.types.ReadOnlyString('foo')
   e = tr.types.ReadOnlyEnum(['x', 'y', 'z'])
   u = tr.types.ReadOnlyUnsigned(6)
+  m = tr.types.ReadOnlyMacAddr('00:11:22:33:44:55')
+  ip4 = tr.types.ReadOnlyIP4Addr('1.2.3.4')
+  ip6 = tr.types.ReadOnlyIP6Addr('1111:2222::3333:4444')
 
 
 class TypesTest(unittest.TestCase):
@@ -121,6 +130,9 @@ class TypesTest(unittest.TestCase):
     self.assertEquals(obj.e, None)
     self.assertEquals(obj.e2, None)
     self.assertEquals(obj.d, None)
+    self.assertEquals(obj.m, None)
+    self.assertEquals(obj.ip4, None)
+    self.assertEquals(obj.ip6, None)
     o1 = object()
 
     obj.a = o1
@@ -212,6 +224,20 @@ class TypesTest(unittest.TestCase):
     obj.d = '2013-02-27T12:17:37Z'
     self.assertEquals(obj.d, datetime.datetime.utcfromtimestamp(1361967457))
 
+    obj.m = '00:11:22:33:44:55'
+    self.assertEquals(obj.m, '00:11:22:33:44:55')
+    obj.m = '00-11-22-33-44-55'
+    self.assertEquals(obj.m, '00-11-22-33-44-55')
+    self.assertRaises(ValueError, setattr, obj, 'm', 1)
+
+    obj.ip4 = '2.3.4.5'
+    self.assertEquals(obj.ip4, '2.3.4.5')
+    self.assertRaises(ValueError, setattr, obj, 'ip4', 1)
+
+    obj.ip6 = '2222::'
+    self.assertEquals(obj.ip6, '2222::')
+    self.assertRaises(ValueError, setattr, obj, 'ip6', 1)
+
     open(TEST_FILE, 'w').write('5')
     self.assertEquals(obj.file, 1)
     open(TEST_FILE, 'w').write('0')
@@ -250,7 +276,7 @@ class TypesTest(unittest.TestCase):
   def testFileBackedNotDeleted(self):
     obj = TestObject()
     open(TEST2_FILE, 'w').write('0')
-    self.assertEquals(obj.file2, 0)
+    self.assertEquals(obj.file2, False)
     obj.file2 = ''
     loop = mainloop.MainLoop()
     loop.RunOnce()
@@ -330,6 +356,15 @@ class TypesTest(unittest.TestCase):
     obj.vv = 12
     self.assertEquals(obj.triggers, 9)
 
+    obj.m = '00:11:22:33:44:66'
+    self.assertEquals(obj.triggers, 10)
+
+    obj.ip4 = '3.4.5.6'
+    self.assertEquals(obj.triggers, 11)
+
+    obj.ip6 = '3333::'
+    self.assertEquals(obj.triggers, 12)
+
   def testReadOnly(self):
     obj = ReadOnlyObject()
     obj2 = ReadOnlyObject()
@@ -357,6 +392,9 @@ class TypesTest(unittest.TestCase):
     self.assertRaises(AttributeError, setattr, obj, 'd', 0.0)
     self.assertRaises(AttributeError, setattr, obj, 's', 'foo')
     self.assertRaises(AttributeError, setattr, obj, 'e', None)
+    self.assertRaises(AttributeError, setattr, obj, 'm', '00:11:22:44:55:66')
+    self.assertRaises(AttributeError, setattr, obj, 'ip4', '9.8.7.6')
+    self.assertRaises(AttributeError, setattr, obj, 'ip6', '4444::')
 
   def testReallyBigInteger(self):
     obj = ReadOnlyObject()

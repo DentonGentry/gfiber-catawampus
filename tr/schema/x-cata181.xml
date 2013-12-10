@@ -123,6 +123,41 @@
         </parameter>
     </object>
 
+    <object name="Device.DHCPv4.Server." access="readOnly" minEntries="1" maxEntries="1">
+      <parameter name="X_CATAWAMPUS-ORG_TextConfig" access="readWrite">
+        <description>For debugging purposes, the current contents of the DHCP server configuration file (for example, dnsmasq.conf).</description>
+        <syntax>
+          <string>
+            <size maxLength="65536"/>
+          </string>
+        </syntax>
+      </parameter>
+    </object>
+    <object name="Device.DHCPv4.Server.Pool.{i}." access="readWrite" numEntriesParameter="PoolNumberOfEntries"  enableParameter="Enable" minEntries="0" maxEntries="unbounded">
+      <parameter name="X_CATAWAMPUS-ORG_NTPServers" access="readWrite">
+        <description>{{list}} List items represent NTP servers offered to DHCP clients.</description>
+        <syntax>
+          <list maxItems="4"/>
+          <dataType ref="string"/>
+        </syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.DHCPv4.Server.Pool.{i}.StaticAddress.{i}." access="readWrite" numEntriesParameter="StaticAddressNumberOfEntries" enableParameter="Enable" minEntries="0" maxEntries="unbounded">
+      <uniqueKey>
+        <parameter ref="X_CATAWAMPUS-ORG_ClientID"/>
+      </uniqueKey>
+      <parameter name="X_CATAWAMPUS-ORG_ClientID" access="readWrite">
+        <description>Value of the DHCP Client Identifier (Option 61) as defined in {{bibref|RFC2132}} sent by the DHCP client.</description>
+        <syntax>
+          <hexBinary>
+            <size maxLength="255"/>
+          </hexBinary>
+          <default type="object" value=""/>
+        </syntax>
+      </parameter>
+    </object>
+
     <object name="Device.MoCA.Interface.{i}.Stats." access="readOnly" minEntries="1" maxEntries="1">
       <parameter name="X_CATAWAMPUS-ORG_DiscardFrameCnts" access="readOnly">
         <description>The count of discarded frames per queue.</description>

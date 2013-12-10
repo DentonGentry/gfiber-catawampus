@@ -22,6 +22,8 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import datetime
 import errno
+import re
+import socket
 import cwmpdate
 import helpers
 import mainloop
@@ -267,6 +269,46 @@ class Date(Attr):
       return datetime.datetime.utcfromtimestamp(f)
 
 
+class MacAddr(Attr):
+  """An attribute that is always a MAC address or None."""
+
+  def validate(self, obj, value):
+    if not value:
+      return None
+    pattern = re.compile(r"""(^([0-9A-F]{2}[-]){5}([0-9A-F]{2})$
+                             |^([0-9A-F]{2}[:]){5}([0-9A-F]{2})$
+                             )""", re.VERBOSE|re.IGNORECASE)
+    if not pattern.match(str(value)):
+      raise ValueError('%r is not a MAC address' % value)
+    return value
+
+
+class IP4Addr(Attr):
+  """An attribute that is always an IPv4 address or None."""
+
+  def validate(self, obj, value):
+    if not value:
+      return None
+    try:
+      socket.inet_pton(socket.AF_INET, str(value))
+    except socket.error:
+      raise ValueError('%r is not an IPv4 address' % value)
+    return value
+
+
+class IP6Addr(Attr):
+  """An attribute that is always an IPv6 address or None."""
+
+  def validate(self, obj, value):
+    if not value:
+      return None
+    try:
+      socket.inet_pton(socket.AF_INET6, str(value))
+    except socket.error:
+      raise ValueError('%r is not an IPv6 address' % value)
+    return value
+
+
 class FileBacked(Attr):
   """An attribute that is actually a string stored in a file.
 
@@ -423,6 +465,18 @@ def TriggerDate(*args, **kwargs):
   return Trigger(Date(*args, **kwargs))
 
 
+def TriggerMacAddr(*args, **kwargs):
+  return Trigger(MacAddr(*args, **kwargs))
+
+
+def TriggerIP4Addr(*args, **kwargs):
+  return Trigger(IP4Addr(*args, **kwargs))
+
+
+def TriggerIP6Addr(*args, **kwargs):
+  return Trigger(IP6Addr(*args, **kwargs))
+
+
 class ReadOnly(object):
   """A type descriptor that prevents setting the wrapped Attr().
 
@@ -490,6 +544,18 @@ def ReadOnlyDate(*args, **kwargs):
   return ReadOnly(Date(*args, **kwargs))
 
 
+def ReadOnlyMacAddr(*args, **kwargs):
+  return ReadOnly(MacAddr(*args, **kwargs))
+
+
+def ReadOnlyIP6Addr(*args, **kwargs):
+  return ReadOnly(IP6Addr(*args, **kwargs))
+
+
+def ReadOnlyIP4Addr(*args, **kwargs):
+  return ReadOnly(IP4Addr(*args, **kwargs))
+
+
 def tryattr(obj, attrname, value):
   """Like setattr(), but validates the value without actually setting it.
 
@@ -526,17 +592,24 @@ def tryattr(obj, attrname, value):
 def AddNotifier(cls, attrname, notifier):
   """Registers the notifier with the given attribute of the class.
 
-     And adds the notifier to the attribute's callbacklist. Now, whenever
-     __set__() is called on the attribute of the class, all the registered
-     notifiers are notified and hence, all the callback functions in the list
-     are called. We only add a notifier on a class (type) and not an instance
-     of a class. This is because we want to add notifiers on all objects of a
-     particular type (and not just a single object), so that all those notifiers
-     are notified whenever the attribute value of that class is set.
+  And adds the notifier to the attribute's callbacklist. Now, whenever
+  __set__() is called on the attribute of the class, all the registered
+  notifiers are notified and hence, all the callback functions in the list
+  are called. We only add a notifier on a class (type) and not an instance
+  of a class. This is because we want to add notifiers on all objects of a
+  particular type (and not just a single object), so that all those notifiers
+  are notified whenever the attribute value of that class is set.
+
+  Args:
+    cls: the class to instrument.
+    attrname: The attribute to monitor.
+    notifier: The notifier to call.
+  Raises:
+    TypeError: if cls is an object and not a class.
   """
 
   if not isinstance(cls, type):
-    raise TypeError('AddNotifier can only be registered on a class, not an instance')
+    t = 'AddNotifier can only be registered on a class, not an instance'
+    raise TypeError(t)
   prop = getattr(cls, attrname)
   prop.callbacklist.append(notifier)
-
