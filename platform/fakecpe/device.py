@@ -24,6 +24,8 @@ import os
 import sys
 import google3
 import dm.device_info
+import dm.fakemoca
+import dm.fakewifi
 import dm.igd_time
 import dm.periodic_statistics
 import dm.storage
@@ -32,8 +34,9 @@ import tornado.ioloop
 import tr.acs_config
 import tr.core
 import tr.download
+import tr.tr098_v1_4
 import tr.tr181_v2_2 as tr181
-import fakewifi
+import tr.types
 
 
 FAKECPEINSTANCE = None
@@ -92,34 +95,16 @@ def FakeCPEInstance():
 
 class DeviceIdFakeCPE(dm.device_info.DeviceIdMeta):
   """Parameters for the DeviceInfo object for a FakeCPE platform."""
-
-  @property
-  def Manufacturer(self):
-    return 'Catawampus'
-
-  @property
-  def ManufacturerOUI(self):
-    return '001A11'
-
-  @property
-  def ModelName(self):
-    return 'FakeCPE'
-
-  @property
-  def Description(self):
-    return 'Simulated CPE device'
-
-  @property
-  def SerialNumber(self):
-    return str(FakeCPEInstance())
-
-  @property
-  def HardwareVersion(self):
-    return '0'
-
-  @property
-  def AdditionalHardwareVersion(self):
-    return '0'
+  AdditionalHardwareVersion = tr.types.ReadOnlyString('0')
+  AdditionalSoftwareVersion = tr.types.ReadOnlyString('0')
+  Description = tr.types.ReadOnlyString('Simulated CPE device')
+  HardwareVersion = tr.types.ReadOnlyString('0')
+  Manufacturer = tr.types.ReadOnlyString('Catawampus')
+  ManufacturerOUI = tr.types.ReadOnlyString('001A11')
+  ModelName = tr.types.ReadOnlyString('FakeCPE')
+  ModemFirmwareVersion = tr.types.ReadOnlyString('0')
+  ProductClass = tr.types.ReadOnlyString('Simulation')
+  SerialNumber = tr.types.ReadOnlyString(FakeCPEInstance())
 
   @property
   def SoftwareVersion(self):
@@ -128,18 +113,6 @@ class DeviceIdFakeCPE(dm.device_info.DeviceIdMeta):
         return f.readline().strip()
     except IOError:
       return 'unknown_version'
-
-  @property
-  def AdditionalSoftwareVersion(self):
-    return '0'
-
-  @property
-  def ProductClass(self):
-    return 'Simulation'
-
-  @property
-  def ModemFirmwareVersion(self):
-    return '0'
 
 
 class ServicesFakeCPE(tr181.Device_v2_2.Device.Services):
@@ -152,7 +125,7 @@ class ServicesFakeCPE(tr181.Device_v2_2.Device.Services):
 class DeviceFakeCPE(tr181.Device_v2_2.Device):
   """Device implementation for a simulated CPE device."""
 
-  def __init__(self, device_id, periodic_stats):
+  def __init__(self, device_id, periodic_stats=None):
     super(DeviceFakeCPE, self).__init__()
     self.Unexport(objects='ATM')
     self.Unexport(objects='Bridging')
@@ -191,12 +164,13 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
     self.InterfaceStackNumberOfEntries = 0
     self.InterfaceStackList = {}
 
-    self.Export(objects=['PeriodicStatistics'])
-    self.PeriodicStatistics = periodic_stats
+    if periodic_stats:
+      self.Export(objects=['PeriodicStatistics'])
+      self.PeriodicStatistics = periodic_stats
 
     self.Ethernet = EthernetFakeCPE()
     self.IP = IPFakeCPE()
-    self.MoCA = MoCAFakeCPE()
+    self.MoCA = dm.fakemoca.FakeMoca()
 
 
 class EthernetFakeCPE(tr181.Device_v2_2.Device.Ethernet):
@@ -221,19 +195,10 @@ class IPFakeCPE(tr181.Device_v2_2.Device.IP):
     self.InterfaceList = {}
 
 
-class MoCAFakeCPE(tr181.Device_v2_2.Device.MoCA):
-  """Implements Device_v2_2.Device.MoCA for FakeCPE Platform."""
-
-  def __init__(self):
-    super(MoCAFakeCPE, self).__init__()
-    self.InterfaceNumberOfEntries = 0
-    self.InterfaceList = {}
-
-
 class InternetGatewayDeviceFakeCPE(BASE98IGD):
   """Implements tr-98 InternetGatewayDevice."""
 
-  def __init__(self, device_id, periodic_stats):
+  def __init__(self, device_id, periodic_stats=None):
     super(InternetGatewayDeviceFakeCPE, self).__init__()
     self.Unexport(objects='CaptivePortal')
     self.Unexport(objects='DeviceConfig')
@@ -257,7 +222,8 @@ class InternetGatewayDeviceFakeCPE(BASE98IGD):
     tzfile = '/tmp/catawampus.%s/TZ' % FakeCPEInstance()
     self.Time = dm.igd_time.TimeTZ(tzfile=tzfile)
     self.Export(objects=['PeriodicStatistics'])
-    self.PeriodicStatistics = periodic_stats
+    if periodic_stats:
+      self.PeriodicStatistics = periodic_stats
 
   @property
   def LANDeviceNumberOfEntries(self):
@@ -269,7 +235,7 @@ class InternetGatewayDeviceFakeCPE(BASE98IGD):
 
 
 class LANDevice(BASE98IGD.LANDevice):
-  """tr-98 InternetGatewayDevice for FakeCPE platforms."""
+  """tr-98 InternetGatewayDevice.LANDevice for FakeCPE platforms."""
 
   def __init__(self):
     super(LANDevice, self).__init__()
@@ -278,7 +244,7 @@ class LANDevice(BASE98IGD.LANDevice):
     self.Unexport(lists='LANEthernetInterfaceConfig')
     self.Unexport(objects='LANHostConfigManagement')
     self.Unexport(lists='LANUSBInterfaceConfig')
-    wifi = fakewifi.FakeWifiWlanConfiguration()
+    wifi = dm.fakewifi.FakeWifiWlanConfiguration()
     self.WLANConfigurationList = {'1': wifi}
 
   @property

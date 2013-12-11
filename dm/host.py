@@ -43,7 +43,7 @@ class Hosts(BASE181HOSTS):
   """Implement tr-181 Device.Hosts table."""
 
   def __init__(self, iflookup=None, bridgename=None,
-               dnsmasqfile=None):
+               dnsmasqfile=None, dmroot=None):
     """Device.Hosts.
 
     Args:
@@ -53,11 +53,14 @@ class Hosts(BASE181HOSTS):
          'eth1': 'Device.MoCA.Interface.1.'}
       bridgename: name of the Linux bridge device. Ex: 'br0'
       dnsmasqfile: path to dnsmasq's dhcp.leases file.
+      dmroot: root of the Export tree (ex: there should be an
+        InternetGatewayDevice attribute for tr-98)
     """
     super(Hosts, self).__init__()
     self.bridges = list()
     self.iflookup = dict()
     self.dnsmasqleases = list()
+    self.dmroot = dmroot
     if iflookup:
       self.iflookup = iflookup
     if bridgename:
@@ -99,10 +102,15 @@ class Hosts(BASE181HOSTS):
         yield (mac, iface)
         offset += 16
 
-  def _GetHostsFromBridges(self, hosts=None):
-    """Return dict of known hosts on bridge devices."""
-    if hosts is None:
-      hosts = dict()
+  def _GetHostsFromBridges(self, hosts):
+    """Populate dict of known hosts on bridge devices.
+
+    Walks through the bridge forwarding table.
+
+    Args:
+      hosts: a dict (with MAC addresses as keys) of fields
+        to be populated for Device.Hosts.Host
+    """
     for brname in self.bridges:
       try:
         for (mac, iface) in self._GetHostsInBridge(brname):
@@ -112,18 +120,17 @@ class Hosts(BASE181HOSTS):
           hosts[mac] = host
       except (OSError, IOError):
         print '_GetHostsFromBridges unable to process %s' % brname
-    return hosts
 
   def _BinAsciitize(self, s):
-    if s == '*':
-      return ''
-    else:
-      return binascii.hexlify(s)
+    return '' if s == '*' else binascii.hexlify(s)
 
-  def _GetHostsFromDnsmasqLeases(self, hosts=None):
-    """Return dict of known hosts from dnsmasq leases file."""
-    if hosts is None:
-      hosts = dict()
+  def _GetHostsFromDnsmasqLeases(self, hosts):
+    """Populate a dict of known hosts from dnsmasq leases file.
+
+    Args:
+      hosts: a dict (with MAC addresses as keys) of fields
+        to be populated for Device.Hosts.Host
+    """
     now = int(TIMENOW())
     for filename in self.dnsmasqleases:
       line = ''
@@ -149,11 +156,62 @@ class Hosts(BASE181HOSTS):
         print 'Unable to process dnsmasq %s : %s' % (filename, line)
         continue
 
+  def _GetTr98WifiObjects(self):
+    """Yield tr-98 WLANConfiguration objects, if any."""
+    try:
+      lan = self.dmroot.GetExport('InternetGatewayDevice.LANDevice.1')
+    except (AttributeError, KeyError):
+      return
+    for (idx, wifi) in lan.WLANConfigurationList.iteritems():
+      l1if = 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.%s.' % idx
+      yield (l1if, wifi)
+
+  def _GetHostsFromWifiAssociatedDevices(self, hosts):
+    """Populate a dict of known hosts from wifi clients.
+
+    Args:
+      hosts: a dict (with MAC addresses as keys) of fields
+        to be populated for Device.Hosts.Host
+    """
+    for (l1interface, wifi) in self._GetTr98WifiObjects():
+      for (idx, device) in wifi.AssociatedDeviceList.iteritems():
+        assocdev = l1interface + 'AssociatedDevice.' + str(idx)
+        mac = device.AssociatedDeviceMACAddress.lower()
+        host = hosts.get(mac, dict())
+        host['AssociatedDevice'] = assocdev
+        host['Layer1Interface'] = l1interface
+        host['PhysAddress'] = mac
+        hosts[mac] = host
+
+  def _GetTr181MocaObjects(self):
+    """Yield tr-181 Device.MoCA. objects, if any."""
+    try:
+      moca = self.dmroot.GetExport('Device.MoCA')
+    except (AttributeError, KeyError):
+      return
+    for (idx, interface) in moca.InterfaceList.iteritems():
+      l1if = 'Device.MoCA.Interface.%s.' % idx
+      yield (l1if, interface)
+
+  def _GetHostsFromMocaAssociatedDevices(self, hosts):
+    """Populate a dict of known hosts from wifi clients."""
+    for (l1interface, moca) in self._GetTr181MocaObjects():
+      for (idx, device) in moca.AssociatedDeviceList.iteritems():
+        assocdev = l1interface + 'AssociatedDevice.' + str(idx)
+        mac = device.MACAddress.lower()
+        host = hosts.get(mac, dict())
+        host['AssociatedDevice'] = assocdev
+        host['Layer1Interface'] = l1interface
+        host['PhysAddress'] = mac
+        hosts[mac] = host
+
   @tr.session.cache
   def _GetHostList(self):
     hosts = dict()
     self._GetHostsFromBridges(hosts=hosts)
     self._GetHostsFromDnsmasqLeases(hosts=hosts)
+    self._GetHostsFromWifiAssociatedDevices(hosts=hosts)
+    self._GetHostsFromMocaAssociatedDevices(hosts=hosts)
     host_list = dict()
     for idx, host in enumerate(hosts.values(), start=1):
       host_list[str(idx)] = Host(**host)
