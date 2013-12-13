@@ -110,6 +110,7 @@ class DnsmasqTest(unittest.TestCase):
         'domain=example.com\n',
         'dhcp-option=option:router,9.9.9.9\n',
         'dhcp-option=option:ntp-server,5.5.5.5,6.6.6.6\n',
+        'dhcp-option=option:dns-server,3.3.3.3,4.4.4.4\n',
     ]
     for expected in expectedLines:
       self.assertTrue(expected in lines)
@@ -138,6 +139,7 @@ class DnsmasqTest(unittest.TestCase):
     dh4p.DNSServers = '3.3.3.3,4.4.4.4'
     dh4p.X_CATAWAMPUS_ORG_NTPServers = '5.5.5.5,6.6.6.6'
     dh4p.IPRouters = '9.9.9.9'
+    dh4p.DNSServers = '8.8.8.8,8.8.4.4'
     (_, opt) = dh4p.AddExportObject('Option')
     opt.Enable = True
     opt.Tag = 40
@@ -166,6 +168,7 @@ class DnsmasqTest(unittest.TestCase):
         'domain=example.com,1.1.1.1,2.2.2.2\n',
         'dhcp-option=tag:test,option:router,9.9.9.9\n',
         'dhcp-option=tag:test,option:ntp-server,5.5.5.5,6.6.6.6\n',
+        'dhcp-option=tag:test,option:dns-server,8.8.8.8,8.8.4.4\n',
         'dhcp-option=tag:test,option:40,wubbawubba\n',
         'dhcp-host=tag:test,11:22:33:44:55:66,1.2.3.4\n',
         'dhcp-host=tag:test,id:client_id,3.4.5.6\n',

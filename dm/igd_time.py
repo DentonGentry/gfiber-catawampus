@@ -50,16 +50,10 @@ class TimeTZ(BASE98IGD.Time):
 
   def __init__(self, tzfile='/etc/TZ'):
     BASE98IGD.Time.__init__(self)
-    self.Unexport('DaylightSavingsEnd')
-    self.Unexport('DaylightSavingsStart')
-    self.Unexport('DaylightSavingsUsed')
-    self.Unexport('LocalTimeZone')
-    self.Unexport('NTPServer1')
-    self.Unexport('NTPServer2')
-    self.Unexport('NTPServer3')
-    self.Unexport('NTPServer4')
-    self.Unexport('NTPServer5')
-    self.Unexport('Status')
+    self.Unexport(['DaylightSavingsEnd', 'DaylightSavingsStart',
+                   'DaylightSavingsUsed', 'LocalTimeZone', 'NTPServer1',
+                   'NTPServer2', 'NTPServer3', 'NTPServer4', 'NTPServer5',
+                   'Status'])
     self.config = TimeConfig()
     self.old_config = None
     self.tzfile = tzfile

@@ -284,64 +284,36 @@ class Device(tr181.Device_v2_4.Device):
 
   def __init__(self, device_id, periodic_stats):
     super(Device, self).__init__()
-    self.Unexport(objects='ATM')
-    self.Unexport(objects='Bridging')
-    self.Unexport(objects='CaptivePortal')
-    self.Unexport(objects='DHCPv4')
-    self.Unexport(objects='DHCPv6')
-    self.Unexport(objects='DNS')
-    self.Unexport(objects='DSL')
-    self.Unexport(objects='DSLite')
     self.Ethernet = Ethernet()
-    self.Unexport(objects='Firewall')
-    self.Unexport(objects='GatewayInfo')
-    self.Unexport(objects='Ghn')
-    self.Unexport(objects='HPNA')
-    self.Unexport(objects='HomePlug')
-    self.Unexport(objects='Hosts')
-    self.Unexport(objects='IEEE8021x')
-    self.Unexport(lists='InterfaceStack')
-    self.Unexport('InterfaceStackNumberOfEntries')
-    self.Unexport(objects='IP')
-    self.Unexport(objects='IPv6rd')
-    self.Unexport(objects='LANConfigSecurity')
-    self.Unexport(objects='ManagementServer')
-    self.Unexport(objects='MoCA')
-    self.Unexport(objects='NAT')
-    self.Unexport(objects='NeighborDiscovery')
-    self.Unexport(objects='PPP')
-    self.Unexport(objects='PTM')
-    self.Unexport(objects='QoS')
-    self.Unexport('RootDataModelVersion')
-    self.Unexport(objects='RouterAdvertisement')
-    self.Unexport(objects='Routing')
-    self.Unexport(objects='Services')
-    self.Unexport(objects='SmartCardReaders')
-    self.Unexport(objects='UPA')
-    self.Unexport(objects='USB')
-    self.Unexport(objects='Users')
-    self.Unexport(objects='WiFi')
+    self.Unexport(objects=['ATM', 'Bridging', 'CaptivePortal', 'DHCPv4',
+                           'DHCPv6', 'DNS', 'DSL', 'DSLite', 'Firewall',
+                           'GatewayInfo', 'Ghn', 'HPNA', 'HomePlug', 'Hosts',
+                           'IEEE8021x', 'IP', 'IPv6rd', 'LANConfigSecurity',
+                           'ManagementServer', 'MoCA', 'NAT',
+                           'NeighborDiscovery', 'PPP', 'PTM', 'QoS',
+                           'RouterAdvertisement', 'Routing', 'Services',
+                           'SmartCardReaders', 'UPA', 'USB', 'Users', 'WiFi'])
+    self.Unexport(lists=['InterfaceStack'])
+    self.Unexport(['InterfaceStackNumberOfEntries', 'RootDataModelVersion'])
     with open(PLATFORM_FILE) as f:
       if f.read().strip() == 'GFLT110':
         self.Optical = dm.ds6923_optical.Ds6923Optical(GFLT110_OPTICAL_I2C_ADDR)
       else:
-        self.Unexport(objects='Optical')
+        self.Unexport(objects=['Optical'])
 
     # DeficeInfo is defined under tr181.Device_v2_4,
     # not tr181.Device_v2_4.Device, so still need to Export here
     self.Export(objects=['DeviceInfo'])
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
-    self.DeviceInfo.Unexport('X_CATAWAMPUS-ORG_LedStatusNumberOfEntries')
-    self.DeviceInfo.Unexport(lists='X_CATAWAMPUS-ORG_LedStatus')
-    self.DeviceInfo.Unexport('LocationNumberOfEntries')
-    self.DeviceInfo.Unexport(lists='Processor')
-    self.DeviceInfo.Unexport(lists='SupportedDataModel')
-    self.DeviceInfo.Unexport(lists='VendorConfigFile')
-    self.DeviceInfo.Unexport(lists='VendorLogFile')
-    self.DeviceInfo.Unexport('ProcessorNumberOfEntries')
-    self.DeviceInfo.Unexport('VendorLogFileNumberOfEntries')
-    self.DeviceInfo.Unexport('VendorConfigFileNumberOfEntries')
-    self.DeviceInfo.Unexport('SupportedDataModelNumberOfEntries')
+    self.DeviceInfo.Unexport(lists=['X_CATAWAMPUS-ORG_LedStatus', 'Processor',
+                                    'SupportedDataModel', 'VendorConfigFile',
+                                    'VendorLogFile'])
+    self.DeviceInfo.Unexport(['X_CATAWAMPUS-ORG_LedStatusNumberOfEntries',
+                              'LocationNumberOfEntries',
+                              'ProcessorNumberOfEntries',
+                              'VendorLogFileNumberOfEntries',
+                              'VendorConfigFileNumberOfEntries',
+                              'SupportedDataModelNumberOfEntries'])
 
     self.ManagementServer = tr.core.TODO()
 
@@ -354,28 +326,20 @@ class InternetGatewayDevice(BASE98IGD):
 
   def __init__(self, device_id, periodic_stats):
     super(InternetGatewayDevice, self).__init__()
-    self.Unexport(objects='CaptivePortal')
-    self.Unexport(objects='DeviceConfig')
-    self.Unexport(params='DeviceSummary')
-    self.Unexport(objects='DownloadDiagnostics')
-    self.Unexport(objects='IPPingDiagnostics')
-    self.Unexport(objects='LANConfigSecurity')
-    self.Unexport(objects='LANInterfaces')
-    self.Unexport(objects='Layer2Bridging')
-    self.Unexport(objects='Layer3Forwarding')
     self.ManagementServer = tr.core.TODO()
-    self.Unexport(objects='QueueManagement')
-    self.Unexport(objects='Services')
-    self.Unexport(objects='TraceRouteDiagnostics')
-    self.Unexport(objects='UploadDiagnostics')
-    self.Unexport(objects='UserInterface')
-    self.Unexport(lists='LANDevice')
-    self.Unexport(lists='WANDevice')
-    self.Unexport(params='LANDeviceNumberOfEntries')
-    self.Unexport(params='WANDeviceNumberOfEntries')
+    self.Unexport(params=['DeviceSummary', 'LANDeviceNumberOfEntries',
+                          'WANDeviceNumberOfEntries'])
+    self.Unexport(objects=['CaptivePortal', 'DeviceConfig',
+                           'DownloadDiagnostics', 'IPPingDiagnostics',
+                           'LANConfigSecurity', 'LANInterfaces',
+                           'Layer2Bridging', 'Layer3Forwarding',
+                           'QueueManagement', 'Services',
+                           'TraceRouteDiagnostics', 'UploadDiagnostics',
+                           'UserInterface'])
+    self.Unexport(lists=['LANDevice', 'WANDevice'])
 
     self.DeviceInfo = dm.device_info.DeviceInfo98Linux26(device_id)
-    self.DeviceInfo.Unexport(params='VendorConfigFileNumberOfEntries')
+    self.DeviceInfo.Unexport(params=['VendorConfigFileNumberOfEntries'])
 
     self.Time = dm.igd_time.TimeTZ()
 

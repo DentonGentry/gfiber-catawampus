@@ -120,10 +120,8 @@ class DeviceInfo181Linux26(CATA181DEVICEINFO):
     assert isinstance(device_id, DeviceIdMeta)
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self._device_id = device_id
-    self.Unexport('FirstUseDate')
-    self.Unexport(objects='NetworkProperties')
-    self.Unexport('ProvisioningCode')
-    self.Unexport(objects='ProxierInfo')
+    self.Unexport(['FirstUseDate', 'ProvisioningCode'])
+    self.Unexport(objects=['NetworkProperties', 'ProxierInfo'])
     self.LocationList = {}
     self.ProcessStatus = ProcessStatusLinux26(ioloop=ioloop)
     self.TemperatureStatus = temperature.TemperatureStatus()
@@ -363,10 +361,8 @@ class DeviceInfo98Linux26(BASE98IGD.DeviceInfo):
     super(DeviceInfo98Linux26, self).__init__()
     assert isinstance(device_id, DeviceIdMeta)
     self._device_id = device_id
-    self.Unexport(params='DeviceLog')
-    self.Unexport(params='EnabledOptions')
-    self.Unexport(params='FirstUseDate')
-    self.Unexport(params='ProvisioningCode')
+    self.Unexport(params=['DeviceLog', 'EnabledOptions', 'FirstUseDate',
+                          'ProvisioningCode'])
     self.VendorConfigFileList = {}
 
   @property

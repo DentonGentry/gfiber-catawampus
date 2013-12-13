@@ -201,7 +201,7 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
 
     def __init__(self):
       super(Dhcp4ServerPool.Option, self).__init__()
-      self.Unexport('Alias')
+      self.Unexport(['Alias'])
 
     def Triggered(self):
       WriteDnsmasqConfig()
@@ -215,7 +215,7 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
 
     def __init__(self):
       super(Dhcp4ServerPool.StaticAddress, self).__init__()
-      self.Unexport('Alias')
+      self.Unexport(['Alias'])
 
     def Triggered(self):
       WriteDnsmasqConfig()
@@ -240,23 +240,21 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
     self.StaticAddressList = {}
     self.OptionList = {}
     self.ClientList = {}
-    self.Unexport('Alias')
+    self.Unexport(['Alias'])
 
     # We can't take individual addresses away from the pool.
-    self.Unexport('ReservedAddresses')
+    self.Unexport(['ReservedAddresses'])
 
     # dnsmasq cannot map a client-id to a pool of
     # addresses, and wanting to do so is kindof nonsensical
     # anyway. Using a Device.DHCPv4.Server.Pool.{i}.StaticAddress.{i}.
     # to map a specific client-id to a static IP address
     # makes more sense.
-    self.Unexport('ClientID')
+    self.Unexport(['ClientID'])
 
     # dnsmasq cannot do exclude matches
-    self.Unexport('ChaddrExclude')
-    self.Unexport('ClientIDExclude')
-    self.Unexport('UserClassIDExclude')
-    self.Unexport('VendorClassIDExclude')
+    self.Unexport(['ChaddrExclude', 'ClientIDExclude', 'UserClassIDExclude',
+                   'VendorClassIDExclude'])
 
     if self.name is None:
       self.name = self._GetUnusedName()
@@ -346,10 +344,10 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
       lines.append(l)
 
     if self.UserClassID:
-      l = 'dhcp-userclass=set:%s,%s\n' % (name, str(self.UserClassID))
+      l = 'dhcp-userclass=set:%s,%s\n' % (name, self.UserClassID)
       lines.append(l)
     if self.VendorClassID:
-      l = 'dhcp-vendorclass=set:%s,%s\n' % (name, str(self.VendorClassID))
+      l = 'dhcp-vendorclass=set:%s,%s\n' % (name, self.VendorClassID)
       lines.append(l)
     if self.Chaddr:
       match = self._MacMaskToDnsmasq(self.Chaddr, self.ChaddrMask)
@@ -365,11 +363,15 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
       lines.append(l)
 
     if self.IPRouters:
-      l = 'dhcp-option=%soption:router,%s\n' % (restrict, str(self.IPRouters))
+      l = 'dhcp-option=%soption:router,%s\n' % (restrict, self.IPRouters)
       lines.append(l)
     ntp = str(self.X_CATAWAMPUS_ORG_NTPServers)
     if ntp:
       l = 'dhcp-option=%soption:ntp-server,%s\n' % (restrict, ntp)
+      lines.append(l)
+
+    if self.DNSServers:
+      l = 'dhcp-option=%soption:dns-server,%s\n' % (restrict, self.DNSServers)
       lines.append(l)
 
     for opt in self.OptionList.values():
@@ -384,11 +386,11 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
         continue
       if s.Chaddr:
         mac = str(s.Chaddr)
-        l = 'dhcp-host=%s%s,%s\n' % (restrict, mac, str(s.Yiaddr))
+        l = 'dhcp-host=%s%s,%s\n' % (restrict, mac, s.Yiaddr)
         lines.append(l)
       if s.X_CATAWAMPUS_ORG_ClientID:
         cid = str(s.X_CATAWAMPUS_ORG_ClientID)
-        l = 'dhcp-host=%sid:%s,%s\n' % (restrict, cid, str(s.Yiaddr))
+        l = 'dhcp-host=%sid:%s,%s\n' % (restrict, cid, s.Yiaddr)
         lines.append(l)
 
     return lines

@@ -153,10 +153,8 @@ class LogicalVolumeLinux26(BASESTORAGE.LogicalVolume):
     type(self).Name.Set(self, rootpath)
     self.rootpath = rootpath
     type(self).FileSystem.Set(self, fstype)
-    self.Unexport('Alias')
-    self.Unexport('Encrypted')
-    self.Unexport('ThresholdReached')
-    self.Unexport('PhysicalReference')
+    self.Unexport(['Alias', 'Encrypted', 'ThresholdReached',
+                   'PhysicalReference'])
     self.FolderList = {}
     self.ThresholdLimit = 0
 
@@ -214,21 +212,20 @@ class PhysicalMediumDiskLinux26(BASESTORAGE.PhysicalMedium):
     super(PhysicalMediumDiskLinux26, self).__init__()
     self.dev = dev
     self.Name = dev
-    self.Unexport('Alias')
+    self.Unexport(['Alias', 'Status'])
     # TODO(dgentry) What does 'Standby' or 'Offline' mean?
-    self.Unexport('Status')
 
     if conn_type is None:
       # transport is really, really hard to infer programatically.
       # If platform code doesn't provide it, don't try to guess.
-      self.Unexport('ConnectionType')
+      self.Unexport(['ConnectionType'])
     else:
       # Provide a hint to the platform code: use a valid enumerated string,
       # or define a vendor extension. Don't just make something up.
       assert conn_type[0:1] == 'X_' or conn_type in self.CONNECTION_TYPES
     type(self).ConnectionType.Set(self, conn_type)
     if not conn_type or 'SATA' not in conn_type:
-      self.Unexport(objects='X_CATAWAMPUS-ORG_SataPHY')
+      self.Unexport(objects=['X_CATAWAMPUS-ORG_SataPHY'])
 
     smartctl = self._GetSmartctlOutput()
     serial = _GetFieldFromOutput(
@@ -242,7 +239,7 @@ class PhysicalMediumDiskLinux26(BASESTORAGE.PhysicalMedium):
     smartok = True if capable else False
     type(self).SMARTCapable.Set(self, smartok)
     if not smartok:
-      self.Unexport(objects='X_CATAWAMPUS-ORG_SmartAttributes')
+      self.Unexport(objects=['X_CATAWAMPUS-ORG_SmartAttributes'])
 
   @property
   def Uptime(self):
@@ -687,13 +684,9 @@ class StorageServiceLinux26(BASESTORAGE):
   def __init__(self):
     super(StorageServiceLinux26, self).__init__()
     self.Capabilities = CapabilitiesNoneLinux26()
-    self.Unexport('Alias')
-    self.Unexport(objects='NetInfo')
-    self.Unexport(objects='NetworkServer')
-    self.Unexport(objects='FTPServer')
-    self.Unexport(objects='SFTPServer')
-    self.Unexport(objects='HTTPServer')
-    self.Unexport(objects='HTTPSServer')
+    self.Unexport(['Alias'])
+    self.Unexport(objects=['NetInfo', 'NetworkServer', 'FTPServer',
+                           'SFTPServer', 'HTTPServer', 'HTTPSServer'])
     self.PhysicalMediumList = {}
     self.StorageArrayList = {}
     self.LogicalVolumeList = tr.core.AutoDict(

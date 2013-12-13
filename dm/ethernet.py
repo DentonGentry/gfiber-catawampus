@@ -45,8 +45,8 @@ class EthernetInterfaceStatsLinux26(netdev.NetdevStatsLinux26,
     netdev.NetdevStatsLinux26.__init__(self, ifname, qfiles, numq, hipriq)
     CATAETHERNET.Interface.Stats.__init__(self)
     if not qfiles:
-      self.Unexport('X_CATAWAMPUS-ORG_DiscardFrameCnts')
-      self.Unexport('X_CATAWAMPUS-ORG_DiscardPacketsReceivedHipri')
+      self.Unexport(['X_CATAWAMPUS-ORG_DiscardFrameCnts',
+                     'X_CATAWAMPUS-ORG_DiscardPacketsReceivedHipri'])
 
 
 class EthernetInterfaceLinux26(CATAETHERNET.Interface):
@@ -70,7 +70,7 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
     self._qfiles = qfiles
     self._numq = numq
     self._hipriq = hipriq
-    self.Unexport('Alias')
+    self.Unexport(['Alias'])
     type(self).Name.Set(self, ifname)
     type(self).Upstream.Set(self, upstream)
 

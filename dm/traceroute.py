@@ -64,7 +64,7 @@ class TraceRoute(BASE_TRACEROUTE):
   def __init__(self, ioloop=None):
     super(TraceRoute, self).__init__()
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
-    self.Unexport('Interface')
+    self.Unexport(['Interface'])
     self.subproc = None
     self.error = None
     self.buffer = ''

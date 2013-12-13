@@ -247,35 +247,14 @@ class Device(tr181.Device_v2_2.Device):
 
   def __init__(self, device_id, periodic_stats):
     super(Device, self).__init__()
-    self.Unexport(objects='ATM')
-    self.Unexport(objects='Bridging')
-    self.Unexport(objects='CaptivePortal')
     self.Export(objects=['DeviceInfo'])
-    self.Unexport(objects='DHCPv4')
-    self.Unexport(objects='DHCPv6')
-    self.Unexport(objects='DNS')
-    self.Unexport(objects='DSL')
-    self.Unexport(objects='DSLite')
-    self.Unexport(objects='Firewall')
-    self.Unexport(objects='GatewayInfo')
-    self.Unexport(objects='HPNA')
-    self.Unexport(objects='HomePlug')
-    self.Unexport(objects='Hosts')
-    self.Unexport(objects='IEEE8021x')
-    self.Unexport(objects='IPv6rd')
-    self.Unexport(objects='LANConfigSecurity')
-    self.Unexport(objects='NAT')
-    self.Unexport(objects='NeighborDiscovery')
-    self.Unexport(objects='PPP')
-    self.Unexport(objects='PTM')
-    self.Unexport(objects='QoS')
-    self.Unexport(objects='RouterAdvertisement')
-    self.Unexport(objects='Routing')
-    self.Unexport(objects='SmartCardReaders')
-    self.Unexport(objects='UPA')
-    self.Unexport(objects='USB')
-    self.Unexport(objects='Users')
-    self.Unexport(objects='WiFi')
+    self.Unexport(objects=['ATM', 'Bridging', 'CaptivePortal', 'DHCPv4',
+                           'DHCPv6', 'DNS', 'DSL', 'DSLite', 'Firewall',
+                           'GatewayInfo', 'HPNA', 'HomePlug', 'Hosts',
+                           'IEEE8021x', 'IPv6rd', 'LANConfigSecurity',
+                           'NAT', 'NeighborDiscovery', 'PPP', 'PTM', 'QoS',
+                           'RouterAdvertisement', 'Routing', 'SmartCardReaders',
+                           'UPA', 'USB', 'Users', 'WiFi'])
 
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
     self.ManagementServer = tr.core.TODO()  # Higher layer code splices this in
@@ -337,7 +316,7 @@ class IP(tr181.Device_v2_2.Device.IP):
 
   def __init__(self):
     super(IP, self).__init__()
-    self.Unexport('ULAPrefix')
+    self.Unexport(['ULAPrefix'])
     self.InterfaceList = tr.core.AutoDict(
         'InterfaceList', iteritems=self._InterfaceListIterItems)
     self.ActivePortList = {}
@@ -375,23 +354,17 @@ class InternetGatewayDevice(BASE98IGD):
 
   def __init__(self, device_id, periodic_stats):
     super(InternetGatewayDevice, self).__init__()
-    self.Unexport(objects='CaptivePortal')
-    self.Unexport(objects='DeviceConfig')
-    self.Unexport(params='DeviceSummary')
-    self.Unexport(objects='DownloadDiagnostics')
-    self.Unexport(objects='IPPingDiagnostics')
-    self.Unexport(objects='LANConfigSecurity')
+    self.Unexport(params=['DeviceSummary'])
+    self.Unexport(objects=['CaptivePortal', 'DeviceConfig',
+                           'DownloadDiagnostics', 'IPPingDiagnostics',
+                           'LANConfigSecurity', 'LANInterfaces',
+                           'Layer2Bridging', 'Layer3Forwarding',
+                           'QueueManagement', 'Services',
+                           'TraceRouteDiagnostics', 'UploadDiagnostics',
+                           'UserInterface'])
+    self.Unexport(lists=['WANDevice'])
     self.LANDeviceList = {'1': LANDevice()}
-    self.Unexport(objects='LANInterfaces')
-    self.Unexport(objects='Layer2Bridging')
-    self.Unexport(objects='Layer3Forwarding')
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
-    self.Unexport(objects='QueueManagement')
-    self.Unexport(objects='Services')
-    self.Unexport(objects='TraceRouteDiagnostics')
-    self.Unexport(objects='UploadDiagnostics')
-    self.Unexport(objects='UserInterface')
-    self.Unexport(lists='WANDevice')
 
     self.DeviceInfo = dm.device_info.DeviceInfo98Linux26(device_id)
     self.Time = dm.igd_time.TimeTZ()
@@ -412,11 +385,10 @@ class LANDevice(BASE98IGD.LANDevice):
 
   def __init__(self):
     super(LANDevice, self).__init__()
-    self.Unexport('Alias')
-    self.Unexport(objects='Hosts')
-    self.Unexport(lists='LANEthernetInterfaceConfig')
-    self.Unexport(objects='LANHostConfigManagement')
-    self.Unexport(lists='LANUSBInterfaceConfig')
+    self.Unexport(['Alias'])
+    self.Unexport(objects=['Hosts', 'LANHostConfigManagement'])
+    self.Unexport(lists=['LANEthernetInterfaceConfig',
+                         'LANUSBInterfaceConfig'])
     self.WLANConfigurationList = {}
 
   @property
@@ -437,8 +409,7 @@ class IPDiagnostics(CATA181.Device.IP.Diagnostics):
 
   def __init__(self):
     super(IPDiagnostics, self).__init__()
-    self.Unexport(objects='IPPing')
-    self.Unexport(objects='X_CATAWAMPUS-ORG_Speedtest')
+    self.Unexport(objects=['IPPing', 'X_CATAWAMPUS-ORG_Speedtest'])
     self.TraceRoute = dm.traceroute.TraceRoute()
 
 

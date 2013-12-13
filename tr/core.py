@@ -196,11 +196,17 @@ class Exporter(object):
       lists: a list of object-list names (lists containing objects) to remove.
     """
     if params:
-      self.export_params.remove(params)
+      assert(not isinstance(params, basestring))
+      for p in params:
+        self.export_params.remove(p)
     if objects:
-      self.export_objects.remove(objects)
+      assert(not isinstance(objects, basestring))
+      for o in objects:
+        self.export_objects.remove(o)
     if lists:
-      self.export_object_lists.remove(lists)
+      assert(not isinstance(lists, basestring))
+      for l in lists:
+        self.export_object_lists.remove(l)
 
   def Close(self):
     """Called when an object is being deleted."""

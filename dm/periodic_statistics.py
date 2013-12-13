@@ -130,7 +130,7 @@ class PeriodicStatistics(BASE157PS):
           'ParameterList', iteritems=self.IterParameters,
           getitem=self.GetParameter, setitem=self.SetParameter,
           delitem=self.DelParameter)
-      self.Unexport('ForceSample')
+      self.Unexport(['ForceSample'])
       self.Name = ''
       self._parameter_list = dict()
       self._sample_times = []
