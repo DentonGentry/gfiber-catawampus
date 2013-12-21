@@ -49,11 +49,8 @@ class Ds6923OpticalInterface(BASE181OPTICAL.Interface):
 
   def __init__(self, i2c_addr):
     super(Ds6923OpticalInterface, self).__init__()
-    self.Unexport('Alias')
-    self.Unexport('LastChange')
-    self.Unexport('Name')
-    self.Unexport('Status')
-    self.Unexport(objects='Stats')
+    self.Unexport(['Alias', 'LastChange', 'Name', 'Status'])
+    self.Unexport(objects=['Stats'])
     # The i2c module shifts the address right by 1 for some reason.
     self.i2c_addr = i2c_addr << 1
     self.i2c = i2c.Util(I2C_BUS)

@@ -65,7 +65,7 @@ class PreSharedKey98(WLANDEV.PreSharedKey):
 
   def __init__(self):
     super(PreSharedKey98, self).__init__()
-    self.Unexport('Alias')
+    self.Unexport(['Alias'])
     self.key = None
     self.passphrase = None
     self.key_pbkdf2 = None
@@ -128,5 +128,5 @@ class WEPKey98(WLANDEV.WEPKey):
 
   def __init__(self):
     super(WEPKey98, self).__init__()
-    self.Unexport('Alias')
+    self.Unexport(['Alias'])
     self.WEPKey = ''

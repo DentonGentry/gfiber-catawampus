@@ -35,6 +35,7 @@ import dm.brcmmoca2
 import dm.brcmwifi
 import dm.device_info
 import dm.dns
+import dm.dnsmasq
 import dm.ethernet
 import dm.host
 import dm.igd_time
@@ -50,7 +51,7 @@ import tr.core
 import tr.download
 import tr.session
 import tr.tr098_v1_2
-import tr.tr181_v2_2 as tr181
+import tr.tr181_v2_6 as tr181
 import tr.x_catawampus_tr181_2_0
 
 import gfibertv
@@ -71,11 +72,12 @@ INTERNAL_ERROR = 9002
 CONFIGDIR = '/config/tr69'
 GINSTALL = 'ginstall.py'
 HNVRAM = 'hnvram'
+ISNETWORKBOX = 'is-network-box'
 LEDSTATUS = '/tmp/gpio/ledstate'
 NAND_MB = '/proc/sys/dev/repartition/nand_size_mb'
 PROC_CPUINFO = '/proc/cpuinfo'
 REBOOT = 'tr69_reboot'
-REPOMANIFEST = '/etc/repo-buildroot-manifest'
+REPOMANIFEST = '/etc/manifest'
 VERSIONFILE = '/etc/version'
 
 
@@ -93,6 +95,11 @@ def _ExistingInterfaces(ifcnames):
 def _WifiInterfaces():
   # ath0/ath1 are Atheros interfaces; eth2 is bcmwifi on GFHD100
   return _ExistingInterfaces(["ath0", "ath1", "eth2"])
+
+
+def _IsNetworkBox():
+  rc = subprocess.call([ISNETWORKBOX])
+  return True if rc == 0 else False
 
 
 class PlatformConfig(platform_config.PlatformConfigMeta):
@@ -114,6 +121,33 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
 class DeviceId(dm.device_info.DeviceIdMeta):
   """Fetch the DeviceInfo parameters from NVRAM."""
 
+  AdditionalHardwareVersion = tr.types.ReadOnlyString('')
+  AdditionalSoftwareVersion = tr.types.ReadOnlyString('')
+  Description = tr.types.ReadOnlyString('Set top box for Google Fiber network')
+  HardwareVersion = tr.types.ReadOnlyString('')
+  Manufacturer = tr.types.ReadOnlyString('Google Fiber')
+  ManufacturerOUI = tr.types.ReadOnlyString('F88FCA')
+  ModelName = tr.types.ReadOnlyString('')
+  ModemFirmwareVersion = tr.types.ReadOnlyString('0')
+  ProductClass = tr.types.ReadOnlyString('0')
+  SerialNumber = tr.types.ReadOnlyString('')
+  SoftwareVersion = tr.types.ReadOnlyString('')
+
+  def __init__(self):
+    super(DeviceId, self).__init__()
+    addlhwvers = self._GetNvramParam('GPN', default='')
+    type(self).AdditionalHardwareVersion.Set(self, addlhwvers)
+    addlswvers = self._GetOneLine(REPOMANIFEST, '')
+    type(self).AdditionalSoftwareVersion.Set(self, addlswvers)
+    type(self).HardwareVersion.Set(self, self._HardwareVersion())
+    modelname = self._GetNvramParam('PLATFORM_NAME', default='UnknownModel')
+    type(self).ModelName.Set(self, modelname)
+    product_class = self._GetNvramParam('PLATFORM_NAME', default='UnknownModel')
+    type(self).ProductClass.Set(self, product_class)
+    type(self).SerialNumber.Set(self, self._SerialNumber())
+    swvers = self._GetOneLine(VERSIONFILE, '0')
+    type(self).SoftwareVersion.Set(self, swvers)
+
   def _GetOneLine(self, filename, default):
     try:
       with open(filename, 'r') as f:
@@ -121,7 +155,6 @@ class DeviceId(dm.device_info.DeviceIdMeta):
     except IOError:
       return default
 
-  @tr.session.cache
   def _GetNvramParam(self, param, default=''):
     """Return a parameter from NVRAM, like the serial number.
 
@@ -153,31 +186,13 @@ class DeviceId(dm.device_info.DeviceIdMeta):
     else:
       return default
 
-  @property
-  def Manufacturer(self):
-    return 'Google Fiber'
-
-  @property
-  def ManufacturerOUI(self):
-    return 'F88FCA'
-
-  @property
-  def ModelName(self):
-    return self._GetNvramParam('PLATFORM_NAME', default='UnknownModel')
-
-  @property
-  def Description(self):
-    return 'Set top box for Google Fiber network'
-
-  @property
-  def SerialNumber(self):
+  def _SerialNumber(self):
     serial = self._GetNvramParam('1ST_SERIAL_NUMBER', default=None)
     if serial is None:
       serial = self._GetNvramParam('SERIAL_NO', default='000000000000')
     return serial
 
-  @property
-  def HardwareVersion(self):
+  def _HardwareVersion(self):
     """Return NVRAM HW_REV, inferring one if not present."""
     hw_rev = self._GetNvramParam('HW_REV', default=None)
     if hw_rev:
@@ -198,26 +213,6 @@ class DeviceId(dm.device_info.DeviceIdMeta):
       if siz == 1024:
         return '2'
     return '?'
-
-  @property
-  def AdditionalHardwareVersion(self):
-    return self._GetNvramParam('GPN', default='')
-
-  @property
-  def SoftwareVersion(self):
-    return self._GetOneLine(VERSIONFILE, '0')
-
-  @property
-  def AdditionalSoftwareVersion(self):
-    return self._GetOneLine(REPOMANIFEST, '')
-
-  @property
-  def ProductClass(self):
-    return self._GetNvramParam('PLATFORM_NAME', default='UnknownModel')
-
-  @property
-  def ModemFirmwareVersion(self):
-    return '0'
 
 
 class Installer(tr.download.Installer):
@@ -283,11 +278,11 @@ class Installer(tr.download.Installer):
         self._call_callback(INTERNAL_ERROR, 'Unable to install image.')
 
 
-class Services(tr181.Device_v2_2.Device.Services):
+class Services(tr181.Device_v2_6.Device.Services):
   """Implements tr-181 Device.Services."""
 
   def __init__(self):
-    tr181.Device_v2_2.Device.Services.__init__(self)
+    super(Services, self).__init__()
     self.Export(objects=['StorageServices'])
     self.StorageServices = dm.storage.StorageServiceLinux26()
     self._AddStorageDevices()
@@ -322,11 +317,11 @@ class Services(tr181.Device_v2_2.Device.Services):
         pass
 
 
-class Ethernet(tr181.Device_v2_2.Device.Ethernet):
+class Ethernet(tr181.Device_v2_6.Device.Ethernet):
   """Implementation of tr-181 Device.Ethernet for GFMedia platforms."""
 
   def __init__(self):
-    tr181.Device_v2_2.Device.Ethernet.__init__(self)
+    super(Ethernet, self).__init__()
     self.InterfaceList = {}
     if _ExistingInterfaces(['br0']):
       self.InterfaceList['256'] = dm.ethernet.EthernetInterfaceLinux26(
@@ -355,11 +350,11 @@ class Ethernet(tr181.Device_v2_2.Device.Ethernet):
     return len(self.LinkList)
 
 
-class Moca(tr181.Device_v2_2.Device.MoCA):
+class Moca(tr181.Device_v2_6.Device.MoCA):
   """Implementation of tr-181 Device.MoCA for GFMedia platforms."""
 
   def __init__(self):
-    tr181.Device_v2_2.Device.MoCA.__init__(self)
+    super(Moca, self).__init__()
     ifname = _ExistingInterfaces(['moca0', 'eth1'])[0]
     qfiles = '/sys/kernel/debug/bcmgenet/%s/bcmgenet_discard_cnt_q%%d' % ifname
     numq = 17
@@ -385,7 +380,7 @@ class FanReadGpio(CATA181.DeviceInfo.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
                percent_filename='/tmp/gpio/fanpercent'):
     super(FanReadGpio, self).__init__()
     type(self).Name.Set(self, name)
-    self.Unexport(params='DesiredRPM')
+    self.Unexport(params=['DesiredRPM'])
     self._speed_filename = speed_filename
     self._percent_filename = percent_filename
 
@@ -417,7 +412,7 @@ class FanReadGpio(CATA181.DeviceInfo.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
       return -1
 
 
-class IP(tr181.Device_v2_2.Device.IP):
+class IP(tr181.Device_v2_6.Device.IP):
   """tr-181 Device.IP implementation for Google Fiber media platforms."""
   # Enable fields are supposed to be writeable; we don't support that.
   IPv4Capable = tr.types.ReadOnlyBool(True)
@@ -429,7 +424,7 @@ class IP(tr181.Device_v2_2.Device.IP):
 
   def __init__(self):
     super(IP, self).__init__()
-    self.Unexport('ULAPrefix')
+    self.Unexport(['ULAPrefix'])
     self.InterfaceList = {}
     if _ExistingInterfaces(['br0']):
       self.InterfaceList[256] = dm.ipinterface.IPInterfaceLinux26(
@@ -472,12 +467,12 @@ class IPDiagnostics(CATA181.Device.IP.Diagnostics):
 
   def __init__(self):
     super(IPDiagnostics, self).__init__()
-    self.Unexport(objects='IPPing')
+    self.Unexport(objects=['IPPing'])
     self.TraceRoute = dm.traceroute.TraceRoute()
     self.X_CATAWAMPUS_ORG_Speedtest = ookla.Speedtest()
 
 
-class Device(tr181.Device_v2_2.Device):
+class Device(tr181.Device_v2_6.Device):
   """tr-181 Device implementation for Google Fiber media platforms."""
 
   def __init__(self, device_id, periodic_stats):
@@ -487,6 +482,7 @@ class Device(tr181.Device_v2_2.Device):
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
     led = dm.device_info.LedStatusReadFromFile('LED', LEDSTATUS)
     self.DeviceInfo.AddLedStatus(led)
+    self.DHCPv4 = dm.dnsmasq.Dhcp4Server()
     self.DNS = dm.dns.DNS()
     self.Ethernet = Ethernet()
     self.IP = IP()
@@ -504,32 +500,13 @@ class Device(tr181.Device_v2_2.Device):
     return len(self.InterfaceStackList)
 
   def _UnexportStuff(self):
-    self.Unexport(objects='ATM')
-    self.Unexport(objects='Bridging')
-    self.Unexport(objects='CaptivePortal')
-    self.Unexport(objects='DHCPv4')
-    self.Unexport(objects='DHCPv6')
-    self.Unexport(objects='DSL')
-    self.Unexport(objects='DSLite')
-    self.Unexport(objects='Firewall')
-    self.Unexport(objects='GatewayInfo')
-    self.Unexport(objects='HPNA')
-    self.Unexport(objects='HomePlug')
-    self.Unexport(objects='IEEE8021x')
-    self.Unexport(objects='IPv6rd')
-    self.Unexport(objects='LANConfigSecurity')
-    self.Unexport(objects='NAT')
-    self.Unexport(objects='NeighborDiscovery')
-    self.Unexport(objects='PPP')
-    self.Unexport(objects='PTM')
-    self.Unexport(objects='QoS')
-    self.Unexport(objects='RouterAdvertisement')
-    self.Unexport(objects='Routing')
-    self.Unexport(objects='SmartCardReaders')
-    self.Unexport(objects='UPA')
-    self.Unexport(objects='USB')
-    self.Unexport(objects='Users')
-    self.Unexport(objects='WiFi')
+    self.Unexport(objects=[
+        'ATM', 'Bridging', 'CaptivePortal', 'DHCPv6', 'DSL', 'DSLite',
+        'ETSIM2M', 'Firewall', 'GatewayInfo', 'Ghn', 'HPNA',
+        'HomePlug', 'IEEE8021x', 'IPv6rd', 'LANConfigSecurity',
+        'NAT', 'NeighborDiscovery', 'Optical', 'PPP', 'PTM', 'QoS',
+        'RouterAdvertisement', 'Routing', 'SmartCardReaders',
+        'UPA', 'USB', 'Users', 'WiFi'])
 
   def _AddTemperatureStuff(self):
     # GFHD100 & GFMS100 both monitor CPU temperature.
@@ -571,11 +548,10 @@ class LANDevice(BASE98IGD.LANDevice):
 
   def __init__(self):
     super(LANDevice, self).__init__()
-    self.Unexport('Alias')
-    self.Unexport(objects='Hosts')
-    self.Unexport(lists='LANEthernetInterfaceConfig')
-    self.Unexport(objects='LANHostConfigManagement')
-    self.Unexport(lists='LANUSBInterfaceConfig')
+    self.Unexport(['Alias'])
+    self.Unexport(objects=['Hosts', 'LANHostConfigManagement'])
+    self.Unexport(lists=['LANEthernetInterfaceConfig',
+                         'LANUSBInterfaceConfig'])
     self.WLANConfigurationList = {}
     # TODO(apenwarr): support non-brcmwifi interfaces here
     for i, wifc in enumerate(_ExistingInterfaces(['eth2']), 1):
@@ -600,23 +576,17 @@ class InternetGatewayDevice(BASE98IGD):
 
   def __init__(self, device_id, periodic_stats):
     super(InternetGatewayDevice, self).__init__()
-    self.Unexport(objects='CaptivePortal')
-    self.Unexport(objects='DeviceConfig')
-    self.Unexport(params='DeviceSummary')
-    self.Unexport(objects='DownloadDiagnostics')
-    self.Unexport(objects='IPPingDiagnostics')
-    self.Unexport(objects='LANConfigSecurity')
+    self.Unexport(params=['DeviceSummary'])
+    self.Unexport(objects=['CaptivePortal', 'DeviceConfig',
+                           'DownloadDiagnostics', 'IPPingDiagnostics',
+                           'LANConfigSecurity', 'LANInterfaces',
+                           'Layer2Bridging', 'Layer3Forwarding',
+                           'QueueManagement', 'Services',
+                           'TraceRouteDiagnostics', 'UploadDiagnostics',
+                           'UserInterface'])
+    self.Unexport(lists=['WANDevice'])
     self.LANDeviceList = {'1': LANDevice()}
-    self.Unexport(objects='LANInterfaces')
-    self.Unexport(objects='Layer2Bridging')
-    self.Unexport(objects='Layer3Forwarding')
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
-    self.Unexport(objects='QueueManagement')
-    self.Unexport(objects='Services')
-    self.Unexport(objects='TraceRouteDiagnostics')
-    self.Unexport(objects='UploadDiagnostics')
-    self.Unexport(objects='UserInterface')
-    self.Unexport(lists='WANDevice')
 
     self.DeviceInfo = dm.device_info.DeviceInfo98Linux26(device_id)
     self.Time = dm.igd_time.TimeTZ()

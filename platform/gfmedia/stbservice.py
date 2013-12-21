@@ -90,12 +90,9 @@ class STBService(BASE135STB):
 
   def __init__(self, ioloop=None):
     super(STBService, self).__init__()
-    self.Unexport('Alias')
-    self.Unexport('Enable')
-    self.Unexport(objects='AVPlayers')
-    self.Unexport(objects='AVStreams')
-    self.Unexport(objects='Applications')
-    self.Unexport(objects='Capabilities')
+    self.Unexport(['Alias', 'Enable'])
+    self.Unexport(objects=['AVPlayers', 'AVStreams', 'Applications',
+                           'Capabilities'])
     self.Export(objects=['X_CATAWAMPUS-ORG_ProgramMetadata'])
     self.ServiceMonitoring = ServiceMonitoring(ioloop=ioloop)
     self.Components = Components()
@@ -107,23 +104,13 @@ class Components(BASE135STB.Components):
 
   def __init__(self):
     super(Components, self).__init__()
-    self.Unexport('AudioDecoderNumberOfEntries')
-    self.Unexport('AudioOutputNumberOfEntries')
-    self.Unexport('CANumberOfEntries')
-    self.Unexport('DRMNumberOfEntries')
-    self.Unexport('SCARTNumberOfEntries')
-    self.Unexport('SPDIFNumberOfEntries')
-    self.Unexport('VideoDecoderNumberOfEntries')
-    self.Unexport('VideoOutputNumberOfEntries')
-    self.Unexport(objects='PVR')
-    self.Unexport(lists='AudioDecoder')
-    self.Unexport(lists='AudioOutput')
-    self.Unexport(lists='CA')
-    self.Unexport(lists='DRM')
-    self.Unexport(lists='SCART')
-    self.Unexport(lists='SPDIF')
-    self.Unexport(lists='VideoDecoder')
-    self.Unexport(lists='VideoOutput')
+    self.Unexport(['AudioDecoderNumberOfEntries', 'AudioOutputNumberOfEntries',
+                   'CANumberOfEntries', 'DRMNumberOfEntries',
+                   'SCARTNumberOfEntries', 'SPDIFNumberOfEntries',
+                   'VideoDecoderNumberOfEntries', 'VideoOutputNumberOfEntries'])
+    self.Unexport(objects=['PVR'])
+    self.Unexport(lists=['AudioDecoder', 'AudioOutput', 'CA', 'DRM', 'SCART',
+                         'SPDIF', 'VideoDecoder', 'VideoOutput'])
     self.FrontEndList = {'1': FrontEnd()}
     self.HDMIList = {'1': HDMI()}
 
@@ -141,11 +128,8 @@ class FrontEnd(BASE135STB.Components.FrontEnd):
 
   def __init__(self):
     super(FrontEnd, self).__init__()
-    self.Unexport('Alias')
-    self.Unexport('Enable')
-    self.Unexport('Name')
-    self.Unexport('Status')
-    self.Unexport(objects='DVBT')
+    self.Unexport(['Alias', 'Enable', 'Name', 'Status'])
+    self.Unexport(objects=['DVBT'])
     self.IP = IP()
 
 
@@ -154,18 +138,11 @@ class IP(BASE135STB.Components.FrontEnd.IP):
 
   def __init__(self):
     super(IP, self).__init__()
-    self.Unexport('ActiveInboundIPStreams')
-    self.Unexport('ActiveOutboundIPStreams')
-    self.Unexport('InboundNumberOfEntries')
-    self.Unexport('OutboundNumberOfEntries')
-    self.Unexport(objects='Dejittering')
-    self.Unexport(objects='RTCP')
-    self.Unexport(objects='RTPAVPF')
-    self.Unexport(objects='ServiceConnect')
-    self.Unexport(objects='FEC')
-    self.Unexport(objects='ForceMonitor')
-    self.Unexport(lists='Inbound')
-    self.Unexport(lists='Outbound')
+    self.Unexport(['ActiveInboundIPStreams', 'ActiveOutboundIPStreams',
+                   'InboundNumberOfEntries', 'OutboundNumberOfEntries'])
+    self.Unexport(objects=['Dejittering', 'RTCP', 'RTPAVPF', 'ServiceConnect',
+                           'FEC', 'ForceMonitor'])
+    self.Unexport(lists=['Inbound', 'Outbound'])
     self.IGMP = IGMP()
 
 
@@ -174,19 +151,12 @@ class IGMP(BASE135STB.Components.FrontEnd.IP.IGMP):
 
   def __init__(self):
     super(IGMP, self).__init__()
-    self.Unexport('ClientGroupStatsNumberOfEntries')
-    self.Unexport('ClientRobustness')
-    self.Unexport('ClientUnsolicitedReportInterval')
-    self.Unexport('ClientVersion')
-    self.Unexport('DSCPMark')
-    self.Unexport('Enable')
-    self.Unexport('EthernetPriorityMark')
-    self.Unexport('LoggingEnable')
-    self.Unexport('MaximumNumberOfConcurrentGroups')
-    self.Unexport('MaximumNumberOfTrackedGroups')
-    self.Unexport('Status')
-    self.Unexport('VLANIDMark')
-    self.Unexport(lists='ClientGroupStats')
+    self.Unexport(['ClientGroupStatsNumberOfEntries', 'ClientRobustness',
+                   'ClientUnsolicitedReportInterval', 'ClientVersion',
+                   'DSCPMark', 'Enable', 'EthernetPriorityMark',
+                   'LoggingEnable', 'MaximumNumberOfConcurrentGroups',
+                   'MaximumNumberOfTrackedGroups', 'Status', 'VLANIDMark'])
+    self.Unexport(lists=['ClientGroupStats'])
     self._ClientGroups = dict()
 
     self.ClientGroupList = tr.core.AutoDict(
@@ -274,8 +244,7 @@ class ClientGroup(BASE135STB.Components.FrontEnd.IP.IGMP.ClientGroup):
 
   def __init__(self, ipaddr):
     super(ClientGroup, self).__init__()
-    self.Unexport('Alias')
-    self.Unexport('UpTime')
+    self.Unexport(['Alias', 'UpTime'])
     type(self).GroupAddress.Set(self, ipaddr)
 
 
@@ -285,10 +254,7 @@ class HDMI(BASE135STB.Components.HDMI):
 
   def __init__(self):
     super(HDMI, self).__init__()
-    self.Unexport('Alias')
-    self.Unexport('Enable')
-    self.Unexport('Name')
-    self.Unexport('Status')
+    self.Unexport(['Alias', 'Enable', 'Name', 'Status'])
     self._UpdateStats()
 
   def _UpdateStats(self):
@@ -324,7 +290,7 @@ class HDMIDisplayDevice(CATA135STB.Components.HDMI.DisplayDevice):
 
   def __init__(self):
     super(HDMIDisplayDevice, self).__init__()
-    self.Unexport('CECSupport')
+    self.Unexport(['CECSupport'])
     self.data = self._UpdateStats()
 
   def _UpdateStats(self):
@@ -429,17 +395,11 @@ class ServiceMonitoring(CATA135STB.ServiceMonitoring):
   def __init__(self, ioloop=None):
     super(ServiceMonitoring, self).__init__()
     self._ioloop = ioloop or tornado.ioloop.IOLoop.instance()
-    self.Unexport('FetchSamples')
-    self.Unexport('ForceSample')
-    self.Unexport('ReportEndTime')
-    self.Unexport('ReportSamples')
-    self.Unexport('ReportStartTime')
-    self.Unexport('SampleEnable')
-    self.Unexport('SampleInterval')
-    self.Unexport('SampleState')
-    self.Unexport('TimeReference')
-    self.Unexport('EventsPerSampleInterval')
-    self.Unexport(objects='GlobalOperation')
+    self.Unexport(['FetchSamples', 'ForceSample', 'ReportEndTime',
+                   'ReportSamples', 'ReportStartTime', 'SampleEnable',
+                   'SampleInterval', 'SampleState', 'TimeReference',
+                   'EventsPerSampleInterval'])
+    self.Unexport(objects=['GlobalOperation'])
     self.stall_alarm_time = 0.0
     self.stall_alarm_reset_handler = None
     self.X_CATAWAMPUS_ORG_StallAlarmResetTime = 45 * 60
@@ -488,16 +448,10 @@ class MainStream(BASE135STB.ServiceMonitoring.MainStream):
 
   def __init__(self, idx):
     super(MainStream, self).__init__()
-    self.Unexport('AVStream')
-    self.Unexport('Enable')
-    self.Unexport('Gmin')
-    self.Unexport('ServiceType')
-    self.Unexport('SevereLossMinDistance')
-    self.Unexport('SevereLossMinLength')
-    self.Unexport('Status')
-    self.Unexport('ChannelChangeFailureTimeout')
-    self.Unexport('Alias')
-    self.Unexport(objects='Sample')
+    self.Unexport(['AVStream', 'Enable', 'Gmin', 'ServiceType',
+                   'SevereLossMinDistance', 'SevereLossMinLength', 'Status',
+                   'ChannelChangeFailureTimeout', 'Alias'])
+    self.Unexport(objects=['Sample'])
     self.Total = Total(idx)
 
 
@@ -507,13 +461,9 @@ class Total(CATA135STBTOTAL):
   def __init__(self, idx):
     super(Total, self).__init__()
     self.idx = idx
-    self.Unexport('Reset')
-    self.Unexport('ResetTime')
-    self.Unexport('TotalSeconds')
-    self.Unexport(objects='AudioDecoderStats')
-    self.Unexport(objects='RTPStats')
-    self.Unexport(objects='VideoDecoderStats')
-    self.Unexport(objects='VideoResponseStats')
+    self.Unexport(['Reset', 'ResetTime', 'TotalSeconds'])
+    self.Unexport(objects=['AudioDecoderStats', 'RTPStats',
+                           'VideoDecoderStats', 'VideoResponseStats'])
     self.data = {}
     self.udp = {}
 
@@ -598,7 +548,7 @@ class DejitteringStats(BASE135STB.ServiceMonitoring.MainStream.Total.
   def __init__(self, data):
     super(DejitteringStats, self).__init__()
     self.data = data
-    self.Unexport('TotalSeconds')
+    self.Unexport(['TotalSeconds'])
 
   @property
   def EmptyBufferTime(self):
@@ -623,10 +573,8 @@ class MPEG2TSStats(CATA135STB.ServiceMonitoring.MainStream.Total.MPEG2TSStats):
   def __init__(self, data):
     super(MPEG2TSStats, self).__init__()
     self.data = data
-    self.Unexport('PacketDiscontinuityCounterBeforeCA')
-    self.Unexport('TSSyncByteErrorCount')
-    self.Unexport('TSSyncLossCount')
-    self.Unexport('TotalSeconds')
+    self.Unexport(['PacketDiscontinuityCounterBeforeCA',
+                   'TSSyncByteErrorCount', 'TSSyncLossCount', 'TotalSeconds'])
 
   @property
   def PacketDiscontinuityCounter(self):
@@ -655,7 +603,7 @@ class TCPStats(CATA135STB.ServiceMonitoring.MainStream.Total.TCPStats):
   def __init__(self, data):
     super(TCPStats, self).__init__()
     self.data = data
-    self.Unexport('TotalSeconds')
+    self.Unexport(['TotalSeconds'])
 
   @property
   def BytesReceived(self):

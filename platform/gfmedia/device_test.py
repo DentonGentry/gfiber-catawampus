@@ -50,6 +50,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.old_CONFIGDIR = device.CONFIGDIR
     self.old_GINSTALL = device.GINSTALL
     self.old_HNVRAM = device.HNVRAM
+    self.old_ISNETWORKBOX = device.ISNETWORKBOX
     self.old_LEDSTATUS = device.LEDSTATUS
     self.old_NAND_MB = device.NAND_MB
     self.old_PROC_CPUINFO = device.PROC_CPUINFO
@@ -66,6 +67,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     device.CONFIGDIR = self.old_CONFIGDIR
     device.GINSTALL = self.old_GINSTALL
     device.HNVRAM = self.old_HNVRAM
+    device.ISNETWORKBOX = self.old_ISNETWORKBOX
     device.LEDSTATUS = self.old_LEDSTATUS
     device.NAND_MB = self.old_NAND_MB
     device.PROC_CPUINFO = self.old_PROC_CPUINFO
@@ -74,37 +76,36 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     device.VERSIONFILE = self.old_VERSIONFILE
 
   def testGetSerialNumber(self):
-    did = device.DeviceId()
     device.HNVRAM = 'testdata/device/hnvram'
-    tr.session.cache.flush()
+    did = device.DeviceId()
     self.assertEqual(did.SerialNumber, '123456789')
 
     device.HNVRAM = 'testdata/device/hnvramSN_Empty'
-    tr.session.cache.flush()
+    did = device.DeviceId()
     self.assertEqual(did.SerialNumber, '000000000000')
 
     device.HNVRAM = 'testdata/device/hnvramSN_Err'
-    tr.session.cache.flush()
+    did = device.DeviceId()
     self.assertEqual(did.SerialNumber, '000000000000')
 
   def testBadHnvram(self):
-    did = device.DeviceId()
     device.HNVRAM = '/no_such_binary_at_this_path'
+    did = device.DeviceId()
     self.assertEqual(did.SerialNumber, '000000000000')
 
   def testModelName(self):
-    did = device.DeviceId()
     device.HNVRAM = 'testdata/device/hnvram'
+    did = device.DeviceId()
     self.assertEqual(did.ModelName, 'ModelName')
 
   def testSoftwareVersion(self):
-    did = device.DeviceId()
     device.VERSIONFILE = 'testdata/device/version'
+    did = device.DeviceId()
     self.assertEqual(did.SoftwareVersion, '1.2.3')
 
   def testAdditionalSoftwareVersion(self):
-    did = device.DeviceId()
     device.REPOMANIFEST = 'testdata/device/repomanifest'
+    did = device.DeviceId()
     self.assertEqual(did.AdditionalSoftwareVersion,
                      'platform 1111111111111111111111111111111111111111')
 
@@ -116,16 +117,19 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.assertEqual(did.HardwareVersion, 'rev')
 
     device.HNVRAM = 'testdata/device/hnvramFOO_Empty'
-    tr.session.cache.flush()
+    did = device.DeviceId()
     self.assertEqual(did.HardwareVersion, '0')
 
     device.PROC_CPUINFO = 'testdata/device/proc_cpuinfo_b2'
+    did = device.DeviceId()
     self.assertEqual(did.HardwareVersion, '1')
 
     device.NAND_MB = 'testdata/device/nand_size_mb_rev2'
+    did = device.DeviceId()
     self.assertEqual(did.HardwareVersion, '2')
 
     device.NAND_MB = 'testdata/device/nand_size_mb_unk'
+    did = device.DeviceId()
     self.assertEqual(did.HardwareVersion, '?')
 
   def testFanSpeed(self):
@@ -178,6 +182,12 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.assertTrue(self.install_cb_called)
     self.assertEqual(self.install_cb_faultcode, 9002)
     self.assertTrue(self.install_cb_faultstring)
+
+  def testIsNetworkBox(self):
+    device.ISNETWORKBOX = 'testdata/gfmedia/is-network-box'
+    self.assertTrue(device._IsNetworkBox())
+    device.ISNETWORKBOX = 'testdata/gfmedia/is-not-network-box'
+    self.assertFalse(device._IsNetworkBox())
 
 
 if __name__ == '__main__':

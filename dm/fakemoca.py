@@ -102,8 +102,8 @@ class FakeMocaInterface(BASE181MOCA.Interface):
 
   def __init__(self):
     super(FakeMocaInterface, self).__init__()
-    self.Unexport('Alias')
-    self.Unexport(objects='QoS')
+    self.Unexport(['Alias'])
+    self.Unexport(objects=['QoS'])
     self.AssociatedDeviceList = {
         '1': FakeMocaAssociatedDevice(nodeid=1, mac='00:11:22:33:44:11'),
         '2': FakeMocaAssociatedDevice(nodeid=2, mac='00:11:22:33:44:22'),

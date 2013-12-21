@@ -133,24 +133,13 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
     self._numq = numq
     self._hipriq = hipriq
 
-    self.Unexport('Alias')
-    self.Unexport('MaxBitRate')
-    self.Unexport('MaxIngressBW')
-    self.Unexport('MaxEgressBW')
-    self.Unexport('PreferredNC')
-    self.Unexport('PrivacyEnabledSetting')
-    self.Unexport('FreqCapabilityMask')
-    self.Unexport('FreqCurrentMaskSetting')
-    self.Unexport('FreqCurrentMask')
-    self.Unexport('KeyPassphrase')
-    self.Unexport('TxPowerLimit')
-    self.Unexport('PowerCntlPhyTarget')
-    self.Unexport('BeaconPowerLimit')
-    self.Unexport('NetworkTabooMask')
-    self.Unexport('NodeTabooMask')
-    self.Unexport('TxBcastRate')
-    self.Unexport('TxBcastPowerReduction')
-    self.Unexport(objects='QoS')
+    self.Unexport(['Alias', 'MaxBitRate', 'MaxIngressBW', 'MaxEgressBW',
+                   'PreferredNC', 'PrivacyEnabledSetting', 'FreqCapabilityMask',
+                   'FreqCurrentMaskSetting', 'FreqCurrentMask',
+                   'KeyPassphrase', 'TxPowerLimit', 'PowerCntlPhyTarget',
+                   'BeaconPowerLimit', 'NetworkTabooMask', 'NodeTabooMask',
+                   'TxBcastRate', 'TxBcastPowerReduction'])
+    self.Unexport(objects=['QoS'])
 
     self.AssociatedDeviceList = tr.core.AutoDict(
         'AssociatedDeviceList', iteritems=self.IterAssociatedDevices,
@@ -351,8 +340,8 @@ class BrcmMocaInterfaceStatsLinux26(netdev.NetdevStatsLinux26,
     netdev.NetdevStatsLinux26.__init__(self, ifname, qfiles, numq, hipriq)
     CATA181MOCA.Interface.Stats.__init__(self)
     if not qfiles:
-      self.Unexport('X_CATAWAMPUS-ORG_DiscardFrameCnts')
-      self.Unexport('X_CATAWAMPUS-ORG_DiscardPacketsReceivedHipri')
+      self.Unexport(['X_CATAWAMPUS-ORG_DiscardFrameCnts',
+                     'X_CATAWAMPUS-ORG_DiscardPacketsReceivedHipri'])
 
 
 class BrcmMocaAssociatedDevice(CATA181MOCA.Interface.AssociatedDevice):
@@ -382,7 +371,7 @@ class BrcmMocaAssociatedDevice(CATA181MOCA.Interface.AssociatedDevice):
   def __init__(self, nodeid):
     super(BrcmMocaAssociatedDevice, self).__init__()
     type(self).NodeID.Set(self, int(nodeid))
-    self.Unexport('HighestVersion')
+    self.Unexport(['HighestVersion'])
 
     self.ParseNodeStatus()
     self.ParseNodeStats()

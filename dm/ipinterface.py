@@ -70,12 +70,8 @@ class IPInterfaceLinux26(BASEIPINTF):
     super(IPInterfaceLinux26, self).__init__()
     self._pynet = PYNETIFCONF(ifname)
     self._ifname = ifname
-    self.Unexport('Alias')
-    self.Unexport('AutoIPEnable')
-    self.Unexport('Router')
-    self.Unexport('Loopback')
-    self.Unexport('Reset')
-    self.Unexport('ULAEnable')
+    self.Unexport(['Alias', 'AutoIPEnable', 'Router', 'Loopback', 'Reset',
+                   'ULAEnable'])
     type(self).Name.Set(self, ifname)
     type(self).LowerLayers.Set(self, lowerlayers)
     self.IPv6PrefixList = {}
@@ -165,8 +161,7 @@ class IPv4AddressLinux26(BASEIPINTF.IPv4Address):
 
   def __init__(self, ipaddr, netmask):
     super(IPv4AddressLinux26, self).__init__()
-    self.Unexport('AddressingType')
-    self.Unexport('Alias')
+    self.Unexport(['AddressingType', 'Alias'])
     type(self).IPAddress.Set(self, ipaddr)
     type(self).SubnetMask.Set(self, netmask)
 
@@ -180,10 +175,6 @@ class IPv6AddressLinux26(BASEIPINTF.IPv6Address):
 
   def __init__(self, ipaddr):
     super(IPv6AddressLinux26, self).__init__()
-    self.Unexport('Alias')
-    self.Unexport('Anycast')
-    self.Unexport('Origin')
-    self.Unexport('PreferredLifetime')
-    self.Unexport('Prefix')
-    self.Unexport('ValidLifetime')
+    self.Unexport(['Alias', 'Anycast', 'Origin', 'PreferredLifetime',
+                   'Prefix', 'ValidLifetime'])
     type(self).IPAddress.Set(self, ipaddr)

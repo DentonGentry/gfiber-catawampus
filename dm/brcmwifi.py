@@ -519,13 +519,9 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
     self.wl = Wl(ifname)
 
     # Unimplemented, but not yet evaluated
-    self.Unexport('Alias')
-    self.Unexport('BeaconAdvertisementEnabled')
-    self.Unexport('ChannelsInUse')
-    self.Unexport('MaxBitRate')
-    self.Unexport('PossibleDataTransmitRates')
-    self.Unexport('TotalIntegrityFailures')
-    self.Unexport('TotalPSKFailures')
+    self.Unexport(['Alias', 'BeaconAdvertisementEnabled', 'ChannelsInUse',
+                   'MaxBitRate', 'PossibleDataTransmitRates',
+                   'TotalIntegrityFailures', 'TotalPSKFailures'])
 
     self.AssociatedDeviceList = tr.core.AutoDict(
         'AssociatedDeviceList', iteritems=self.IterAssociations,
@@ -544,28 +540,25 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
     self.LocationDescription = ''
 
     # No RADIUS support, could be added later.
-    self.Unexport('AuthenticationServiceMode')
+    self.Unexport(['AuthenticationServiceMode'])
 
     # Local settings, currently unimplemented. Will require more
     # coordination with the underlying platform support.
-    self.Unexport('InsecureOOBAccessEnabled')
+    self.Unexport(['InsecureOOBAccessEnabled'])
 
     # MAC Access controls, currently unimplemented but could be supported.
-    self.Unexport('MACAddressControlEnabled')
+    self.Unexport(['MACAddressControlEnabled'])
 
     # Wifi Protected Setup, currently unimplemented and not recommended.
-    self.Unexport(objects='WPS')
+    self.Unexport(objects=['WPS'])
 
     # Wifi MultiMedia, currently unimplemented but could be supported.
     # "wl wme_*" commands
-    self.Unexport(lists='APWMMParameter')
-    self.Unexport(lists='STAWMMParameter')
-    self.Unexport('UAPSDEnable')
-    self.Unexport('WMMEnable')
+    self.Unexport(lists=['APWMMParameter', 'STAWMMParameter'])
+    self.Unexport(['UAPSDEnable', 'WMMEnable'])
 
     # WDS, currently unimplemented but could be supported at some point.
-    self.Unexport('PeerBSSID')
-    self.Unexport('DistanceFromRoot')
+    self.Unexport(['PeerBSSID', 'DistanceFromRoot'])
 
     self.config = self._GetDefaultSettings()
     self.old_config = None
@@ -1026,10 +1019,9 @@ class BrcmWlanAssociatedDevice(CATA98WIFI.AssociatedDevice):
   def __init__(self, assoc):
     super(BrcmWlanAssociatedDevice, self).__init__()
     self._assoc = assoc
-    self.Unexport('AssociatedDeviceIPAddress')
-    self.Unexport('LastPMKId')
-    self.Unexport('LastRequestedUnicastCipher')
-    self.Unexport('LastRequestedMulticastCipher')
+    self.Unexport(['AssociatedDeviceIPAddress', 'LastPMKId',
+                   'LastRequestedUnicastCipher',
+                   'LastRequestedMulticastCipher'])
 
   @property
   def AssociatedDeviceMACAddress(self):

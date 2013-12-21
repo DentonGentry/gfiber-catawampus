@@ -233,7 +233,7 @@ class Host(BASE181HOST):
   peristing only for the duration of one CWMP session.
   """
   Active = tr.types.ReadOnlyBool(True)
-  AddressSource = tr.types.ReadOnlyString('')
+  AddressSource = tr.types.ReadOnlyString('None')
   AssociatedDevice = tr.types.ReadOnlyString('')
   ClientID = tr.types.ReadOnlyString('')
   DHCPClient = tr.types.ReadOnlyString('')
@@ -248,10 +248,10 @@ class Host(BASE181HOST):
   def __init__(self, PhysAddress='', ip4=None, ip6=None,
                DHCPClient='', AddressSource='None', AssociatedDevice='',
                Layer1Interface='', Layer3Interface='', HostName='',
-               LeaseTimeRemaining=-1, VendorClassID='',
+               LeaseTimeRemaining=0, VendorClassID='',
                ClientID='', UserClassID=''):
     super(Host, self).__init__()
-    self.Unexport('Alias')
+    self.Unexport(['Alias'])
 
     type(self).AssociatedDevice.Set(self, AssociatedDevice)
     type(self).AddressSource.Set(self, AddressSource)

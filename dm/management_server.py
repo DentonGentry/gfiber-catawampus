@@ -57,16 +57,10 @@ class ManagementServer181(BASEMGMT181):
     super(ManagementServer181, self).__init__()
     self.mgmt = mgmt
 
-    self.Unexport('DownloadProgressURL')
-    self.Unexport('KickURL')
-    self.Unexport('NATDetected')
-    self.Unexport('STUNMaximumKeepAlivePeriod')
-    self.Unexport('STUNMinimumKeepAlivePeriod')
-    self.Unexport('STUNPassword')
-    self.Unexport('STUNServerAddress')
-    self.Unexport('STUNServerPort')
-    self.Unexport('STUNUsername')
-    self.Unexport('UDPConnectionRequestAddress')
+    self.Unexport(['DownloadProgressURL', 'KickURL', 'NATDetected',
+                   'STUNMaximumKeepAlivePeriod', 'STUNMinimumKeepAlivePeriod',
+                   'STUNPassword', 'STUNServerAddress', 'STUNServerPort',
+                   'STUNUsername', 'UDPConnectionRequestAddress'])
 
     self.ManageableDeviceList = {}
 
@@ -131,22 +125,14 @@ class ManagementServer98(BASEMGMT98):
     """
     super(ManagementServer98, self).__init__()
     self.mgmt = mgmt
-    self.Unexport('AliasBasedAddressing')
-    self.Unexport('AutoCreateInstances')
-    self.Unexport('DownloadProgressURL')
-    self.Unexport('InstanceMode')
-    self.Unexport('KickURL')
-    self.Unexport('ManageableDeviceNotificationLimit')
-    self.Unexport('NATDetected')
-    self.Unexport('STUNEnable')
-    self.Unexport('STUNMaximumKeepAlivePeriod')
-    self.Unexport('STUNMinimumKeepAlivePeriod')
-    self.Unexport('STUNPassword')
-    self.Unexport('STUNServerAddress')
-    self.Unexport('STUNServerPort')
-    self.Unexport('STUNUsername')
-    self.Unexport('UDPConnectionRequestAddress')
-    self.Unexport('UDPConnectionRequestAddressNotificationLimit')
+    self.Unexport(['AliasBasedAddressing', 'AutoCreateInstances',
+                   'DownloadProgressURL', 'InstanceMode', 'KickURL',
+                   'ManageableDeviceNotificationLimit', 'NATDetected',
+                   'STUNEnable', 'STUNMaximumKeepAlivePeriod',
+                   'STUNMinimumKeepAlivePeriod', 'STUNPassword',
+                   'STUNServerAddress', 'STUNServerPort', 'STUNUsername',
+                   'UDPConnectionRequestAddress',
+                   'UDPConnectionRequestAddressNotificationLimit'])
 
     self.EmbeddedDeviceList = {}
     self.ManageableDeviceList = {}

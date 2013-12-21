@@ -101,7 +101,7 @@ class MockAcsConfig(object):
     self.port = port
 
   def GetAcsUrl(self):
-    return 'http://:::%d/cwmp' % self.port
+    return 'http://127.0.0.1:%d/cwmp' % self.port
 
   def AcsAccessAttempt(self, unused_url):
     pass
@@ -275,7 +275,7 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase):
     cpe_machine.Startup()
 
     h = self.NextHandler()
-    urlbase = 'http://:::%d' % self.get_http_port()
+    urlbase = 'http://127.0.0.1:%d' % self.get_http_port()
     self.assertEqual(h.request.method, 'POST')
     self.assertEqual(h.request.path, '/cwmp')
     h.redirect(urlbase + '/redir7', status=307)
