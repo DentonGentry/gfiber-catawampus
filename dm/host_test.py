@@ -23,7 +23,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import unittest
 
 import google3
-import fakewifi
+import dm.dnsmasq
 import host
 import platform.fakecpe.device
 import tr.tr098_v1_4
@@ -144,51 +144,6 @@ class HostTest(unittest.TestCase):
     h = host.Hosts(iflookup, bridgename='nonexistent0')
     self.assertEqual(len(h.HostList), 0)
 
-  def testDnsmasqLeases(self):
-    h = host.Hosts(iflookup={}, dnsmasqfile='testdata/host/dnsmasq.leases')
-    self.assertEqual(len(h.HostList), 3)
-    found = 0
-    for hostentry in h.HostList.values():
-      self.assertEqual(hostentry.AddressSource, 'DHCP')
-      mac = hostentry.PhysAddress
-      if mac == '00:01:02:03:04:01':
-        found |= 1
-        self.assertEqual(hostentry.LeaseTimeRemaining, 0)
-        self.assertEqual(hostentry.ClientID, '')
-        self.assertEqual(hostentry.HostName, 'host-1')
-        ipl = hostentry.IPv4AddressList
-        self.assertEqual(len(ipl), 1)
-        self.assertEqual(ipl['1'].IPAddress, '192.168.1.1')
-      if mac == '00:01:02:03:04:02':
-        found |= 2
-        self.assertEqual(hostentry.LeaseTimeRemaining, 1000)
-        # 'client-id-2' == 636c69656e742d69642d32
-        self.assertEqual(hostentry.ClientID, '636c69656e742d69642d32')
-        self.assertEqual(hostentry.HostName, 'host-2')
-        self.assertEqual(len(hostentry.IPv4AddressList), 1)
-        ipl = hostentry.IPv4AddressList
-        self.assertEqual(len(ipl), 1)
-        self.assertEqual(ipl['1'].IPAddress, '192.168.1.2')
-      if mac == '00:01:02:03:04:03':
-        found |= 4
-        self.assertEqual(hostentry.LeaseTimeRemaining, 2000)
-        # 'client-id-3' == 636c69656e742d69642d33
-        self.assertEqual(hostentry.ClientID, '636c69656e742d69642d33')
-        self.assertEqual(hostentry.HostName, '')
-        self.assertEqual(len(hostentry.IPv4AddressList), 1)
-        ipl = hostentry.IPv4AddressList
-        self.assertEqual(len(ipl), 1)
-        self.assertEqual(ipl['1'].IPAddress, '192.168.1.3')
-    self.assertEqual(found, 7)
-
-  def testDnsmasqCorrupt(self):
-    h = host.Hosts(iflookup={}, dnsmasqfile='testdata/host/dnsmasq.corrupt')
-    self.assertEqual(len(h.HostList), 0)
-
-  def testMissingDnsmasqFile(self):
-    h = host.Hosts(iflookup={}, dnsmasqfile='/nonexistent')
-    self.assertEqual(len(h.HostList), 0)
-
   def _GetFakeCPE(self, tr98=True, tr181=True):
     igd = device = None
     device_id = platform.fakecpe.device.DeviceIdFakeCPE()
@@ -199,7 +154,7 @@ class HostTest(unittest.TestCase):
       device = platform.fakecpe.device.DeviceFakeCPE(device_id=device_id)
     return TestDeviceModelRoot(tr98=igd, tr181=device)
 
-  def testWifiAssociatedDevices(self):
+  def testTr98(self):
     dmroot = self._GetFakeCPE(tr98=True, tr181=False)
     hosts = host.Hosts(dmroot=dmroot)
     self.assertEqual(len(hosts.HostList), 2)
@@ -219,25 +174,41 @@ class HostTest(unittest.TestCase):
         self.assertEqual(h.AssociatedDevice, a)
     self.assertEqual(found, 0x3)
 
-  def testMocaAssociatedDevices(self):
+  def testTr181(self):
     dmroot = self._GetFakeCPE(tr98=False, tr181=True)
     hosts = host.Hosts(dmroot=dmroot)
-    self.assertEqual(len(hosts.HostList), 2)
+    self.assertEqual(len(hosts.HostList), 3)
     found = 0
     for h in hosts.HostList.values():
       l1interface = 'Device.MoCA.Interface.1.'
-      self.assertEqual(h.Layer1Interface, l1interface)
       if h.PhysAddress == '00:11:22:33:44:11':
         self.assertFalse(found & 0x1)
         found |= 0x1
+        # Fields from MoCA AssocidatedDevice table
+        self.assertEqual(h.Layer1Interface, l1interface)
         a = l1interface + 'AssociatedDevice.1'
         self.assertEqual(h.AssociatedDevice, a)
+        # Fields from fake_dhcp_server.py
+        self.assertEqual(h.IPAddress, '192.168.133.7')
+        self.assertEqual(h.ClientID, 'client_id1')
+        self.assertEqual(h.IPv4AddressNumberOfEntries, 2)
+        self.assertEqual(h.IPv4AddressList['1'].IPAddress, '192.168.133.7')
+        self.assertEqual(h.IPv4AddressList['2'].IPAddress, '192.168.1.1')
       elif h.PhysAddress == '00:11:22:33:44:22':
         self.assertFalse(found & 0x2)
         found |= 0x2
+        self.assertEqual(h.Layer1Interface, l1interface)
         a = l1interface + 'AssociatedDevice.2'
         self.assertEqual(h.AssociatedDevice, a)
-    self.assertEqual(found, 0x3)
+      elif h.PhysAddress == '00:11:22:33:44:33':
+        self.assertFalse(found & 0x4)
+        found |= 0x4
+        # populated by fake_dhcp_server.py
+        self.assertEqual(h.IPAddress, '192.168.133.8')
+        self.assertEqual(h.HostName, 'hostname_2')
+        self.assertEqual(h.IPv4AddressNumberOfEntries, 1)
+        self.assertEqual(h.IPv4AddressList['1'].IPAddress, '192.168.133.8')
+    self.assertEqual(found, 0x7)
 
 
 if __name__ == '__main__':

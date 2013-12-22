@@ -24,6 +24,8 @@ Provides a way to discover network topologies.
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import binascii
+import datetime
+import dhcp
 import os
 import struct
 import time
@@ -42,8 +44,7 @@ TIMENOW = time.time
 class Hosts(BASE181HOSTS):
   """Implement tr-181 Device.Hosts table."""
 
-  def __init__(self, iflookup=None, bridgename=None,
-               dnsmasqfile=None, dmroot=None):
+  def __init__(self, iflookup=None, bridgename=None, dmroot=None):
     """Device.Hosts.
 
     Args:
@@ -52,23 +53,18 @@ class Hosts(BASE181HOSTS):
         {'eth0': 'Device.Ethernet.Interface.1.',
          'eth1': 'Device.MoCA.Interface.1.'}
       bridgename: name of the Linux bridge device. Ex: 'br0'
-      dnsmasqfile: path to dnsmasq's dhcp.leases file.
       dmroot: root of the Export tree (ex: there should be an
         InternetGatewayDevice attribute for tr-98)
     """
     super(Hosts, self).__init__()
     self.bridges = list()
     self.iflookup = dict()
-    self.dnsmasqleases = list()
     self.dmroot = dmroot
     if iflookup:
       self.iflookup = iflookup
     if bridgename:
       x = bridgename if type(bridgename) == list else [bridgename]
       self.bridges.extend(x)
-    if dnsmasqfile:
-      x = dnsmasqfile if type(dnsmasqfile) == list else [dnsmasqfile]
-      self.dnsmasqleases.extend(x)
 
   def _GetInterfacesInBridge(self, brname):
     """Return list of all interfaces in brname. """
@@ -121,41 +117,6 @@ class Hosts(BASE181HOSTS):
       except (OSError, IOError):
         print '_GetHostsFromBridges unable to process %s' % brname
 
-  def _BinAsciitize(self, s):
-    return '' if s == '*' else binascii.hexlify(s)
-
-  def _GetHostsFromDnsmasqLeases(self, hosts):
-    """Populate a dict of known hosts from dnsmasq leases file.
-
-    Args:
-      hosts: a dict (with MAC addresses as keys) of fields
-        to be populated for Device.Hosts.Host
-    """
-    now = int(TIMENOW())
-    for filename in self.dnsmasqleases:
-      line = ''
-      try:
-        with open(filename) as f:
-          for line in f:
-            (expiry, mac, ip, name, client_id) = line.split()
-            mac = mac.lower()
-            client_id = self._BinAsciitize(client_id)
-            name = '' if name == '*' else name
-            host = hosts.get(mac, dict())
-            host['PhysAddress'] = mac
-            ip4 = host.get('ip4', list())
-            ip4.append(ip)
-            host['ip4'] = ip4
-            host['AddressSource'] = 'DHCP'
-            remaining = max(int(expiry) - now, 0)
-            host['LeaseTimeRemaining'] = remaining
-            host['ClientID'] = client_id
-            host['HostName'] = name
-            hosts[mac] = host
-      except (OSError, IOError, ValueError):
-        print 'Unable to process dnsmasq %s : %s' % (filename, line)
-        continue
-
   def _GetTr98WifiObjects(self):
     """Yield tr-98 WLANConfiguration objects, if any."""
     try:
@@ -205,13 +166,69 @@ class Hosts(BASE181HOSTS):
         host['PhysAddress'] = mac
         hosts[mac] = host
 
+  def _GetTr181Dhcp4ServerPools(self):
+    """Yield tr-181 Device.DHCPv4.Server.Pool objects, if any."""
+    try:
+      dhcp4 = self.dmroot.GetExport('Device.DHCPv4.Server')
+    except (AttributeError, KeyError):
+      return
+    for (idx, pool) in dhcp4.PoolList.iteritems():
+      server = 'Device.DHCPv4.Server.Pool.%s.' % idx
+      yield (server, pool)
+
+  def _PopulateDhcpLeaseTime(self, host, client):
+    """Populate LeaseTimeRemaining.
+
+    Args:
+      host: a dict to be passed to Host()
+      client: a Device.DHCPv4.Server.Pool.Client
+    """
+    if client.IPv4AddressList:
+      # Device.Hosts cannot express unique lease times per IP; pick the first.
+      remain = client.IPv4AddressList.values()[0].LeaseTimeRemaining
+      if remain:
+        now = datetime.datetime.now()
+        delta = (remain - now).total_seconds()
+        host['LeaseTimeRemaining'] = delta if delta > 0 else 0
+
+  def _PopulateFromDhcpOptions(self, host, client):
+    """Populate Device.Hosts.Host from DHCP client options.
+
+    Args:
+      host: a dict to be passed to Host()
+      client: a Device.DHCPv4.Server.Pool.Client
+    """
+    for option in client.OptionList.values():
+      # DHCP Options tags
+      if option.Tag == dhcp.HN:
+        host['HostName'] = option.Value
+      elif option.Tag == dhcp.CL:
+        host['ClientID'] = option.Value
+      elif option.Tag == dhcp.UC:
+        host['UserClassID'] = option.Value
+      elif option.Tag == dhcp.VC:
+        host['VendorClassID'] = option.Value
+
+  def _GetHostsFromDhcpServers(self, hosts):
+    """Populate a dict of known hosts from wifi clients."""
+    for (server, pool) in self._GetTr181Dhcp4ServerPools():
+      for (idx, client) in pool.ClientList.iteritems():
+        mac = client.Chaddr.lower()
+        host = hosts.get(mac, dict())
+        host['DHCPClient'] = server + 'Client.' + str(idx)
+        host['PhysAddress'] = mac
+        host['ip4'] = [v.IPAddress for v in client.IPv4AddressList.values()]
+        self._PopulateDhcpLeaseTime(host, client)
+        self._PopulateFromDhcpOptions(host, client)
+        hosts[mac] = host
+
   @tr.session.cache
   def _GetHostList(self):
     hosts = dict()
     self._GetHostsFromBridges(hosts=hosts)
-    self._GetHostsFromDnsmasqLeases(hosts=hosts)
     self._GetHostsFromWifiAssociatedDevices(hosts=hosts)
     self._GetHostsFromMocaAssociatedDevices(hosts=hosts)
+    self._GetHostsFromDhcpServers(hosts=hosts)
     host_list = dict()
     for idx, host in enumerate(hosts.values(), start=1):
       host_list[str(idx)] = Host(**host)
@@ -288,7 +305,10 @@ class Host(BASE181HOST):
   def IPAddress(self):
     ip4 = self.IPv4AddressList.get('1', '')
     ip6 = self.IPv6AddressList.get('1', '')
-    return ip4 or ip6
+    if ip4:
+      return ip4.IPAddress
+    if ip6:
+      return ip6.IPAddress
 
 
 class HostIPv4Address(BASE181HOST.IPv4Address):

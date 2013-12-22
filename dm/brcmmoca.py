@@ -324,7 +324,7 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
   def IterAssociatedDevices(self):
     """Retrieves a list of all associated devices."""
     mocanodes = self._MocaCtlGetNodeIDs()
-    for idx, nodeid in enumerate(mocanodes):
+    for idx, nodeid in enumerate(mocanodes, start=1):
       yield idx, self.GetAssociatedDevice(nodeid)
 
   def GetAssociatedDeviceByIndex(self, index):

@@ -26,6 +26,7 @@ import tempfile
 import unittest
 import google3
 import tr.mainloop
+import tr.session
 import dnsmasq
 
 
@@ -35,10 +36,13 @@ class DnsmasqTest(unittest.TestCase):
   def setUp(self):
     super(DnsmasqTest, self).setUp()
     self.loop = tr.mainloop.MainLoop()
+    tr.session.cache.flush()
     self.config_dir = tempfile.mkdtemp()
     dnsmasq.DhcpServers.clear()
     self.old_DNSMASQCONFIG = dnsmasq.DNSMASQCONFIG
     dnsmasq.DNSMASQCONFIG[0] = os.path.join(self.config_dir, 'config')
+    self.old_DNSMASQLEASES = dnsmasq.DNSMASQLEASES
+    dnsmasq.DNSMASQLEASES[0] = 'testdata/dnsmasq/leases'
     dnsmasq.LOGCONFIG = False
     self.dh4 = dnsmasq.Dhcp4Server()
     self.dh4p = dnsmasq.Dhcp4ServerPool(name='test')
@@ -51,6 +55,7 @@ class DnsmasqTest(unittest.TestCase):
     self.dh4p = None
     self.dh4 = None
     dnsmasq.DNSMASQCONFIG = self.old_DNSMASQCONFIG
+    dnsmasq.DNSMASQLEASES = self.old_DNSMASQLEASES
     shutil.rmtree(self.config_dir)
 
   def testValidateExports(self):
@@ -227,6 +232,54 @@ class DnsmasqTest(unittest.TestCase):
     dh4 = dnsmasq.Dhcp4Server()
     expected = 'This is not a real config, silly.'
     self.assertEqual(dh4.X_CATAWAMPUS_ORG_TextConfig, expected)
+
+  def testLeases(self):
+    dh4p = self.dh4p
+    self.assertEqual(len(dh4p.ClientList), 3)
+
+    client = dh4p.ClientList['1']
+    self.assertEqual(client.Chaddr, '00:01:02:03:04:01')
+    ipl = client.IPv4AddressList
+    self.assertEqual(len(ipl), 1)
+    self.assertEqual(ipl['1'].IPAddress, '192.168.1.1')
+    self.assertEqual(str(ipl['1'].LeaseTimeRemaining), '2013-11-10 04:16:40')
+    self.assertEqual(len(client.OptionList), 1)
+    self.assertEqual(client.OptionList['2'].Tag, 12)
+    self.assertEqual(client.OptionList['2'].Value, 'host-1')
+
+    client = dh4p.ClientList['2']
+    self.assertEqual(client.Chaddr, '00:01:02:03:04:02')
+    ipl = client.IPv4AddressList
+    self.assertEqual(len(ipl), 1)
+    self.assertEqual(ipl['1'].IPAddress, '192.168.1.2')
+    self.assertEqual(str(ipl['1'].LeaseTimeRemaining), '2013-11-10 04:33:20')
+    self.assertEqual(len(client.OptionList), 2)
+    self.assertEqual(client.OptionList['1'].Tag, 61)
+    # 'client-id-2' == 636c69656e742d69642d32
+    self.assertEqual(client.OptionList['1'].Value, '636c69656e742d69642d32')
+    self.assertEqual(client.OptionList['2'].Tag, 12)
+    self.assertEqual(client.OptionList['2'].Value, 'host-2')
+
+    client = dh4p.ClientList['3']
+    self.assertEqual(client.Chaddr, '00:01:02:03:04:03')
+    ipl = client.IPv4AddressList
+    self.assertEqual(len(ipl), 1)
+    self.assertEqual(ipl['1'].IPAddress, '192.168.1.3')
+    self.assertEqual(str(ipl['1'].LeaseTimeRemaining), '2013-11-10 04:50:00')
+    self.assertEqual(len(client.OptionList), 1)
+    self.assertEqual(client.OptionList['1'].Tag, 61)
+    # 'client-id-3' == 636c69656e742d69642d33
+    self.assertEqual(client.OptionList['1'].Value, '636c69656e742d69642d33')
+
+  def testDnsmasqLeasesCorrupt(self):
+    dnsmasq.DNSMASQLEASES[0] = 'testdata/dnsmasq/leases.corrupt'
+    dh4p = self.dh4p
+    self.assertEqual(len(dh4p.ClientList), 0)
+
+  def testMissingDnsmasqFile(self):
+    dnsmasq.DNSMASQLEASES[0] = '/nonexistent'
+    dh4p = self.dh4p
+    self.assertEqual(len(dh4p.ClientList), 0)
 
 
 if __name__ == '__main__':

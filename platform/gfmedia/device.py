@@ -472,14 +472,16 @@ class IPDiagnostics(CATA181.Device.IP.Diagnostics):
 class Device(tr181.Device_v2_6.Device):
   """tr-181 Device implementation for Google Fiber media platforms."""
 
-  def __init__(self, device_id, periodic_stats):
+  RootDataModelVersion = tr.types.ReadOnlyString('2.6')
+
+  def __init__(self, device_id, periodic_stats, dmroot):
     super(Device, self).__init__()
     self._UnexportStuff()
     self.Export(objects=['DeviceInfo'])
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
     led = dm.device_info.LedStatusReadFromFile('LED', LEDSTATUS)
     self.DeviceInfo.AddLedStatus(led)
-    self.DHCPv4 = dm.dnsmasq.Dhcp4Server()
+    self.DHCPv4 = dm.dnsmasq.DHCPv4()
     self.DNS = dm.dns.DNS()
     self.Ethernet = Ethernet()
     self.IP = IP()
@@ -490,7 +492,7 @@ class Device(tr181.Device_v2_6.Device):
     self.Export(objects=['PeriodicStatistics'])
     self.PeriodicStatistics = periodic_stats
     self._AddTemperatureStuff()
-    self._AddHostsStuff()
+    self._AddHostsStuff(dmroot=dmroot)
 
   @property
   def InterfaceStackNumberOfEntries(self):
@@ -521,8 +523,11 @@ class Device(tr181.Device_v2_6.Device):
       except OSError:
         pass
 
-  def _AddHostsStuff(self):
-    """Add tr-181 Device.Host implementation."""
+  def _AddHostsStuff(self, dmroot):
+    """Add tr-181 Device.Host implementation.
+    Args:
+      dmroot: the device model root object.
+    """
     # this is just a lookup table. It is harmless to have extra interfaces,
     # like Wifi interfaces on GFMS100 (which has no wifi).
     iflookup = {
@@ -537,7 +542,7 @@ class Device(tr181.Device_v2_6.Device):
       'ath1': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.2.',
       'eth2': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.',
     }
-    self.Hosts = dm.host.Hosts(iflookup, bridgename='br0')
+    self.Hosts = dm.host.Hosts(iflookup, bridgename='br0', dmroot=dmroot)
 
 
 class LANDevice(BASE98IGD.LANDevice):
@@ -607,7 +612,8 @@ def PlatformInit(name, device_model_root):
   objects = []
   dev_id = DeviceId()
   periodic_stats = dm.periodic_statistics.PeriodicStatistics()
-  device_model_root.Device = Device(dev_id, periodic_stats)
+  device_model_root.Device = Device(dev_id, periodic_stats,
+                                    dmroot=device_model_root)
   device_model_root.InternetGatewayDevice = InternetGatewayDevice(
       dev_id, periodic_stats)
   device_model_root.X_GOOGLE_COM_GVSB = gvsb.Gvsb()
