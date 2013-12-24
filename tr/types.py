@@ -371,6 +371,36 @@ class FileBacked(Attr):
     self.WriteFile(value)
 
 
+class NumberOf(Attr):
+  """An attribute which returns the length of some other object.
+
+    CWMP frequently defines FooNumberOfEntries parameters, to return
+    the number of Foo objects.
+  """
+
+  def __init__(self):
+    super(NumberOf, self).__init__()
+    self.listobj = None
+
+  def __get__(self, obj, _):
+    if obj is None:
+      return self
+    if self.listobj is None:
+      return 0
+    return len(self.listobj)
+
+  def validate(self, unused_obj, _):
+    # this is the same exception raised by a read-only @property
+    raise AttributeError("can't set NumberOfEntries attribute")
+
+  def __set__(self, unused_obj, _):
+    # this is the same exception raised by a read-only @property
+    raise AttributeError("can't set NumberOfEntries attribute")
+
+  def SetList(self, obj, listobj):
+    self.listobj = listobj
+
+
 class Trigger(object):
   """A type descriptor that calls obj.Triggered() whenever its value changes.
 

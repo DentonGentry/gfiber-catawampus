@@ -120,6 +120,17 @@ class ReadOnlyObject(object):
   ip6 = tr.types.ReadOnlyIP6Addr('1111:2222::3333:4444')
 
 
+class NumberOfObject(object):
+  d = tr.types.NumberOf()
+  l = tr.types.NumberOf()
+
+  def __init__(self):
+    self.TestDict = {}
+    self.TestList = []
+    type(self).d.SetList(self, self.TestDict)
+    type(self).l.SetList(self, self.TestList)
+
+
 class TypesTest(unittest.TestCase):
   def testTypes(self):
     obj = TestObject()
@@ -419,6 +430,17 @@ class TypesTest(unittest.TestCase):
     self.assertEquals(obj.a, obj.b)
     self.assertEquals(obj1.a, 0)
     self.assertEquals(obj1.b, 5)
+
+  def testNumberOf(self):
+    obj = NumberOfObject()
+    l = ['a', 'b', 'c']
+    d = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+    type(obj).d.SetList(obj, d)
+    type(obj).l.SetList(obj, l)
+    self.assertEqual(obj.l, 3)
+    self.assertEqual(obj.d, 4)
+    l.extend(['d', 'e'])
+    self.assertEqual(obj.l, 5)
 
 
 if __name__ == '__main__':

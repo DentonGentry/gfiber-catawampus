@@ -320,9 +320,20 @@ class Services(tr181.Device_v2_6.Device.Services):
 class Ethernet(tr181.Device_v2_6.Device.Ethernet):
   """Implementation of tr-181 Device.Ethernet for GFMedia platforms."""
 
+  InterfaceNumberOfEntries = tr.types.NumberOf()
+  LinkNumberOfEntries = tr.types.NumberOf()
+  VLANTerminationNumberOfEntries = tr.types.NumberOf()
+
   def __init__(self):
     super(Ethernet, self).__init__()
     self.InterfaceList = {}
+    type(self).InterfaceNumberOfEntries.SetList(self, self.InterfaceList)
+    self.LinkList = {}
+    type(self).LinkNumberOfEntries.SetList(self, self.LinkList)
+    self.VLANTerminationList = {}
+    type(self).VLANTerminationNumberOfEntries.SetList(
+        self, self.VLANTerminationList)
+
     if _ExistingInterfaces(['br0']):
       self.InterfaceList['256'] = dm.ethernet.EthernetInterfaceLinux26(
           ifname='br0')
@@ -334,20 +345,6 @@ class Ethernet(tr181.Device_v2_6.Device.Ethernet):
           qfiles=(qprefix + '%d') if qglob else None,
           numq=len(qglob),
           hipriq=1 if qglob else 0)
-    self.VLANTerminationList = {}
-    self.LinkList = {}
-
-  @property
-  def InterfaceNumberOfEntries(self):
-    return len(self.InterfaceList)
-
-  @property
-  def VLANTerminationNumberOfEntries(self):
-    return len(self.VLANTerminationList)
-
-  @property
-  def LinkNumberOfEntries(self):
-    return len(self.LinkList)
 
 
 class Moca(tr181.Device_v2_6.Device.MoCA):
