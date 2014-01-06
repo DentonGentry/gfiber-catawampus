@@ -27,6 +27,7 @@ import glob
 import os
 import random
 import subprocess
+import traceback
 
 import google3
 
@@ -60,6 +61,18 @@ import ookla
 import stbservice
 import ssh
 
+QCASWITCHPORT = None
+try:
+  import qca83xx
+  if qca83xx.IsQCA8337():
+    import dm.qca83xx_ethernet
+    QCASWITCHPORT = dm.qca83xx_ethernet.EthernetInterfaceQca83xx
+except ImportError:
+  # Not an error, several platforms don't compile in qca83xx.
+  pass
+except qca83xx.SdkError:
+  traceback.print_exc()
+  print 'Continuing catawampus startup'
 
 BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
 CATA181 = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
@@ -337,7 +350,8 @@ class Ethernet(tr181.Device_v2_6.Device.Ethernet):
     if _ExistingInterfaces(['br0']):
       self.InterfaceList['256'] = dm.ethernet.EthernetInterfaceLinux26(
           ifname='br0')
-    for i, ifc in enumerate(_ExistingInterfaces(['lan0', 'eth0', 'wan0']), 1):
+    i = 1
+    for ifc in _ExistingInterfaces(['lan0', 'eth0', 'wan0']):
       qprefix = '/sys/kernel/debug/bcmgenet/%s/bcmgenet_discard_cnt_q' % ifc
       qglob = glob.glob(qprefix + '*')
       self.InterfaceList[str(i)] = dm.ethernet.EthernetInterfaceLinux26(
@@ -345,6 +359,11 @@ class Ethernet(tr181.Device_v2_6.Device.Ethernet):
           qfiles=(qprefix + '%d') if qglob else None,
           numq=len(qglob),
           hipriq=1 if qglob else 0)
+      i += 1
+    if QCASWITCHPORT is not None:
+      for port in range(1, 5):
+        self.InterfaceList[str(i)] = QCASWITCHPORT(portnum=port, mac='')
+        i += 1
 
 
 class Moca(tr181.Device_v2_6.Device.MoCA):
