@@ -24,6 +24,7 @@ import os
 import sys
 import google3
 import dm.device_info
+import dm.fake_dhcp_server
 import dm.fakemoca
 import dm.fakewifi
 import dm.igd_time
@@ -128,7 +129,7 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
   def __init__(self, device_id, periodic_stats=None):
     super(DeviceFakeCPE, self).__init__()
     self.Export(objects=['DeviceInfo'])
-    self.Unexport(objects=['ATM', 'Bridging', 'CaptivePortal', 'DHCPv4',
+    self.Unexport(objects=['ATM', 'Bridging', 'CaptivePortal',
                            'DHCPv6', 'DNS', 'DSL', 'DSLite', 'Firewall',
                            'GatewayInfo', 'HPNA', 'HomePlug', 'Hosts',
                            'IEEE8021x', 'IPv6rd', 'LANConfigSecurity', 'NAT',
@@ -137,6 +138,7 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
                            'UPA', 'USB', 'Users', 'WiFi'])
 
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
+    self.DHCPv4 = dm.fake_dhcp_server.DHCPv4()
     self.ManagementServer = tr.core.TODO()  # Higher layer code splices this in
     self.Services = ServicesFakeCPE()
 

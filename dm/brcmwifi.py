@@ -997,7 +997,7 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
   def IterAssociations(self):
     """Retrieves a list of all associated STAs."""
     stations = self.wl.GetAssociatedDevices()
-    for idx, mac in enumerate(stations):
+    for idx, mac in enumerate(stations, start=1):
       yield idx, self.GetAssociation(mac)
 
   def GetAssociationByIndex(self, index):

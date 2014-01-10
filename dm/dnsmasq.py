@@ -33,11 +33,15 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import binascii
 import datetime
+import errno
 import os
 import string
+
+import dhcp
 import tr.core
 import tr.helpers
 import tr.mainloop
+import tr.session
 import tr.tr181_v2_6
 import tr.types
 import tr.x_catawampus_tr181_2_0
@@ -49,6 +53,7 @@ DASH_TO_UNDERSCORE = string.maketrans('-', '_')
 
 # unit tests can override these
 DNSMASQCONFIG = ['/config/dnsmasq/acs.conf']
+DNSMASQLEASES = ['/config/dnsmasq/dhcp.leases']
 LOGCONFIG = True
 
 
@@ -132,15 +137,25 @@ def WriteDnsmasqConfig():
   # TODO(dgentry): restart dnsmasq
 
 
+class DHCPv4(CATA181DEV.Device.DHCPv4):
+  ClientNumberOfEntries = tr.types.ReadOnlyUnsigned(0)
+
+  def __init__(self):
+    super(DHCPv4, self).__init__()
+    self.Server = Dhcp4Server()
+
+
 class Dhcp4Server(DHCP4SERVER):
   """tr-181 Device.DHCPv4.Server."""
   Enable = tr.types.TriggerBool(False)
+  PoolNumberOfEntries = tr.types.NumberOf()
   X_CATAWAMPUS_ORG_TextConfig = tr.types.FileBacked(
       DNSMASQCONFIG, tr.types.String(), delete_if_empty=False)
 
   def __init__(self):
     super(Dhcp4Server, self).__init__()
     self.PoolList = {}
+    type(self).PoolNumberOfEntries.SetList(self, self.PoolList)
     DhcpServers.add(self)
 
   def Close(self):
@@ -148,9 +163,8 @@ class Dhcp4Server(DHCP4SERVER):
     DhcpServers.remove(self)
     WriteDnsmasqConfig()
 
-  @property
-  def PoolNumberOfEntries(self):
-    return len(self.PoolList)
+  def Pool(self):
+    return Dhcp4ServerPool()
 
 
 class Dhcp4ServerPool(DHCP4SERVERPOOL):
@@ -167,6 +181,9 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
   Order = tr.types.TriggerInt(1)
   SubnetMask = tr.types.TriggerIP4Addr(None)
   X_CATAWAMPUS_ORG_NTPServers = tr.types.TriggerString('')
+
+  OptionNumberOfEntries = tr.types.NumberOf()
+  StaticAddressNumberOfEntries = tr.types.NumberOf()
 
   # Conditional serving parameters
 
@@ -238,8 +255,11 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
     self.name = name
     self.index = None
     self.StaticAddressList = {}
+    type(self).StaticAddressNumberOfEntries.SetList(self,
+                                                    self.StaticAddressList)
     self.OptionList = {}
-    self.ClientList = {}
+    type(self).OptionNumberOfEntries.SetList(self, self.OptionList)
+
     self.Unexport(['Alias'])
 
     # We can't take individual addresses away from the pool.
@@ -273,16 +293,33 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
     return 'Enabled' if self.Enable else 'Disabled'
 
   @property
-  def StaticAddressNumberOfEntries(self):
-    return len(self.StaticAddressList)
-
-  @property
-  def OptionNumberOfEntries(self):
-    return len(self.OptionList)
-
-  @property
   def ClientNumberOfEntries(self):
     return len(self.ClientList)
+
+  @property
+  @tr.session.cache
+  def ClientList(self):
+    """Return a dict of known clients from dnsmasq leases file."""
+    clients = {}
+    try:
+      line = ''
+      idx = 1
+      with open(DNSMASQLEASES[0]) as f:
+        for line in f:
+          (expiry, mac, ip, name, clientid) = line.strip().split()
+          mac = mac.lower()
+          clientid = '' if clientid == '*' else binascii.hexlify(clientid)
+          name = '' if name == '*' else name
+          c = dhcp.Client(chaddr=mac, ipaddr=ip, expiry=int(expiry),
+                          clientid=clientid, hostname=name)
+          clients[str(idx)] = c
+          idx += 1
+    except (OSError, ValueError):
+        print 'Unable to process dnsmasq lease : %s' % line
+    except IOError as e:
+      if e.errno != errno.ENOENT:
+        print 'Unable to process dnsmasq lease file : %s' % DNSMASQLEASES[0]
+    return clients
 
   def Triggered(self):
     WriteDnsmasqConfig()
