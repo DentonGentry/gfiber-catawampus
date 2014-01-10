@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # unittest requires method names starting in 'test'
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
 """Unit tests for host.py implementation."""
 
@@ -23,13 +23,9 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import unittest
 
 import google3
-import dm.dnsmasq
-import host
 import platform.fakecpe.device
 import tr.tr098_v1_4
-
-
-BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
+import host
 
 
 def TimeNow():
@@ -49,7 +45,9 @@ class TestDeviceModelRoot(tr.core.Exporter):
 
 class HostTest(unittest.TestCase):
   def setUp(self):
+    self.old_PROC_NET_ARP = host.PROC_NET_ARP
     self.old_SYS_CLASS_NET_PATH = host.SYS_CLASS_NET_PATH
+    host.PROC_NET_ARP = '/dev/null'
     host.SYS_CLASS_NET_PATH = 'testdata/host/sys/class/net'
     self.old_TIMENOW = host.TIMENOW
     host.TIMENOW = TimeNow
@@ -103,7 +101,7 @@ class HostTest(unittest.TestCase):
     self.assertEqual(h.IPv6AddressList['4'].IPAddress, 'ip6_4')
 
   def testHostsFromBridge(self):
-    iflookup = { 'eth0': 'Ethernet', 'eth1.0': 'MoCA', }
+    iflookup = {'eth0': 'Ethernet', 'eth1.0': 'MoCA',}
     h = host.Hosts(iflookup, bridgename='br0')
     self.assertEqual(len(h.HostList), 10)
     # brforward file taken from a real system in the lab
@@ -140,9 +138,31 @@ class HostTest(unittest.TestCase):
     h.HostList['10'].ValidateExports()
 
   def testMissingFdbFile(self):
-    iflookup = { 'eth0': 'Ethernet', 'eth1.0': 'MoCA', }
+    iflookup = {'eth0': 'Ethernet', 'eth1.0': 'MoCA',}
     h = host.Hosts(iflookup, bridgename='nonexistent0')
     self.assertEqual(len(h.HostList), 0)
+
+  def testGetHostsFromArp(self):
+    host.PROC_NET_ARP = 'testdata/host/proc_net_arp'
+    iflookup = {'foo0': 'Device.Foo.Interface.1',
+                'foo1': 'Device.Foo.Interface.2'}
+    hosts = host.Hosts(iflookup)
+    self.assertEqual(len(hosts.HostList), 3)
+    found = 0
+    for h in hosts.HostList.values():
+      if h.PhysAddress == 'f8:8f:ca:00:00:01':
+        self.assertEqual(h.Layer1Interface, 'Device.Foo.Interface.1')
+        self.assertEqual(h.IPAddress, '192.168.1.1')
+        found |= 1
+      elif h.PhysAddress == 'f8:8f:ca:00:00:02':
+        self.assertEqual(h.Layer1Interface, 'Device.Foo.Interface.2')
+        self.assertEqual(h.IPAddress, '192.168.1.2')
+        found |= 2
+      elif h.PhysAddress == 'f8:8f:ca:00:00:03':
+        self.assertEqual(h.Layer1Interface, 'Device.Foo.Interface.1')
+        self.assertEqual(h.IPAddress, '192.168.1.3')
+        found |= 4
+    self.assertEqual(found, 7)
 
   def _GetFakeCPE(self, tr98=True, tr181=True):
     igd = device = None
@@ -160,17 +180,17 @@ class HostTest(unittest.TestCase):
     self.assertEqual(len(hosts.HostList), 2)
     found = 0
     for h in hosts.HostList.values():
-      l1interface = 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.'
+      l1interface = 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1'
       self.assertEqual(h.Layer1Interface, l1interface)
       if h.PhysAddress == '00:01:02:03:04:05':
         self.assertFalse(found & 0x1)
         found |= 0x1
-        a = l1interface + 'AssociatedDevice.1'
+        a = l1interface + '.AssociatedDevice.1'
         self.assertEqual(h.AssociatedDevice, a)
       elif h.PhysAddress == '00:01:02:03:04:06':
         self.assertFalse(found & 0x2)
         found |= 0x2
-        a = l1interface + 'AssociatedDevice.2'
+        a = l1interface + '.AssociatedDevice.2'
         self.assertEqual(h.AssociatedDevice, a)
     self.assertEqual(found, 0x3)
 
@@ -180,13 +200,13 @@ class HostTest(unittest.TestCase):
     self.assertEqual(len(hosts.HostList), 3)
     found = 0
     for h in hosts.HostList.values():
-      l1interface = 'Device.MoCA.Interface.1.'
+      l1interface = 'Device.MoCA.Interface.1'
       if h.PhysAddress == '00:11:22:33:44:11':
         self.assertFalse(found & 0x1)
         found |= 0x1
         # Fields from MoCA AssocidatedDevice table
         self.assertEqual(h.Layer1Interface, l1interface)
-        a = l1interface + 'AssociatedDevice.1'
+        a = l1interface + '.AssociatedDevice.1'
         self.assertEqual(h.AssociatedDevice, a)
         # Fields from fake_dhcp_server.py
         self.assertEqual(h.IPAddress, '192.168.133.7')
@@ -198,7 +218,7 @@ class HostTest(unittest.TestCase):
         self.assertFalse(found & 0x2)
         found |= 0x2
         self.assertEqual(h.Layer1Interface, l1interface)
-        a = l1interface + 'AssociatedDevice.2'
+        a = l1interface + '.AssociatedDevice.2'
         self.assertEqual(h.AssociatedDevice, a)
       elif h.PhysAddress == '00:11:22:33:44:33':
         self.assertFalse(found & 0x4)

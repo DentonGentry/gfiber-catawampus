@@ -59,7 +59,7 @@ class DnsmasqTest(unittest.TestCase):
     shutil.rmtree(self.config_dir)
 
   def testValidateExports(self):
-    dh4 = dnsmasq.Dhcp4Server()
+    dh4 = dnsmasq.DHCPv4()
     dh4.ValidateExports()
     dh4p = dnsmasq.Dhcp4ServerPool()
     dh4p.ValidateExports()

@@ -58,6 +58,7 @@ class EthernetInterfaceQca83xx(ETHERNET.Interface):
   Args:
     portnum: the 0-based port number on the switch chip.
     mac: the MAC address of this port. The QCA83xx doesn't know it.
+    ifname: the Linux netdev handling this switch port
     upstream: whether the port faces the WAN (unlikely).
   """
 
@@ -67,10 +68,11 @@ class EthernetInterfaceQca83xx(ETHERNET.Interface):
   Name = tr.types.ReadOnlyString('')
   Upstream = tr.types.ReadOnlyBool(False)
 
-  def __init__(self, portnum, mac, upstream=False):
+  def __init__(self, portnum, mac, ifname, upstream=False):
     super(EthernetInterfaceQca83xx, self).__init__()
     self._portnum = portnum
     self._port = QCAPORT(portnum)
+    self._ifname = ifname
     self.Unexport(['Alias'])
     type(self).MACAddress.Set(self, mac)
     type(self).Name.Set(self, 'qca83xx_' + str(portnum))
@@ -113,12 +115,30 @@ class EthernetInterfaceQca83xx(ETHERNET.Interface):
   DuplexMode = property(GetDuplexMode, SetDuplexMode, None,
                         'Device.Ethernet.Interface.DuplexMode')
 
+  def GetAssociatedDevices(self):
+    """Return a list of known clients of this interface.
+
+    Returns:
+      a list of dicts, where the dict contains:
+      1. a 'PhysAddress' key with the MAC address.
+      2. an 'IPv4Address' key with a list of IP addresses
+         for this mac known by ARP. This list may be empty.
+    """
+    result = []
+    for entry in self._port.Fdb():
+      mac = entry['PhysAddress']
+      result.append({'PhysAddress': mac})
+    return result
+
   def _UpdateStats(self):
     """Accumulate MIB counters from the hardware.
 
     The QCA83xx clears its MIB counters on read, so we accumulate them
     in software. The hardware has a large number of counters for various
     events, which map to a somewhat smaller number of tr-181 Stats.
+
+    Returns:
+      a dict of statistics.
     """
     st = self.stats
     hs = self._port.Stats()
@@ -154,8 +174,8 @@ class EthernetInterfaceQca83xx(ETHERNET.Interface):
     Args
       swstats: a dict containing the accumulated values
       hwstats: a dict of values read from hardware counters
-      swstat: name of the tr-181 Stat to accumulate into
-      hwstat: name of the hardware counter to accumulate from
+      swname: name of the tr-181 Stat to accumulate into
+      hwname: name of the hardware counter to accumulate from
     """
     s = swstats.get(swname, 0L)
     h = long(hwstats.get(hwname, 0))

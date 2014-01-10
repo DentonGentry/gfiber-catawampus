@@ -33,7 +33,7 @@ class QcaEthernetTest(unittest.TestCase):
 
   def setUp(self):
     self.old_QCAPORT = qca83xx_ethernet.QCAPORT
-    self.mac = 'f8:8f:ca:00:00:02'
+    self.mac = 'f8:8f:ca:ff:ff:02'
     MOCKPORTSETFIELDS.clear()
 
   def tearDown(self):
@@ -42,12 +42,14 @@ class QcaEthernetTest(unittest.TestCase):
 
   def testValidateExports(self):
     qca83xx_ethernet.QCAPORT = MockPortStats
-    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac)
+    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac,
+                                                    ifname='foo0')
     eth.ValidateExports()
 
   def testStats(self):
     qca83xx_ethernet.QCAPORT = MockPortStats
-    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac)
+    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac,
+                                                    ifname='foo0')
     self.assertEqual(eth.Stats.BytesSent, 17000000000000000L)
     self.assertEqual(eth.Stats.BytesReceived, 36000000000000000L)
     self.assertEqual(eth.Stats.PacketsSent, 15 + 19 + 25)
@@ -66,7 +68,8 @@ class QcaEthernetTest(unittest.TestCase):
 
   def testFields(self):
     qca83xx_ethernet.QCAPORT = MockPortStats
-    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac)
+    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac,
+                                                    ifname='foo0')
     self.assertEqual(eth.MaxBitRate, 100)
     self.assertEqual(eth.DuplexMode, 'full')
     self.assertEqual(eth.Status, 'Up')
@@ -75,21 +78,34 @@ class QcaEthernetTest(unittest.TestCase):
 
   def testStatus(self):
     qca83xx_ethernet.QCAPORT = MockPortLinkFault
-    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac)
+    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac,
+                                                    ifname='foo0')
     self.assertEqual(eth.Status, 'Error')
     qca83xx_ethernet.QCAPORT = MockPortLinkDown
-    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac)
+    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac,
+                                                    ifname='foo0')
     self.assertEqual(eth.Status, 'Down')
 
   def testWrite(self):
     qca83xx_ethernet.QCAPORT = MockPortLinkDown
-    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac)
+    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac,
+                                                    ifname='foo0')
     eth.DuplexMode = 'full'
     self.assertTrue('duplex' in MOCKPORTSETFIELDS)
     self.assertEqual(MOCKPORTSETFIELDS['duplex'], 'full')
     eth.MaxBitRate = 1000
     self.assertTrue('speed' in MOCKPORTSETFIELDS)
     self.assertEqual(MOCKPORTSETFIELDS['speed'], 1000)
+
+  def testGetAssociatedDevices(self):
+    qca83xx_ethernet.QCAPORT = MockPortLinkDown
+    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac,
+                                                    ifname='foo0')
+    ac = eth.GetAssociatedDevices()
+    self.assertEqual(len(ac), 3)
+    self.assertEqual(ac[0]['PhysAddress'], 'f8:8f:ca:00:00:01')
+    self.assertEqual(ac[1]['PhysAddress'], 'f8:8f:ca:00:00:02')
+    self.assertEqual(ac[2]['PhysAddress'], 'f8:8f:ca:00:00:03')
 
 
 class MockPortLinkDown(object):
@@ -105,7 +121,9 @@ class MockPortLinkDown(object):
     return 'half'
 
   def Fdb(self):
-    return [{'PhysAddress': 'f8:8f:ca:00:00:01', 'Ports': ['qca83xx_1']}]
+    return [{'PhysAddress': 'f8:8f:ca:00:00:01', 'Ports': ['qca83xx_1']},
+            {'PhysAddress': 'f8:8f:ca:00:00:02', 'Ports': ['qca83xx_1']},
+            {'PhysAddress': 'f8:8f:ca:00:00:03', 'Ports': ['qca83xx_1']}]
 
   def IsLinkUp(self):
     return False
@@ -132,7 +150,9 @@ class MockPortLinkFault(object):
     return 'half'
 
   def Fdb(self):
-    return [{'PhysAddress': 'f8:8f:ca:00:00:01', 'Ports': ['qca83xx_1']}]
+    return [{'PhysAddress': 'f8:8f:ca:00:00:01', 'Ports': ['qca83xx_1']},
+            {'PhysAddress': 'f8:8f:ca:00:00:02', 'Ports': ['qca83xx_1']},
+            {'PhysAddress': 'f8:8f:ca:00:00:03', 'Ports': ['qca83xx_1']}]
 
   def IsLinkUp(self):
     return False
@@ -160,7 +180,9 @@ class MockPortStats(object):
     return 'full'
 
   def Fdb(self):
-    return [{'PhysAddress': 'f8:8f:ca:00:00:01', 'Ports': ['qca83xx_1']}]
+    return [{'PhysAddress': 'f8:8f:ca:00:00:01', 'Ports': ['qca83xx_1']},
+            {'PhysAddress': 'f8:8f:ca:00:00:02', 'Ports': ['qca83xx_1']},
+            {'PhysAddress': 'f8:8f:ca:00:00:03', 'Ports': ['qca83xx_1']}]
 
   def IsLinkUp(self):
     return True
@@ -220,7 +242,7 @@ class MockPortStats(object):
               'RxMulticastPackets': 39,
               'RxFragments': 40,
               'RxAlignmentErrors': 41,
-              }
+             }
 
 
 if __name__ == '__main__':

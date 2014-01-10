@@ -14,30 +14,30 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409
+# pylint: disable-msg=C6409
 
-"""tr-181 Device.Hosts implementation
+"""tr-181 Device.Hosts implementation.
 
 Provides a way to discover network topologies.
 """
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import binascii
 import datetime
-import dhcp
 import os
 import struct
 import time
 import tr.session
 import tr.tr181_v2_6
 import tr.types
+import dhcp
 
 BASE181HOSTS = tr.tr181_v2_6.Device_v2_6.Device.Hosts
 BASE181HOST = tr.tr181_v2_6.Device_v2_6.Device.Hosts.Host
 
 # Unit tests can override these
-SYS_CLASS_NET_PATH = "/sys/class/net"
+PROC_NET_ARP = '/proc/net/arp'
+SYS_CLASS_NET_PATH = '/sys/class/net'
 TIMENOW = time.time
 
 
@@ -57,8 +57,8 @@ class Hosts(BASE181HOSTS):
         InternetGatewayDevice attribute for tr-98)
     """
     super(Hosts, self).__init__()
-    self.bridges = list()
-    self.iflookup = dict()
+    self.bridges = []
+    self.iflookup = {}
     self.dmroot = dmroot
     if iflookup:
       self.iflookup = iflookup
@@ -66,17 +66,37 @@ class Hosts(BASE181HOSTS):
       x = bridgename if type(bridgename) == list else [bridgename]
       self.bridges.extend(x)
 
+  def _AddIpToHostDict(self, entry, ip4):
+    """Add ip to entry['ip4'].
+
+    If entry already contains an 'ip4' key, append the
+    ip4 argument to it. Otherwise, create an 'ip4' key.
+
+    Args:
+      entry: the dict for a host entry
+      ip4: the IP address to add, like '1.2.3.4'
+
+    Returns:
+      the entry
+    """
+    ip4list = entry.get('ip4', [])
+    if ip4 not in ip4list:
+      ip4list.append(ip4)
+    entry['ip4'] = ip4list
+    return entry
+
   def _GetInterfacesInBridge(self, brname):
-    """Return list of all interfaces in brname. """
-    if_path = os.path.join(SYS_CLASS_NET_PATH, brname, "brif")
+    """Return list of all interfaces in brname."""
+    if_path = os.path.join(SYS_CLASS_NET_PATH, brname, 'brif')
     return os.listdir(if_path)
 
   def _GetHostsInBridge(self, brname):
     """Iterate over all client addresses in the FDB of brname.
+
     Args:
       brname: name of the bridge netdev, like 'br0'
 
-    Returns:
+    Yields:
       iterable of (mac, iface) where:
         mac: MAC address of the station
         iface: name of the interface where the MAC was seen, like 'eth0'
@@ -117,6 +137,39 @@ class Hosts(BASE181HOSTS):
       except (OSError, IOError):
         print '_GetHostsFromBridges unable to process %s' % brname
 
+  def _ParseArpTable(self):
+    """Parse /proc/net/arp and return it as a list.
+
+    Returns:
+      a list of (mac, ip, dev) tuples, like:
+        [('f8:8f:ca:00:00:01', '1.1.1.1', 'eth0'),
+         ('f8:8f:ca:00:00:02', '1.1.1.2', 'eth1')]
+    """
+    with open(PROC_NET_ARP) as f:
+      unused_headers = f.readline()
+      result = []
+      for line in f:
+        fields = line.split()
+        ip4 = fields[0]
+        mac = fields[3]
+        dev = fields[5]
+        result.append((mac, ip4, dev))
+    return result
+
+  def _GetHostsFromArpTable(self, hosts):
+    """Populate a dict of known hosts from /proc/net/arp.
+
+    Args:
+      hosts: a dict (with MAC addresses as keys) of fields
+        to be populated for Device.Hosts.Host
+    """
+    for (mac, ip4, iface) in self._ParseArpTable():
+      host = hosts.get(mac, dict())
+      host['Layer1Interface'] = self.iflookup.get(iface, '')
+      host['PhysAddress'] = mac
+      self._AddIpToHostDict(entry=host, ip4=ip4)
+      hosts[mac] = host
+
   def _GetTr98WifiObjects(self):
     """Yield tr-98 WLANConfiguration objects, if any."""
     try:
@@ -124,7 +177,7 @@ class Hosts(BASE181HOSTS):
     except (AttributeError, KeyError):
       return
     for (idx, wifi) in lan.WLANConfigurationList.iteritems():
-      l1if = 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.%s.' % idx
+      l1if = 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.%s' % idx
       yield (l1if, wifi)
 
   def _GetHostsFromWifiAssociatedDevices(self, hosts):
@@ -136,7 +189,7 @@ class Hosts(BASE181HOSTS):
     """
     for (l1interface, wifi) in self._GetTr98WifiObjects():
       for (idx, device) in wifi.AssociatedDeviceList.iteritems():
-        assocdev = l1interface + 'AssociatedDevice.' + str(idx)
+        assocdev = l1interface + '.AssociatedDevice.' + str(idx)
         mac = device.AssociatedDeviceMACAddress.lower()
         host = hosts.get(mac, dict())
         host['AssociatedDevice'] = assocdev
@@ -151,14 +204,19 @@ class Hosts(BASE181HOSTS):
     except (AttributeError, KeyError):
       return
     for (idx, interface) in moca.InterfaceList.iteritems():
-      l1if = 'Device.MoCA.Interface.%s.' % idx
+      l1if = 'Device.MoCA.Interface.%s' % idx
       yield (l1if, interface)
 
   def _GetHostsFromMocaAssociatedDevices(self, hosts):
-    """Populate a dict of known hosts from wifi clients."""
+    """Populate a dict of known hosts from MoCA clients.
+
+    Args:
+      hosts: a dict (with MAC addresses as keys) of fields
+        to be populated for Device.Hosts.Host
+    """
     for (l1interface, moca) in self._GetTr181MocaObjects():
       for (idx, device) in moca.AssociatedDeviceList.iteritems():
-        assocdev = l1interface + 'AssociatedDevice.' + str(idx)
+        assocdev = l1interface + '.AssociatedDevice.' + str(idx)
         mac = device.MACAddress.lower()
         host = hosts.get(mac, dict())
         host['AssociatedDevice'] = assocdev
@@ -210,22 +268,58 @@ class Hosts(BASE181HOSTS):
         host['VendorClassID'] = option.Value
 
   def _GetHostsFromDhcpServers(self, hosts):
-    """Populate a dict of known hosts from wifi clients."""
+    """Populate a dict of known hosts from DHCPv4 servers.
+
+    Args:
+      hosts: a dict (with MAC addresses as keys) of fields
+        to be populated for Device.Hosts.Host
+    """
     for (server, pool) in self._GetTr181Dhcp4ServerPools():
       for (idx, client) in pool.ClientList.iteritems():
         mac = client.Chaddr.lower()
         host = hosts.get(mac, dict())
-        host['DHCPClient'] = server + 'Client.' + str(idx)
         host['PhysAddress'] = mac
-        host['ip4'] = [v.IPAddress for v in client.IPv4AddressList.values()]
+        host['DHCPClient'] = server + 'Client.' + str(idx)
+        for v in client.IPv4AddressList.values():
+          self._AddIpToHostDict(host, v.IPAddress)
         self._PopulateDhcpLeaseTime(host, client)
         self._PopulateFromDhcpOptions(host, client)
         hosts[mac] = host
 
+  def _GetTr181EthernetInterfaces(self):
+    """Yield tr-181 Device.Ethernet.Interface objects, if any."""
+    try:
+      eth = self.dmroot.GetExport('Device.Ethernet')
+    except (AttributeError, KeyError):
+      return
+    for (idx, iface) in eth.InterfaceList.iteritems():
+      ifname = 'Device.Ethernet.Interface.%s' % idx
+      yield (ifname, iface)
+
+  def _GetHostsFromEthernets(self, hosts):
+    """Populate a dict of known hosts from Ethernet interfaces.
+
+    Args:
+      hosts: a dict (with MAC addresses as keys) of fields
+        to be populated for Device.Hosts.Host
+    """
+    for (ifname, iface) in self._GetTr181EthernetInterfaces():
+      if not hasattr(iface, 'GetAssociatedDevices'):
+        continue
+      for client in iface.GetAssociatedDevices():
+        mac = client['PhysAddress']
+        host = hosts.get(mac, dict())
+        host['PhysAddress'] = mac
+        host['Layer1Interface'] = ifname
+        hosts[mac] = host
+
   @tr.session.cache
   def _GetHostList(self):
+    """Return the list of known Hosts on all interfaces."""
     hosts = dict()
     self._GetHostsFromBridges(hosts=hosts)
+    self._GetHostsFromArpTable(hosts=hosts)
+    self._GetHostsFromEthernets(hosts=hosts)
     self._GetHostsFromWifiAssociatedDevices(hosts=hosts)
     self._GetHostsFromMocaAssociatedDevices(hosts=hosts)
     self._GetHostsFromDhcpServers(hosts=hosts)
@@ -309,10 +403,12 @@ class Host(BASE181HOST):
       return ip4.IPAddress
     if ip6:
       return ip6.IPAddress
+    return ''
 
 
 class HostIPv4Address(BASE181HOST.IPv4Address):
   IPAddress = tr.types.ReadOnlyString('')
+
   def __init__(self, address=''):
     super(HostIPv4Address, self).__init__()
     type(self).IPAddress.Set(self, address)
@@ -320,6 +416,7 @@ class HostIPv4Address(BASE181HOST.IPv4Address):
 
 class HostIPv6Address(BASE181HOST.IPv6Address):
   IPAddress = tr.types.ReadOnlyString('')
+
   def __init__(self, address=''):
     super(HostIPv6Address, self).__init__()
     type(self).IPAddress.Set(self, address)

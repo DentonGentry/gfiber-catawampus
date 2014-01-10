@@ -34,6 +34,8 @@ import netdev
 
 CATADEVICE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
 CATAETHERNET = CATADEVICE.Device.Ethernet
+
+# Unit tests can override these.
 PYNETIFCONF = pynetlinux.ifconfig.Interface
 
 
@@ -54,8 +56,10 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
 
   Args:
     ifname: netdev name, like 'eth0'
+    upstream: True if this interface points to the WAN.
     qfiles: path to per-queue discard count files
     numq: number of per-queue discard files to look for
+    hipriq: which queue number is high priority
   """
 
   Enable = tr.types.ReadOnlyBool(True)
@@ -63,7 +67,8 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
   Name = tr.types.ReadOnlyString('')
   Upstream = tr.types.ReadOnlyBool(False)
 
-  def __init__(self, ifname, upstream=False, qfiles=None, numq=0, hipriq=0):
+  def __init__(self, ifname, upstream=False,
+               qfiles=None, numq=0, hipriq=0):
     super(EthernetInterfaceLinux26, self).__init__()
     self._pynet = PYNETIFCONF(ifname)
     self._ifname = ifname

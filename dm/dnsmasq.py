@@ -34,10 +34,8 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import binascii
 import datetime
 import errno
-import os
 import string
 
-import dhcp
 import tr.core
 import tr.helpers
 import tr.mainloop
@@ -45,6 +43,7 @@ import tr.session
 import tr.tr181_v2_6
 import tr.types
 import tr.x_catawampus_tr181_2_0
+import dhcp
 
 CATA181DEV = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
 DHCP4SERVER = CATA181DEV.Device.DHCPv4.Server
@@ -138,11 +137,14 @@ def WriteDnsmasqConfig():
 
 
 class DHCPv4(CATA181DEV.Device.DHCPv4):
-  ClientNumberOfEntries = tr.types.ReadOnlyUnsigned(0)
+  ClientNumberOfEntries = tr.types.NumberOf()
 
   def __init__(self):
     super(DHCPv4, self).__init__()
     self.Server = Dhcp4Server()
+    self.ClientList = {}
+    type(self).ClientNumberOfEntries.SetList(self, self.ClientList)
+    self.Unexport(objects=['Relay'])
 
 
 class Dhcp4Server(DHCP4SERVER):
@@ -315,7 +317,7 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
           clients[str(idx)] = c
           idx += 1
     except (OSError, ValueError):
-        print 'Unable to process dnsmasq lease : %s' % line
+      print 'Unable to process dnsmasq lease : %s' % line
     except IOError as e:
       if e.errno != errno.ENOENT:
         print 'Unable to process dnsmasq lease file : %s' % DNSMASQLEASES[0]

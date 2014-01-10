@@ -1,0 +1,24 @@
+#!/bin/sh
+
+if [ "$3" = assoclist ]; then
+  echo "assoclist 00:01:02:44:00:01"
+fi
+
+if [ "$3" = sta_info ] && [ "$4" = "00:01:02:44:00:01" ]; then
+echo "STA 00:01:02:44:00:01:"
+echo "   rateset [ 1 2 5.5 6 9 11 12 18 24 36 48 54 ]"
+echo "   idle 1 seconds"
+echo "   in network 11 seconds"
+echo "   state: AUTHENTICATED ASSOCIATED"
+echo "   flags 0x601b: BRCM WME N_CAP"
+echo "   tx pkts: 1"
+echo "   tx failures: 2"
+echo "   rx ucast pkts: 3"
+echo "   rx mcast/bcast pkts: 4"
+echo "   rate of last tx pkt: 1000 kbps"
+echo "   rate of last rx pkt: 1001 kbps"
+echo "   rx decrypt succeeds: 5"
+echo "   rx decrypt failures: 6"
+fi
+
+exit 0

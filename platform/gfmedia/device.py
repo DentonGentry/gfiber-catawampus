@@ -20,12 +20,9 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import datetime
-import errno
 import fcntl
 import glob
 import os
-import random
 import subprocess
 import traceback
 
@@ -58,8 +55,8 @@ import tr.x_catawampus_tr181_2_0
 import gfibertv
 import gvsb
 import ookla
-import stbservice
 import ssh
+import stbservice
 
 QCASWITCHPORT = None
 try:
@@ -107,7 +104,7 @@ def _ExistingInterfaces(ifcnames):
 
 def _WifiInterfaces():
   # ath0/ath1 are Atheros interfaces; eth2 is bcmwifi on GFHD100
-  return _ExistingInterfaces(["ath0", "ath1", "eth2"])
+  return _ExistingInterfaces(['ath0', 'ath1', 'eth2'])
 
 
 def _IsNetworkBox():
@@ -335,6 +332,7 @@ class Ethernet(tr181.Device_v2_6.Device.Ethernet):
 
   InterfaceNumberOfEntries = tr.types.NumberOf()
   LinkNumberOfEntries = tr.types.NumberOf()
+  RMONStatsNumberOfEntries = tr.types.NumberOf()
   VLANTerminationNumberOfEntries = tr.types.NumberOf()
 
   def __init__(self):
@@ -343,6 +341,8 @@ class Ethernet(tr181.Device_v2_6.Device.Ethernet):
     type(self).InterfaceNumberOfEntries.SetList(self, self.InterfaceList)
     self.LinkList = {}
     type(self).LinkNumberOfEntries.SetList(self, self.LinkList)
+    self.RMONStatsList = {}
+    type(self).RMONStatsNumberOfEntries.SetList(self, self.RMONStatsList)
     self.VLANTerminationList = {}
     type(self).VLANTerminationNumberOfEntries.SetList(
         self, self.VLANTerminationList)
@@ -361,8 +361,10 @@ class Ethernet(tr181.Device_v2_6.Device.Ethernet):
           hipriq=1 if qglob else 0)
       i += 1
     if QCASWITCHPORT is not None:
+      mac = PYNETIFCONF('lan0').get_mac()
       for port in range(1, 5):
-        self.InterfaceList[str(i)] = QCASWITCHPORT(portnum=port, mac='')
+        self.InterfaceList[str(i)] = QCASWITCHPORT(portnum=port,
+                                                   mac=mac, ifname='lan0')
         i += 1
 
 
@@ -455,8 +457,8 @@ class IP(tr181.Device_v2_6.Device.IP):
           ifname=lanifc[0], lowerlayers='Device.Ethernet.Interface.1')
     mocaifc = _ExistingInterfaces(['moca0', 'eth1'])
     if mocaifc:
-        self.InterfaceList[2] = dm.ipinterface.IPInterfaceLinux26(
-            ifname=mocaifc[0], lowerlayers='Device.MoCA.Interface.1')
+      self.InterfaceList[2] = dm.ipinterface.IPInterfaceLinux26(
+          ifname=mocaifc[0], lowerlayers='Device.MoCA.Interface.1')
     i = 3
     for wifc in _WifiInterfaces():
       self.InterfaceList[i] = dm.ipinterface.IPInterfaceLinux26(
@@ -544,22 +546,23 @@ class Device(tr181.Device_v2_6.Device):
 
   def _AddHostsStuff(self, dmroot):
     """Add tr-181 Device.Host implementation.
+
     Args:
       dmroot: the device model root object.
     """
     # this is just a lookup table. It is harmless to have extra interfaces,
     # like Wifi interfaces on GFMS100 (which has no wifi).
     iflookup = {
-      'lan0': 'Device.Ethernet.Interface.1.',
-      'eth0': 'Device.Ethernet.Interface.1.',
-      'wan0': 'Device.Ethernet.Interface.2.',
-      'eth1': 'Device.MoCA.Interface.1.',
-      'eth1.0': 'Device.MoCA.Interface.1.',
-      'moca0': 'Device.MoCA.Interface.1.',
-      'moca0.0': 'Device.MoCA.Interface.1.',
-      'ath0': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.',
-      'ath1': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.2.',
-      'eth2': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.',
+        'lan0': 'Device.Ethernet.Interface.1.',
+        'eth0': 'Device.Ethernet.Interface.1.',
+        'wan0': 'Device.Ethernet.Interface.2.',
+        'eth1': 'Device.MoCA.Interface.1.',
+        'eth1.0': 'Device.MoCA.Interface.1.',
+        'moca0': 'Device.MoCA.Interface.1.',
+        'moca0.0': 'Device.MoCA.Interface.1.',
+        'ath0': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.',
+        'ath1': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.2.',
+        'eth2': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.',
     }
     self.Hosts = dm.host.Hosts(iflookup, bridgename='br0', dmroot=dmroot)
 
