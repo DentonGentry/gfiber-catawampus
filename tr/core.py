@@ -520,6 +520,8 @@ class Exporter(object):
       raise KeyError((name, idx))
 
   def _ListExportsFromDict(self, objlist, recursive):
+    if not hasattr(objlist, 'iteritems'):
+      return
     for (idx, obj) in sorted(objlist.iteritems()):
       if obj is not None:
         yield '%s.' % (idx,)

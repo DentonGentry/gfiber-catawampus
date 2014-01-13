@@ -559,6 +559,18 @@ class GetParamsRpcTest(unittest.TestCase):
         'GetParameterNamesResponse/ParameterList/ParameterInfoStruct/Name')
     self.assertEqual(len(names), 15)
 
+  def testGetFullParamName(self):
+    cpe = getCpe()
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterNames><ParameterPath>BooleanParameter</ParameterPath><NextLevel>true</NextLevel></cwmp:GetParameterNames></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+    print responseXml
+
+    root = ET.fromstring(str(responseXml))
+    names = root.findall(
+        SOAPNS + 'Body/' + CWMPNS +
+        'GetParameterNamesResponse/ParameterList/ParameterInfoStruct/Name')
+    self.assertEqual(len(names), 0)
+
   def testGetParamNameRecursive(self):
     cpe = getCpe(simpleroot=True)
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterNames><ParameterPath></ParameterPath><NextLevel>false</NextLevel></cwmp:GetParameterNames></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
