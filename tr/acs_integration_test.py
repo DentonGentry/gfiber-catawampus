@@ -561,15 +561,31 @@ class GetParamsRpcTest(unittest.TestCase):
 
   def testGetFullParamName(self):
     cpe = getCpe()
+    # Test Full parameter path with NextLevel=True, this should return a fault.
     soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterNames><ParameterPath>BooleanParameter</ParameterPath><NextLevel>true</NextLevel></cwmp:GetParameterNames></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
     responseXml = cpe.cpe_soap.Handle(soapxml)
-    print responseXml
 
     root = ET.fromstring(str(responseXml))
     names = root.findall(
         SOAPNS + 'Body/' + CWMPNS +
         'GetParameterNamesResponse/ParameterList/ParameterInfoStruct/Name')
     self.assertEqual(len(names), 0)
+    fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
+    self.assertTrue(fault)
+    print 'fault=%s' % (fault,)
+    print 'code=%s' % (fault.find('detail/' + CWMPNS + 'Fault/' + 'FaultCode'),)
+    self.assertEqual(
+        fault.find('detail/' + CWMPNS + 'Fault/' + 'FaultCode').text, '9003')
+
+    # Test Full parameter path with NextLevel=False, this should return the
+    # parameter name.
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterNames><ParameterPath>BooleanParameter</ParameterPath><NextLevel>false</NextLevel></cwmp:GetParameterNames></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+    root = ET.fromstring(str(responseXml))
+    names = root.findall(
+        SOAPNS + 'Body/' + CWMPNS +
+        'GetParameterNamesResponse/ParameterList/ParameterInfoStruct/Name')
+    self.assertEqual(len(names), 1)
 
   def testGetParamNameRecursive(self):
     cpe = getCpe(simpleroot=True)
@@ -581,21 +597,23 @@ class GetParamsRpcTest(unittest.TestCase):
     names = root.findall(
         SOAPNS + 'Body/' + CWMPNS +
         'GetParameterNamesResponse/ParameterList/ParameterInfoStruct/Name')
-    self.assertEqual(len(names), 4)
-    self.assertEqual(names[0].text, '.')
-    self.assertEqual(names[1].text, 'SubObject.')
-    self.assertEqual(names[2].text, 'SubObject.Foo')
-    self.assertEqual(names[3].text, 'SubObject.X_CATAWAMPUS-ORG_Bar')
+    self.assertEqual(len(names), 3)
+    self.assertEqual(names[0].text, 'SubObject.')
+    self.assertEqual(names[1].text, 'SubObject.Foo')
+    self.assertEqual(names[2].text, 'SubObject.X_CATAWAMPUS-ORG_Bar')
 
-  def _AssertCwmpFaultNopeNotHere(self, root):
+  def _AssertCwmpFaultNopeNotHere(self, root, expect_code='9005',
+                                  fault_string='NopeNotHere'):
     fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
     self.assertTrue(fault)
     self.assertEqual(fault.find('faultcode').text, 'Client')
     self.assertEqual(fault.find('faultstring').text, 'CWMP fault')
     detail = fault.find('detail/' + CWMPNS + 'Fault')
     self.assertTrue(detail)
-    self.assertEqual(detail.find('FaultCode').text, '9005')
-    self.assertTrue(detail.find('FaultString').text.find('NopeNotHere'))
+    self.assertEqual(detail.find('FaultCode').text, expect_code)
+    print 'FaultString=' + str(detail.find('FaultString').text)
+    print 'fault_string=%s' % (fault_string,)
+    self.assertTrue(detail.find('FaultString').text.find(fault_string))
 
   def testSetVendorParam(self):
     cpe = getCpe(simpleroot=True)
@@ -667,7 +685,25 @@ class GetParamsRpcTest(unittest.TestCase):
     root = ET.fromstring(str(responseXml))
     name = root.find(SOAPNS + 'Body/' + CWMPNS + 'GetParameterNamesResponse')
     self.assertTrue(name is None)
-    self._AssertCwmpFaultNopeNotHere(root)
+    # From the spec:
+    # If NextLevel is true and ParameterPath is a Parameter name rather than a
+    # partial path, the CPE MUST return a fault response with the Invalid
+    # Arguments fault code (9003).
+    self._AssertCwmpFaultNopeNotHere(root, expect_code='9003')
+
+    soapxml = r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterNames><ParameterPath>NopeNotHere.</ParameterPath><NextLevel>true</NextLevel></cwmp:GetParameterNames></soapenv:Body></soapenv:Envelope>"""  #pylint: disable-msg=C6310
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+    print '!!!'
+    print responseXml
+    print '!!!'
+    root = ET.fromstring(str(responseXml))
+    name = root.find(SOAPNS + 'Body/' + CWMPNS + 'GetParameterNamesResponse')
+    self.assertTrue(name is None)
+    # From the spec:
+    # If NextLevel is true and ParameterPath is a Parameter name rather than a
+    # partial path, the CPE MUST return a fault response with the Invalid
+    # Arguments fault code (9003).
+    self._AssertCwmpFaultNopeNotHere(root, fault_string='NopeNotHere.')
 
     # We don't do a string compare of the XML output, that is too fragile
     # as a test. We parse the XML and look for expected values. Nonetheless

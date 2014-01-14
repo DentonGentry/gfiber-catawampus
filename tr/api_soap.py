@@ -264,10 +264,16 @@ class CPE(SoapHandler):
 
   def GetParameterNames(self, xml, req):
     path = str(req.ParameterPath)
-    if path.endswith('.'):
-      path = path[:-1]
     nextlevel = cwmpbool.parse(req.NextLevel)
+    # Spec: If NextLevel is true and ParameterPath is a Parameter name
+    # rather than apartial path, the CPE MUST return a fault response
+    # with the Invalid Arguments fault code(9003).
+    if nextlevel is True and path and not path.endswith('.'):
+      return soap.SimpleFault(
+          xml, soap.CpeFault.INVALID_ARGUMENTS,
+          faultstring='No such parameter: %s' % str(path))
     names = list(self.impl.GetParameterNames(path, nextlevel))
+
     soaptype = 'ParameterInfoStruct[{0}]'.format(len(names))
     parameter_list_attrs = {'soap-enc:arrayType': soaptype}
     with xml['cwmp:GetParameterNamesResponse']:

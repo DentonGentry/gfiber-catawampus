@@ -51,7 +51,7 @@ class SetParameterErrors(Exception):
 
 
 class ParameterNameError(KeyError):
-  """Raised for a SetParameterValue to a nonexistant parameter."""
+  """Raised for SetParameterValue/GetParameterNames to nonexistant parameter."""
 
   def __init__(self, parameter, msg):
     KeyError.__init__(self, msg)
@@ -470,10 +470,34 @@ class CPE(TR069Service):
 
   def GetParameterNames(self, parameter_path, next_level_only):
     """Get the names of parameters or objects (possibly recursively)."""
-    if not next_level_only:
+    orig_path = parameter_path
+    full_path = True
+    if parameter_path.endswith('.'):
+      full_path = False
+      parameter_path = parameter_path[:-1]
+    # First look up and find the parameter, if it doesn't exist we
+    # need to raise an exception.  Spec: If the fault is caused by an
+    # invalid ParameterPath value, the Invalid Parameter Name fault
+    # code (9005) MUST be used instead of the more general Invalid
+    # Arguments fault code(9003).  (An empty parameter_path is valid,
+    # it means the root object)
+    # spec: if ParameterPath were empty, with NextLevel equal true,
+    # the response would list only IternetGatewayDevice. (if the CPE
+    # is an Internet Gateway Device)
+    if parameter_path:
+      try:
+        obj = self.root.GetExport(parameter_path)
+      except KeyError:
+        # ParameterNameError will get changed into the proper tr-69 fault
+        # 9005.
+        # The second parameter is what gets sent back to ACS and has to be
+        # the parameter name.
+        raise ParameterNameError(parameter=orig_path, msg=orig_path)
+
+    if not next_level_only and orig_path:
       # tr-69 A.3.2.3 If false, the response MUST contain the Parameter
       # or object whose name exactly matches the ParameterPath argument...
-      yield parameter_path + '.'
+      yield orig_path
     exports = self.root.ListExports(parameter_path, not next_level_only)
     for param in exports:
       yield self._JoinParamPath(parameter_path, str(param))
