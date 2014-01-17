@@ -41,6 +41,8 @@ class DHCPv4(CATA181DEV.Device.DHCPv4):
   def __init__(self):
     super(DHCPv4, self).__init__()
     self.Server = Dhcp4Server()
+    self.ClientList = {}
+    self.Unexport(objects=['Relay'])
 
 
 class Dhcp4Server(DHCP4SERVER):

@@ -170,10 +170,28 @@ class EthernetFakeCPE(tr181.Device_v2_2.Device.Ethernet):
 
 class IPFakeCPE(tr181.Device_v2_2.Device.IP):
   """Implements Device_v2_2.Device.IP for FakeCPE Platform."""
+  # Enable fields are supposed to be writeable; we don't support that.
+  IPv4Capable = tr.types.ReadOnlyBool(True)
+  IPv4Enable = tr.types.ReadOnlyBool(True)
+  IPv4Status = tr.types.ReadOnlyString('Enabled')
+  IPv6Capable = tr.types.ReadOnlyBool(True)
+  IPv6Enable = tr.types.ReadOnlyBool(True)
+  IPv6Status = tr.types.ReadOnlyString('Enabled')
 
   def __init__(self):
     super(IPFakeCPE, self).__init__()
     self.InterfaceList = {}
+    self.ActivePortList = {}
+    self.Unexport(objects=['Diagnostics'])
+    self.Unexport(['ULAPrefix'])
+
+  @property
+  def InterfaceNumberOfEntries(self):
+    return len(self.InterfaceList)
+
+  @property
+  def ActivePortNumberOfEntries(self):
+    return len(self.ActivePortList)
 
 
 class InternetGatewayDeviceFakeCPE(BASE98IGD):
