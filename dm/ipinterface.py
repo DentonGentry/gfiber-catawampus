@@ -27,8 +27,12 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import netdev
 import pynetlinux
 import socket
+import struct
+import subprocess
 import tr.core
 import tr.cwmpdate
+import tr.mainloop
+import tr.session
 import tr.tr181_v2_6
 import tr.types
 
@@ -40,7 +44,23 @@ except ImportError:
   IFADDRESSES = None
 
 BASEIPINTF = tr.tr181_v2_6.Device_v2_6.Device.IP.Interface
+IPADDCMD = ['tr69_ip_mod']
 PYNETIFCONF = pynetlinux.ifconfig.Interface
+
+
+def _ConvertMaskToCIDR(mask):
+  """Convert a netmask like 255.255.255.0 to a CIDR length like /24."""
+  bits = int(struct.unpack('!I',socket.inet_aton(mask))[0])
+  found_one_bit = False
+  maskbits = 0
+  for i in range(32):
+    if (bits >> i) & 1 == 1:
+      found_one_bit = True
+    elif found_one_bit:
+      return -1
+    else:
+      maskbits += 1
+  return 32 - maskbits
 
 
 class IPInterfaceStatsLinux26(netdev.NetdevStatsLinux26, BASEIPINTF.Stats):
@@ -75,16 +95,6 @@ class IPInterfaceLinux26(BASEIPINTF):
     type(self).Name.Set(self, ifname)
     type(self).LowerLayers.Set(self, lowerlayers)
     self.IPv6PrefixList = {}
-    if IFADDRESSES is not None:
-      self.IPv4AddressList = tr.core.AutoDict(
-          'IPv4AddressList', iteritems=self.IterIPv4Addresses,
-          getitem=self.GetIPv4AddressByIndex)
-      self.IPv6AddressList = tr.core.AutoDict(
-          'IPv6AddressList', iteritems=self.IterIPv6Addresses,
-          getitem=self.GetIPv6AddressByIndex)
-    else:
-      self.IPv4AddressList = {}
-      self.IPv6AddressList = {}
 
   @property
   def LastChange(self):
@@ -103,78 +113,100 @@ class IPInterfaceLinux26(BASEIPINTF):
     return 'Up' if self._pynet.is_up() else 'LowerLayerDown'
 
   @property
+  @tr.session.cache
+  def IPv4AddressList(self):
+    """Device.IP.Interface.{i}.IPv4Address.{i}."""
+    ips = IFADDRESSES(self._ifname)
+    ip4s = ips.get(socket.AF_INET, [])
+    result = {}
+    for idx, ipdict in enumerate(ip4s, start=1):
+      ip4 = ipdict.get('addr', '0.0.0.0')
+      mask = ipdict.get('netmask', '0.0.0.0')
+      ipa = IPv4AddressLinux26(ifname=self._ifname, ipaddr=ip4, netmask=mask)
+      result[str(idx)] = ipa
+    return result
+
+  @property
   def IPv4AddressNumberOfEntries(self):
     return len(self.IPv4AddressList)
+
+  def IPv4Address(self):
+    return IPv4AddressLinux26(ifname=self._ifname)
+
+  @property
+  @tr.session.cache
+  def IPv6AddressList(self):
+    """Device.IP.Interface.{i}.IPv6Address.{i}."""
+    ips = IFADDRESSES(self._ifname)
+    ip6s = ips.get(socket.AF_INET6, [])
+    result = {}
+    for idx, ipdict in enumerate(ip6s, start=1):
+      ip6 = ipdict.get('addr', '::0')
+      ipa = IPv6AddressLinux26(ifname=self._ifname, ipaddr=ip6)
+      result[str(idx)] = ipa
+    return result
 
   @property
   def IPv6AddressNumberOfEntries(self):
     return len(self.IPv6AddressList)
 
+  def IPv6Address(self):
+    return IPv6AddressLinux26(ifname=self._ifname)
+
   @property
   def IPv6PrefixNumberOfEntries(self):
     return len(self.IPv6PrefixList)
-
-  def GetIpv4Address(self, ipdict):
-    ipaddr = ipdict.get('addr', '0.0.0.0')
-    netmask = ipdict.get('netmask', '0.0.0.0')
-    return IPv4AddressLinux26(ipaddr=ipaddr, netmask=netmask)
-
-  def IterIPv4Addresses(self):
-    """Retrieves a list of all IP addresses for this interface."""
-    ips = IFADDRESSES(self._ifname)
-    ip4s = ips.get(socket.AF_INET, [])
-    for idx, ipdict in enumerate(ip4s):
-      yield idx, self.GetIpv4Address(ipdict=ipdict)
-
-  def GetIPv4AddressByIndex(self, index):
-    ips = IFADDRESSES(self._ifname)
-    ip4s = ips.get(socket.AF_INET, [])
-    if index >= len(ip4s):
-      raise IndexError('No such object IPv4Address.{0}'.format(index))
-    return self.GetIpv4Address(ipdict=ip4s[index])
-
-  def GetIpv6Address(self, ipdict):
-    ipaddr = ipdict.get('addr', '0.0.0.0')
-    return IPv6AddressLinux26(ipaddr=ipaddr)
-
-  def IterIPv6Addresses(self):
-    """Retrieves a list of all IP addresses for this interface."""
-    ips = IFADDRESSES(self._ifname)
-    ip6s = ips.get(socket.AF_INET6, [])
-    for idx, ipdict in enumerate(ip6s):
-      yield idx, self.GetIpv6Address(ipdict=ipdict)
-
-  def GetIPv6AddressByIndex(self, index):
-    ips = IFADDRESSES(self._ifname)
-    ip6s = ips.get(socket.AF_INET6, [])
-    if index >= len(ip6s):
-      raise IndexError('No such object IPv6Address.{0}'.format(index))
-    return self.GetIpv6Address(ipdict=ip6s[index])
 
 
 class IPv4AddressLinux26(BASEIPINTF.IPv4Address):
   """tr181 Device.IP.Interface.{i}.IPv4Address implementation for Linux."""
   Enable = tr.types.ReadOnlyBool(True)
-  IPAddress = tr.types.ReadOnlyString('')
+  IPAddress = tr.types.TriggerIP4Addr('')
   Status = tr.types.ReadOnlyString('Enabled')
-  SubnetMask = tr.types.ReadOnlyString('')
+  SubnetMask = tr.types.TriggerIP4Addr('')
 
-  def __init__(self, ipaddr, netmask):
+  def __init__(self, ifname, ipaddr='', netmask=''):
     super(IPv4AddressLinux26, self).__init__()
     self.Unexport(['AddressingType', 'Alias'])
-    type(self).IPAddress.Set(self, ipaddr)
-    type(self).SubnetMask.Set(self, netmask)
+    self._initialized = False
+    self._ifname = ifname
+    self.IPAddress = ipaddr
+    self.SubnetMask = netmask
+    self._initialized = True
+
+  def Triggered(self):
+    """Called when parameters are modified.
+
+    We ignore changes which occur while the object is initializing.
+    """
+    if self._initialized:
+      self.Update()
+
+  @tr.mainloop.WaitUntilIdle
+  def Update(self):
+    """Pass updated IP address to a platform command.
+
+    The platform will likely need to save this configuration,
+    and then apply it to the running system. Handle it in an
+    external script rather than build all of it into catawampus.
+    """
+    ip = self.IPAddress if self.IPAddress else ''
+    mask = str(_ConvertMaskToCIDR(self.SubnetMask)) if self.SubnetMask else ''
+    cmd = IPADDCMD + ['--fam=ip4', '--dev=' + self._ifname,
+                      '--ip=' + ip, '--mask=' + mask]
+    subprocess.call(cmd)
 
 
 class IPv6AddressLinux26(BASEIPINTF.IPv6Address):
   """tr181 Device.IP.Interface.{i}.IPv6Address implementation for Linux."""
   Enable = tr.types.ReadOnlyBool(True)
-  IPAddress = tr.types.ReadOnlyString('')
+  IPAddress = tr.types.ReadOnlyIP6Addr('')
   IPAddressStatus = tr.types.ReadOnlyString('Preferred')
   Status = tr.types.ReadOnlyString('Enabled')
 
-  def __init__(self, ipaddr):
+  def __init__(self, ifname, ipaddr=''):
     super(IPv6AddressLinux26, self).__init__()
     self.Unexport(['Alias', 'Anycast', 'Origin', 'PreferredLifetime',
                    'Prefix', 'ValidLifetime'])
+    self._ifname = ifname
     type(self).IPAddress.Set(self, ipaddr)

@@ -38,6 +38,7 @@ import dm.ethernet
 import dm.host
 import dm.igd_time
 import dm.ipinterface
+import dm.miniupnp
 import dm.periodic_statistics
 import dm.storage
 import dm.temperature
@@ -105,11 +106,6 @@ def _ExistingInterfaces(ifcnames):
 def _WifiInterfaces():
   # ath0/ath1 are Atheros interfaces; eth2 is bcmwifi on GFHD100
   return _ExistingInterfaces(['ath0', 'ath1', 'eth2'])
-
-
-def _IsNetworkBox():
-  rc = subprocess.call([ISNETWORKBOX])
-  return True if rc == 0 else False
 
 
 class PlatformConfig(platform_config.PlatformConfigMeta):
@@ -347,11 +343,8 @@ class Ethernet(tr181.Device_v2_6.Device.Ethernet):
     type(self).VLANTerminationNumberOfEntries.SetList(
         self, self.VLANTerminationList)
 
-    if _ExistingInterfaces(['br0']):
-      self.InterfaceList['256'] = dm.ethernet.EthernetInterfaceLinux26(
-          ifname='br0')
     i = 1
-    for ifc in _ExistingInterfaces(['lan0', 'eth0', 'wan0']):
+    for ifc in _ExistingInterfaces(['eth0', 'wan0']):
       qprefix = '/sys/kernel/debug/bcmgenet/%s/bcmgenet_discard_cnt_q' % ifc
       qglob = glob.glob(qprefix + '*')
       self.InterfaceList[str(i)] = dm.ethernet.EthernetInterfaceLinux26(
@@ -363,9 +356,14 @@ class Ethernet(tr181.Device_v2_6.Device.Ethernet):
     if QCASWITCHPORT is not None:
       mac = PYNETIFCONF('lan0').get_mac()
       for port in range(1, 5):
-        self.InterfaceList[str(i)] = QCASWITCHPORT(portnum=port,
-                                                   mac=mac, ifname='lan0')
+        q = QCASWITCHPORT(portnum=port, mac=mac, ifname='lan0')
+        self.InterfaceList[str(i)] = q
         i += 1
+    i = 256
+    for ifc in _ExistingInterfaces(['br0', 'lan0']):
+      e = dm.ethernet.EthernetInterfaceLinux26(ifname=ifc)
+      self.InterfaceList[str(i)] = e
+      i -= 1
 
 
 class Moca(tr181.Device_v2_6.Device.MoCA):
@@ -432,7 +430,7 @@ class FanReadGpio(CATA181.DeviceInfo.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
 
 class IP(tr181.Device_v2_6.Device.IP):
   """tr-181 Device.IP implementation for Google Fiber media platforms."""
-  # Enable fields are supposed to be writeable; we don't support that.
+  # Enable fields are supposed to be writeable, but we don't support that.
   IPv4Capable = tr.types.ReadOnlyBool(True)
   IPv4Enable = tr.types.ReadOnlyBool(True)
   IPv4Status = tr.types.ReadOnlyString('Enabled')
@@ -512,6 +510,7 @@ class Device(tr181.Device_v2_6.Device):
     self.InterfaceStackList = {}
     self.Export(objects=['PeriodicStatistics'])
     self.PeriodicStatistics = periodic_stats
+    self.UPnP = dm.miniupnp.UPnP()
     self._AddTemperatureStuff()
     self._AddHostsStuff(dmroot=dmroot)
 

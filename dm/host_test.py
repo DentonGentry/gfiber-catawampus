@@ -104,38 +104,26 @@ class HostTest(unittest.TestCase):
     iflookup = {'eth0': 'Ethernet', 'eth1.0': 'MoCA',}
     h = host.Hosts(iflookup, bridgename='br0')
     self.assertEqual(len(h.HostList), 10)
-    # brforward file taken from a real system in the lab
-    self.assertEqual(h.HostList['1'].PhysAddress, 'e8:39:35:b8:66:c8')
-    self.assertEqual(h.HostList['1'].Layer1Interface, 'Ethernet')
-    self.assertEqual(h.HostList['2'].PhysAddress, '68:05:ca:16:2a:90')
-    self.assertEqual(h.HostList['2'].Layer1Interface, 'Ethernet')
-    self.assertEqual(h.HostList['3'].PhysAddress, '28:c0:da:3a:b4:15')
-    self.assertEqual(h.HostList['3'].Layer1Interface, 'Ethernet')
-    self.assertEqual(h.HostList['4'].PhysAddress, 'f8:8f:ca:00:c4:47')
-    self.assertEqual(h.HostList['4'].Layer1Interface, 'MoCA')
-    self.assertEqual(h.HostList['5'].PhysAddress, 'f8:8f:ca:00:da:6c')
-    self.assertEqual(h.HostList['5'].Layer1Interface, 'Ethernet')
-    self.assertEqual(h.HostList['6'].PhysAddress, 'f8:8f:ca:09:4e:25')
-    self.assertEqual(h.HostList['6'].Layer1Interface, 'MoCA')
-    self.assertEqual(h.HostList['7'].PhysAddress, 'f8:8f:ca:00:c2:df')
-    self.assertEqual(h.HostList['7'].Layer1Interface, 'Ethernet')
-    self.assertEqual(h.HostList['8'].PhysAddress, 'f8:8f:ca:00:c2:47')
-    self.assertEqual(h.HostList['8'].Layer1Interface, 'Ethernet')
-    self.assertEqual(h.HostList['9'].PhysAddress, '00:00:de:ad:be:ef')
-    self.assertEqual(h.HostList['9'].Layer1Interface, 'Ethernet')
-    self.assertEqual(h.HostList['10'].PhysAddress, 'ac:4b:c8:7e:32:04')
-    self.assertEqual(h.HostList['10'].Layer1Interface, 'Ethernet')
     h.ValidateExports()
-    h.HostList['1'].ValidateExports()
-    h.HostList['2'].ValidateExports()
-    h.HostList['3'].ValidateExports()
-    h.HostList['4'].ValidateExports()
-    h.HostList['5'].ValidateExports()
-    h.HostList['6'].ValidateExports()
-    h.HostList['7'].ValidateExports()
-    h.HostList['8'].ValidateExports()
-    h.HostList['9'].ValidateExports()
-    h.HostList['10'].ValidateExports()
+    # brforward file taken from a real system in the lab
+    expected = {
+        'e8:39:35:b8:66:c8': 'Ethernet',
+        '68:05:ca:16:2a:90': 'Ethernet',
+        '28:c0:da:3a:b4:15': 'Ethernet',
+        'f8:8f:ca:00:c4:47': 'MoCA',
+        'f8:8f:ca:00:da:6c': 'Ethernet',
+        'f8:8f:ca:09:4e:25': 'MoCA',
+        'f8:8f:ca:00:c2:df': 'Ethernet',
+        'f8:8f:ca:00:c2:47': 'Ethernet',
+        '00:00:de:ad:be:ef': 'Ethernet',
+        'ac:4b:c8:7e:32:04': 'Ethernet',
+    }
+    for entry in h.HostList.values():
+      self.assertTrue(entry.PhysAddress in expected)
+      self.assertEqual(entry.Layer1Interface, expected[entry.PhysAddress])
+      del expected[entry.PhysAddress]
+      entry.ValidateExports()
+    self.assertEqual(len(expected), 0)
 
   def testMissingFdbFile(self):
     iflookup = {'eth0': 'Ethernet', 'eth1.0': 'MoCA',}

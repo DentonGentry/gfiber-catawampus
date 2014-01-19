@@ -46,16 +46,20 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def setUp(self):
     super(DeviceTest, self).setUp()
+    self.old_ITERIFS = device.ITERIFS
     self.old_NVRAM = device.NVRAM
     self.install_cb_called = False
     self.install_cb_faultcode = None
     self.install_cb_faultstring = None
+    device.ITERIFS = MockIterIfs
 
   def tearDown(self):
     super(DeviceTest, self).tearDown()
     device.NVRAM = self.old_NVRAM
+    device.ITERIFS = self.old_ITERIFS
 
   def testValidateExports(self):
+    device.NVRAM = 'testdata/device/nvram'
     did = device.DeviceId()
     periodic_stats = dm.periodic_statistics.PeriodicStatistics()
     dev = device.Device(did, periodic_stats)
@@ -242,6 +246,11 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.assertTrue(self.install_cb_called)
     self.assertEqual(self.install_cb_faultcode, 9002)
     self.assertTrue(self.install_cb_faultstring)
+
+
+def MockIterIfs(arg):
+  """Mock out pynetlinux.Interface.Iterifs, return no interfaces."""
+  return []
 
 
 if __name__ == '__main__':

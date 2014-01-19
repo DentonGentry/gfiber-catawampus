@@ -56,6 +56,7 @@ NVRAM = 'nvram'
 REBOOT = 'reboot'
 INSTALL_FIRMWARE_IMAGE = 'install_firmware'
 INSTALL_JFFS_IMAGE = 'install_jffs'
+ITERIFS = pynetlinux.ifconfig.iterifs
 JFFS_VERSION_FILE = '/jffs/jffs-version.txt'
 CONFIGDIR = '/config/tr69'
 DOWNLOADDIR = '/mnt/share/download'
@@ -285,7 +286,7 @@ class Ethernet(tr181.Device_v2_2.Device.Ethernet):
 
   def _InterfaceListIterItems(self):
     """Iterate over InterfaceList."""
-    for index, interface in enumerate(pynetlinux.ifconfig.iterifs(False)):
+    for index, interface in enumerate(ITERIFS(False)):
       key = str(index)
       value = dm.ethernet.EthernetInterfaceLinux26(ifname=interface.name)
       yield key, value
@@ -324,7 +325,7 @@ class IP(tr181.Device_v2_2.Device.IP):
 
   def _InterfaceListIterItems(self):
     """Iterate over InterfaceList."""
-    for index, interface in enumerate(pynetlinux.ifconfig.iterifs(False)):
+    for index, interface in enumerate(ITERIFS(False)):
       key = str(index)
       value = dm.ipinterface.IPInterfaceLinux26(
           ifname=interface.name,

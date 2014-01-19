@@ -280,7 +280,7 @@ class Model(object):
     for i in self.ItemsMatchingPrefix(prefix):
       if len(i) == 1 and i[0]:
         # a parameter of this object
-        obj.params.append(i[0])
+        obj.params.append(i[0].strip())
       elif len(i) == 2 and not i[1]:
         # a sub-object of this object
         subobj = self.Objectify(i[0], prefix[:-1] + i)

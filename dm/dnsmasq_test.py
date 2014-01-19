@@ -44,6 +44,9 @@ class DnsmasqTest(unittest.TestCase):
     self.old_DNSMASQLEASES = dnsmasq.DNSMASQLEASES
     dnsmasq.DNSMASQLEASES[0] = 'testdata/dnsmasq/leases'
     dnsmasq.LOGCONFIG = False
+    self.old_RESTARTCMD = dnsmasq.RESTARTCMD
+    self.restartfile = os.path.join(self.config_dir, 'restarted')
+    dnsmasq.RESTARTCMD = ['testdata/dnsmasq/restart', self.restartfile]
     self.dh4 = dnsmasq.Dhcp4Server()
     self.dh4p = dnsmasq.Dhcp4ServerPool(name='test')
     self.dh4.PoolList[1] = self.dh4p
@@ -121,6 +124,7 @@ class DnsmasqTest(unittest.TestCase):
       self.assertTrue(expected in lines)
       lines.remove(expected)
     self.assertEqual(len(lines), 0)
+    self.assertTrue(os.path.exists(self.restartfile))
 
   def testSuppressIdenticalConfig(self):
     """Test that an identical config is not rewritten."""
@@ -129,11 +133,28 @@ class DnsmasqTest(unittest.TestCase):
     dh4p.MinAddress = '1.1.1.1'
     dh4p.MaxAddress = '2.2.2.2'
     self.loop.RunOnce(timeout=1)
+    self.assertTrue(os.path.exists(self.restartfile))
+    os.unlink(self.restartfile)
     fs = os.stat(dnsmasq.DNSMASQCONFIG[0])
     dh4p.MaxAddress = '2.2.2.2'
     self.loop.RunOnce(timeout=1)
     fs2 = os.stat(dnsmasq.DNSMASQCONFIG[0])
     self.assertEqual(fs, fs2)
+    self.assertFalse(os.path.exists(self.restartfile))
+
+  def testRestartCmdFails(self):
+    """'restart dnsmasq' failing should not kill the process."""
+    dnsmasq.RESTARTCMD = ['/nonexistent']
+    dh4p = self.dh4p
+    dh4p.Enable = True
+    dh4p.MinAddress = '1.1.1.1'
+    dh4p.MaxAddress = '2.2.2.2'
+    self.loop.RunOnce(timeout=1)
+    # should see a traceback, but not kill the process
+    dnsmasq.RESTARTCMD = ['testdata/dnsmasq/restart_fails']
+    dh4p.MaxAddress = '2.2.2.3'
+    self.loop.RunOnce(timeout=1)
+    # should see a traceback, but not kill the process
 
   def _setConditionalParameters(self, dh4p):
     """Set parameters for the ConditionalConfig test cases."""
@@ -276,7 +297,7 @@ class DnsmasqTest(unittest.TestCase):
     dh4p = self.dh4p
     self.assertEqual(len(dh4p.ClientList), 0)
 
-  def testMissingDnsmasqFile(self):
+  def testDnsmasqLeasesMissing(self):
     dnsmasq.DNSMASQLEASES[0] = '/nonexistent'
     dh4p = self.dh4p
     self.assertEqual(len(dh4p.ClientList), 0)

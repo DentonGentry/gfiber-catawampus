@@ -1,0 +1,5 @@
+#!/bin/sh
+
+outdir=$1
+shift 1
+echo -n "$*" >$outdir/ip-add

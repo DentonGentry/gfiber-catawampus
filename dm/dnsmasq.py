@@ -35,6 +35,8 @@ import binascii
 import datetime
 import errno
 import string
+import subprocess
+import traceback
 
 import tr.core
 import tr.helpers
@@ -51,9 +53,10 @@ DHCP4SERVERPOOL = DHCP4SERVER.Pool
 DASH_TO_UNDERSCORE = string.maketrans('-', '_')
 
 # unit tests can override these
-DNSMASQCONFIG = ['/config/dnsmasq/acs.conf']
-DNSMASQLEASES = ['/config/dnsmasq/dhcp.leases']
+DNSMASQCONFIG = ['/config/dnsmasq/cwmp.conf']
+DNSMASQLEASES = ['/config/dhcp.leases']
 LOGCONFIG = True
+RESTARTCMD = ['restart', 'dnsmasq']
 
 
 # All DhcpServerPool objects write their config to one file.
@@ -105,7 +108,7 @@ def _LogConfig(prefix, lines):
 
 
 @tr.mainloop.WaitUntilIdle
-def WriteDnsmasqConfig():
+def UpdateDnsmasqConfig():
   """Write out all configs and restart dnsmasq."""
   pools = []
   for s in DhcpServers:
@@ -120,7 +123,7 @@ def WriteDnsmasqConfig():
 
   oldfilelines = _ReadFileActiveLines(DNSMASQCONFIG[0])
   if lines == oldfilelines:
-    print 'dnsmasq config has not changed, not saving.\n'
+    print 'dnsmasq config has not changed, not updating.\n'
     return
 
   _LogConfig('new', lines)
@@ -129,11 +132,10 @@ def WriteDnsmasqConfig():
       f.write('# saved by catawampus %s\n' % str(datetime.datetime.utcnow()))
       for line in lines:
         f.write(line)
-  except IOError:
-    print 'Unable to save dnsmasq config\n'
-    return
-
-  # TODO(dgentry): restart dnsmasq
+    subprocess.check_call(RESTARTCMD)
+  except (IOError, OSError, subprocess.CalledProcessError):
+    print 'Unable to restart dnsmasq\n'
+    traceback.print_exc()
 
 
 class DHCPv4(CATA181DEV.Device.DHCPv4):
@@ -163,7 +165,7 @@ class Dhcp4Server(DHCP4SERVER):
   def Close(self):
     """Routine called by tr/core when an object is about to be deleted."""
     DhcpServers.remove(self)
-    WriteDnsmasqConfig()
+    UpdateDnsmasqConfig()
 
   def Pool(self):
     return Dhcp4ServerPool()
@@ -223,7 +225,7 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
       self.Unexport(['Alias'])
 
     def Triggered(self):
-      WriteDnsmasqConfig()
+      UpdateDnsmasqConfig()
 
   class StaticAddress(DHCP4SERVERPOOL.StaticAddress):
     """tr-181 Device.DHCPv4.Server.Pool.StaticAddress."""
@@ -237,7 +239,7 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
       self.Unexport(['Alias'])
 
     def Triggered(self):
-      WriteDnsmasqConfig()
+      UpdateDnsmasqConfig()
 
   def _GetUnusedName(self):
     """Generate a unique tag for this object."""
@@ -286,7 +288,7 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
   def Close(self):
     """Routine called by tr/core when an object is about to be deleted."""
     DhcpPoolTags.remove(self.name)
-    WriteDnsmasqConfig()
+    UpdateDnsmasqConfig()
 
   @property
   def Status(self):
@@ -324,7 +326,7 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
     return clients
 
   def Triggered(self):
-    WriteDnsmasqConfig()
+    UpdateDnsmasqConfig()
 
   def ValidateConfig(self, doprint=True):
     a = self.MinAddress

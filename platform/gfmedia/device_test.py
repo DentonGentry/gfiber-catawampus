@@ -183,12 +183,6 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.assertEqual(self.install_cb_faultcode, 9002)
     self.assertTrue(self.install_cb_faultstring)
 
-  def testIsNetworkBox(self):
-    device.ISNETWORKBOX = 'testdata/gfmedia/is-network-box'
-    self.assertTrue(device._IsNetworkBox())
-    device.ISNETWORKBOX = 'testdata/gfmedia/is-not-network-box'
-    self.assertFalse(device._IsNetworkBox())
-
 
 if __name__ == '__main__':
   unittest.main()
