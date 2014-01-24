@@ -59,7 +59,6 @@ EM_WAPI = 0x100  # Not enumerated in tr-98
 
 # Unit tests can override these.
 WL_EXE = 'wl'
-WL_SLEEP = 3  # Broadcom recommendation for 3 second sleep before final join.
 # Broadcom recommendation for delay while scanning for a channel
 WL_AUTOCHAN_SLEEP = 3
 
@@ -104,9 +103,11 @@ class Wl(object):
     self._if = interface
 
   def _SubprocessCall(self, cmd):
+    print 'running: %s %s' % (WL_EXE, cmd)
     subprocess.check_call([WL_EXE, '-i', self._if] + cmd)
 
   def _SubprocessWithOutput(self, cmd):
+    print 'running: %s %s' % (WL_EXE, cmd)
     wl = subprocess.Popen([WL_EXE, '-i', self._if] + cmd,
                           stdout=subprocess.PIPE)
     out, _ = wl.communicate(None)
@@ -144,24 +145,30 @@ class Wl(object):
     """Run the AP through an auto channel selection."""
     # Make sure the interface is up, and ssid is the empty string.
     self._SubprocessCall(['down'])
+    self._SubprocessCall(['ssid', ''])
+    self._SubprocessCall(['ap', '0'])
     self._SubprocessCall(['spect', '0'])
     self._SubprocessCall(['mpc', '0'])
     self._SubprocessCall(['up'])
-    self._SubprocessCall(['ssid', ''])
-    time.sleep(WL_SLEEP)
     # This starts a scan, and we give it some time to complete.
     # TODO(jnewlin): Chat with broadcom about how long we need/should
     # wait before setting the autoscanned channel.
     self._SubprocessCall(['autochannel', '1'])
     time.sleep(WL_AUTOCHAN_SLEEP)
-    # This programs the channel with the best channel found during the
-    # scan.
-    self._SubprocessCall(['autochannel', '2'])
+    # You're supposed to use 'autochannel 2' at this point to set the
+    # chanspec based on the autochannel results. Sadly, the driver is buggy
+    # about this, and loses the autochannel setting most of the time.
+    # So instead, just get the channel it chose, and force it explicitly
+    # later.
+    chanstr = self._SubprocessWithOutput(['autochannel'])
+    print 'autochannel selection: %r' % chanstr
+    chanspec = chanstr.split()[0]
     # Bring the interface back down and reset spect and mpc settings.
     # spect can't be changed for 0 -> 1 unless the interface is down.
     self._SubprocessCall(['down'])
     self._SubprocessCall(['spect', '1'])
     self._SubprocessCall(['mpc', '1'])
+    return chanspec
 
   def SetApMode(self):
     """Put device into AP mode."""
@@ -242,9 +249,7 @@ class Wl(object):
     self._SubprocessCall(['band', str(x)])
 
   def ValidateBand(self, band):
-    if band == '2.4GHz' or band == '5GHz':
-      return True
-    return False
+    return band in ('2.4GHz', '5GHz')
 
   @tr.session.cache
   def GetBasicDataTransmitRates(self):
@@ -300,7 +305,14 @@ class Wl(object):
     return 0
 
   def SetChannel(self, value):
-    self._SubprocessCall(['channel', str(value)])
+    try:
+      v = int(value)
+    except ValueError:
+      # a string like '64l' is a chanspec
+      self._SubprocessCall(['chanspec', str(value)])
+    else:
+      # if it can be converted to int, it's a normal channel number
+      self._SubprocessCall(['channel', str(value)])
 
   def ValidateChannel(self, value):
     """Check for a valid Wifi channel number."""
@@ -682,6 +694,7 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
     ivalue = int(value)
     if not self.wl.ValidateChannel(ivalue):
       raise ValueError('Invalid Channel: %d' % ivalue)
+    self.config.p_band = '2.4GHz' if ivalue < 20 else '5GHz'
     self.config.p_channel = ivalue
     self.config.p_auto_channel_enable = False
 
@@ -874,6 +887,16 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
       raise ValueError('Invalid OperatingFrequencyBand: %s' % value)
     self.config.p_band = value
 
+    if ((value == '2.4GHz' and self.config.p_channel >= 20) or
+        (value == '5GHz' and self.config.p_channel < 20)):
+      # Old channel is invalid. We could either hardcode a valid default
+      # or default to autochannel. They *might* be about to set either
+      # autochannel=True (harmless since that's what we just did) or
+      # an explicit channel (which will then set autochannel back to false).
+      # In both cases, plus the case there they don't do anything, setting
+      # autochannel to true by default here is the best we can do.
+      self.config.p_auto_channel_enable = True
+
   OperatingFrequencyBand = property(GetOperatingFrequencyBand,
                                     SetOperatingFrequencyBand, None,
                                     'WLANConfiguration.OperatingFrequencyBand')
@@ -896,17 +919,18 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
     self.wl.SetReset(True)
     if self.config.p_band:
       self.wl.SetBand(self.config.p_band)
-    self.wl.SetApMode()
     if self.config.p_auto_channel_enable:
-      self.wl.DoAutoChannelSelect()
+      chanspec = self.wl.DoAutoChannelSelect()
+    else:
+      chanspec = self.config.p_channel
+    self.wl.SetApMode()
     self.wl.SetBssStatus(False)
     if self.config.p_auto_rate_fallback_enabled is not None:
       self.wl.SetAutoRateFallBackEnabled(
           self.config.p_auto_rate_fallback_enabled)
     if self.config.p_bssid is not None:
       self.wl.SetBSSID(self.config.p_bssid)
-    if self.config.p_channel is not None:
-      self.wl.SetChannel(self.config.p_channel)
+    self.wl.SetChannel(chanspec)
     if self.config.p_regulatory_domain is not None:
       self.wl.SetRegulatoryDomain(self.config.p_regulatory_domain)
     if self.config.p_ssid_advertisement_enabled is not None:
@@ -942,7 +966,6 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
         self.wl.SetPMK(key)
 
     if self.config.p_ssid is not None:
-      time.sleep(WL_SLEEP)
       self.wl.SetSSID(self.config.p_ssid)
 
     # Setting WEP key has to come after setting SSID. (Doesn't make sense

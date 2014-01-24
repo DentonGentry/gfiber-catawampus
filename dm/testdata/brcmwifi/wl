@@ -1,5 +1,9 @@
 #!/bin/sh
 
+if [ $3 = autochannel ]; then
+   echo "60l (0xd83e)"
+fi
+
 if [ $3 = pwr_percent ]; then
   echo 25
 fi
