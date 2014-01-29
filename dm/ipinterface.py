@@ -29,6 +29,7 @@ import pynetlinux
 import socket
 import struct
 import subprocess
+import traceback
 import tr.core
 import tr.cwmpdate
 import tr.mainloop
@@ -44,7 +45,7 @@ except ImportError:
   IFADDRESSES = None
 
 BASEIPINTF = tr.tr181_v2_6.Device_v2_6.Device.IP.Interface
-IPADDCMD = ['tr69_ip_mod']
+IPCONFIG = ['tr69_ipconfig']
 PYNETIFCONF = pynetlinux.ifconfig.Interface
 
 
@@ -81,6 +82,9 @@ class IPInterfaceLinux26(BASEIPINTF):
 
   Enable = tr.types.ReadOnlyBool(True)
   IPv4Enable = tr.types.ReadOnlyBool(True)
+  IPv4AddressNumberOfEntries = tr.types.NumberOf()
+  IPv6AddressNumberOfEntries = tr.types.NumberOf()
+  IPv6PrefixNumberOfEntries = tr.types.NumberOf()
   IPv6Enable = tr.types.ReadOnlyBool(True)
   LowerLayers = tr.types.ReadOnlyString('')
   Name = tr.types.ReadOnlyString('')
@@ -94,7 +98,18 @@ class IPInterfaceLinux26(BASEIPINTF):
                    'ULAEnable'])
     type(self).Name.Set(self, ifname)
     type(self).LowerLayers.Set(self, lowerlayers)
+    self.IPv4AddressList = self._PopulateIPv4AddressList()
+    type(self).IPv4AddressNumberOfEntries.SetList(self, self.IPv4AddressList)
+    self.IPv6AddressList = self._PopulateIPv6AddressList()
+    type(self).IPv6AddressNumberOfEntries.SetList(self, self.IPv6AddressList)
     self.IPv6PrefixList = {}
+    type(self).IPv6PrefixNumberOfEntries.SetList(self, self.IPv6PrefixList)
+
+  def IPv4Address(self):
+    return IPv4AddressLinux26(parent=self)
+
+  def IPv6Address(self):
+    return IPv6AddressLinux26(parent=self)
 
   @property
   def LastChange(self):
@@ -112,9 +127,22 @@ class IPInterfaceLinux26(BASEIPINTF):
   def Status(self):
     return 'Up' if self._pynet.is_up() else 'LowerLayerDown'
 
-  @property
-  @tr.session.cache
-  def IPv4AddressList(self):
+  @tr.mainloop.WaitUntilIdle
+  def UpdateConfig(self):
+    """Pass IP addresses to the platform."""
+    cmd = IPCONFIG + [self._ifname]
+    for addr in self.IPv4AddressList.values():
+      ip = addr.IPAddress if addr.IPAddress else ''
+      mask = _ConvertMaskToCIDR(addr.SubnetMask) if addr.SubnetMask else 0
+      if ip and mask:
+        cmd.append('%s/%d' % (ip, mask))
+    try:
+      subprocess.check_call(cmd)
+    except (IOError, OSError, subprocess.CalledProcessError):
+      print 'Unable to execute %s\n' % cmd
+      traceback.print_exc()
+
+  def _PopulateIPv4AddressList(self):
     """Device.IP.Interface.{i}.IPv4Address.{i}."""
     ips = IFADDRESSES(self._ifname)
     ip4s = ips.get(socket.AF_INET, [])
@@ -122,40 +150,22 @@ class IPInterfaceLinux26(BASEIPINTF):
     for idx, ipdict in enumerate(ip4s, start=1):
       ip4 = ipdict.get('addr', '0.0.0.0')
       mask = ipdict.get('netmask', '0.0.0.0')
-      ipa = IPv4AddressLinux26(ifname=self._ifname, ipaddr=ip4, netmask=mask)
+      ipa = IPv4AddressLinux26(parent=self, ipaddr=ip4, netmask=mask)
       result[str(idx)] = ipa
     return result
 
-  @property
-  def IPv4AddressNumberOfEntries(self):
-    return len(self.IPv4AddressList)
-
-  def IPv4Address(self):
-    return IPv4AddressLinux26(ifname=self._ifname)
-
-  @property
-  @tr.session.cache
-  def IPv6AddressList(self):
+  def _PopulateIPv6AddressList(self):
     """Device.IP.Interface.{i}.IPv6Address.{i}."""
     ips = IFADDRESSES(self._ifname)
     ip6s = ips.get(socket.AF_INET6, [])
     result = {}
     for idx, ipdict in enumerate(ip6s, start=1):
       ip6 = ipdict.get('addr', '::0')
-      ipa = IPv6AddressLinux26(ifname=self._ifname, ipaddr=ip6)
+      # Handle Link Local addresses 'fe80::fa8f:caff:fe00:24a4%lan0'
+      ip6 = ip6.split('%')[0]
+      ipa = IPv6AddressLinux26(parent=self, ipaddr=ip6)
       result[str(idx)] = ipa
     return result
-
-  @property
-  def IPv6AddressNumberOfEntries(self):
-    return len(self.IPv6AddressList)
-
-  def IPv6Address(self):
-    return IPv6AddressLinux26(ifname=self._ifname)
-
-  @property
-  def IPv6PrefixNumberOfEntries(self):
-    return len(self.IPv6PrefixList)
 
 
 class IPv4AddressLinux26(BASEIPINTF.IPv4Address):
@@ -165,11 +175,11 @@ class IPv4AddressLinux26(BASEIPINTF.IPv4Address):
   Status = tr.types.ReadOnlyString('Enabled')
   SubnetMask = tr.types.TriggerIP4Addr('')
 
-  def __init__(self, ifname, ipaddr='', netmask=''):
+  def __init__(self, parent, ipaddr='', netmask=''):
     super(IPv4AddressLinux26, self).__init__()
     self.Unexport(['AddressingType', 'Alias'])
     self._initialized = False
-    self._ifname = ifname
+    self._parent = parent
     self.IPAddress = ipaddr
     self.SubnetMask = netmask
     self._initialized = True
@@ -180,21 +190,7 @@ class IPv4AddressLinux26(BASEIPINTF.IPv4Address):
     We ignore changes which occur while the object is initializing.
     """
     if self._initialized:
-      self.Update()
-
-  @tr.mainloop.WaitUntilIdle
-  def Update(self):
-    """Pass updated IP address to a platform command.
-
-    The platform will likely need to save this configuration,
-    and then apply it to the running system. Handle it in an
-    external script rather than build all of it into catawampus.
-    """
-    ip = self.IPAddress if self.IPAddress else ''
-    mask = str(_ConvertMaskToCIDR(self.SubnetMask)) if self.SubnetMask else ''
-    cmd = IPADDCMD + ['--fam=ip4', '--dev=' + self._ifname,
-                      '--ip=' + ip, '--mask=' + mask]
-    subprocess.call(cmd)
+      self._parent.UpdateConfig()
 
 
 class IPv6AddressLinux26(BASEIPINTF.IPv6Address):
@@ -204,9 +200,9 @@ class IPv6AddressLinux26(BASEIPINTF.IPv6Address):
   IPAddressStatus = tr.types.ReadOnlyString('Preferred')
   Status = tr.types.ReadOnlyString('Enabled')
 
-  def __init__(self, ifname, ipaddr=''):
+  def __init__(self, parent, ipaddr=''):
     super(IPv6AddressLinux26, self).__init__()
     self.Unexport(['Alias', 'Anycast', 'Origin', 'PreferredLifetime',
                    'Prefix', 'ValidLifetime'])
-    self._ifname = ifname
+    self._parent = parent
     type(self).IPAddress.Set(self, ipaddr)

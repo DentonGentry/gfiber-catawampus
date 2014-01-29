@@ -46,7 +46,7 @@ p,port=      IP port server is listening on [12999]
 """
 
 
-HISTORY_FILE = os.path.expanduser('~/.cwmp_history')
+HISTORY_FILE = os.path.expanduser('/tmp/.cwmp_history')
 
 
 def Log(s, *args):
@@ -241,8 +241,12 @@ def Interactive(client):
   if readline:
     readline.set_completer_delims(' \t\n\r/')
     readline.set_completer(client.ReadlineCompleter)
-    readline.parse_and_bind('bind ^I rl_complete')  # MacOS
-    readline.parse_and_bind('tab: complete')        # other
+    # this. drove. me. INSANE.
+    # http://stackoverflow.com/questions/7124035
+    if 'libedit' in readline.__doc__:
+      readline.parse_and_bind('bind ^I rl_complete')  # MacOS
+    else:
+      readline.parse_and_bind('tab: complete')        # other
 
   while True:
     print

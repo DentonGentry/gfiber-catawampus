@@ -41,10 +41,10 @@ class IpInterfaceTest(unittest.TestCase):
     self.old_PYNETIFCONF = ipinterface.PYNETIFCONF
     ipinterface.IFADDRESSES = MockIfaddresses
     ipinterface.PYNETIFCONF = MockPynet
-    netdev.PROC_NET_DEV = 'testdata/ethernet/net_dev'
+    netdev.PROC_NET_DEV = 'testdata/ipinterface/net_dev'
     tr.session.cache.flush()
     self.test_dir = tempfile.mkdtemp()
-    ipinterface.IPADDCMD = ['testdata/ipinterface/ip-add', self.test_dir]
+    ipinterface.IPCONFIG = ['testdata/ipinterface/ip-config', self.test_dir]
 
   def tearDown(self):
     ipinterface.PYNETIFCONF = self.old_PYNETIFCONF
@@ -97,26 +97,19 @@ class IpInterfaceTest(unittest.TestCase):
     ip.IPv4AddressList['1'].IPAddress = '1.1.1.4'
     self.loop.RunOnce(timeout=1)
     buf = open(out).read()
-    self.assertEqual(buf, '--fam=ip4 --dev=foo0 --ip=1.1.1.4 --mask=24')
+    expected = 'foo0 1.1.1.4/24 2.2.2.3/23'
+    self.assertEqual(buf, expected)
     ip.IPv4AddressList['1'].SubnetMask = '255.0.0.0'
     self.loop.RunOnce(timeout=1)
     buf = open(out).read()
-    self.assertEqual(buf, '--fam=ip4 --dev=foo0 --ip=1.1.1.4 --mask=8')
+    expected = 'foo0 1.1.1.4/8 2.2.2.3/23'
+    self.assertEqual(buf, expected)
     ip.IPv4AddressList['1'].IPAddress = ''
     ip.IPv4AddressList['1'].SubnetMask = ''
+    del ip.IPv4AddressList['2']
     self.loop.RunOnce(timeout=1)
     buf = open(out).read()
-    self.assertEqual(buf, '--fam=ip4 --dev=foo0 --ip= --mask=')
-
-  def disabled_testInterfaceIP6Write(self):
-    out = os.path.join(self.test_dir, 'ip-add')
-    ip = ipinterface.IPInterfaceLinux26('foo0')
-    ip.IPv6AddressList['1'].IPAddress = '1001::2'
-    self.loop.RunOnce(timeout=1)
-    self.assertEqual(open(out).read(), '--fam=ip6 --dev=foo0 --ip=1001::2')
-    ip.IPv6AddressList['1'].IPAddress = ''
-    self.loop.RunOnce(timeout=1)
-    self.assertEqual(open(out).read(), '--fam=ip6 --dev=foo0 --ip=')
+    self.assertEqual(buf, 'foo0')
 
   def testConvertMaskToCIDR(self):
     self.assertEqual(ipinterface._ConvertMaskToCIDR('255.255.255.255'), 32)
@@ -185,7 +178,7 @@ def MockIfaddresses(iface):
         socket.AF_INET6: [{'netmask': 'ffff:ffff:ffff:ffff::',
                            'addr': '1000:1000:1000:1000:0011:22ff:fe33:4455'},
                           {'netmask': 'ffff:ffff:ffff:ffff::',
-                           'addr': 'fe80::0011:22ff:fe33:4455'}]
+                           'addr': 'fe80::0011:22ff:fe33:4455%foo0'}]
     }
   if iface == 'foo1':
     return {
