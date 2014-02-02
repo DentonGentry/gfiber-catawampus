@@ -28,6 +28,7 @@ import traceback
 
 import google3
 
+import dm.binwifi
 import dm.brcmmoca
 import dm.brcmmoca2
 import dm.brcmwifi
@@ -559,8 +560,8 @@ class Device(tr181.Device_v2_6.Device):
         'eth1.0': 'Device.MoCA.Interface.1.',
         'moca0': 'Device.MoCA.Interface.1.',
         'moca0.0': 'Device.MoCA.Interface.1.',
-        'ath0': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.',
-        'ath1': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.2.',
+        'wlan0': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.',
+        'wlan1': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.2.',
         'eth2': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.',
     }
     self.Hosts = dm.host.Hosts(iflookup, bridgename='br0', dmroot=dmroot)
@@ -569,29 +570,32 @@ class Device(tr181.Device_v2_6.Device):
 class LANDevice(BASE98IGD.LANDevice):
   """tr-98 InternetGatewayDevice for Google Fiber media platforms."""
 
+  LANWLANConfigurationNumberOfEntries = tr.types.NumberOf()
+  LANEthernetInterfaceNumberOfEntries = tr.types.NumberOf()
+  LANUSBInterfaceNumberOfEntries = tr.types.NumberOf()
+
   def __init__(self):
     super(LANDevice, self).__init__()
     self.Unexport(['Alias'])
     self.Unexport(objects=['Hosts', 'LANHostConfigManagement'])
-    self.Unexport(lists=['LANEthernetInterfaceConfig',
-                         'LANUSBInterfaceConfig'])
+    self.LANEthernetInterfaceConfigList = {}
+    type(self).LANEthernetInterfaceNumberOfEntries.SetList(
+        self, self.LANEthernetInterfaceConfigList)
+    self.LANUSBInterfaceConfigList = {}
+    type(self).LANUSBInterfaceNumberOfEntries.SetList(
+        self, self.LANUSBInterfaceConfigList)
     self.WLANConfigurationList = {}
-    # TODO(apenwarr): support non-brcmwifi interfaces here
-    for i, wifc in enumerate(_ExistingInterfaces(['eth2']), 1):
+    type(self).LANWLANConfigurationNumberOfEntries.SetList(
+        self, self.WLANConfigurationList)
+    i = 1
+    for wifc in _ExistingInterfaces(['eth2']):
       wifi = dm.brcmwifi.BrcmWifiWlanConfiguration(wifc)
-      self.WLANConfigurationList = {str(i): wifi}
-
-  @property
-  def LANWLANConfigurationNumberOfEntries(self):
-    return len(self.WLANConfigurationList)
-
-  @property
-  def LANEthernetInterfaceNumberOfEntries(self):
-    return 0
-
-  @property
-  def LANUSBInterfaceNumberOfEntries(self):
-    return 0
+      self.WLANConfigurationList[str(i)] = wifi
+      i += 1
+    for wifc in _ExistingInterfaces(['wlan0', 'wlan1', 'wlan2']):
+      wifi = dm.binwifi.WlanConfiguration(wifc)
+      self.WLANConfigurationList[str(i)] = wifi
+      i += 1
 
 
 class InternetGatewayDevice(BASE98IGD):
