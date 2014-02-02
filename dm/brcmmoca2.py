@@ -296,11 +296,12 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
   def AssociatedDeviceNumberOfEntries(self):
     return len(self.AssociatedDeviceList)
 
+  @tr.session.cache
   def _MocaGetNodeIDs(self):
     """Return a list of active MoCA Node IDs."""
     nodes = list()
     for i in range(16):
-      mc = subprocess.Popen([MOCAP, 'get', '--node_stats', str(i)],
+      mc = subprocess.Popen([MOCAP, 'get', '--node_stats', 'index', str(i)],
                             stdout=subprocess.PIPE)
       out, _ = mc.communicate(None)
       for line in out.splitlines():
@@ -388,6 +389,7 @@ class BrcmMocaAssociatedDevice(CATA181MOCA.Interface.AssociatedDevice):
     self._ParseNodeStats()
     self._ParseGenNodeExtStatus()
 
+  @tr.session.cache
   def _ParseNodeStats(self):
     """Get stats for this node."""
     mc = subprocess.Popen([MOCAP, 'get', '--node_stats', str(self.NodeID)],
@@ -424,6 +426,7 @@ class BrcmMocaAssociatedDevice(CATA181MOCA.Interface.AssociatedDevice):
 
     type(self).RxErroredAndMissedPackets.Set(self, rx_err)
 
+  @tr.session.cache
   def _ExtractGenNodeExtStatus(self, nodeid, profile):
     """Parse mocap get --gen_node_ext_status to return relevant information.
 

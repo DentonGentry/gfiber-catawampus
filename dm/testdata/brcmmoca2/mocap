@@ -9,7 +9,7 @@ echo "uptime      : 09h:46m:35s "
 echo "link_uptime : 01h:41m:30s "
 echo "core_uptime : 06h:53m:50s "
 echo "ifname[16]  : foo0"
-echo "devname[64] : ?"
+echo "devname[64] : "
 echo "rf_band     : 0  ( 0x0 )"
 echo "chip_id     : 1948582066  ( 0x742500b2 )"
 echo "== end drv_info  ======================================"
@@ -38,6 +38,7 @@ echo "bw_status           : 0  ( 0x0 )"
 echo "nodes_usable_bitmask: 0  ( 0x0 )"
 echo "network_taboo_mask  : 0  ( 0x0 )"
 echo "network_taboo_start : 0  ( 0x0 )"
+echo "bonded_nodes_bitmask: 0  ( 0x0 )"
 echo "== end network_status  ================================ "
 fi
 
@@ -68,15 +69,20 @@ fi
 
 # --------------- Node 1 ------------------------
 
-if [ "$1" == get ] && [ "$2" == --node_stats ] && [ "$3" == 1 ]; then
+if [ "$1" == get ] && [ "$2" == --node_stats ] && \
+   [ "$3" == index ] && [ "$4" == 1 ]; then
 echo "Node 1  00:01:00:11:23:33"
 echo "== node_stats  ======================================== "
-echo "tx_packets       : 1"
-echo "rx_packets       : 2"
-echo "rx_cw_unerror    : 3"
-echo "rx_cw_corrected  : 4"
-echo "rx_cw_uncorrected: 5"
-echo "rx_no_sync       : 6"
+echo "tx_packets                    : 1"
+echo "rx_packets                    : 2"
+echo "primary_ch_rx_cw_unerror      : 3"
+echo "primary_ch_rx_cw_corrected    : 4"
+echo "primary_ch_rx_cw_uncorrected  : 5"
+echo "primary_ch_rx_no_sync         : 6"
+echo "secondary_ch_rx_cw_unerror    : 7"
+echo "secondary_ch_rx_cw_corrected  : 8"
+echo "secondary_ch_rx_cw_uncorrected: 9"
+echo "secondary_ch_rx_no_sync       : 10"
 echo "== end node_stats  ==================================== "
 fi
 
@@ -214,15 +220,20 @@ fi
 
 # --------------- Node 4 ------------------------
 
-if [ "$1" == get ] && [ "$2" == --node_stats ] && [ "$3" == 4 ]; then
+if [ "$1" == get ] && [ "$2" == --node_stats ] && \
+   [ "$3" == index ] && [ "$4" == 4 ]; then
 echo "Node 4  00:01:00:11:23:44"
 echo "== node_stats  ======================================== "
-echo "tx_packets       : 7"
-echo "rx_packets       : 8"
-echo "rx_cw_unerror    : 9"
-echo "rx_cw_corrected  : 10"
-echo "rx_cw_uncorrected: 11"
-echo "rx_no_sync       : 12"
+echo "tx_packets                    : 7"
+echo "rx_packets                    : 8"
+echo "primary_ch_rx_cw_unerror      : 9"
+echo "primary_ch_rx_cw_corrected    : 10"
+echo "primary_ch_rx_cw_uncorrected  : 11"
+echo "primary_ch_rx_no_sync         : 12"
+echo "secondary_ch_rx_cw_unerror    : 13"
+echo "secondary_ch_rx_cw_corrected  : 14"
+echo "secondary_ch_rx_cw_uncorrected: 15"
+echo "secondary_ch_rx_no_sync       : 16"
 echo "== end node_stats  ==================================== "
 fi
 
