@@ -67,6 +67,10 @@ class Ds6923OpticalInterface(BASE181OPTICAL.Interface):
   def GetDbmValue(self, offset):
     """Read from an i2c offset and convert to tr181 dbm format."""
     val = self.ReadWord(offset)
+    # When the optical cable is disconnected the chip sometimes returns
+    # 0, which make the log function really unhappy.
+    if val <= 0:
+      val = 1
     val = float(val) / 10000.0  # Get the value in milli-watts.
     # From spec:
     # The value is measured in dBm/1000, i.e. the value divided by 1000 is dB
