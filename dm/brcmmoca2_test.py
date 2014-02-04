@@ -149,7 +149,7 @@ class MocaTest(unittest.TestCase):
     self.assertEqual(ad.X_CATAWAMPUS_ORG_RxBcastPowerLevel_dBm, -25.100)
     self.assertEqual(ad.TxPackets, 1)
     self.assertEqual(ad.RxPackets, 2)
-    self.assertEqual(ad.RxErroredAndMissedPackets, 11)
+    self.assertEqual(ad.RxErroredAndMissedPackets, 30)
     self.assertEqual(ad.RxSNR, 38)
     self.assertEqual(ad.X_CATAWAMPUS_ORG_RxSNR_dB, 38.063)
     self.assertEqual(

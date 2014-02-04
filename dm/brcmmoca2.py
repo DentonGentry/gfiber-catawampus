@@ -43,8 +43,8 @@ MAC_RE = re.compile(r'^Node\s+\d+\s+((?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})')
 MHZ_RE = re.compile(r'^rf_channel\s*:\s*\d+ - (\d+) MHz')
 TX_RE = re.compile(r'^tx_packets\s*:\s*(\d+)')
 RX_RE = re.compile(r'^rx_packets\s*:\s*(\d+)')
-E1_RE = re.compile(r'^rx_cw_uncorrected\s*:\s*(\d+)')
-E2_RE = re.compile(r'^rx_no_sync\s*:\s*(\d+)')
+E1_RE = re.compile(r'rx_cw_uncorrected\s*:\s*(\d+)')
+E2_RE = re.compile(r'rx_no_sync\s*:\s*(\d+)')
 RX_CRC_RE = re.compile(r'^rx_.*_crc_error\s*:\s*(\d+)')
 RX_TIMEOUT_RE = re.compile(r'^rx_.*_timeout_error\s*:\s*(\d+)')
 TX_POWER_RE = re.compile(r'^tx_power\s*:\s*(\d+[.]?\d*)\s+dBm')
@@ -392,7 +392,8 @@ class BrcmMocaAssociatedDevice(CATA181MOCA.Interface.AssociatedDevice):
   @tr.session.cache
   def _ParseNodeStats(self):
     """Get stats for this node."""
-    mc = subprocess.Popen([MOCAP, 'get', '--node_stats', str(self.NodeID)],
+    mc = subprocess.Popen([MOCAP, 'get', '--node_stats',
+                           'index', str(self.NodeID)],
                           stdout=subprocess.PIPE)
     out, _ = mc.communicate(None)
     rx_err = 0
