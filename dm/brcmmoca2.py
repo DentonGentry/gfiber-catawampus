@@ -414,7 +414,8 @@ class BrcmMocaAssociatedDevice(CATA181MOCA.Interface.AssociatedDevice):
       if e2 is not None:
         rx_err += IntOrZero(e2.group(1))
 
-    mc = subprocess.Popen([MOCAP, 'get', '--node_stats_ext', str(self.NodeID)],
+    mc = subprocess.Popen([MOCAP, 'get', '--node_stats_ext',
+                           'index', str(self.NodeID)],
                           stdout=subprocess.PIPE)
     out, _ = mc.communicate(None)
     for line in out.splitlines():
