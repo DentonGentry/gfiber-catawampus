@@ -53,6 +53,8 @@ EASHEARTBEATFILE = ['/tmp/eas_heartbeat']
 EASPORTFILE = ['/tmp/eas_service_port']
 UICONTROLURLFILE = [ '/tmp/oregano_url' ]
 TCPALGORITHM = ['/config/tcp_congestion_control']
+TVBUFFERADDRESS = ['/tmp/tv_buffer_address']
+TVBUFFERKEY = ['/tmp/tv_buffer_key']
 
 
 def _SageEscape(s):
@@ -85,6 +87,8 @@ class GFiberTv(BASETV):
   EASHeartbeatTimestamp = tr.types.ReadOnly(f)
   TcpAlgorithm = tr.types.FileBacked(TCPALGORITHM, tr.types.String())
   UiControlUrl = tr.types.FileBacked(UICONTROLURLFILE, tr.types.String())
+  TvBufferAddress = tr.types.FileBacked(TVBUFFERADDRESS, tr.types.String())
+  TvBufferKey = tr.types.FileBacked(TVBUFFERKEY, tr.types.String())
 
   def __init__(self, mailbox_url, my_serial=None):
     """GFiberTV object.
