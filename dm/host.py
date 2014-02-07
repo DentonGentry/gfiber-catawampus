@@ -88,7 +88,7 @@ class Hosts(BASE181HOSTS):
   def _GetInterfacesInBridge(self, brname):
     """Return list of all interfaces in brname."""
     if_path = os.path.join(SYS_CLASS_NET_PATH, brname, 'brif')
-    return os.listdir(if_path)
+    return sorted(os.listdir(if_path))
 
   def _GetHostsInBridge(self, brname):
     """Iterate over all client addresses in the FDB of brname.
