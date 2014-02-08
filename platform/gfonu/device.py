@@ -70,6 +70,7 @@ REPOMANIFEST = '/etc/repo-buildroot-manifest'
 GFLT110_OPTICAL_I2C_ADDR = 0x51
 PON_STATS_DIR = '/sys/devices/platform/neta/anistats'
 ETH_STATS_DIR = '/sys/devices/platform/neta/unistats'
+KW2THERMALFILE = '/sys/devices/platform/KW2Thermal.0/temp1_input'
 
 
 class PlatformConfig(platform_config.PlatformConfigMeta):
@@ -318,6 +319,10 @@ class Device(tr181.Device_v2_4.Device):
 
     self.Export(objects=['PeriodicStatistics'])
     self.PeriodicStatistics = periodic_stats
+    self.DeviceInfo.TemperatureStatus.AddSensor(
+        name='CPU temperature',
+        # KW2 thermal sensor reports milli-degrees C.
+        sensor=dm.temperature.SensorReadFromFile(KW2THERMALFILE, 1000))
 
 
 class InternetGatewayDevice(BASE98IGD):
