@@ -289,19 +289,25 @@ class SensorReadFromFile(object):
   """Read a temperature from an arbitrary file.
 
      Opens a file looks for a number in the first line.
-     This is treated as a temperature in degrees Celsius.
+     By default this is treated as a temperature in degrees Celsius, but a
+     divisor can be optionally passed to the constructor to handle smaller
+     units.
 
      This object can be passed as the sensor argument to a
      TemperatureSensor object, to monitor an arbitrary
      temperature written to a file.
   """
 
-  def __init__(self, filename):
+  def __init__(self, filename, divisor=1):
     self._filename = filename
+    if divisor <= 0:
+      raise ValueError('Bad divisor: %r' % divisor)
+    self._divisor = divisor
 
   def GetTemperature(self):
     try:
-      return GetNumberFromFile(self._filename)
+      temp = GetNumberFromFile(self._filename)
+      return temp / self._divisor
     except (IOError, ValueError):
       print 'TempFromFile %s: bad value' % self._filename
       return BADCELSIUS

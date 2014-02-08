@@ -94,6 +94,13 @@ class TemperatureTest(unittest.TestCase):
     self.assertEqual(t.GetTemperature(), 74)
     t = temperature.SensorReadFromFile('testdata/temperature/file4')
     self.assertEqual(t.GetTemperature(), TR181_BAD_TEMPERATURE)
+    t = temperature.SensorReadFromFile('testdata/temperature/milli-celcius',
+                                       divisor=1000)
+    self.assertEqual(t.GetTemperature(), 63)
+    self.assertRaises(ValueError, temperature.SensorReadFromFile,
+                      'testdata/temperature/file1', divisor=0)
+    self.assertRaises(ValueError, temperature.SensorReadFromFile,
+                      'testdata/temperature/file1', divisor=-1)
     t = temperature.SensorReadFromFile('no/such/file')
     self.assertEqual(t.GetTemperature(), TR181_BAD_TEMPERATURE)
 
