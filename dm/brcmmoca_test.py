@@ -140,7 +140,7 @@ class MocaTest(unittest.TestCase):
     moca = brcmmoca.BrcmMocaInterface(ifname='foo0', upstream=False)
     self.assertEqual(2, moca.AssociatedDeviceNumberOfEntries)
 
-    ad = moca.GetAssociatedDevice(0)
+    ad = moca.AssociatedDeviceList['1']
     ad.ValidateExports()
     self.assertEqual(ad.MACAddress, '00:01:00:11:23:33')
     self.assertEqual(ad.NodeID, 0)
@@ -183,7 +183,7 @@ class MocaTest(unittest.TestCase):
         'ffffffffffffffffffffffffffffffff'
         '00002222222222222222222222222222')
 
-    ad = moca.GetAssociatedDevice(1)
+    ad = moca.AssociatedDeviceList['2']
     ad.ValidateExports()
     self.assertEqual(ad.MACAddress, '00:01:00:11:23:44')
     self.assertEqual(ad.NodeID, 1)
@@ -200,7 +200,9 @@ class MocaTest(unittest.TestCase):
     self.assertEqual(ad.QAM256Capable, False)
     self.assertEqual(ad.PacketAggregationCapability, 7)
     self.assertEqual(ad.RxSNR, 38)
+
     # read-only parameters
+    ad = moca.AssociatedDeviceList['1']
     self.assertRaises(AttributeError, setattr, ad, 'MACAddress', 'foo')
     self.assertRaises(AttributeError, setattr, ad, 'NodeID', 2)
     self.assertRaises(AttributeError, setattr, ad, 'PreferredNC', False)

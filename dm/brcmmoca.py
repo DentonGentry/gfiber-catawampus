@@ -141,10 +141,6 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
                    'TxBcastRate', 'TxBcastPowerReduction'])
     self.Unexport(objects=['QoS'])
 
-    self.AssociatedDeviceList = tr.core.AutoDict(
-        'AssociatedDeviceList', iteritems=self.IterAssociatedDevices,
-        getitem=self.GetAssociatedDeviceByIndex)
-
   @property
   def Stats(self):
     return BrcmMocaInterfaceStatsLinux26(self.Name, self._qfiles,
@@ -301,7 +297,6 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
   def AssociatedDeviceNumberOfEntries(self):
     return len(self.AssociatedDeviceList)
 
-  @tr.session.cache
   def _MocaCtlGetNodeIDs(self):
     """Return a list of active MoCA Node IDs."""
     mc = subprocess.Popen([MOCACTL, 'showtbl', '--nodestats'],
@@ -314,22 +309,14 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
         nodes.add(int(node.group(1)))
     return list(nodes)
 
-  def GetAssociatedDevice(self, nodeid):
-    """Get an AssociatedDevice object for the given NodeID."""
-    ad = BrcmMocaAssociatedDevice(nodeid)
-    if ad:
-      ad.ValidateExports()
-    return ad
-
-  def IterAssociatedDevices(self):
-    """Retrieves a list of all associated devices."""
+  @property
+  @tr.session.cache
+  def AssociatedDeviceList(self):
     mocanodes = self._MocaCtlGetNodeIDs()
+    result = {}
     for idx, nodeid in enumerate(mocanodes, start=1):
-      yield idx, self.GetAssociatedDevice(nodeid)
-
-  def GetAssociatedDeviceByIndex(self, index):
-    mocanodes = self._MocaCtlGetNodeIDs()
-    return self.GetAssociatedDevice(mocanodes[index])
+      result[str(idx)] = BrcmMocaAssociatedDevice(nodeid)
+    return result
 
 
 class BrcmMocaInterfaceStatsLinux26(netdev.NetdevStatsLinux26,

@@ -62,9 +62,33 @@ class Hosts(BASE181HOSTS):
     self.dmroot = dmroot
     if iflookup:
       self.iflookup = iflookup
+    self.iflookup_built = False
     if bridgename:
       x = bridgename if type(bridgename) == list else [bridgename]
       self.bridges.extend(x)
+
+  def _BuildIfLookup(self, iflookup):
+    """Walk the device tree to create an interface mapping.
+
+    Returns:
+      a dict mapping Linux ifnames to tr-69 parameter paths. Ex:
+       {'eth0': 'Device.Ethernet.Interface.1.',
+        'eth1': 'Device.MoCA.Interface.1.'}
+    """
+    for (l1interface, wifi) in self._GetTr98WifiObjects():
+      iflookup[wifi.Name] = l1interface
+    for (l1interface, moca) in self._GetTr181MocaObjects():
+      iflookup[moca.Name] = l1interface
+    for (l1interface, enet) in self._GetTr181EthernetObjects():
+      iflookup[enet.Name] = l1interface
+    return iflookup
+
+  def Iflookup(self):
+    """Returns iflookup table."""
+    if not self.iflookup_built:
+      self._BuildIfLookup(self.iflookup)
+      self.iflookup_built = True
+    return self.iflookup
 
   def _AddIpToHostDict(self, entry, ip4):
     """Add ip to entry['ip4'].
@@ -84,6 +108,20 @@ class Hosts(BASE181HOSTS):
       ip4list.append(ip4)
     entry['ip4'] = ip4list
     return entry
+
+  def _AddLayer1Interface(self, entry, iface):
+    """Populate Layer1Interface in entry.
+
+    If entry['Layer1Interface'] does not exist, always populate it
+    (even with an empty string).
+    Otherwise, replace entry['Layer1Interface'] if we have better
+    information.
+    """
+    l1 = self.Iflookup().get(iface, '')
+    if l1:
+      entry['Layer1Interface'] = l1
+    elif 'Layer1Interface' not in entry:
+      entry['Layer1Interface'] = ''
 
   def _GetInterfacesInBridge(self, brname):
     """Return list of all interfaces in brname."""
@@ -131,7 +169,7 @@ class Hosts(BASE181HOSTS):
       try:
         for (mac, iface) in self._GetHostsInBridge(brname):
           host = hosts.get(mac, dict())
-          host['Layer1Interface'] = self.iflookup.get(iface, '')
+          self._AddLayer1Interface(host, iface)
           host['PhysAddress'] = mac
           hosts[mac] = host
       except (OSError, IOError):
@@ -165,7 +203,7 @@ class Hosts(BASE181HOSTS):
     """
     for (mac, ip4, iface) in self._ParseArpTable():
       host = hosts.get(mac, dict())
-      host['Layer1Interface'] = self.iflookup.get(iface, '')
+      self._AddLayer1Interface(host, iface)
       host['PhysAddress'] = mac
       self._AddIpToHostDict(entry=host, ip4=ip4)
       hosts[mac] = host
@@ -286,15 +324,15 @@ class Hosts(BASE181HOSTS):
         self._PopulateFromDhcpOptions(host, client)
         hosts[mac] = host
 
-  def _GetTr181EthernetInterfaces(self):
+  def _GetTr181EthernetObjects(self):
     """Yield tr-181 Device.Ethernet.Interface objects, if any."""
     try:
       eth = self.dmroot.GetExport('Device.Ethernet')
     except (AttributeError, KeyError):
       return
     for (idx, iface) in eth.InterfaceList.iteritems():
-      ifname = 'Device.Ethernet.Interface.%s' % idx
-      yield (ifname, iface)
+      l1interface = 'Device.Ethernet.Interface.%s' % idx
+      yield (l1interface, iface)
 
   def _GetHostsFromEthernets(self, hosts):
     """Populate a dict of known hosts from Ethernet interfaces.
@@ -303,22 +341,22 @@ class Hosts(BASE181HOSTS):
       hosts: a dict (with MAC addresses as keys) of fields
         to be populated for Device.Hosts.Host
     """
-    for (ifname, iface) in self._GetTr181EthernetInterfaces():
+    for (l1interface, iface) in self._GetTr181EthernetObjects():
       if not hasattr(iface, 'GetAssociatedDevices'):
         continue
       for client in iface.GetAssociatedDevices():
         mac = client['PhysAddress']
         host = hosts.get(mac, dict())
         host['PhysAddress'] = mac
-        host['Layer1Interface'] = ifname
+        host['Layer1Interface'] = l1interface
         hosts[mac] = host
 
   @tr.session.cache
   def _GetHostList(self):
     """Return the list of known Hosts on all interfaces."""
     hosts = dict()
-    self._GetHostsFromBridges(hosts=hosts)
     self._GetHostsFromArpTable(hosts=hosts)
+    self._GetHostsFromBridges(hosts=hosts)
     self._GetHostsFromEthernets(hosts=hosts)
     self._GetHostsFromWifiAssociatedDevices(hosts=hosts)
     self._GetHostsFromMocaAssociatedDevices(hosts=hosts)

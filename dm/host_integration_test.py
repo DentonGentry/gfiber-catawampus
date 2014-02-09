@@ -68,12 +68,7 @@ class Device(tr.core.Exporter):
     super(Device, self).__init__()
     self.DHCPv4 = dnsmasq.DHCPv4()
     self.Ethernet = Ethernet()
-    iflookup = {
-        'eth0': 'Device.Ethernet.Interface.1',
-        'moca0': 'Device.MoCA.Interface.1',
-        'wifi0': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1',
-    }
-    self.Hosts = host.Hosts(dmroot=dmroot, iflookup=iflookup, bridgename='br0')
+    self.Hosts = host.Hosts(dmroot=dmroot, bridgename='br0')
     self.MoCA = MoCA()
     self.Export(['DHCPv4', 'Ethernet', 'Hosts', 'MoCA'])
     self.DHCPv4.Server.PoolList['1'] = self.DHCPv4.Server.Pool()

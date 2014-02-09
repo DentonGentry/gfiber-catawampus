@@ -28,7 +28,6 @@ import traceback
 
 import google3
 
-import dm.binwifi
 import dm.brcmmoca
 import dm.brcmmoca2
 import dm.brcmwifi
@@ -40,6 +39,7 @@ import dm.host
 import dm.igd_time
 import dm.ipinterface
 import dm.miniupnp
+import dm.nat
 import dm.periodic_statistics
 import dm.storage
 import dm.temperature
@@ -345,7 +345,7 @@ class Ethernet(tr181.Device_v2_6.Device.Ethernet):
         self, self.VLANTerminationList)
 
     i = 1
-    for ifc in _ExistingInterfaces(['eth0', 'wan0']):
+    for ifc in _ExistingInterfaces(['eth0', 'wan0', 'wan0.2']):
       qprefix = '/sys/kernel/debug/bcmgenet/%s/bcmgenet_discard_cnt_q' % ifc
       qglob = glob.glob(qprefix + '*')
       self.InterfaceList[str(i)] = dm.ethernet.EthernetInterfaceLinux26(
@@ -463,7 +463,7 @@ class IP(tr181.Device_v2_6.Device.IP):
       self.InterfaceList[i] = dm.ipinterface.IPInterfaceLinux26(
           ifname=wifc, lowerlayers='')  # no tr181 Wifi yet
       i += 1
-    for ethi, wanifc in enumerate(_ExistingInterfaces(['wan0']), 2):
+    for ethi, wanifc in enumerate(_ExistingInterfaces(['wan0', 'wan0.2']), 2):
       self.InterfaceList[i] = dm.ipinterface.IPInterfaceLinux26(
           ifname=wanifc, lowerlayers='Device.Ethernet.Interface.%d' % ethi)
       i += 1
@@ -497,7 +497,7 @@ class Device(tr181.Device_v2_6.Device):
   def __init__(self, device_id, periodic_stats, dmroot):
     super(Device, self).__init__()
     self._UnexportStuff()
-    self.Export(objects=['DeviceInfo'])
+    self.Export(objects=['DeviceInfo', 'NAT'])
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
     led = dm.device_info.LedStatusReadFromFile('LED', LEDSTATUS)
     self.DeviceInfo.AddLedStatus(led)
@@ -507,6 +507,7 @@ class Device(tr181.Device_v2_6.Device):
     self.IP = IP()
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
     self.MoCA = Moca()
+    self.NAT = dm.nat.NAT(dmroot=dmroot)
     self.Services = Services()
     self.InterfaceStackList = {}
     self.Export(objects=['PeriodicStatistics'])
@@ -553,18 +554,10 @@ class Device(tr181.Device_v2_6.Device):
     # this is just a lookup table. It is harmless to have extra interfaces,
     # like Wifi interfaces on GFMS100 (which has no wifi).
     iflookup = {
-        'lan0': 'Device.Ethernet.Interface.1.',
-        'eth0': 'Device.Ethernet.Interface.1.',
-        'wan0': 'Device.Ethernet.Interface.2.',
-        'eth1': 'Device.MoCA.Interface.1.',
         'eth1.0': 'Device.MoCA.Interface.1.',
-        'moca0': 'Device.MoCA.Interface.1.',
         'moca0.0': 'Device.MoCA.Interface.1.',
-        'wlan0': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.',
-        'wlan1': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.2.',
-        'eth2': 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.',
     }
-    self.Hosts = dm.host.Hosts(iflookup, bridgename='br0', dmroot=dmroot)
+    self.Hosts = dm.host.Hosts(iflookup=iflookup, bridgename='br0', dmroot=dmroot)
 
 
 class LANDevice(BASE98IGD.LANDevice):
@@ -590,10 +583,6 @@ class LANDevice(BASE98IGD.LANDevice):
     i = 1
     for wifc in _ExistingInterfaces(['eth2']):
       wifi = dm.brcmwifi.BrcmWifiWlanConfiguration(wifc)
-      self.WLANConfigurationList[str(i)] = wifi
-      i += 1
-    for wifc in _ExistingInterfaces(['wlan0', 'wlan1', 'wlan2']):
-      wifi = dm.binwifi.WlanConfiguration(wifc)
       self.WLANConfigurationList[str(i)] = wifi
       i += 1
 
