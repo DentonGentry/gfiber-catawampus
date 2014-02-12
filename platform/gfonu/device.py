@@ -289,9 +289,8 @@ class Device(tr181.Device_v2_4.Device):
                            'DHCPv6', 'DNS', 'DSL', 'DSLite', 'Firewall',
                            'GatewayInfo', 'Ghn', 'HPNA', 'HomePlug', 'Hosts',
                            'IEEE8021x', 'IP', 'IPv6rd', 'LANConfigSecurity',
-                           'ManagementServer', 'MoCA', 'NAT',
-                           'NeighborDiscovery', 'PPP', 'PTM', 'QoS',
-                           'RouterAdvertisement', 'Routing', 'Services',
+                           'MoCA', 'NAT', 'NeighborDiscovery', 'PPP', 'PTM',
+                           'QoS', 'RouterAdvertisement', 'Routing', 'Services',
                            'SmartCardReaders', 'UPA', 'USB', 'Users', 'WiFi'])
     self.Unexport(lists=['InterfaceStack'])
     self.Unexport(['InterfaceStackNumberOfEntries', 'RootDataModelVersion'])
