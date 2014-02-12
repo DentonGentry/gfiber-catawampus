@@ -255,7 +255,7 @@ class PeriodicStatistics(BASE157PS):
       self.RemoveTimeout()
       self._sample_start_time = current_time
       time_to_sample = self.CalcTimeToNextSample(current_time)
-      delta = datetime.timedelta(0, time_to_sample)
+      delta = datetime.timedelta(0, microseconds=(time_to_sample+0.1)*1e6)
       self._pending_timeout = self._cpe.ioloop.add_timeout(
           delta, self.CollectSample)
 
@@ -294,7 +294,7 @@ class PeriodicStatistics(BASE157PS):
       if self._time_reference is not None:
         ref_seconds = time.mktime(self._time_reference.timetuple())
       delta_seconds = (current_time - ref_seconds) % interval
-      tts = int(round(interval - delta_seconds))
+      tts = interval - delta_seconds
       return max(1, tts)
 
     def _CanonicalName(self):

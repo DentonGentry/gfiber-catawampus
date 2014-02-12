@@ -406,6 +406,7 @@ class SampleSetTest(unittest.TestCase):
     # Test with no sample period set.
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
     sample_set._sample_interval = 60
+    # year, month, hour, min, sec
     start_time = time.mktime((2000, 7, 7, 6, 0, 0, -1, -1, -1))
     self.assertEqual(60, sample_set.CalcTimeToNextSample(start_time))
     self.assertEqual(50, sample_set.CalcTimeToNextSample(start_time+10))
@@ -460,7 +461,7 @@ class SampleSetTest(unittest.TestCase):
     self.assertEqual(1, time_till_sample)
     current_time += 0.2
     time_till_sample = sample_set.CalcTimeToNextSample(current_time)
-    self.assertEqual(5, time_till_sample)
+    self.assertEqual(5, round(time_till_sample))
 
   def testFetchSamplesTriggered(self):
     sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
