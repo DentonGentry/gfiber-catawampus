@@ -524,7 +524,7 @@ class Device(tr181.Device_v2_6.Device):
     self.Unexport(objects=[
         'ATM', 'Bridging', 'CaptivePortal', 'DHCPv6', 'DSL', 'DSLite',
         'ETSIM2M', 'Firewall', 'GatewayInfo', 'Ghn', 'HPNA',
-        'HomePlug', 'IEEE8021x', 'IPv6rd', 'LANConfigSecurity',
+        'HomePlug', 'IEEE8021x', 'IPsec', 'IPv6rd', 'LANConfigSecurity',
         'NAT', 'NeighborDiscovery', 'Optical', 'PPP', 'PTM', 'QoS',
         'RouterAdvertisement', 'Routing', 'SmartCardReaders',
         'UPA', 'USB', 'Users', 'WiFi'])
