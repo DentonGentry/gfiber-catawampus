@@ -2,5 +2,68 @@
 
 out=$1
 shift
-echo $@ >$out
+
+cmd=$1
+if [ "$cmd" = "set" ]; then
+  quoted=""
+  for arg in "$@"; do
+    quoted="$quoted \"$arg\""
+  done
+  (echo "$quoted"; echo "PSK=$WIFI_PSK") >$out
+elif [ "$cmd" = "show" ] && [ "$2" = "-b" ] && [ "$3" = "5" ]; then
+  echo "Band: 5"
+  echo "RegDomain: US"
+  echo "BSSID: 00:01:02:03:04:05"
+  echo "SSID: Test SSID"
+  echo "Channel: 36"
+  echo "AutoChannel: TRUE"
+  echo "AutoType: NONDFS"
+  echo "Station List for band: 5"
+  echo "Station 00:00:01:00:00:01 (on wlan0)"
+  echo "        inactive time:  1 ms"
+  echo "        rx bytes:       2"
+  echo "        rx packets:     3"
+  echo "        tx bytes:       4"
+  echo "        tx packets:     5"
+  echo "        tx retries:     6"
+  echo "        tx failed:      7"
+  echo "        signal:         -8 dBm"
+  echo "        signal avg:     -9 dBm"
+  echo "        tx bitrate:     10.0 MBit/s"
+  echo "        rx bitrate:     11.0 MBit/s"
+  echo "Station 00:00:01:00:00:02 (on wlan0)"
+  echo "        inactive time:  12 ms"
+  echo "        rx bytes:       13"
+  echo "        rx packets:     14"
+  echo "        tx bytes:       15"
+  echo "        tx packets:     16"
+  echo "        tx retries:     17"
+  echo "        tx failed:      18"
+  echo "        signal:         -19 dBm"
+  echo "        signal avg:     -20 dBm"
+  echo "        tx bitrate:     21.0 MBit/s"
+  echo "        rx bitrate:     22.0 MBit/s"
+  echo "Station 00:00:01:00:00:03 (on wlan0)"
+  echo "        inactive time:  2300000000 ms"
+  echo "        rx bytes:       24"
+  echo "        rx packets:     25"
+  echo "        tx bytes:       26"
+  echo "        tx packets:     27"
+  echo "        tx retries:     28"
+  echo "        tx failed:      29"
+  echo "        signal:         -30 dBm"
+  echo "        signal avg:     -31 dBm"
+  echo "        tx bitrate:     32.0 MBit/s MCS 3"
+  echo "        rx bitrate:     33.0 MBit/s MCS 3"
+  echo ""
+elif [ "$cmd" = "show" ] && [ "$2" = "-b" ] && [ "$3" = "2.4" ]; then
+  echo "Band: 2.4"
+  echo "RegDomain: US"
+  echo "BSSID: 00:01:02:03:04:05"
+  echo "SSID: \"Test SSID\""
+  echo "Channel: 11"
+  echo "Station List for band: 2.4"
+  echo ""
+fi
+
 exit 0

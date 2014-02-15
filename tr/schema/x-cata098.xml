@@ -36,6 +36,12 @@ If the radio supports multiple bands, and {{param}} is changed, then all paramet
           </string>
         </syntax>
       </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_AutoChanType" access="readOnly" activeNotify="canDeny">
+        <description>The AutoChannel algorithm to use, for example NONDFS or HIGH.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
     </object>
 
     <object base="InternetGatewayDevice.LANDevice.{i}.WLANConfiguration.{i}.AssociatedDevice.{i}." access="readOnly" minEntries="0" maxEntries="unbounded" numEntriesParameter="TotalAssociations">
@@ -62,6 +68,22 @@ If the radio supports multiple bands, and {{param}} is changed, then all paramet
 The ability to list inactive nodes is OPTIONAL. If the CPE includes inactive nodes in this table, {{param}} MUST be set to {{false}} for each inactive node. The length of time an inactive node remains listed in this table is a local matter to the CPE. (Taken from tr-181-2-0).</description>
         <syntax>
           <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_SignalStrength" access="readOnly" activeNotify="canDeny">
+        <description>The received signal strength in {{units}} of the last received PPDU.</description>
+        <syntax>
+          <int>
+            <units value="dBm"/>
+          </int>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_SignalStrengthAverage" access="readOnly" activeNotify="canDeny">
+        <description>The received signal strength in {{units}} averaged over time.</description>
+        <syntax>
+          <int>
+            <units value="dBm"/>
+          </int>
         </syntax>
       </parameter>
 

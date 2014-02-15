@@ -533,7 +533,8 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
     # Unimplemented, but not yet evaluated
     self.Unexport(['Alias', 'BeaconAdvertisementEnabled', 'ChannelsInUse',
                    'MaxBitRate', 'PossibleDataTransmitRates',
-                   'TotalIntegrityFailures', 'TotalPSKFailures'])
+                   'TotalIntegrityFailures', 'TotalPSKFailures',
+                   'X_CATAWAMPUS-ORG_AutoChanType'])
 
     self.AssociatedDeviceList = tr.core.AutoDict(
         'AssociatedDeviceList', iteritems=self.IterAssociations,
@@ -1044,7 +1045,9 @@ class BrcmWlanAssociatedDevice(CATA98WIFI.AssociatedDevice):
     self._assoc = assoc
     self.Unexport(['AssociatedDeviceIPAddress', 'LastPMKId',
                    'LastRequestedUnicastCipher',
-                   'LastRequestedMulticastCipher'])
+                   'LastRequestedMulticastCipher',
+                   'X_CATAWAMPUS-ORG_SignalStrength',
+                   'X_CATAWAMPUS-ORG_SignalStrengthAverage'])
 
   @property
   def AssociatedDeviceMACAddress(self):

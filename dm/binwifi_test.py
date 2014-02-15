@@ -54,6 +54,7 @@ class BinWifiTest(unittest.TestCase):
 
   def testWEPKeyIndex(self):
     bw = binwifi.WlanConfiguration('wifi0')
+    bw.StartTransaction()
     bw.WEPKeyIndex = 1  # should succeed
     bw.WEPKeyIndex = 2
     bw.WEPKeyIndex = 3
@@ -70,22 +71,62 @@ class BinWifiTest(unittest.TestCase):
     self.assertEqual(bw.Stats.UnicastPacketsSent, 10)
 
   def testConfigCommit(self):
-    bw = binwifi.WlanConfiguration('wifi0')
+    bw = binwifi.WlanConfiguration('wifi0', band='2.4')
+    bw.StartTransaction()
     bw.RadioEnabled = True
+    bw.Enabled = True
     bw.AutoChannelEnable = True
-    bw.SSID = 'testSSID'
+    bw.SSID = 'Test SSID 1'
     bw.BeaconType = 'WPAand11i'
     bw.IEEE11iEncryptionModes = 'AESEncryption'
+    bw.KeyPassphrase = 'testpassword'
     self.loop.RunOnce(timeout=1)
     buf = open(self.wifioutfile).read()
-    self.assertEqual(buf, 'set -b 2.4 -c auto -s testSSID -e WPA2_PSK_AES\n')
+    # testdata/binwifi/binwifi quotes every argument
+    exp = [
+        '"set" "-b" "2.4" "-e" "WPA2_PSK_AES" "-c" "auto" "-s" "Test SSID 1"',
+        'PSK=testpassword'
+        ]
+    self.assertEqual(buf.strip().splitlines(), exp)
 
   def testSSID(self):
     bw = binwifi.WlanConfiguration('wifi0')
+    bw.StartTransaction()
     bw.SSID = 'this is ok'
     bw.SSID = '0123456789abcdef0123456789abcdef'  # should still be ok
     self.assertRaises(ValueError, setattr, bw, 'SSID',
                       '0123456789abcdef0123456789abcdef0')
+
+  def testAssociatedDevices(self):
+    bw = binwifi.WlanConfiguration('wifi0')
+    self.assertEqual(bw.TotalAssociations, 3)
+    found = 0
+    for c in bw.AssociatedDeviceList.values():
+      if c.AssociatedDeviceMACAddress == '00:00:01:00:00:01':
+        self.assertTrue(c.X_CATAWAMPUS_ORG_Active)
+        self.assertEqual(c.X_CATAWAMPUS_ORG_LastDataUplinkRate, 10000)
+        self.assertEqual(c.X_CATAWAMPUS_ORG_LastDataDownlinkRate, 11000)
+        self.assertEqual(c.LastDataTransmitRate, '11')
+        self.assertEqual(c.X_CATAWAMPUS_ORG_SignalStrength, -8)
+        self.assertEqual(c.X_CATAWAMPUS_ORG_SignalStrengthAverage, -9)
+        found |= 1
+      elif c.AssociatedDeviceMACAddress == '00:00:01:00:00:02':
+        self.assertTrue(c.X_CATAWAMPUS_ORG_Active)
+        self.assertEqual(c.X_CATAWAMPUS_ORG_LastDataUplinkRate, 21000)
+        self.assertEqual(c.X_CATAWAMPUS_ORG_LastDataDownlinkRate, 22000)
+        self.assertEqual(c.LastDataTransmitRate, '22')
+        self.assertEqual(c.X_CATAWAMPUS_ORG_SignalStrength, -19)
+        self.assertEqual(c.X_CATAWAMPUS_ORG_SignalStrengthAverage, -20)
+        found |= 2
+      elif c.AssociatedDeviceMACAddress == '00:00:01:00:00:03':
+        self.assertFalse(c.X_CATAWAMPUS_ORG_Active)
+        self.assertEqual(c.X_CATAWAMPUS_ORG_LastDataUplinkRate, 32000)
+        self.assertEqual(c.X_CATAWAMPUS_ORG_LastDataDownlinkRate, 33000)
+        self.assertEqual(c.LastDataTransmitRate, '33')
+        self.assertEqual(c.X_CATAWAMPUS_ORG_SignalStrength, -30)
+        self.assertEqual(c.X_CATAWAMPUS_ORG_SignalStrengthAverage, -31)
+        found |= 4
+    self.assertEqual(found, 0x7)
 
 
 if __name__ == '__main__':

@@ -28,6 +28,7 @@ import traceback
 
 import google3
 
+import dm.binwifi
 import dm.brcmmoca
 import dm.brcmmoca2
 import dm.brcmwifi
@@ -583,6 +584,11 @@ class LANDevice(BASE98IGD.LANDevice):
     i = 1
     for wifc in _ExistingInterfaces(['eth2']):
       wifi = dm.brcmwifi.BrcmWifiWlanConfiguration(wifc)
+      self.WLANConfigurationList[str(i)] = wifi
+      i += 1
+    bands = {'wlan0': '2.4', 'wlan1': '5'}
+    for wifc in _ExistingInterfaces(['wlan0', 'wlan1']):
+      wifi = dm.binwifi.WlanConfiguration(wifc, band=bands[wifc])
       self.WLANConfigurationList[str(i)] = wifi
       i += 1
 
