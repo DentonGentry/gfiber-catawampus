@@ -279,6 +279,10 @@ class Ethernet(tr181.Device_v2_4.Device.Ethernet):
   def LinkNumberOfEntries(self):
     return len(self.LinkList)
 
+  @property
+  def RMONStatsNumberOfEntries(self):
+    return len(self.RMONStats)
+
 
 class Device(tr181.Device_v2_4.Device):
   """Device implementation for ONU device."""
