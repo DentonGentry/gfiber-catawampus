@@ -30,36 +30,62 @@ import nat
 import tr.mainloop
 
 
+EXPECTED_CONFIG = """CWMP_1_COMMENT=IDX_2:
+CWMP_1_PROTOCOL=UDP
+CWMP_1_SOURCE=2.2.2.2
+CWMP_1_GATEWAY=9.9.9.9
+CWMP_1_DEST=3.3.3.3
+CWMP_1_SPORT=1:9
+CWMP_1_DPORT=90
+CWMP_1_ENABLE=1
+
+CWMP_2_COMMENT=IDX_1:4465736372697074696f6e
+CWMP_2_PROTOCOL=TCP
+CWMP_2_SOURCE=0/0
+CWMP_2_GATEWAY=0/0
+CWMP_2_DEST=1.1.1.1
+CWMP_2_SPORT=0
+CWMP_2_DPORT=80
+CWMP_2_ENABLE=1
+
+"""
+
+
 class NatTest(unittest.TestCase):
   def setUp(self):
     super(NatTest, self).setUp()
     self.tmpdir = tempfile.mkdtemp()
     self.loop = tr.mainloop.MainLoop()
+    self.old_OUTPUTFILE = nat.OUTPUTFILE
     self.old_RESTARTCMD = nat.RESTARTCMD
     self.restartfile = os.path.join(self.tmpdir, 'restarted')
+    self.outputfile = os.path.join(self.tmpdir, 'config')
+    nat.OUTPUTFILE = self.outputfile
     nat.RESTARTCMD = ['testdata/nat/restart', self.restartfile]
 
   def tearDown(self):
     super(NatTest, self).tearDown()
     shutil.rmtree(self.tmpdir)
+    nat.OUTPUTFILE = self.old_OUTPUTFILE
     nat.RESTARTCMD = self.old_RESTARTCMD
 
   def testValidateExports(self):
-    n = nat.NAT(dmroot=None)
+    n = nat.NAT(dmroot=DeviceModelRoot())
     n.ValidateExports()
     p = n.PortMapping()
     p.ValidateExports()
 
   def testLeaseDuration(self):
     """A non-zero LeaseDuration is not supported."""
-    p = nat.NAT(dmroot=None).PortMapping()
+    n = nat.NAT(dmroot=DeviceModelRoot())
+    p = n.PortMapping()
     p.LeaseDuration = 0  # should succeed
     self.assertRaises(ValueError, setattr, p, 'LeaseDuration', 1)
 
   def testStatus(self):
-    dmroot = DeviceModelRoot()
-    n = nat.NAT(dmroot=dmroot)
+    n = nat.NAT(dmroot=DeviceModelRoot())
     p = n.PortMapping()
+    p.Enable = False
     self.assertEqual(p.Status, 'Disabled')
     p.Enable = True
     self.assertEqual(p.Status, 'Error_Misconfigured')
@@ -80,8 +106,77 @@ class NatTest(unittest.TestCase):
     self.assertEqual(p.Interface, 'Device.IP.Interface.1')
     del dmroot.Device.IP.InterfaceList['1']
     self.assertEqual(p.Interface, '')
+    # No such interface
     self.assertRaises(ValueError, setattr, p, 'Interface',
                       'Device.IP.Interface.2')
+
+  def testPortMappingPrecedence(self):
+    n = nat.NAT(dmroot=DeviceModelRoot())
+    p = n.PortMapping()
+    self.assertEqual(p.Precedence(), 4)
+    p.ExternalPort = 1
+    self.assertEqual(p.Precedence(), 3)
+    p.RemoteHost = '1.2.3.4'
+    p.ExternalPort = 0
+    self.assertEqual(p.Precedence(), 2)
+    p.ExternalPort = 1
+    self.assertEqual(p.Precedence(), 1)
+
+  def testDescriptionTooLong(self):
+    """Description is stored in kernel ipt_comment. Must be short."""
+    n = nat.NAT(dmroot=DeviceModelRoot())
+    p = n.PortMapping()
+    p.Description = 'A' * 256  # should succeed
+    self.assertRaises(ValueError, setattr, p, 'Description', 'A' * 257)
+
+  def testConfigWrite(self):
+    n = nat.NAT(dmroot=DeviceModelRoot())
+    p = n.PortMapping()
+    p.AllInterfaces = True
+    p.Description = 'Description'
+    p.Enable = True
+    p.InternalClient = '1.1.1.1'
+    p.InternalPort = 80
+    p.Protocol = 'TCP'
+    n.PortMappingList['1'] = p
+
+    p = n.PortMapping()
+    p.Enable = True
+    p.ExternalPort = 1
+    p.ExternalPortEndRange = 9
+    p.InternalClient = '3.3.3.3'
+    p.InternalPort = 90
+    p.Interface = 'Device.IP.Interface.1'
+    p.Protocol = 'UDP'
+    p.RemoteHost = '2.2.2.2'
+    n.PortMappingList['2'] = p
+
+    self.loop.RunOnce(timeout=1)
+    config = open(self.outputfile).read()
+    self.assertEqual(config, EXPECTED_CONFIG)
+    self.assertTrue(os.path.exists(self.restartfile))
+
+  def testConfigIncomplete(self):
+    n = nat.NAT(dmroot=DeviceModelRoot())
+    p = n.PortMapping()
+    n.PortMappingList['1'] = p
+    self.loop.RunOnce(timeout=1)
+    self.assertFalse(os.path.exists(self.outputfile))
+
+    p.AllInterfaces = True
+    p.Description = 'Description'
+    self.loop.RunOnce(timeout=1)
+    self.assertFalse(os.stat(self.outputfile).st_size)
+
+    p.InternalClient = '1.1.1.1'
+    p.InternalPort = 80
+    p.Protocol = 'TCP'
+    self.loop.RunOnce(timeout=1)
+    self.assertFalse(os.stat(self.outputfile).st_size)
+
+    p.Enable = True
+    self.loop.RunOnce(timeout=1)
+    self.assertTrue(os.stat(self.outputfile).st_size)
 
 
 class DeviceModelRoot(tr.core.Exporter):
@@ -101,9 +196,21 @@ class Device(tr.core.Exporter):
 class IP(tr.core.Exporter):
   def __init__(self):
     super(IP, self).__init__()
-    o = object()
+    o = IPInterface()
     self.InterfaceList = {'1': o}
     self.Export(lists=['Interface'])
+
+
+class IPInterface(tr.core.Exporter):
+  def __init__(self):
+    super(IPInterface, self).__init__()
+    self.IPv4AddressList = {'1': IPv4Address()}
+
+
+class IPv4Address(tr.core.Exporter):
+  def __init__(self):
+    super(IPv4Address, self).__init__()
+    self.IPAddress = '9.9.9.9'
 
 
 if __name__ == '__main__':

@@ -24,13 +24,17 @@ in http://www.broadband-forum.org/cwmp/tr-181-2-6-0.html
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import binascii
+import subprocess
+import tr.helpers
 import tr.mainloop
 import tr.tr181_v2_6
 import tr.types
 import tr.x_catawampus_tr181_2_0
 
 BASENAT = tr.tr181_v2_6.Device_v2_6.Device.NAT
-RESTARTCMD = ['restart', 'firewall']
+OUTPUTFILE = '/tmp/cwmp_iptables'
+RESTARTCMD = ['update-acs-iptables']
 
 
 class NAT(BASENAT):
@@ -57,19 +61,54 @@ class NAT(BASENAT):
     except (AttributeError, KeyError):
       return None
 
+  def _PrefixLines(self, lines, outidx):
+    """Return prefixed lines.
+    Args
+      lines: an array of lines of text
+      outidx: the index to prefix
+    Returns a string."""
+
+    if not lines:
+      return ''
+    prefix = 'CWMP_%d_' % outidx
+    prefixed = [prefix + x for x in lines]
+    return '\n'.join(prefixed) + '\n\n'
+
   @tr.mainloop.WaitUntilIdle
   def WriteConfigs(self):
-    """Write out configs for NAT."""
-    config = []
-    for p in self.PortMappingList.values():
-      config.append(p.ConfigLine())
-    # TODO(dgentry) decide on format of file
+    """Write out configs for NAT.
+
+    tr-181 Device.NAT.PortMapping.{i} provides four levels of precedence
+    to be used if multiple portmappings could match a packet. We handle
+    this by creating four lists of config file lines, and then outputting
+    them in priority order.
+
+    An "IDX_#" string in the COMMENT line lets us reconstruct the object
+    numbering when read back in.
+    """
+    configs = {}
+    for i in range(1, 5):
+      configs[i] = []
+    for (idx, mapping) in self.PortMappingList.iteritems():
+      precedence = mapping.Precedence()
+      configs[precedence].append(mapping.ConfigLines(idx=idx))
+    outidx = 1
+    try:
+      with tr.helpers.AtomicFile(OUTPUTFILE) as f:
+        for i in range(1, 5):
+          for lines in configs[i]:
+            f.write(self._PrefixLines(lines=lines, outidx=outidx))
+            outidx += 1
+      subprocess.check_call(RESTARTCMD)
+    except (IOError, OSError, subprocess.CalledProcessError):
+      print 'Unable to update NAT\n'
+      traceback.print_exc()
 
 
 class PortMapping(BASENAT.PortMapping):
   """tr181 Device.NAT.Portmapping."""
   AllInterfaces = tr.types.TriggerBool(False)
-  Description = tr.types.String()
+  Description = tr.types.String('')
   Enable = tr.types.TriggerBool(False)
   ExternalPort = tr.types.TriggerUnsigned(0)
   ExternalPortEndRange = tr.types.TriggerUnsigned(0)
@@ -84,6 +123,12 @@ class PortMapping(BASENAT.PortMapping):
     self.parent = parent
     self.interface = ''
     self.Unexport(['Alias'])
+
+  @Description.validator
+  def Description(self, value):
+    if len(str(value)) > 256:
+      raise ValueError('Description length must be < 256 characters.')
+    return str(value)
 
   def GetInterface(self):
     """Return the Interface if it exists, or an empty string if it doesn't.
@@ -121,6 +166,33 @@ class PortMapping(BASENAT.PortMapping):
       return False
     return True
 
+  def Precedence(self):
+    """Precedence to pick the winner when multiple rules match.
+
+    tr-181 Device.NAT.PortMapping.{i} says:
+    When wildcard values are used for RemoteHost and/or ExternalPort, the
+    following precedence order applies (with the highest precedence listed
+    first):
+
+      1. Explicit RemoteHost, explicit ExternalPort
+      2. Explicit RemoteHost, zero ExternalPort
+      3. Empty RemoteHost, explicit ExternalPort
+      4. Empty RemoteHost, zero ExternalPort
+    If an incoming packet matches the criteria associated with more than one
+    entry in this table, the CPE MUST apply the port mapping associated with
+    the highest precedence entry.
+
+    Returns: the precedence, and integer from 1 to 4.
+    """
+    if self.RemoteHost and self.ExternalPort:
+      return 1
+    elif self.RemoteHost:
+      return 2
+    elif self.ExternalPort:
+      return 3
+    else:
+      return 4
+
   @property
   def Status(self):
     if not self.Enable:
@@ -132,27 +204,40 @@ class PortMapping(BASENAT.PortMapping):
   def Triggered(self):
     self.parent.WriteConfigs()
 
-  def ConfigLine(self):
-    """Return the configuration line for update-acs-iptables."""
+  def ConfigLines(self, idx):
+    """Return the configuration lines for update-acs-iptables.
 
-    if not self._IsComplete():
-      return None
-    proto = self.Protocol
+    Args:
+      idx: the {i} in Device.NAT.PortMapping.{i}
+
+    Returns:
+      a list of text lines for update-acs-iptables
+    """
+
+    if not self._IsComplete() or not self.Enable:
+      return []
+    encoded = binascii.hexlify(self.Description)
+    lines = ['COMMENT=IDX_%s:%s' % (str(idx), encoded)]
+    lines.append('PROTOCOL=%s' % self.Protocol)
     src = '0/0' if not self.RemoteHost else self.RemoteHost
+    lines.append('SOURCE=%s' % src)
     if self.AllInterfaces:
       gw = '0/0'
     else:
       ip = self.parent.GetIPInterface(self.interface)
       if not ip or not ip.IPv4AddressList:
-        return None
+        return []
       key = ip.IPv4AddressList.keys()[0]
-      gw = ip.IPv4AddressList[key]
-    dst = self.InternalClient
+      gw = ip.IPv4AddressList[key].IPAddress
+    lines.append('GATEWAY=%s' % gw)
+    lines.append('DEST=%s' % self.InternalClient)
     # TODO(dgentry) ExternalPort=0 should become a dmzhost instead
     if self.ExternalPortEndRange:
       sport = '%d:%d' % (self.ExternalPort, self.ExternalPortEndRange)
     else:
       sport = '%d' % self.ExternalPort
-    dport = self.InternalPort
+    lines.append('SPORT=%s' % sport)
+    lines.append('DPORT=%d' % self.InternalPort)
     enb = 1 if self.Enable else 0
-    return '%s %s %s %s %s %d %d' % (proto, src, gw, dst, sport, dport, enb)
+    lines.append('ENABLE=%d' % enb)
+    return lines
