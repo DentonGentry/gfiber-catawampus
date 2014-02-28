@@ -344,8 +344,8 @@ class WlanConfiguration(CATA98WIFI):
   def GetAutoChanType(self):
     return self._BinwifiShow().get('AutoType', '').strip()
 
-  def SetAutoChanType(self):
-    self.new_config.AutoChannelType = tr.cwmpbool.parse(value)
+  def SetAutoChanType(self, value):
+    self.new_config.AutoChannelType = str(value)
 
   X_CATAWAMPUS_ORG_AutoChanType = property(
       GetAutoChanType, SetAutoChanType, None,
