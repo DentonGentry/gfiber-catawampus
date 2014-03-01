@@ -21,11 +21,13 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import os
+import shutil
 import tempfile
 import unittest
 
 import google3
 import igd_time
+import tr.mainloop
 
 
 def TimeNow():
@@ -33,21 +35,31 @@ def TimeNow():
 
 
 class IgdTimeTest(unittest.TestCase):
+  SAVEDATTRIBUTES = ['TIMENOW', 'LOCALTIMEFILE', 'TIMESYNCEDFILE',
+                     'TZFILE']
+
+  def saveAttributes(self):
+    self.saved_attributes = {}
+    for attr in self.SAVEDATTRIBUTES:
+      self.saved_attributes[attr] = getattr(igd_time, attr)
+
+  def restoreAttributes(self):
+    for (attr, val) in self.saved_attributes.iteritems():
+      setattr(igd_time, attr, val)
+
   def setUp(self):
-    self.old_TIMENOW = igd_time.TIMENOW
+    self.tmpdir = tempfile.mkdtemp()
+    self.loop = tr.mainloop.MainLoop()
+    self.saveAttributes()
+    self.localtimefile = os.path.join(self.tmpdir, 'localtime')
+    igd_time.LOCALTIMEFILE = self.localtimefile
     igd_time.TIMENOW = TimeNow
-    self.files_to_remove = list()
+    self.tzfile = os.path.join(self.tmpdir, 'tz')
+    igd_time.TZFILE = self.tzfile
 
   def tearDown(self):
-    igd_time.TIMENOW = self.old_TIMENOW
-    for f in self.files_to_remove:
-      os.remove(f)
-
-  def MakeTestScript(self):
-    """Create a unique file in /tmp."""
-    outfile = tempfile.NamedTemporaryFile(delete=False)
-    self.files_to_remove.append(outfile.name)
-    return outfile
+    self.restoreAttributes()
+    shutil.rmtree(self.tmpdir)
 
   def testValidateExports(self):
     t = igd_time.TimeTZ()
@@ -58,43 +70,54 @@ class IgdTimeTest(unittest.TestCase):
     self.assertEqual(t.CurrentLocalTime, '2009-02-13T23:31:30.987654Z')
 
   def testGetLocalTimeZoneName(self):
-    t = igd_time.TimeTZ(tzfile='testdata/igd_time/TZ')
+    igd_time.TZFILE = 'testdata/igd_time/TZ'
+    t = igd_time.TimeTZ()
     self.assertEqual(t.LocalTimeZoneName, 'POSIX')
 
   def testSetLocalTimeZoneName(self):
-    outfile = self.MakeTestScript()
-    t = igd_time.TimeTZ(tzfile=outfile.name)
-    expected = 'PST8PDT,M3.2.0/2,M11.1.0/2'
-    t.StartTransaction()
-    t.LocalTimeZoneName = expected
-    t.CommitTransaction()
-    self.assertEqual(outfile.read().strip(), expected)
+    t = igd_time.TimeTZ()
+    t.LocalTimeZoneName = 'UTC0'
+    self.loop.RunOnce(timeout=1)
+    expectedTZ = 'UTC0\n'
+    actualTZ = open(self.tzfile).read()
+    self.assertEqual(actualTZ, expectedTZ)
+    # UTCtzfile copied from /usr/share/zoneinfo/posix/UTC,
+    # and modified with hex editor to remove the portions
+    # not handled by igd_time.py
+    expectedLT = open('testdata/igd_time/UTCtzfile').read()
+    actualLT = open(self.localtimefile).read()
+    self.assertEqual(actualLT, expectedLT)
 
   def testUCLibcIsReallyReallyReallyPickyAboutWhitespace(self):
     # uClibC will only accept a TZ file with exactly one newline at the end.
     tzwrite = 'PST8PDT,M3.2.0/2,M11.1.0/2'
 
-    outfile = self.MakeTestScript()
-    t = igd_time.TimeTZ(tzfile=outfile.name)
-    t.StartTransaction()
+    t = igd_time.TimeTZ()
     t.LocalTimeZoneName = tzwrite + '\n\n\n\n\n'
-    t.CommitTransaction()
-    self.assertEqual(outfile.read(), tzwrite + '\n')
+    self.loop.RunOnce(timeout=1)
+    actual = open(self.tzfile).read()
+    self.assertEqual(actual, tzwrite + '\n')
 
-    outfile = self.MakeTestScript()
-    t = igd_time.TimeTZ(tzfile=outfile.name)
-    t.StartTransaction()
+    os.remove(self.tzfile)
+    t = igd_time.TimeTZ()
     t.LocalTimeZoneName = tzwrite
-    t.CommitTransaction()
-    self.assertEqual(outfile.read(), tzwrite + '\n')
+    self.loop.RunOnce(timeout=1)
+    actual = open(self.tzfile).read()
+    self.assertEqual(actual, tzwrite + '\n')
 
-  def testAbandonTransaction(self):
-    outfile = self.MakeTestScript()
-    t = igd_time.TimeTZ(tzfile=outfile.name)
-    t.StartTransaction()
-    t.LocalTimeZoneName = 'This should not be written.'
-    t.AbandonTransaction()
-    self.assertEqual(outfile.read().strip(), '')
+  def testIncorrectPosixTzNotThatAcsWouldEverSendOneNopeNopeNope(self):
+    t = igd_time.TimeTZ()
+    t.LocalTimeZoneName = 'This is not a timezone'
+    self.loop.RunOnce(timeout=1)
+    self.assertFalse(os.path.exists(self.localtimefile))
+    self.assertFalse(os.path.exists(self.tzfile))
+
+  def testTimeSyncedStatus(self):
+    t = igd_time.TimeTZ()
+    igd_time.TIMESYNCEDFILE = '/nonexistant'
+    self.assertEqual(t.Status, 'Unsynchronized')
+    igd_time.TIMESYNCEDFILE = 'testdata/igd_time/time.synced'
+    self.assertEqual(t.Status, 'Synchronized')
 
 
 if __name__ == '__main__':
