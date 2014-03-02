@@ -34,8 +34,12 @@ import dhcp
 
 BASE181HOSTS = tr.tr181_v2_6.Device_v2_6.Device.Hosts
 BASE181HOST = tr.tr181_v2_6.Device_v2_6.Device.Hosts.Host
+CATA181 = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
+CATA181HOSTS = CATA181.Device.Hosts
+CATA181HOST = CATA181HOSTS.Host
 
 # Unit tests can override these
+DHCP_FINGERPRINTS = '/config/dhcp.fingerprints'
 PROC_NET_ARP = '/proc/net/arp'
 SYS_CLASS_NET_PATH = '/sys/class/net'
 TIMENOW = time.time
@@ -375,7 +379,7 @@ class Hosts(BASE181HOSTS):
     return len(self.HostList)
 
 
-class Host(BASE181HOST):
+class Host(CATA181HOST):
   """A single network entity; a host system on the network.
 
   This is an ephemeral object, created from some data source and
@@ -443,6 +447,10 @@ class Host(BASE181HOST):
       return ip6.IPAddress
     return ''
 
+  @property
+  def X_CATAWAMPUS_ORG_ClientIdentification(self):
+    return ClientIdentification(self.PhysAddress)
+
 
 class HostIPv4Address(BASE181HOST.IPv4Address):
   IPAddress = tr.types.ReadOnlyString('')
@@ -458,3 +466,26 @@ class HostIPv6Address(BASE181HOST.IPv6Address):
   def __init__(self, address=''):
     super(HostIPv6Address, self).__init__()
     type(self).IPAddress.Set(self, address)
+
+
+class ClientIdentification(CATA181HOST.X_CATAWAMPUS_ORG_ClientIdentification):
+  DhcpFingerprint = tr.types.ReadOnlyString('')
+
+  def __init__(self, macaddr):
+    super(ClientIdentification, self).__init__()
+    fp = self._GetDhcpFingerprint(macaddr)
+    type(self).DhcpFingerprint.Set(self, fp)
+
+  def _GetDhcpFingerprint(self, macaddr):
+    try:
+      with open(DHCP_FINGERPRINTS) as f:
+        for line in f:
+          fields = line.split()
+          if len(fields) != 2:
+            continue
+          (mac, fingerprint) = fields
+          if mac.strip() == macaddr:
+            return fingerprint.strip()
+    except IOError:
+      pass
+    return ''

@@ -45,8 +45,10 @@ class TestDeviceModelRoot(tr.core.Exporter):
 
 class HostTest(unittest.TestCase):
   def setUp(self):
+    self.old_DHCP_FINGERPRINTS = host.DHCP_FINGERPRINTS
     self.old_PROC_NET_ARP = host.PROC_NET_ARP
     self.old_SYS_CLASS_NET_PATH = host.SYS_CLASS_NET_PATH
+    host.DHCP_FINGERPRINTS = 'testdata/host/fingerprints-dhcp'
     host.PROC_NET_ARP = '/dev/null'
     host.SYS_CLASS_NET_PATH = 'testdata/host/sys/class/net'
     self.old_TIMENOW = host.TIMENOW
@@ -151,6 +153,53 @@ class HostTest(unittest.TestCase):
         self.assertEqual(h.IPAddress, '192.168.1.3')
         found |= 4
     self.assertEqual(found, 7)
+
+  def testDhcpFingerprint(self):
+    host.PROC_NET_ARP = 'testdata/host/proc_net_arp'
+    iflookup = {'foo0': 'Device.Foo.Interface.1',
+                'foo1': 'Device.Foo.Interface.2'}
+    hosts = host.Hosts(iflookup)
+    self.assertEqual(len(hosts.HostList), 3)
+    found = 0
+    for h in hosts.HostList.values():
+      fp = h.X_CATAWAMPUS_ORG_ClientIdentification.DhcpFingerprint
+      if h.PhysAddress == 'f8:8f:ca:00:00:01':
+        self.assertEqual(fp, '1,2,3')
+        found |= 1
+      elif h.PhysAddress == 'f8:8f:ca:00:00:02':
+        self.assertEqual(fp, '4,5,6')
+        found |= 2
+      elif h.PhysAddress == 'f8:8f:ca:00:00:03':
+        self.assertEqual(fp, '')
+        found |= 4
+    self.assertEqual(found, 7)
+
+  def testNoDhcpFingerprintFile(self):
+    host.PROC_NET_ARP = 'testdata/host/proc_net_arp'
+    host.DHCP_FINGERPRINTS = '/nonexistent'
+    hosts = host.Hosts()
+    self.assertEqual(len(hosts.HostList), 3)
+    for h in hosts.HostList.values():
+      fp = h.X_CATAWAMPUS_ORG_ClientIdentification.DhcpFingerprint
+      self.assertEqual(fp, '')
+
+  def testCorruptDhcpFingerprintFile(self):
+    host.PROC_NET_ARP = 'testdata/host/proc_net_arp'
+    host.DHCP_FINGERPRINTS = 'testdata/host/fingerprints-corrupt'
+    hosts = host.Hosts()
+    self.assertEqual(len(hosts.HostList), 3)
+    for h in hosts.HostList.values():
+      fp = h.X_CATAWAMPUS_ORG_ClientIdentification.DhcpFingerprint
+      self.assertEqual(fp, '')
+
+  def testEmptyDhcpFingerprintFile(self):
+    host.PROC_NET_ARP = 'testdata/host/proc_net_arp'
+    host.DHCP_FINGERPRINTS = 'testdata/host/fingerprints-empty'
+    hosts = host.Hosts()
+    self.assertEqual(len(hosts.HostList), 3)
+    for h in hosts.HostList.values():
+      fp = h.X_CATAWAMPUS_ORG_ClientIdentification.DhcpFingerprint
+      self.assertEqual(fp, '')
 
   def _GetFakeCPE(self, tr98=True, tr181=True):
     igd = device = None
