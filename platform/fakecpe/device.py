@@ -213,7 +213,7 @@ class InternetGatewayDeviceFakeCPE(BASE98IGD):
 
     self.DeviceInfo = dm.device_info.DeviceInfo98Linux26(device_id)
     tzfile = '/tmp/catawampus.%s/TZ' % FakeCPEInstance()
-    self.Time = dm.igd_time.TimeTZ(tzfile=tzfile)
+    self.Time = dm.igd_time.TimeTZ()
     self.Export(objects=['PeriodicStatistics'])
     if periodic_stats:
       self.PeriodicStatistics = periodic_stats
