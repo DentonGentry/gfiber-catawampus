@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  TR-069 google.com vendor device model for Google Fiber TV HAT configuration.
+
+  Summary:
+  Google Fiber TV HAT settings facility.
+-->
+<dm:document xmlns:dm="urn:broadband-forum-org:cwmp:datamodel-1-3"
+             xmlns:dmr="urn:broadband-forum-org:cwmp:datamodel-report-0-1"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="urn:broadband-forum-org:cwmp:datamodel-1-3 cwmp-datamodel-1-3.xsd
+                                 urn:broadband-forum-org:cwmp:datamodel-report-0-1 cwmp-datamodel-report.xsd"
+             spec="urn:google-com:x-gfibertv-1-0">
+<import file="tr-069-biblio.xml" spec="urn:broadband-forum-org:tr-069-biblio"/>
+  <model name="X_GOOGLE_COM_HAT:1.0" isService="true">
+    <object name="X_GOOGLE_COM_HAT." access="readWrite" minEntries="1" maxEntries="1">
+      <description>Container for parameters supporting the HAT system.</description>
+       <parameter name="HAT" access="readWrite">
+        <description>If set to true, this variable turns off anything related to the HAT system.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="Insert" access="readWrite">
+        <description>Turns on/off the HAT insertion.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="TestCueTones" access="readWrite">
+        <description>Turns on/off HAT cue tones parsing.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="AFillPercent" access="readWrite">
+        <description>AS fill percent.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="HTFillPercent" access="readWrite">
+        <description>HT fill percent.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="DVRReplacement" access="readWrite">
+        <description>Turns on/off HAT DVR replacement.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="SwapoutSecs" access="readWrite">
+        <description>HAT swapout interval in seconds.</description>
+        <syntax>
+          <unsignedLong/>
+        </syntax>
+        </parameter>
+        <parameter name="Target" access="readOnly">
+          <description>Turns on/off HAT target.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="FreqCapSecs" access="readWrite">
+        <description>HAT frequency cap in seconds.</description>
+        <syntax>
+          <unsignedLong/>
+        </syntax>
+      </parameter>
+      <parameter name="CMSGCIntervalSecs" access="readWrite">
+        <description>CMS garbage collector interval.</description>
+        <syntax>
+          <unsignedLong/>
+        </syntax>
+      </parameter>
+      <parameter name="GFTSPollingIntervalSecs" access="readWrite">
+        <description>How often to poll ithe GFTS in secs.</description>
+        <syntax>
+          <unsignedLong/>
+        </syntax>
+      </parameter>
+      <parameter name="GFTSUrl" access="readWrite">
+        <description>URL of the GFTS server.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="GFASUrl" access="readWrite">
+        <description>URL of the GFAS server.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+    </object>
+  </model>
+</dm:document>
