@@ -142,6 +142,22 @@ class DnsmasqTest(unittest.TestCase):
     self.assertEqual(fs, fs2)
     self.assertFalse(os.path.exists(self.restartfile))
 
+  def testEnableDisable(self):
+    dh4p = self.dh4p
+    dh4p.Enable = True
+    dh4p.MinAddress = '1.1.1.1'
+    dh4p.MaxAddress = '2.2.2.2'
+    self.assertFalse(os.path.exists(dnsmasq.DNSMASQCONFIG[0]))
+    self.loop.RunOnce(timeout=1)
+    self.assertTrue(os.path.exists(dnsmasq.DNSMASQCONFIG[0]))
+    lines = dnsmasq._ReadFileActiveLines(dnsmasq.DNSMASQCONFIG[0])
+    self.assertEqual(lines, ['dhcp-range=1.1.1.1,2.2.2.2,86400\n'])
+    dh4p.Enable = False
+    self.loop.RunOnce(timeout=1)
+    self.assertTrue(os.path.exists(dnsmasq.DNSMASQCONFIG[0]))
+    lines = dnsmasq._ReadFileActiveLines(dnsmasq.DNSMASQCONFIG[0])
+    self.assertEqual(lines, [])
+
   def testRestartCmdFails(self):
     """'restart dnsmasq' failing should not kill the process."""
     dnsmasq.RESTARTCMD = ['/nonexistent']

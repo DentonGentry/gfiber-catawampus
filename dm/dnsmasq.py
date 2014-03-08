@@ -370,11 +370,15 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
 
   def DnsmasqConfig(self):
     """Return the list of lines to be written to the dnsmasq config."""
+
+    lines = []
+    if not self.Enable:
+      return lines
+
     minip = str(self.MinAddress)
     maxip = str(self.MaxAddress)
     lt = str(self.LeaseTime)
     name = str(self.name)
-    lines = []
 
     restrict = ''
     if self.Chaddr or self.UserClassID or self.VendorClassID:
