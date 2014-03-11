@@ -57,7 +57,6 @@ import tr.x_catawampus_tr181_2_0
 
 import gfibertv
 import gvsb
-import hat
 import ookla
 import ssh
 import stbservice
@@ -641,14 +640,12 @@ def PlatformInit(name, device_model_root):
   device_model_root.X_GOOGLE_COM_SSH = ssh.Ssh()
   tvrpc = gfibertv.GFiberTv(mailbox_url='http://localhost:51834/xmlrpc',
                             my_serial=dev_id.SerialNumber)
-  hat = hat.Hat()
   device_model_root.X_GOOGLE_COM_GFIBERTV = tvrpc
   objects.append('Device')
   objects.append('InternetGatewayDevice')
   objects.append('X_GOOGLE-COM_SSH')
   objects.append('X_GOOGLE-COM_GVSB')
   objects.append('X_GOOGLE-COM_GFIBERTV')
-  objects.append('X_GOOGLE-COM_HAT')
   return (params, objects)
 
 
