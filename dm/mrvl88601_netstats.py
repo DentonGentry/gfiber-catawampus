@@ -57,26 +57,35 @@ class NetdevStatsMrvl88601(ETHERNET.Interface.Stats):
     super(NetdevStatsMrvl88601, self).__init__()
     self.stat_dir = stat_dir
 
+    rx_good_octets = self._ReadStatFile('rx_good_octets')
     rx_good_pkts = self._ReadStatFile('rx_good_packets')
-    rx_bad_pkts = self._ReadStatFile('rx_bad_packets')
     rx_broadcast_pkts = self._ReadStatFile('rx_broadcast_packets')
     rx_multicast_pkts = self._ReadStatFile('rx_multicast_packets')
+    tx_good_octets = self._ReadStatFile('tx_good_octets')
     tx_good_pkts = self._ReadStatFile('tx_good_packets')
     tx_broadcast_pkts = self._ReadStatFile('tx_broadcast_packets')
     tx_multicast_pkts = self._ReadStatFile('tx_multicast_packets')
 
+    type(self).BytesReceived.Set(self, rx_good_octets)
     type(self).PacketsReceived.Set(self, rx_good_pkts)
-    type(self).DiscardPacketsReceived.Set(self, rx_bad_pkts)
     type(self).MulticastPacketsReceived.Set(self, rx_multicast_pkts)
     type(self).BroadcastPacketsReceived.Set(self, rx_broadcast_pkts)
     type(self).UnicastPacketsReceived.Set(
         self, rx_good_pkts - rx_broadcast_pkts - rx_multicast_pkts)
 
+    type(self).BytesSent.Set(self, tx_good_octets)
     type(self).PacketsSent.Set(self, tx_good_pkts)
     type(self).MulticastPacketsSent.Set(self, tx_multicast_pkts)
     type(self).BroadcastPacketsSent.Set(self, tx_broadcast_pkts)
     type(self).UnicastPacketsSent.Set(
         self, tx_good_pkts - tx_broadcast_pkts - tx_multicast_pkts)
+
+    type(self).ErrorsReceived.Set(self,
+        self._ReadStatFile('rx_bad_fc') + self._ReadStatFile('rx_undersized') +
+        self._ReadStatFile('rx_fragments') + self._ReadStatFile('rx_oversized') +
+        self._ReadStatFile('rx_jabber') + self._ReadStatFile('rx_mac_error') +
+        self._ReadStatFile('rx_crc_error') + self._ReadStatFile('rx_bad_packets'))
+
 
   def _ReadStatFile(self, stat_file):
     """Read a single network statistic."""
