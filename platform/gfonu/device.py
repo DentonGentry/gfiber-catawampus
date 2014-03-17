@@ -79,7 +79,6 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
   def __init__(self, ioloop=None):
     super(PlatformConfig, self).__init__()
     self._ioloop = ioloop or tornado.ioloop.IOLoop.instance()
-    tr.acs_config.ACSCONNECTED = '/tmp/ledmonitor/acsconnected'
 
   def ConfigDir(self):
     return CONFIGDIR
