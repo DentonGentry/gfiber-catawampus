@@ -292,7 +292,7 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
 
   @property
   def Status(self):
-    if not self.ValidateConfig(doprint=False):
+    if not self.ValidateConfig():
       return 'Error_Misconfigured'
     return 'Enabled' if self.Enable else 'Disabled'
 
@@ -328,12 +328,10 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
   def Triggered(self):
     UpdateDnsmasqConfig()
 
-  def ValidateConfig(self, doprint=True):
+  def ValidateConfig(self):
     a = self.MinAddress
     b = self.MaxAddress
     if (a and not b) or (not a and b):
-      if doprint:
-        print 'Invalid config %s, {Min,Max}Address must both be set' % self.name
       return False
     return True
 
@@ -375,8 +373,8 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
     if not self.Enable:
       return lines
 
-    minip = str(self.MinAddress)
-    maxip = str(self.MaxAddress)
+    minip = str(self.MinAddress) if self.MinAddress else ''
+    maxip = str(self.MaxAddress) if self.MaxAddress else ''
     lt = str(self.LeaseTime)
     name = str(self.name)
 
