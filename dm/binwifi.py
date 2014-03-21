@@ -32,7 +32,6 @@ import tr.session
 import tr.tr098_v1_6
 import tr.x_catawampus_tr098_1_0
 import netdev
-import wifi
 
 BASE98IGD = tr.tr098_v1_6.InternetGatewayDevice_v1_12.InternetGatewayDevice
 BASE98WIFI = BASE98IGD.LANDevice.WLANConfiguration
@@ -110,11 +109,11 @@ class WlanConfiguration(CATA98WIFI):
 
     self.PreSharedKeyList = {}
     for i in range(1, 11):
-      self.PreSharedKeyList[str(i)] = wifi.PreSharedKey98()
+      self.PreSharedKeyList[str(i)] = PreSharedKey()
 
     self.WEPKeyList = {}
     for i in range(1, 5):
-      self.WEPKeyList[str(i)] = wifi.WEPKey98()
+      self.WEPKeyList[str(i)] = WEPKey()
 
     # No RADIUS support, could be added later.
     self.Unexport(['AuthenticationServiceMode'])
@@ -272,7 +271,7 @@ class WlanConfiguration(CATA98WIFI):
 
   def SetKeyPassphrase(self, value):
     psk = self.PreSharedKeyList['1']
-    psk.PreSharedKey = value
+    psk.KeyPassphrase = value
     # TODO(dgentry) need to set WEPKeys, but this is fraught with peril.
     # If KeyPassphrase is not exactly 5 or 13 bytes it must be padded.
     # Apple uses different padding than Windows (and others).
@@ -420,8 +419,9 @@ class WlanConfiguration(CATA98WIFI):
     if autotype:
       cmd += ['-a', autotype]
     for psk in self.PreSharedKeyList.values():
-      if psk.PreSharedKey:
-        env['WIFI_PSK'] = psk.PreSharedKey
+      key = psk.GetKey()
+      if key:
+        env['WIFI_PSK'] = key
         break
 
     try:
@@ -431,6 +431,40 @@ class WlanConfiguration(CATA98WIFI):
     except (IOError, OSError, subprocess.CalledProcessError):
       print 'Unable to configure Wifi.'
       traceback.print_exc()
+
+
+class PreSharedKey(BASE98WIFI.PreSharedKey):
+  """InternetGatewayDevice.WLANConfiguration.{i}.PreSharedKey.{i}."""
+
+  def __init__(self):
+    super(PreSharedKey, self).__init__()
+    self.Unexport(['Alias', 'PreSharedKey', 'AssociatedDeviceMACAddress'])
+    self.passphrase = ''
+
+  def GetKey(self):
+    """Return the key to program into the Wifi chipset."""
+    return self.passphrase
+
+  def SetKeyPassphrase(self, value):
+    self.passphrase = str(value)
+
+  def GetKeyPassphrase(self):
+    """tr98 says KeyPassphrase always reads back an empty value."""
+    return ''
+
+  KeyPassphrase = property(
+      GetKeyPassphrase, SetKeyPassphrase, None,
+      'WLANConfiguration.{i}.PreSharedKey.{i}.KeyPassphrase')
+
+
+class WEPKey(BASE98WIFI.WEPKey):
+  """InternetGatewayDevice.WLANConfiguration.{i}.WEPKey.{i}."""
+
+  WEPKey = tr.types.String('')
+
+  def __init__(self):
+    super(WEPKey, self).__init__()
+    self.Unexport(['Alias'])
 
 
 class WlanConfigurationStats(netdev.NetdevStatsLinux26, BASE98WIFI.Stats):
