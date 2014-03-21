@@ -247,7 +247,12 @@ class ParameterAttributes(object):
   def CheckForTriggers(self):
     """Checks if a notification needs to be sent to the ACS."""
     for paramname in self.params.keys():
-      value = self.root.GetExport(paramname)
+      try:
+        value = self.root.GetExport(paramname)
+      except KeyError:
+        # ACS sets notifications for ephemeral objects like Device.Hosts.Host.
+        # The object doesn't exist right now, it clearly has no notifications.
+        continue
       attrs = self.params[paramname]
 
       # This checks that the Notification attribute is set, and if it

@@ -62,9 +62,17 @@ class Word(core.Exporter):
 class TestObject(core.Exporter):
   def __init__(self):
     core.Exporter.__init__(self)
-    self.Export(lists=['Thingy'])
+    self.Export(lists=['Thingy', 'AutoThingy'])
     self.ThingyList = {}
     self.Thingy = Word
+    self.NumAutoThingies = 5
+
+  @property
+  def AutoThingyList(self):
+    rc = {}
+    for i in range(self.NumAutoThingies):
+      rc[str(i+1)] = Word()
+    return rc
 
 
 class TestSimpleRoot(core.Exporter):
@@ -154,9 +162,23 @@ class FakeAttrs(dict):
   def __setattr__(self, item, value):
     self[item] = value
 
-class ParameterAttrsTest(unittest.TestCase):
-  def testSetAttr(self):
 
+set_notification_arg = [[]]
+new_session_called = [0]
+
+def SetNotification(arg):
+  set_notification_arg[0] += arg
+
+def NewSession():
+  new_session_called[0] += 1
+
+
+class ParameterAttrsTest(unittest.TestCase):
+  def setUp(self):
+    set_notification_arg[0] = []
+    new_session_called[0] = 0
+
+  def testSetAttr(self):
     root = TestSimpleRoot()
     cpe = api.CPE(root)
     f = FakeAttrs()
@@ -172,15 +194,6 @@ class ParameterAttrsTest(unittest.TestCase):
     cpe.SetParameterAttributes(f)
     self.assertEqual(len(cpe.parameter_attrs.params), 1)
     self.assertEqual(2, cpe.parameter_attrs.params['SomeParam'].notification)
-
-    set_notification_arg = [[]]
-    new_session_called = [0]
-
-    def SetNotification(arg):
-      set_notification_arg[0] += arg
-
-    def NewSession():
-      new_session_called[0] += 1
 
     cpe.parameter_attrs.set_notification_parameters_cb = SetNotification
     cpe.parameter_attrs.new_value_change_session_cb = NewSession
@@ -209,6 +222,32 @@ class ParameterAttrsTest(unittest.TestCase):
     self.assertEqual(len(cpe.parameter_attrs.params), 1)
     cpe.DeleteObject('Thingy.1.', 'fake-key')
     self.assertEqual(len(cpe.parameter_attrs.params), 0)
+
+  def testNonexistent(self):
+    root = TestObject()
+    cpe = api.CPE(root)
+
+    cpe.parameter_attrs.set_notification_parameters_cb = SetNotification
+    cpe.parameter_attrs.new_value_change_session_cb = NewSession
+
+    f = FakeAttrs()
+    f.Name = 'AutoThingy.3'
+    f.Notification = 2
+    f.NotificationChange = 'true'
+    cpe.SetParameterAttributes(f)
+    self.assertEqual(len(cpe.parameter_attrs.params), 1)
+    root.NumAutoThingies = 1
+
+    # Check that this doesn't raise an exception
+    cpe.parameter_attrs.CheckForTriggers()
+    self.assertEqual(0, len(set_notification_arg[0]))
+
+    root.NumAutoThingies = 5
+    self.assertEqual(0, len(set_notification_arg[0]))
+
+    root.AutoThingyList['3'].word = 'word1'
+    cpe.parameter_attrs.CheckForTriggers()
+    self.assertEqual(1, len(set_notification_arg[0]))
 
 
 if __name__ == '__main__':
