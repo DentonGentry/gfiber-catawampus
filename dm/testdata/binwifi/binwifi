@@ -4,13 +4,7 @@ out=$1
 shift
 
 cmd=$1
-if [ "$cmd" = "set" ]; then
-  quoted=""
-  for arg in "$@"; do
-    quoted="$quoted \"$arg\""
-  done
-  (echo "$quoted"; echo "PSK=$WIFI_PSK") >$out
-elif [ "$cmd" = "show" ] && [ "$2" = "-b" ] && [ "$3" = "5" ]; then
+if [ "$cmd" = "show" ] && [ "$2" = "-b" ] && [ "$3" = "5" ]; then
   echo "Band: 5"
   echo "RegDomain: US"
   echo "BSSID: 00:01:02:03:04:05"
@@ -64,6 +58,12 @@ elif [ "$cmd" = "show" ] && [ "$2" = "-b" ] && [ "$3" = "2.4" ]; then
   echo "Channel: 11"
   echo "Station List for band: 2.4"
   echo ""
+else
+  quoted=""
+  for arg in "$@"; do
+    quoted="$quoted \"$arg\""
+  done
+  (echo "$quoted"; echo "PSK=$WIFI_PSK") >$out
 fi
 
 exit 0

@@ -74,7 +74,7 @@ class BinWifiTest(unittest.TestCase):
     bw = binwifi.WlanConfiguration('wifi0', band='2.4')
     bw.StartTransaction()
     bw.RadioEnabled = True
-    bw.Enabled = True
+    bw.Enable = True
     bw.AutoChannelEnable = True
     bw.X_CATAWAMPUS_ORG_AutoChanType = 'HIGH'
     bw.SSID = 'Test SSID 1'
@@ -85,10 +85,44 @@ class BinWifiTest(unittest.TestCase):
     buf = open(self.wifioutfile).read()
     # testdata/binwifi/binwifi quotes every argument
     exp = [
-        '"set" "-b" "2.4" "-e" "WPA2_PSK_AES" "-c" "auto" "-s" '
+        '"set" "-P" "-b" "2.4" "-e" "WPA2_PSK_AES" "-c" "auto" "-s" '
         '"Test SSID 1" "-a" "HIGH"',
         'PSK=testpassword'
         ]
+    self.assertEqual(buf.strip().splitlines(), exp)
+
+  def testAnotherConfigCommit(self):
+    bw = binwifi.WlanConfiguration('wifi0', band='2.4')
+    bw.StartTransaction()
+    bw.RadioEnabled = True
+    bw.Enable = True
+    bw.AutoChannelEnable = False
+    bw.Channel=10
+    bw.X_CATAWAMPUS_ORG_AutoChanType = 'HIGH'
+    bw.SSID = 'Test SSID 1'
+    bw.BeaconType = 'WPAand11i'
+    bw.IEEE11iEncryptionModes = 'AESEncryption'
+    bw.KeyPassphrase = 'testpassword'
+    bw.SSIDAdvertisementEnabled = False
+    self.loop.RunOnce(timeout=1)
+    buf = open(self.wifioutfile).read()
+    # testdata/binwifi/binwifi quotes every argument
+    exp = [
+        '"set" "-P" "-b" "2.4" "-e" "WPA2_PSK_AES" "-H" "-c" "10" '
+        '"-s" "Test SSID 1" "-a" "HIGH"',
+        'PSK=testpassword'
+        ]
+    self.assertEqual(buf.strip().splitlines(), exp)
+
+  def testRadioDisabled(self):
+    bw = binwifi.WlanConfiguration('wifi0', band='2.4')
+    bw.StartTransaction()
+    bw.Enable = True
+    bw.RadioEnabled = False
+    self.loop.RunOnce(timeout=1)
+    buf = open(self.wifioutfile).read()
+    # testdata/binwifi/binwifi quotes every argument
+    exp = ['"off" "-P" "-b" "2.4"', 'PSK=']
     self.assertEqual(buf.strip().splitlines(), exp)
 
   def testPSK(self):
@@ -96,7 +130,7 @@ class BinWifiTest(unittest.TestCase):
       bw = binwifi.WlanConfiguration('wifi0', band='2.4')
       bw.StartTransaction()
       bw.RadioEnabled = True
-      bw.Enabled = True
+      bw.Enable = True
       bw.AutoChannelEnable = True
       bw.SSID = 'Test SSID 1'
       bw.BeaconType = 'WPAand11i'
@@ -106,7 +140,8 @@ class BinWifiTest(unittest.TestCase):
       buf = open(self.wifioutfile).read()
       # testdata/binwifi/binwifi quotes every argument
       exp = [
-          '"set" "-b" "2.4" "-e" "WPA2_PSK_AES" "-c" "auto" "-s" "Test SSID 1"',
+          '"set" "-P" "-b" "2.4" "-e" "WPA2_PSK_AES" '
+          '"-c" "auto" "-s" "Test SSID 1"',
           'PSK=testpassword'
           ]
       self.assertEqual(buf.strip().splitlines(), exp)
