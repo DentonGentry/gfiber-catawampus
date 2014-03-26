@@ -105,11 +105,6 @@ def _ExistingInterfaces(ifcnames):
   return out
 
 
-def _WifiInterfaces():
-  # ath0/ath1 are Atheros interfaces; eth2 is bcmwifi on GFHD100
-  return _ExistingInterfaces(['ath0', 'ath1', 'eth2'])
-
-
 class PlatformConfig(platform_config.PlatformConfigMeta):
   """PlatformConfig for GFMedia devices."""
 
@@ -449,8 +444,8 @@ class IP(tr181.Device_v2_6.Device.IP):
           ifname='br0', lowerlayers='Device.Ethernet.Interface.256')
 
     # Maintain numbering consistency between GFHD100 and GFRG200.
-    # The LAN interface is first, then the MoCA interface, then the wifi
-    # interfaces (if any).  Then we'll add any additional interfaces.
+    # The LAN interface is first, then the MoCA interface, then the WAN
+    # interfaces (if any) and then wifi (if any).
     lanifc = _ExistingInterfaces(['lan0', 'eth0'])
     if lanifc:
       self.InterfaceList[1] = dm.ipinterface.IPInterfaceLinux26(
@@ -459,15 +454,24 @@ class IP(tr181.Device_v2_6.Device.IP):
     if mocaifc:
       self.InterfaceList[2] = dm.ipinterface.IPInterfaceLinux26(
           ifname=mocaifc[0], lowerlayers='Device.MoCA.Interface.1')
-    i = 3
-    for wifc in _WifiInterfaces():
-      self.InterfaceList[i] = dm.ipinterface.IPInterfaceLinux26(
-          ifname=wifc, lowerlayers='')  # no tr181 Wifi yet
-      i += 1
-    for ethi, wanifc in enumerate(_ExistingInterfaces(['wan0', 'wan0.2']), 2):
-      self.InterfaceList[i] = dm.ipinterface.IPInterfaceLinux26(
-          ifname=wanifc, lowerlayers='Device.Ethernet.Interface.%d' % ethi)
-      i += 1
+
+    if _ExistingInterfaces(['wan0']):
+      self.InterfaceList[4] = dm.ipinterface.IPInterfaceLinux26(
+          ifname='wan0', lowerlayers='Device.Ethernet.Interface.1')
+    if _ExistingInterfaces(['wan0.2']):
+      self.InterfaceList[5] = dm.ipinterface.IPInterfaceLinux26(
+          ifname='wan0.2', lowerlayers='Device.Ethernet.Interface.2')
+
+    if _ExistingInterfaces(['wlan0']):
+      self.InterfaceList[6] = dm.ipinterface.IPInterfaceLinux26(
+          ifname='wlan0', lowerlayers='')
+    if _ExistingInterfaces(['wlan1']):
+      self.InterfaceList[7] = dm.ipinterface.IPInterfaceLinux26(
+          ifname='wlan1', lowerlayers='')
+    if _ExistingInterfaces(['eth2']):
+      self.InterfaceList[8] = dm.ipinterface.IPInterfaceLinux26(
+          ifname='eth2', lowerlayers='')
+
     self.ActivePortList = {}
     self.Diagnostics = IPDiagnostics()
 
