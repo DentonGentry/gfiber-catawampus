@@ -397,17 +397,13 @@ class WlanConfiguration(CATA98WIFI):
 
     return auth + crypto
 
-  @tr.mainloop.WaitUntilIdle
-  def UpdateBinWifi(self):
-    if not self.RadioEnabled:
-      # TODO(dgentry): need to be able to turn the radio off
-      print 'Unable to turn Radio off'
-      return
-    if not self.SSIDAdvertisementEnabled:
-      # TODO(dgentry): need to be able to turn the beacon off
-      print 'Unable to disable SSID Advertisement'
-    cmd = BINWIFI + ['set', '-b', self._band, '-e', self._GetEncryptionMode()]
+  def _MakeBinWifiCommand(self):
+    """Return (arglist, env) to run /bin/wifi."""
     env = os.environ.copy()
+    cmd = BINWIFI + ['set', '-P', '-b', self._band,
+                     '-e', self._GetEncryptionMode()]
+    if not self.SSIDAdvertisementEnabled:
+      cmd += ['-H']
     ae = self.new_config.AutoChannelEnable
     ch = 'auto' if ae else str(self.new_config.Channel)
     if ch:
@@ -423,7 +419,15 @@ class WlanConfiguration(CATA98WIFI):
       if key:
         env['WIFI_PSK'] = key
         break
+    return (cmd, env)
 
+  @tr.mainloop.WaitUntilIdle
+  def UpdateBinWifi(self):
+    if self.Enable and self.RadioEnabled:
+      (cmd, env) = self._MakeBinWifiCommand()
+    else:
+      cmd = BINWIFI + ['off', '-P', '-b', self._band]
+      env = None
     try:
       print 'Running %s' % str(cmd)
       child = subprocess.Popen(cmd, env=env, close_fds=True, shell=False)
