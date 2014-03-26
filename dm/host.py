@@ -439,10 +439,18 @@ class Host(CATA181HOST):
 
   @property
   def IPAddress(self):
+    return self.IP4Address or self.IP6Address
+
+  @property
+  def IP4Address(self):
     ip4 = self.IPv4AddressList.get('1', '')
-    ip6 = self.IPv6AddressList.get('1', '')
     if ip4:
       return ip4.IPAddress
+    return ''
+
+  @property
+  def IP6Address(self):
+    ip6 = self.IPv6AddressList.get('1', '')
     if ip6:
       return ip6.IPAddress
     return ''

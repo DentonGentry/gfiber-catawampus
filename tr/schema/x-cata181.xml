@@ -158,6 +158,25 @@
       </parameter>
     </object>
 
+    <object name="Device.Hosts.Host.{i}." access="readOnly" numEntriesParameter="HostNumberOfEntries" minEntries="0"  maxEntries="unbounded">
+      <parameter name="IP4Address" access="readOnly">
+        <description>The first IPv4 address known for the Host, or an empty string if there are no addresses.</description>
+        <syntax>
+          <string>
+            <size maxLength="15"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="IP6Address" access="readOnly">
+        <description>The first IPv6 address known for the Host, or an empty string if there are no addresses.</description>
+        <syntax>
+          <string>
+            <size maxLength="45"/>
+          </string>
+        </syntax>
+      </parameter>
+    </object>
+
     <object name="Device.Hosts.Host.{i}.X_CATAWAMPUS_ORG_ClientIdentification." access="readOnly" minEntries="1" maxEntries="1">
       <description>Fingerprinting information to identify a client device.</description>
       <parameter name="DhcpFingerprint" access="readOnly">

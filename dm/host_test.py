@@ -79,6 +79,9 @@ class HostTest(unittest.TestCase):
     self.assertEqual(h.ClientID, 'client_id')
     self.assertEqual(h.DHCPClient, 'dhcpclient')
     self.assertEqual(h.HostName, 'hostname')
+    self.assertEqual(h.IPAddress, 'ip4_1')
+    self.assertEqual(h.IP4Address, 'ip4_1')
+    self.assertEqual(h.IP6Address, 'ip6_1')
     self.assertEqual(h.Layer1Interface, 'l1iface')
     self.assertEqual(h.Layer3Interface, 'l3iface')
     self.assertEqual(h.LeaseTimeRemaining, 1000)
@@ -94,13 +97,13 @@ class HostTest(unittest.TestCase):
     h.IPv4AddressList['3'].ValidateExports()
     self.assertEqual(len(h.IPv6AddressList), 4)
     self.assertEqual(h.IPv6AddressList['1'].IPAddress, 'ip6_1')
+    self.assertEqual(h.IPv6AddressList['2'].IPAddress, 'ip6_2')
+    self.assertEqual(h.IPv6AddressList['3'].IPAddress, 'ip6_3')
+    self.assertEqual(h.IPv6AddressList['4'].IPAddress, 'ip6_4')
     h.IPv6AddressList['1'].ValidateExports()
     h.IPv6AddressList['2'].ValidateExports()
     h.IPv6AddressList['3'].ValidateExports()
     h.IPv6AddressList['4'].ValidateExports()
-    self.assertEqual(h.IPv6AddressList['2'].IPAddress, 'ip6_2')
-    self.assertEqual(h.IPv6AddressList['3'].IPAddress, 'ip6_3')
-    self.assertEqual(h.IPv6AddressList['4'].IPAddress, 'ip6_4')
 
   def testHostsFromBridge(self):
     iflookup = {'eth0': 'Ethernet', 'eth1.0': 'MoCA',}
