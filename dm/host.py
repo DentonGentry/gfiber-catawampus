@@ -45,6 +45,13 @@ SYS_CLASS_NET_PATH = '/sys/class/net'
 TIMENOW = time.time
 
 
+def HexIntOrZero(arg):
+  try:
+    return int(arg, 0)
+  except (ValueError, TypeError):
+    return 0
+
+
 class Hosts(BASE181HOSTS):
   """Implement tr-181 Device.Hosts table."""
 
@@ -187,15 +194,18 @@ class Hosts(BASE181HOSTS):
         [('f8:8f:ca:00:00:01', '1.1.1.1', 'eth0'),
          ('f8:8f:ca:00:00:02', '1.1.1.2', 'eth1')]
     """
+    ATF_COM = 0x02
     with open(PROC_NET_ARP) as f:
       unused_headers = f.readline()
       result = []
       for line in f:
         fields = line.split()
         ip4 = fields[0]
+        flg = HexIntOrZero(fields[2])
         mac = fields[3]
         dev = fields[5]
-        result.append((mac, ip4, dev))
+        if flg & ATF_COM:
+          result.append((mac, ip4, dev))
     return result
 
   def _GetHostsFromArpTable(self, hosts):
