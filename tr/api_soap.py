@@ -205,6 +205,10 @@ class SoapHandler(object):
       except api.AddObjectsErrors as e:
         faults = self._ExceptionListToFaultList(e.error_list)
         result = soap.AddObjectsFault(xml, faults)
+      except api.ParameterNameError as e:
+        result = soap.SimpleFault(
+            xml, cpefault=soap.CpeFault.INVALID_PARAM_NAME,
+            faultstring='No such parameter: %s' % str(e.parameter))
       except KeyError as e:
         result = soap.SimpleFault(
             xml, cpefault=soap.CpeFault.INVALID_PARAM_NAME,

@@ -464,7 +464,10 @@ class CPE(TR069Service):
         for p in paramlist:
           parameter_names.append(param + p)
       else:
-        result.append((param, self._GetParameterValue(param)))
+        try:
+          result.append((param, self._GetParameterValue(param)))
+        except KeyError:
+          raise ParameterNameError(parameter=param, msg=param)
     return result
 
   def _JoinParamPath(self, parameter_path, param):
