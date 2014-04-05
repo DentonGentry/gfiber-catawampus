@@ -109,11 +109,11 @@ class WlanConfiguration(CATA98WIFI):
 
     self.PreSharedKeyList = {}
     for i in range(1, 11):
-      self.PreSharedKeyList[str(i)] = PreSharedKey()
+      self.PreSharedKeyList[str(i)] = PreSharedKey(parent=self)
 
     self.WEPKeyList = {}
     for i in range(1, 5):
-      self.WEPKeyList[str(i)] = WEPKey()
+      self.WEPKeyList[str(i)] = WEPKey(parent=self)
 
     # No RADIUS support, could be added later.
     self.Unexport(['AuthenticationServiceMode'])
@@ -440,10 +440,14 @@ class WlanConfiguration(CATA98WIFI):
 class PreSharedKey(BASE98WIFI.PreSharedKey):
   """InternetGatewayDevice.WLANConfiguration.{i}.PreSharedKey.{i}."""
 
-  def __init__(self):
+  def __init__(self, parent):
     super(PreSharedKey, self).__init__()
     self.Unexport(['Alias', 'PreSharedKey', 'AssociatedDeviceMACAddress'])
     self.passphrase = ''
+    self.parent = parent
+
+  def Triggered(self):
+    self.parent.Triggered()
 
   def GetKey(self):
     """Return the key to program into the Wifi chipset."""
@@ -451,6 +455,7 @@ class PreSharedKey(BASE98WIFI.PreSharedKey):
 
   def SetKeyPassphrase(self, value):
     self.passphrase = str(value)
+    self.Triggered()
 
   def GetKeyPassphrase(self):
     """tr98 says KeyPassphrase always reads back an empty value."""
@@ -464,11 +469,15 @@ class PreSharedKey(BASE98WIFI.PreSharedKey):
 class WEPKey(BASE98WIFI.WEPKey):
   """InternetGatewayDevice.WLANConfiguration.{i}.WEPKey.{i}."""
 
-  WEPKey = tr.types.String('')
+  WEPKey = tr.types.TriggerString('')
 
-  def __init__(self):
+  def __init__(self, parent):
     super(WEPKey, self).__init__()
     self.Unexport(['Alias'])
+    self.parent = parent
+
+  def Triggered(self):
+    self.parent.Triggered()
 
 
 class WlanConfigurationStats(netdev.NetdevStatsLinux26, BASE98WIFI.Stats):
