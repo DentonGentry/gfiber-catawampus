@@ -83,8 +83,8 @@ class Hosts(BASE181HOSTS):
 
     Returns:
       a dict mapping Linux ifnames to tr-69 parameter paths. Ex:
-       {'eth0': 'Device.Ethernet.Interface.1.',
-        'eth1': 'Device.MoCA.Interface.1.'}
+       {'eth0': 'Device.Ethernet.Interface.1',
+        'eth1': 'Device.MoCA.Interface.1'}
     """
     for (l1interface, wifi) in self._GetTr98WifiObjects():
       iflookup[wifi.Name] = l1interface

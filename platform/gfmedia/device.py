@@ -559,8 +559,8 @@ class Device(tr181.Device_v2_6.Device):
     # this is just a lookup table. It is harmless to have extra interfaces,
     # like Wifi interfaces on GFMS100 (which has no wifi).
     iflookup = {
-        'eth1.0': 'Device.MoCA.Interface.1.',
-        'moca0.0': 'Device.MoCA.Interface.1.',
+        'eth1.0': 'Device.MoCA.Interface.1',
+        'moca0.0': 'Device.MoCA.Interface.1',
     }
     self.Hosts = dm.host.Hosts(iflookup=iflookup, bridgename='br0', dmroot=dmroot)
 
