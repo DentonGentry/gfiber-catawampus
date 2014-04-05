@@ -86,6 +86,12 @@ class IpInterfaceTest(unittest.TestCase):
     self.assertTrue(ip6a.Enable)
     self.assertEqual(ip6a.IPAddressStatus, 'Preferred')
 
+  def testInterfaceIPparams(self):
+    ip = ipinterface.IPInterfaceLinux26('foo0')
+    self.assertEqual(ip.X_CATAWAMPUS_ORG_IP4Address, '1.1.1.3')
+    self.assertEqual(ip.X_CATAWAMPUS_ORG_IP6Address,
+                     '1000:1000:1000:1000:0011:22ff:fe33:4455')
+
   def testInterfaceIPListsEmpty(self):
     ip = ipinterface.IPInterfaceLinux26('foo1')
     self.assertEqual(ip.IPv4AddressNumberOfEntries, 0)
