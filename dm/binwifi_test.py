@@ -147,6 +147,26 @@ class BinWifiTest(unittest.TestCase):
       self.assertEqual(buf.strip().splitlines(), exp)
       os.remove(self.wifioutfile)
 
+  def testPasswordTriggers(self):
+    bw = binwifi.WlanConfiguration('wifi0', band='2.4')
+    bw.StartTransaction()
+    bw.RadioEnabled = True
+    bw.Enable = True
+    bw.AutoChannelEnable = True
+    bw.SSID = 'Test SSID 1'
+    bw.BeaconType = 'WPAand11i'
+    bw.IEEE11iEncryptionModes = 'AESEncryption'
+    bw.PreSharedKeyList['1'].KeyPassphrase = 'testpassword'
+    self.loop.RunOnce(timeout=1)
+    buf = open(self.wifioutfile).read()
+
+    # Test that setting the KeyPassphrase alone is enough to write the config
+    for i in reversed(range(1, 11)):
+      bw.PreSharedKeyList[str(i)].KeyPassphrase = 'testpassword' + str(i)
+      self.loop.RunOnce(timeout=1)
+      newbuf = open(self.wifioutfile).read()
+      self.assertNotEqual(newbuf, buf)
+
   def testSSID(self):
     bw = binwifi.WlanConfiguration('wifi0')
     bw.StartTransaction()
