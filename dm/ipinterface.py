@@ -36,6 +36,7 @@ import tr.mainloop
 import tr.session
 import tr.tr181_v2_6
 import tr.types
+import tr.x_catawampus_tr181_2_0
 
 try:
   import netifaces
@@ -45,6 +46,7 @@ except ImportError:
   IFADDRESSES = None
 
 BASEIPINTF = tr.tr181_v2_6.Device_v2_6.Device.IP.Interface
+CATA181IP = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device.IP
 IPCONFIG = ['tr69_ipconfig']
 PYNETIFCONF = pynetlinux.ifconfig.Interface
 
@@ -72,7 +74,7 @@ class IPInterfaceStatsLinux26(netdev.NetdevStatsLinux26, BASEIPINTF.Stats):
     BASEIPINTF.Stats.__init__(self)
 
 
-class IPInterfaceLinux26(BASEIPINTF):
+class IPInterfaceLinux26(CATA181IP.Interface):
   """Handling for a Linux 2.6-style device like eth0/eth1/etc.
 
   Args:
@@ -110,6 +112,20 @@ class IPInterfaceLinux26(BASEIPINTF):
 
   def IPv6Address(self):
     return IPv6AddressLinux26(parent=self)
+
+  @property
+  def X_CATAWAMPUS_ORG_IP4Address(self):
+    ip4 = self.IPv4AddressList.values()
+    if ip4:
+      return ip4[0].IPAddress
+    return ''
+
+  @property
+  def X_CATAWAMPUS_ORG_IP6Address(self):
+    ip6 = self.IPv6AddressList.values()
+    if ip6:
+      return ip6[0].IPAddress
+    return ''
 
   @property
   def LastChange(self):
