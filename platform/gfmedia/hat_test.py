@@ -38,6 +38,7 @@ class HatTests(unittest.TestCase):
     self.loop = tr.mainloop.MainLoop()
     self.tmpdir = tempfile.mkdtemp()
     hat.SYSTEMPROPS[0] = self.CreateTempFile('systemprops')
+    hat.CONTRACTS[0] = self.CreateTempFile('contracts')
 
   def CreateTempFile(self, name):
     file_name = os.path.join(self.tmpdir, name)
@@ -129,6 +130,20 @@ class HatTests(unittest.TestCase):
 
     hat.USERPROPS[0] = 'testdata/hat/userprops_bad'
     self.assertEqual(hat_handler.Target, None);
+
+  def testContracts(self):
+    hat_handler = hat.Hat()
+    self.loop.RunOnce()
+    self.assertEqual('', hat_handler.HATContracts)
+
+    contracts_file_content = 'testcontent'
+    hat_handler.HATContracts = contracts_file_content
+    self.loop.RunOnce()
+    self.assertEqual(open(hat.CONTRACTS[0]).read(), contracts_file_content + '\n')
+    contracts_file_content = 'testcontent2'
+    hat_handler.HATContracts = contracts_file_content
+    self.loop.RunOnce()
+    self.assertEqual(open(hat.CONTRACTS[0]).read(), contracts_file_content + '\n')
 
 if __name__ == '__main__':
   unittest.main()

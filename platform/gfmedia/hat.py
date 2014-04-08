@@ -29,6 +29,7 @@ BASETV = tr.x_gfibertv_1_0.X_GOOGLE_COM_HAT_v1_0.X_GOOGLE_COM_HAT
 
 SYSTEMPROPS = ['/rw/sagesrv/sagesrv.properties']
 USERPROPS = ['/rw/sagesrv/sagesrv_user.properties']
+CONTRACTS = ['/var/media/ads/contracts/ad_contracts.csv']
 
 class TargetAttr(tr.types.Attr):
   """An attribute that has the string representation of targeting.
@@ -62,6 +63,7 @@ class Hat(BASETV):
   GFASUrl = tr.types.TriggerString()
 
   Target = tr.types.ReadOnly(tr.types.FileBacked(USERPROPS, TargetAttr()))
+  HATContracts = tr.types.FileBacked(CONTRACTS, tr.types.String())
 
   def __init__(self):
     super(Hat, self).__init__()

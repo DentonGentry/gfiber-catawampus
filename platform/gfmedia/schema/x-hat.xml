@@ -93,6 +93,12 @@
           <string/>
         </syntax>
       </parameter>
+      <parameter name="HATContracts" access="readWrite">
+        <description>The HAT contracts file.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
     </object>
   </model>
 </dm:document>
