@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <title>Google Fiber Portal</title>
     <link rel="stylesheet" type="text/css" href="static/style.css">
     <link rel="icon" href="static/favicon.ico">
     <script src="static/jquery-1.10.2.js"></script>
-    <title>Google Fiber Portal</title>
     <script>
       var obj1 = {"checksum": 0};
       function populatefield(element, val) {
@@ -40,7 +40,6 @@
             populatefield('#softversion', data.softversion);
             populatefield('#uptime', data.uptime);
             multivaluefield('#temperature', data.temperature);
-            populatefield('#fiberjack', data.fiberjack);
             populatefield('#wanmac', data.wanmac);
             populatefield('#wanip', data.wanip);
             multivaluefield('#lanip', data.lanip);
@@ -60,23 +59,12 @@
             populatefield('#dyndns', data.dyndns);
             populatefield('#username', data.username);
             populatefield('#domain', data.domain);
+            populatefield('#fiberjack', data.fiberjack);
             obj1.checksum = data.checksum
-            getContent();
           });
         }
       $(document).ready(function() {
         $.ajaxSetup({ cache: false });
-        $("#diaginfo").hide();
-        $("#d3").click(function() {
-          if ($("#diaginfo").is(":visible")) {
-            $("#arrow").html("&#9660");
-            $("#diaginfo").hide();
-          }
-          else {
-            $("#arrow").html("&#9650");
-            $("#diaginfo").show();
-          }
-        });
         $("#downloadbutton").click(function() {
           newwindow = window.open('', '');
           var toprint = $('#main').html();
@@ -92,71 +80,71 @@
           newwindow.close();
         });
         getContent();
+        setInterval(getContent, 30000);  // refresh data periodically.
       });
     </script>
   </head>
   <body>
-  <div id = "main">
-    <img src = "static/logo.png" id= "title">
-    <div id = "connstatusinfo">
+  <div id="main">
+    <a href="https://fiber.google.com/myfiber"><img src = "static/logo.png" id= "title"></a>
+    <div id="connstatusinfo">
       <img src = "static/standingbunny.png" id="img">
-      <div id="d1">Oops! Looks like we've lost connection to the internet.</div>
       <div id="d2">
-        We're working to restore your service as soon as possible.<br>
         If you'd like to speak to an agent, you may call 1-800-GO-FIBER.
       </div>
     </div>
-    <div id = "d3"><span id = "arrow">&#9660</span> &nbsp &nbsp Click here for Diagnostic information...</div>
-    <div id = "diaginfo">
-      <input type = "button" value="Download diagnostic information" id = "downloadbutton">
+    <div id="diaginfo">
+      <input type = "button" value="Download diagnostic information" id="downloadbutton">
       <form action='/restart' method='post'>
             {% module xsrf_form_html() %}
-            <input type = "submit" value="Restart" id = "restartbutton">
+            <input type = "submit" value="Restart" id="restartbutton">
       </form>
-      <div id = "d4">
+      <div id="d4">
         <p>
-         <div id = "acs"><span class = "name">ACS inform: </span><ul class = "value"></ul></div>
+         <div id="acs"><span class="name">ACS inform: </span><ul class="value"></ul></div>
         </p>
         <p>
-         <div id = "softversion"><span class = "name">Software Version:</span><ul class = "value"></ul></div>
-         <div id = "uptime"><span class = "name">Uptime:</span><ul class = "value"></ul></div>
-         <div id = "temperature"><span class = "name">Temperature:</span><ul class = "value"></ul></div>
-         <div id = "fiberjack"><span class = "name">Fiber jack:</span><ul class = "value"></ul></div>
+         <div id="softversion"><span class="name">Software Version:</span><ul class="value"></ul></div>
+         <div id="uptime"><span class="name">Uptime:</span><ul class="value"></ul></div>
+         <div id="temperature"><span class="name">Temperature:</span><ul class="value"></ul></div>
         </p>
         <p>
-         <div id = "wanmac"><span class = "name">WAN MAC:</span><ul class = "value"></ul></div>
-         <div id = "wanip"><span class = "name">WAN IP (last):</span><ul class = "value"></ul></div>
+         <div id="wanmac"><span class="name">WAN MAC:</span><ul class="value"></ul></div>
+         <div id="wanip"><span class="name">WAN IP (last):</span><ul class="value"></ul></div>
         </p>
         <p>
-         <div id = "lanip"><span class = "name">LAN IP:</span><ul class = "value"></ul></div>
-         <div id = "subnetmask"><span class = "name">Subnet Mask:</span><ul class = "value"></ul></div>
-         <div id = "dhcpstart"><span class = "name">DHCP start address:</span><ul class = "value"></ul></div>
-         <div id = "dhcpend"><span class = "name">DHCP end address:</span><ul class = "value"></ul></div>
+         <div id="lanip"><span class="name">LAN IP:</span><ul class="value"></ul></div>
+         <div id="subnetmask"><span class="name">Subnet Mask:</span><ul class="value"></ul></div>
+         <div id="dhcpstart"><span class="name">DHCP start address:</span><ul class="value"></ul></div>
+         <div id="dhcpend"><span class="name">DHCP end address:</span><ul class="value"></ul></div>
         </p>
         <p>
-         <div id = "wiredlan"><span class = "name">Wired LAN MAC:</span><ul class = "value"></ul></div>
-         <div id = "wireddevices"><span class = "name">Wired devices:</span><ul class = "value"></ul></div>
+         <div id="wiredlan"><span class="name">Wired LAN MAC:</span><ul class="value"></ul></div>
+         <div id="wireddevices"><span class="name">Wired devices:</span><ul class="value"></ul></div>
         </p>
         <p>
-         <div id = "ssid24"><span class = "name">2.4 GHz SSID:</span><ul class = "value"></ul></div>
-         <div id = "ssid5"><span class = "name">5 GHz SSID:</span><ul class = "value"></ul></div>
-         <div id = "wpa2"><span class = "name">WPA2-PSK:</span><ul class = "value"></ul></div>
+         <div id="ssid24"><span class="name">2.4 GHz SSID:</span><ul class="value"></ul></div>
+         <div id="ssid5"><span class="name">5 GHz SSID:</span><ul class="value"></ul></div>
+         <div id="wpa2"><span class="name">WPA2-PSK:</span><ul class="value"></ul></div>
         </p>
         <p>
-         <div id = "wirelesslan"><span class = "name">Wireless LAN MAC:</span><ul class = "value"></ul></div>
-         <div id = "wirelessdevices"><span class = "name">Wireless devices:</span><ul class = "value"></ul></div>
+         <div id="wirelesslan"><span class="name">Wireless LAN MAC:</span><ul class="value"></ul></div>
+         <div id="wirelessdevices"><span class="name">Wireless devices:</span><ul class="value"></ul></div>
         </p>
         <p>
-         <div id = "upnp"><span class = "name">UPnP:</span><ul class = "value"></ul></div>
-         <div id = "portforwarding"><span class = "name">Port forwarding:</span><ul class = "value"></ul></div>
+         <div id="upnp"><span class="name">UPnP:</span><ul class="value"></ul></div>
+         <div id="portforwarding"><span class="name">Port forwarding:</span><ul class="value"></ul></div>
         </p>
         <p>
-         <div id = "dmzdevice"><span class = "name">DMZ device:</span><ul class = "value"></ul></div>
+         <div id="dmzdevice"><span class="name">DMZ device:</span><ul class="value"></ul></div>
         </p>
         <p>
-         <div id = "dyndns"><span class = "name">Dynamic DNS Service:</span><ul class = "value"></ul></div>
-         <div id = "username"><span class = "name">Username:</span><ul class = "value"></ul></div>
-         <div id = "domain"><span class = "name">Domain/hostname:</span><ul class = "value"></ul></div>
+         <div id="dyndns"><span class="name">Dynamic DNS Service:</span><ul class="value"></ul></div>
+         <div id="username"><span class="name">Username:</span><ul class="value"></ul></div>
+         <div id="domain"><span class="name">Domain/hostname:</span><ul class="value"></ul></div>
+        </p>
+        <p>
+         <div id="fiberjack"><span class="name">Fiber jack:</span><ul class="value"></ul></div>
         </p>
       </div>
     </div>
