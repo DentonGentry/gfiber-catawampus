@@ -393,11 +393,11 @@ class CPEStateMachine(object):
     self.outstanding = None
     print 'CPE RECEIVED (at %s):' % time.ctime()
     print 'Effective URL was: %r' % response.effective_url
-    self.last_success_response = time.ctime()
     if not self.session:
       print 'Session terminated, ignoring ACS message.'
       return
     if not response.error:
+      self.last_success_response = time.ctime()
       print self.cwmplogger.LogSoapXML(response.body)
       for cookie in response.headers.get_list('Set-Cookie'):
         self.session.cookies.load(cookie)

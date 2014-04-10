@@ -60,7 +60,8 @@ ca-certs=     SSL ca_certificates.crt file to use
 client-cert=  SSL client certificate to use
 client-key=   SSL client private key to use
 restrict-acs-hosts= Domain names allowed for ACS URL.  Default=unrestricted.  Example: 'google.com gfsvc.com'
-diagui        Listen for diagui requests on port 8880
+diagui        Listen for diagui requests on diagui_port
+diagui_port=  Port to listen on [80]
 """
 
 
@@ -142,7 +143,7 @@ def main():
 
   if opt.diagui:
     inst = diagui.main.DiaguiSettings(root, cpe_machine)
-    inst.listen(8880)
+    inst.listen(opt.diagui_port)
   loop.Start()
 
 

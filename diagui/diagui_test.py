@@ -8,6 +8,7 @@ import google3
 import diagui.main
 import tornado.httpclient
 import tr.mainloop
+import dm_root
 
 
 class AsynchFetch(object):
@@ -47,7 +48,7 @@ wanip 63.28.214.97
 lanip 192.168.1.1
 subnetmask 255.255.255.0
 dhcpstart 192.158.1.100
-dhcpend 192.168.1.254 
+dhcpend 192.168.1.254
 wiredlan 6a:5b:4c:3d:2e:1f Up
 wireddevices Living Room (TV box, 6a:5b:4c:3d:2e:1f)
 ssid24 AllenFamilyNetwork
@@ -60,14 +61,14 @@ portforwarding 80-80: Dad\'s Computer (6a:5b:4c:3d:2e:1f)
 dmzdevice Wireless Device (1) (6a:5b:4c:3d:2e:1f)
 dyndns DynDNS
 username allenfamily
-domain home.allenfamily.com
-"""
-    f = open('Testdata/testdata', 'w')
-    f.write(test_data)
-    f.close()
+domain home.allenfamily.com"""
+
     url_temp = self.url_string + self.checksum
     app = diagui.main.DiaguiSettings(None, None)
     app.listen(8880)
+    app.data = dict(line.decode('utf-8').strip().split(None, 1)
+                    for line in test_data.split('\n'))
+    app.UpdateCheckSum()
     response1 = AsynchFetch(url_temp)
     response2 = AsynchFetch(url_temp)
     MainLoop = tr.mainloop.MainLoop()
@@ -100,11 +101,10 @@ portforwarding 80-80: Dad\'s Computer (6a:5b:4c:3d:2e:1f)
 dmzdevice Wireless Device (1) (6a:5b:4c:3d:2e:1f)
 dyndns DynDNS
 username allenfamily
-domain home.allenfamily.com
-"""
-    f = open('Testdata/testdata', 'w')
-    f.write(test_data)
-    f.close()
+domain home.allenfamily.com"""
+    app.data = dict(line.decode('utf-8').strip().split(None, 1)
+                    for line in test_data.split('\n'))
+    app.UpdateCheckSum()
     url_temp = self.url_string + self.checksum
     response1_new = AsynchFetch(url_temp)
     response2_new = AsynchFetch(url_temp)
