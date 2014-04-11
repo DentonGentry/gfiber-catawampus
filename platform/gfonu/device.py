@@ -264,7 +264,7 @@ class Ethernet(tr181.Device_v2_4.Device.Ethernet):
         }
     self.VLANTerminationList = {}
     self.LinkList = {}
-    self.RMONStats = {}
+    self.RMONStatsList = {}
 
   @property
   def InterfaceNumberOfEntries(self):
@@ -280,7 +280,7 @@ class Ethernet(tr181.Device_v2_4.Device.Ethernet):
 
   @property
   def RMONStatsNumberOfEntries(self):
-    return len(self.RMONStats)
+    return len(self.RMONStatsList)
 
 
 class Device(tr181.Device_v2_4.Device):
