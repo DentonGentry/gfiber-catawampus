@@ -1,0 +1,15 @@
+#!/bin/sh
+cmd=$(basename "$0")
+echo "$0 starting" >&2
+echo "$cmd" "$@" >>isos.out.$PPID.tmp
+
+die() {
+  echo "$0 dying" >&2
+  echo DEAD "$cmd" >>isos.out.$PPID.tmp
+  : >isos.out.$PPID.ready
+  exit 0
+}
+
+trap die TERM
+: >isos.out.$PPID.ready
+while sleep 0.05; do :; done

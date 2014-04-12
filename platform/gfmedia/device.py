@@ -58,6 +58,7 @@ import tr.x_catawampus_tr181_2_0
 import gfibertv
 import gvsb
 import hat
+import isostream
 import ookla
 import ssh
 import stbservice
@@ -493,6 +494,7 @@ class IPDiagnostics(CATA181.Device.IP.Diagnostics):
     self.Unexport(objects=['IPPing'])
     self.TraceRoute = dm.traceroute.TraceRoute()
     self.X_CATAWAMPUS_ORG_Speedtest = ookla.Speedtest()
+    self.X_CATAWAMPUS_ORG_Isostream = isostream.Isostream()
 
 
 class Device(tr181.Device_v2_6.Device):

@@ -317,5 +317,47 @@ While the test is in progress, setting this parameter to {{enum|Requested}} (and
         </syntax>
       </parameter>
     </object>
+
+    <object name="Device.IP.Diagnostics.X_CATAWAMPUS-ORG_Isostream." access="readOnly" minEntries="1" maxEntries="1">
+      <description>This object provides access to run an IP-layer jitter/throughput test.The results are very detailed and available only via the system logs.</description>
+      <parameter name="ServerEnable" access="readWrite">
+        <description>True if this device should accept incoming connections.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="ServerTimeLimit" access="readWrite">
+        <description>Automatically disable the server if it runs for more than this many seconds. If zero, there is no limit.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="ClientEnable" access="readWrite">
+        <description>True if this device should be running a client right now.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="ClientTimeLimit" access="readWrite">
+        <description>Automatically disable the client if it runs for more than this many seconds. If zero, there is no limit.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="ClientRemoteIP" access="readWrite">
+        <description>IP address or hostname of server to connect to. If this is set to the empty string, the client will attemp to connect to the nearest GFiberTV storage box if there is one on the LAN.</description>
+        <syntax>
+          <string>
+            <size maxLength="128"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="ClientMbps" access="readWrite">
+        <description>The data rate to use for the client connection in Mbits/sec.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+    </object>
   </model>
 </dm:document>
