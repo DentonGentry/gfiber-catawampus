@@ -50,23 +50,38 @@ CWMP_2_ENABLE=1
 
 """
 
+EXPECTED_CONFIG6 = """CWMP_1_COMMENT=IDX_1:
+CWMP_1_PROTOCOL=TCP
+CWMP_1_SOURCE=::/0
+CWMP_1_GATEWAY=::/0
+CWMP_1_DEST=fe80::fa8f:caff:fe11:1111
+CWMP_1_SPORT=0
+CWMP_1_DPORT=80
+CWMP_1_ENABLE=1
+
+"""
+
 
 class NatTest(unittest.TestCase):
   def setUp(self):
     super(NatTest, self).setUp()
     self.tmpdir = tempfile.mkdtemp()
     self.loop = tr.mainloop.MainLoop()
-    self.old_OUTPUTFILE = nat.OUTPUTFILE
+    self.old_OUTPUTFILE4 = nat.OUTPUTFILE4
+    self.old_OUTPUTFILE6 = nat.OUTPUTFILE6
     self.old_RESTARTCMD = nat.RESTARTCMD
     self.restartfile = os.path.join(self.tmpdir, 'restarted')
-    self.outputfile = os.path.join(self.tmpdir, 'config')
-    nat.OUTPUTFILE = self.outputfile
+    self.outputfile4 = os.path.join(self.tmpdir, 'config4')
+    self.outputfile6 = os.path.join(self.tmpdir, 'config6')
+    nat.OUTPUTFILE4 = self.outputfile4
+    nat.OUTPUTFILE6 = self.outputfile6
     nat.RESTARTCMD = ['testdata/nat/restart', self.restartfile]
 
   def tearDown(self):
     super(NatTest, self).tearDown()
     shutil.rmtree(self.tmpdir)
-    nat.OUTPUTFILE = self.old_OUTPUTFILE
+    nat.OUTPUTFILE4 = self.old_OUTPUTFILE4
+    nat.OUTPUTFILE6 = self.old_OUTPUTFILE6
     nat.RESTARTCMD = self.old_RESTARTCMD
 
   def testValidateExports(self):
@@ -152,8 +167,27 @@ class NatTest(unittest.TestCase):
     n.PortMappingList['2'] = p
 
     self.loop.RunOnce(timeout=1)
-    config = open(self.outputfile).read()
-    self.assertEqual(config, EXPECTED_CONFIG)
+    config4 = open(self.outputfile4).read()
+    self.assertEqual(config4, EXPECTED_CONFIG)
+    config6 = open(self.outputfile6).read()
+    self.assertEqual(config6, '')
+    self.assertTrue(os.path.exists(self.restartfile))
+
+  def testConfigWriteIP6(self):
+    n = nat.NAT(dmroot=DeviceModelRoot())
+    p = n.PortMapping()
+    p.AllInterfaces = True
+    p.Enable = True
+    p.InternalClient = 'fe80::fa8f:caff:fe11:1111'
+    p.InternalPort = 80
+    p.Protocol = 'TCP'
+    n.PortMappingList['1'] = p
+
+    self.loop.RunOnce(timeout=1)
+    config4 = open(self.outputfile4).read()
+    self.assertEqual(config4, '')
+    config6 = open(self.outputfile6).read()
+    self.assertEqual(config6, EXPECTED_CONFIG6)
     self.assertTrue(os.path.exists(self.restartfile))
 
   def testConfigIncomplete(self):
@@ -161,22 +195,26 @@ class NatTest(unittest.TestCase):
     p = n.PortMapping()
     n.PortMappingList['1'] = p
     self.loop.RunOnce(timeout=1)
-    self.assertFalse(os.path.exists(self.outputfile))
+    self.assertFalse(os.path.exists(self.outputfile4))
+    self.assertFalse(os.path.exists(self.outputfile6))
 
     p.AllInterfaces = True
     p.Description = 'Description'
     self.loop.RunOnce(timeout=1)
-    self.assertFalse(os.stat(self.outputfile).st_size)
+    self.assertFalse(os.stat(self.outputfile4).st_size)
+    self.assertFalse(os.stat(self.outputfile6).st_size)
 
     p.InternalClient = '1.1.1.1'
     p.InternalPort = 80
     p.Protocol = 'TCP'
     self.loop.RunOnce(timeout=1)
-    self.assertFalse(os.stat(self.outputfile).st_size)
+    self.assertFalse(os.stat(self.outputfile4).st_size)
+    self.assertFalse(os.stat(self.outputfile6).st_size)
 
     p.Enable = True
     self.loop.RunOnce(timeout=1)
-    self.assertTrue(os.stat(self.outputfile).st_size)
+    self.assertTrue(os.stat(self.outputfile4).st_size)
+    self.assertFalse(os.stat(self.outputfile6).st_size)
 
 
 class DeviceModelRoot(tr.core.Exporter):

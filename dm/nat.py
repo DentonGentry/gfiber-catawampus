@@ -25,6 +25,7 @@ in http://www.broadband-forum.org/cwmp/tr-181-2-6-0.html
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import binascii
+import socket
 import subprocess
 import tr.helpers
 import tr.mainloop
@@ -33,7 +34,8 @@ import tr.types
 import tr.x_catawampus_tr181_2_0
 
 BASENAT = tr.tr181_v2_6.Device_v2_6.Device.NAT
-OUTPUTFILE = '/tmp/cwmp_iptables'
+OUTPUTFILE4 = '/tmp/cwmp_iptables'
+OUTPUTFILE6 = '/tmp/cwmp_ip6tables'
 RESTARTCMD = ['update-acs-iptables']
 
 
@@ -86,19 +88,29 @@ class NAT(BASENAT):
     An "IDX_#" string in the COMMENT line lets us reconstruct the object
     numbering when read back in.
     """
-    configs = {}
+    ip4configs = {}
+    ip6configs = {}
     for i in range(1, 5):
-      configs[i] = []
+      ip4configs[i] = []
+      ip6configs[i] = []
     for (idx, mapping) in self.PortMappingList.iteritems():
       precedence = mapping.Precedence()
-      configs[precedence].append(mapping.ConfigLines(idx=idx))
+      ip4configs[precedence].append(mapping.ConfigLinesIP4(idx=idx))
+      ip6configs[precedence].append(mapping.ConfigLinesIP6(idx=idx))
     outidx = 1
     try:
-      with tr.helpers.AtomicFile(OUTPUTFILE) as f:
+      with tr.helpers.AtomicFile(OUTPUTFILE4) as f:
         for i in range(1, 5):
-          for lines in configs[i]:
-            f.write(self._PrefixLines(lines=lines, outidx=outidx))
-            outidx += 1
+          for lines in ip4configs[i]:
+            if lines:
+              f.write(self._PrefixLines(lines=lines, outidx=outidx))
+              outidx += 1
+      with tr.helpers.AtomicFile(OUTPUTFILE6) as f:
+        for i in range(1, 5):
+          for lines in ip6configs[i]:
+            if lines:
+              f.write(self._PrefixLines(lines=lines, outidx=outidx))
+              outidx += 1
       subprocess.check_call(RESTARTCMD)
     except (IOError, OSError, subprocess.CalledProcessError):
       print 'Unable to update NAT\n'
@@ -182,7 +194,7 @@ class PortMapping(BASENAT.PortMapping):
     entry in this table, the CPE MUST apply the port mapping associated with
     the highest precedence entry.
 
-    Returns: the precedence, and integer from 1 to 4.
+    Returns: the precedence, an integer from 1 to 4.
     """
     if self.RemoteHost and self.ExternalPort:
       return 1
@@ -201,11 +213,29 @@ class PortMapping(BASENAT.PortMapping):
       return 'Error_Misconfigured'
     return 'Enabled'
 
+  def _IsIP4(self, addr):
+    """Return true if addr is an IPv4 address w.x.y.z."""
+    try:
+      socket.inet_pton(socket.AF_INET, str(addr))
+      return True
+    except socket.error:
+      pass
+    return False
+
+  def _IsIP6(self, addr):
+    """Return true if addr is an IPv6 address."""
+    try:
+      socket.inet_pton(socket.AF_INET6, str(addr))
+      return True
+    except socket.error:
+      pass
+    return False
+
   def Triggered(self):
     self.parent.WriteConfigs()
 
-  def ConfigLines(self, idx):
-    """Return the configuration lines for update-acs-iptables.
+  def ConfigLinesIP4(self, idx):
+    """Return the configuration lines for update-acs-iptables IP4 rules.
 
     Args:
       idx: the {i} in Device.NAT.PortMapping.{i}
@@ -216,6 +246,11 @@ class PortMapping(BASENAT.PortMapping):
 
     if not self._IsComplete() or not self.Enable:
       return []
+    if self.InternalClient and self._IsIP6(self.InternalClient):
+      return []
+    if self.RemoteHost and self._IsIP6(self.RemoteHost):
+      return []
+
     encoded = binascii.hexlify(self.Description)
     lines = ['COMMENT=IDX_%s:%s' % (str(idx), encoded)]
     lines.append('PROTOCOL=%s' % self.Protocol)
@@ -229,6 +264,49 @@ class PortMapping(BASENAT.PortMapping):
         return []
       key = ip.IPv4AddressList.keys()[0]
       gw = ip.IPv4AddressList[key].IPAddress
+    lines.append('GATEWAY=%s' % gw)
+    lines.append('DEST=%s' % self.InternalClient)
+    # TODO(dgentry) ExternalPort=0 should become a dmzhost instead
+    if self.ExternalPortEndRange:
+      sport = '%d:%d' % (self.ExternalPort, self.ExternalPortEndRange)
+    else:
+      sport = '%d' % self.ExternalPort
+    lines.append('SPORT=%s' % sport)
+    lines.append('DPORT=%d' % self.InternalPort)
+    enb = 1 if self.Enable else 0
+    lines.append('ENABLE=%d' % enb)
+    return lines
+
+  def ConfigLinesIP6(self, idx):
+    """Return the configuration lines for update-acs-iptables IP6 rules.
+
+    Args:
+      idx: the {i} in Device.NAT.PortMapping.{i}
+
+    Returns:
+      a list of text lines for update-acs-iptables
+    """
+
+    if not self._IsComplete() or not self.Enable:
+      return []
+    if self.InternalClient and self._IsIP4(self.InternalClient):
+      return []
+    if self.RemoteHost and self._IsIP4(self.RemoteHost):
+      return []
+
+    encoded = binascii.hexlify(self.Description)
+    lines = ['COMMENT=IDX_%s:%s' % (str(idx), encoded)]
+    lines.append('PROTOCOL=%s' % self.Protocol)
+    src = '::/0' if not self.RemoteHost else self.RemoteHost
+    lines.append('SOURCE=%s' % src)
+    if self.AllInterfaces:
+      gw = '::/0'
+    else:
+      ip = self.parent.GetIPInterface(self.interface)
+      if not ip or not ip.IPv6AddressList:
+        return []
+      key = ip.IPv6AddressList.keys()[0]
+      gw = ip.IPv6AddressList[key].IPAddress
     lines.append('GATEWAY=%s' % gw)
     lines.append('DEST=%s' % self.InternalClient)
     # TODO(dgentry) ExternalPort=0 should become a dmzhost instead
