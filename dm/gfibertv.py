@@ -57,6 +57,8 @@ EASPORTFILE = ['/tmp/eas_service_port']
 HNVRAM = ['hnvram']
 MYNICKFILE = ['/config/nickname']
 NICKFILE = ['/tmp/nicknames']
+SAGEFILES = ['/app/sage/*.properties.default*', '/rw/sage/*.properties']
+UICONTROLURLFILE = ['/tmp/oregano_url']
 TCPALGORITHM = ['/config/tcp_congestion_control']
 TVBUFFERADDRESS = ['/tmp/tv_buffer_address']
 TVBUFFERKEY = ['/tmp/tv_buffer_key']
@@ -190,7 +192,7 @@ class GFiberTv(CATABASE.GFiberTV):
 
   @tr.session.cache
   def _GetNode(self, name):
-    top = _PopulateTree(self._rpcclient, name)
+    top = _PopulateTree(self._rpcclient, name, '')
     _ExportTree(top)
     return top
 
@@ -331,15 +333,49 @@ class Mailbox(CATABASE.GFiberTV.Mailbox):
       return ''
 
 
-class PropList(tr.core.Exporter):
+class _LyingSet(set):
+  """A set object that always lies and says it contains the given key."""
+
+  def __init__(self, contents, contains_func):
+    set.__init__(self, contents)
+    self.contains_func = contains_func
+
+  def __contains__(self, key):
+    return self.contains_func(key)
+
+
+class PropList(tr.core.AbstractExporter):
   """An auto-generated list of properties in the SageTV database."""
 
-  def __init__(self, rpcclient, node):
+  def __init__(self, rpcclient, node, realname):
+    self._initialized = False
     self._rpcclient = rpcclient
     self._node = node
+    self._realname = realname
     self._params = {}
     self._subs = {}
+    self._GetExport = True
     super(PropList, self).__init__()
+    self._initialized = True
+
+  # This is used to convince tr.Handle that the requested parameter exists,
+  # for all safe parameters.
+  @property
+  def export_params(self):
+    return _LyingSet(self._params.keys(), self._IsSafeName)
+
+  @property
+  def export_objects(self):
+    return self._subs.keys()
+
+  @property
+  def export_object_lists(self):
+    return set()
+
+  def _IsSafeName(self, key):
+    return (not key.startswith('_') and
+            key not in self.__dict__ and
+            not hasattr(tr.core.Exporter, key))
 
   def _Get(self, realname):
     # TODO(apenwarr): use a single API call to get all the names and values,
@@ -348,45 +384,60 @@ class PropList(tr.core.Exporter):
     print 'xmlrpc getting %r' % realname
     try:
       return str(self._rpcclient.GetProperty(realname, self._node))
-    except xmlrpclib.expat.ExpatError, e:
+    except xmlrpclib.expat.ExpatError as e:
       # TODO(apenwarr): SageTV produces invalid XML.
       # ...if the value contains <> characters, for example.
       print 'Expat decode error: %s' % e
       return None
-    except (xmlrpclib.Fault, xmlrpclib.ProtocolError, IOError), e:
-      print 'xmlrpc: %s/%s: %s' % (self._node, realname, e)
-      return None
+    except xmlrpclib.Fault as e:
+      # by request from ACS team, nonexistent params return empty not fault
+      param = '%s/%s' % (self._node, realname)
+      print 'xmlrpc: no such parameter %r: returning empty string' % param
+      return ''
+    except (xmlrpclib.ProtocolError, IOError) as e:
+      print 'xmlrpc: %s/%s: %r' % (self._node, realname, e)
+      raise AttributeError('unable to get value %r' % realname)
 
   def _Set(self, realname, value):
     try:
-      return str(self._rpcclient.SetProperty(realname, value, self._node))
+      return str(self._rpcclient.SetProperty(realname, str(value), self._node))
     except (xmlrpclib.Fault, xmlrpclib.ProtocolError, IOError), e:
       print 'xmlrpc: %s/%s: %s' % (self._node, realname, e)
-      raise ValueError('unable to set value: %e' % (e,))
+      raise ValueError('unable to set value: %s' % (e,))
 
   def __getattr__(self, name):
-    if name.startswith('_'):
+    if name.startswith('_') or not self._IsSafeName(name):
       raise AttributeError(name)
     elif name in self._subs:
       return self._subs[name]
-    else:
+    elif name in self._params:
       return self._Get(self._params[name])
+    else:
+      fullname = name
+      if self._realname: fullname = self._realname + '/' + name
+      return self._Get(fullname)
 
   def __setattr__(self, name, value):
-    if name.startswith('_'):
+    if name.startswith('_') or not self._IsSafeName(name):
       return super(PropList, self).__setattr__(name, value)
     elif name in self._params:
       return self._Set(self._params[name], value)
+    elif self._initialized:
+      # once object is initialized, unknown parameters go to XML-RPC not local
+      fullname = str(name)
+      if self._realname: fullname = self._realname + '/' + name
+      self._params[name] = fullname
+      return self._Set(fullname, value)
     else:
       return super(PropList, self).__setattr__(name, value)
 
 
-def _PopulateTree(rpcclient, nodename):
+def _PopulateTree(rpcclient, nodename, topname):
   """Populate the list of available objects using the config file contents."""
   # TODO(apenwarr): add a server API to get the actual property list.
   #  Then use it here. Reading it from the file is kind of cheating.
-  top = PropList(rpcclient, nodename)
-  for g in ['/app/sage/*.properties.default*', '/rw/sage/*.properties']:
+  top = PropList(rpcclient, nodename, topname)
+  for g in SAGEFILES:
     for filename in glob.glob(g):
       try:
         lines = open(filename).readlines()
@@ -398,26 +449,27 @@ def _PopulateTree(rpcclient, nodename):
         line = line.split('=', 1)[0]  # remove =value from key=value
         line = line.strip()
         realname = line.strip()
+        if topname: realname = topname + '/' + realname
         # Find or create the intermediate PropLists leading up to this leaf
         if realname:
           clean = re.sub(r'[^\w/]', '_', realname)
           parts = clean.split('/')
           obj = top
-          for part in parts[:-1]:
+          for i, part in enumerate(parts[:-1]):
             if part not in obj._subs:
-              obj._subs[part] = PropList(rpcclient, nodename)
+              obj._subs[part] = PropList(rpcclient, nodename,
+                                         '/'.join(parts[:i+1]))
             obj = obj._subs[part]
-          obj._params[parts[-1]] = realname
+          obj._params[parts[-1]] = '/'.join(parts)
   return top
 
 
 def _ExportTree(obj):
   # Once the tree is populated, this function recursively registers it
   # with tr.core.Exporter.
-  for i in obj._subs.keys():
+  for i in obj._subs:
     if i in obj._params:
       del obj._params[i]
-  obj.Export(params=obj._params.keys(), objects=obj._subs.keys())
   for i in obj._subs.values():
     _ExportTree(i)
 
