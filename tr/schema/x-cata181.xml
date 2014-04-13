@@ -26,6 +26,65 @@
       </parameter>
     </object>
 
+    <object name="Device.X_CATAWAMPUS-ORG_DynamicDNS." access="readOnly" minEntries="1" maxEntries="1">
+      <parameter name="ServiceNumberOfEntries" access="readOnly">
+        <description>The number of instances of {{object|.X_CATAWAMPUS-ORG_DynamicDNS.Service.{i}.}}.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+    </object>
+    <object base="Device.X_CATAWAMPUS-ORG_DynamicDNS.Service.{i}." access="readOnly" numEntriesParameter="ServiceNumberOfEntries" minEntries="0" maxEntries="unbounded" enableParameter="Enable">
+      <description>Each instance is a Dynamic DNS provider to update as the device Internet Address changes.</description>
+      <parameter name="Enable" access="readWrite">
+        <description>Enable this entry.</description>
+        <syntax><boolean/></syntax>
+      </parameter>
+      <parameter name="ServiceName" access="readWrite">
+        <description>The name of the Dynamic DNS service provider, for example:
+        dyndns@dyndns.org OR statdns@dyndns.org OR custom@dyndns.org
+        default@freedns.afraid.org
+        default@zoneedit.com
+        default@no-ip.com
+        </description>
+        <syntax><string><size maxLength="256"/></string></syntax>
+      </parameter>
+      <parameter name="ServiceURL" access="readWrite">
+        <description>The URL name of the Dynamic DNS service provider.</description>
+        <syntax><string/></syntax>
+      </parameter>
+      <parameter name="Status" access="readOnly">
+        <description>The status of this entry.  {{enum}}
+The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is undefined or invalid.
+        </description>
+        <syntax>
+          <string>
+            <enumeration value="Disabled"/>
+            <enumeration value="Enabled"/>
+            <enumeration value="Misconfigured_NoServiceName"/>
+            <enumeration value="Misconfigured_NoDomain"/>
+          </string>
+          <default type="object" value="Disabled"/>
+        </syntax>
+      </parameter>
+      <parameter name="Username" access="readWrite">
+        <description>The username to use when logging in.</description>
+        <syntax><string><size maxLength="256"/></string></syntax>
+      </parameter>
+      <parameter name="Password" access="readWrite">
+        <description>The password to use when logging in.</description>
+        <syntax><string><size maxLength="256"/></string></syntax>
+      </parameter>
+      <parameter name="Domain" access="readWrite">
+        <description>The name of the domain(s) to register with the Dynamic DNS service. Though it is expected that only a single domain will be present here, multiple domains can be specifyed by separating them with commas.</description>
+        <syntax><string><size maxLength="256"/></string></syntax>
+      </parameter>
+      <parameter name="UpdateFrequency" access="readOnly">
+        <description>How frequently to update the service, in in {{units}}.</description>
+        <syntax><unsignedInt><units value="minutes"/></unsignedInt></syntax>
+      </parameter>
+    </object>
+
     <object base="Device.Ethernet." access="readOnly" minEntries="1" maxEntries="1"/>
     <object base="Device.Ethernet.Interface.{i}." access="readOnly" numEntriesParameter="InterfaceNumberOfEntries" minEntries="0" maxEntries="unbounded">
       <parameter name="X_CATAWAMPUS-ORG_ActualBitRate" access="readOnly" dmr:previousParameter="MaxBitRate">
