@@ -3,12 +3,12 @@
 __author__ = 'anandkhare@google.com (Anand Khare)'
 
 import ast
+import json
 import unittest
 import google3
 import diagui.main
 import tornado.httpclient
 import tr.mainloop
-import dm_root
 
 
 class AsynchFetch(object):
@@ -71,8 +71,8 @@ domain home.allenfamily.com"""
     app.UpdateCheckSum()
     response1 = AsynchFetch(url_temp)
     response2 = AsynchFetch(url_temp)
-    MainLoop = tr.mainloop.MainLoop()
-    MainLoop.Start(1)
+    main_loop = tr.mainloop.MainLoop()
+    main_loop.Start(1)
     self.assertEqual(response1.ReturnResponseBody(),
                      response2.ReturnResponseBody())
     self.assertNotEqual(response1.ReturnResponseBody(), None)
@@ -108,12 +108,38 @@ domain home.allenfamily.com"""
     url_temp = self.url_string + self.checksum
     response1_new = AsynchFetch(url_temp)
     response2_new = AsynchFetch(url_temp)
-    MainLoop.Start(1)
+    main_loop.Start(1)
     self.assertEqual(response1_new.ReturnResponseBody(),
                      response2_new.ReturnResponseBody())
     self.assertNotEqual(response1_new.ReturnResponseBody(), None)
     self.assertNotEqual(response1.ReturnResponseBody(),
                         response1_new.ReturnResponseBody())
+
+  def testOnuStats(self):
+    app = diagui.main.DiaguiSettings(None, None)
+    app.listen(8880)
+    main_loop = tr.mainloop.MainLoop()
+    diagui.main.ONU_STAT_FILE = 'testdata/onu_stats1.json'
+    app.ReadOnuStats()
+    self.assertTrue('onu_wan_connected' in app.data)
+    self.assertFalse('onu_serial' in app.data)
+    self.checksum = '0'
+    url_temp = self.url_string + self.checksum
+    response = AsynchFetch(url_temp)
+    main_loop.Start(1)
+    self.assertNotEqual(response.ReturnResponseBody(), None)
+    jsdata = json.loads(response.ReturnResponseBody())
+    self.assertTrue(jsdata['onu_wan_connected'])
+
+    diagui.main.ONU_STAT_FILE = 'testdata/onu_stats2.json'
+    app.ReadOnuStats()
+    response = AsynchFetch(url_temp)
+    main_loop.Start(1)
+    jsdata = json.loads(response.ReturnResponseBody())
+    self.assertTrue(jsdata['onu_wan_connected'])
+    self.assertTrue(jsdata['onu_acs_contacted'])
+    self.assertEqual(jsdata['onu_acs_contact_time'], 100000)
+    self.assertEqual(jsdata['onu_serial'], '12345')
 
 
 if __name__ == '__main__':

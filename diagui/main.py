@@ -5,12 +5,15 @@
 __author__ = 'anandkhare@google.com (Anand Khare)'
 
 import hashlib
+import json
 import os
 import google3
 import tornado.ioloop
 import tornado.web
 import tr.pyinotify
 import tr.types
+
+ONU_STAT_FILE = '/tmp/cwmp/monitoring/onu/onustats.json'
 
 
 class DiagnosticsHandler(tornado.web.RequestHandler):
@@ -26,7 +29,8 @@ class JsonHandler(tornado.web.RequestHandler):
   @tornado.web.asynchronous
   def get(self):    # pylint: disable=g-bad-name
     self.application.UpdateLatestDict()
-    if self.get_argument('checksum') != self.application.data['checksum']:
+    if (self.get_argument('checksum') !=
+        self.application.data.get('checksum', None)):
       try:
         self.set_header('Content-Type', 'text/javascript')
         self.write(tornado.escape.json_encode(self.application.data))
@@ -92,18 +96,15 @@ class DiaguiSettings(tornado.web.Application):
     self.wdd = self.wm.add_watch(
         os.path.join(self.pathname, 'Testdata'), self.mask)
 
-
   def AlertNotifiers(self, obj):
     self.UpdateLatestDict()
     for i in self.callbacklist[:]:
       i()
 
-
   def UpdateCheckSum(self):
     newchecksum = hashlib.sha1(unicode(
         sorted(list(self.data.items()))).encode('utf-8')).hexdigest()
     self.data['checksum'] = newchecksum
-
 
   def UpdateLatestDict(self):
     """Updates the dictionary and checksum value."""
@@ -129,30 +130,30 @@ class DiaguiSettings(tornado.web.Application):
 
     t = dict()
     try:
-      for i, sensor in tempstatus.TemperatureSensorList.iteritems():
+      for unused_i, sensor in tempstatus.TemperatureSensorList.iteritems():
         t[sensor.Name] = sensor.Value
       self.data['temperature'] = t
     except AttributeError:
       pass
 
     t = dict()
-    for i, inter in self.root.Device.IP.InterfaceList.iteritems():
-      for j, ip4 in inter.IPv4AddressList.iteritems():
+    for unused_i, inter in self.root.Device.IP.InterfaceList.iteritems():
+      for unused_j, ip4 in inter.IPv4AddressList.iteritems():
         t[ip4.IPAddress] = '(%s)' % ip4.Status
         self.data['subnetmask'] = ip4.SubnetMask
-      for j, ip6 in inter.IPv6AddressList.iteritems():
+      for unused_i, ip6 in inter.IPv6AddressList.iteritems():
         if ip6.IPAddress[:4] != 'fe80':
           t[ip6.IPAddress] = '(%s)' % ip6.Status
     self.data['lanip'] = t
 
     t = dict()
-    for i, interface in etherlist.iteritems():
+    for unused_i, interface in etherlist.iteritems():
       t[interface.MACAddress] = '(%s)' % interface.Status
     self.data['wiredlan'] = t
 
     t = dict()
-    for i, inter in self.root.Device.MoCA.InterfaceList.iteritems():
-      for j, dev in inter.AssociatedDeviceList.iteritems():
+    for unused_i, inter in self.root.Device.MoCA.InterfaceList.iteritems():
+      for unused_j, dev in inter.AssociatedDeviceList.iteritems():
         t[dev.NodeID] = dev.MACAddress
     self.data['wireddevices'] = t
 
@@ -161,14 +162,14 @@ class DiaguiSettings(tornado.web.Application):
     wpa = dict()
     self.data['ssid5'] = ''
 
-    for i, dev in landevlist.iteritems():
-      for j, wlconf in dev.WLANConfigurationList.iteritems():
+    for unused_i, dev in landevlist.iteritems():
+      for unused_j, wlconf in dev.WLANConfigurationList.iteritems():
         if wlconf.Channel in range(1, 12):
           self.data['ssid24'] = wlconf.SSID
           if wlconf.WPAAuthenticationMode == 'PSKAuthentication':
             wpa['2.4 GHz'] = '(configured)'
           wlan[wlconf.BSSID] = '(2.4 GHz) (%s)' % wlconf.Status
-          for k, assoc in wlconf.AssociatedDeviceList.iteritems():
+          for unused_k, assoc in wlconf.AssociatedDeviceList.iteritems():
             devices[assoc.AssociatedDeviceMACAddress] = (
                 '(2.4 GHz) (Authentication State: %s)'
                 % assoc.AssociatedDeviceAuthenticationState)
@@ -178,7 +179,7 @@ class DiaguiSettings(tornado.web.Application):
           if wlconf.WPAAuthenticationMode == 'PSKAuthentication':
             wpa['5 GHz'] = '(configured)'
           wlan[wlconf.BSSID] = '(5 GHz) (%s)' % wlconf.Status
-          for k, assoc in wlconf.AssociatedDeviceList.iteritems():
+          for unused_k, assoc in wlconf.AssociatedDeviceList.iteritems():
             devices[assoc.AssociatedDeviceMACAddress] = (
                 '(5 GHz) (Authentication State: %s)'
                 % assoc.AssociatedDeviceAuthenticationState)
@@ -198,21 +199,38 @@ class DiaguiSettings(tornado.web.Application):
 
     try:
       dns = self.root.DNS.SD.ServiceList
-      for i, serv in dns.iteritems():
+      for unused_i, serv in dns.iteritems():
         self.data['dyndns'] = serv.InstanceName
         self.data['domain'] = serv.Domain
     except AttributeError:
       pass
 
-    # TODO: Verify if these are the correct values.
+    # TODO(jnewlin): Verify if these are the correct values.
     try:
       wan = self.root.InternetGatewayDevice.WANDeviceList
     except AttributeError:
       pass
     else:
-      for i, dev in wan.iteritems():
-        for j, conn in dev.WANConnectionDeviceList.iteritems():
-          for k, ipconn in conn.WANIPConnectionList.iteritems():
+      for unused_i, dev in wan.iteritems():
+        for unused_j, conn in dev.WANConnectionDeviceList.iteritems():
+          for unused_k, ipconn in conn.WANIPConnectionList.iteritems():
             self.data['wanmac'] = ipconn.MACAddress
             self.data['wanip'] = ipconn.ExternalIPAddress
+    self.ReadOnuStats()
     self.UpdateCheckSum()
+
+  def ReadOnuStats(self):
+    """Read the ONU stat file and store into self.data."""
+    try:
+      with open(ONU_STAT_FILE) as f:
+        stats = f.read()
+    except IOError:
+      return
+
+    try:
+      json_stats = json.loads(stats)
+    except ValueError:
+      print 'Failed to decode onu stat file.'
+      return
+
+    self.data.update(json_stats)
