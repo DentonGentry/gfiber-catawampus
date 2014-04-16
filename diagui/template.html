@@ -16,6 +16,7 @@
           $(element + " .value li").text(val);
         }
       }
+
       function multivaluefield(element, val) {
         if (jQuery.isEmptyObject(val)){
           populatefield(element, 'n/a');
@@ -33,6 +34,24 @@
           }
         }
       }
+
+      function populateOnuFields(data) {
+        f = function(field) {
+          return (field in data) ? String(data[field]) : "n/a";
+        };
+
+        $("#onu_wan_connected").text(f("onu_wan_connected"));
+        $("#onu_wan_contacted").text(f("onu_acs_contacted"));
+        $("#onu_uptime").text(f("onu_uptime"));
+        $("#onu_serial").text(f("onu_serial"));
+
+        if ("onu_acs_contact_time" in data) {
+          $("onu_acs_contact_time").text(new Date(data.onu_acs_contact_time));
+        } else {
+          $("#onu_acs_contact_time").text("n/a");
+        }
+      }
+
       function getContent() {
           $.getJSON('content.json', obj1 , function(data) {
             $('.value').empty();
@@ -59,7 +78,8 @@
             populatefield('#dyndns', data.dyndns);
             populatefield('#username', data.username);
             populatefield('#domain', data.domain);
-            populatefield('#fiberjack', data.fiberjack);
+            populateOnuFields(data)
+
             obj1.checksum = data.checksum
           });
         }
@@ -144,7 +164,18 @@
          <div id="domain"><span class="name">Domain/hostname:</span><ul class="value"></ul></div>
         </p>
         <p>
-         <div id="fiberjack"><span class="name">Fiber jack:</span><ul class="value"></ul></div>
+         <div id="fiberjack"><span class="name">Fiber jack:</span>
+           <br>
+           <div id="fjackvals">
+             <ul class="onuvalue">
+               <li>Serial Number: <span id="onu_serial"></span></li>
+               <li>WAN Connected: <span id="onu_wan_connected"></span></li>
+               <li>ACS Contacted: <span id="onu_acs_contacted"></span></li>
+               <li>ACS Last Contact: <span id="onu_acs_contact_time"></span></li>
+               <li>Uptime: <span id="onu_uptime"></li>
+             </ul>
+           </div>
+         </div>
         </p>
       </div>
     </div>

@@ -1,0 +1,7 @@
+{
+"onu_wan_connected": true,
+"onu_acs_contacted": true,
+"onu_acs_contact_time": 100000,
+"onu_uptime": 500,
+"onu_serial": "12345"
+}
