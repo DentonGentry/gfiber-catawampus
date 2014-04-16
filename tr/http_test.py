@@ -296,8 +296,29 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase):
     h = self.NextHandler()
     self.assertEqual(h.request.method, 'POST')
     self.assertEqual(h.request.path, '/redir2')
-    print h.request.body
     self.assertTrue('<soap' in h.request.body)
+
+  def testRedirectSession(self):
+    """Test that a redirect persists for the entire session."""
+    SetMonotime(self.advanceTime)
+    cpe_machine = self.getCpe()
+    cpe_machine.Startup()
+
+    h = self.NextHandler()
+    urlbase = 'http://127.0.0.1:%d' % self.get_http_port()
+    self.assertEqual(h.request.method, 'POST')
+    self.assertEqual(h.request.path, '/cwmp')
+    h.redirect(urlbase + '/redirected', status=307)
+
+    h = self.NextHandler()
+    self.assertEqual(h.request.method, 'POST')
+    self.assertEqual(h.request.path, '/redirected')
+    h.finish()
+
+    h = self.NextHandler()
+    self.assertEqual(h.request.method, 'POST')
+    self.assertEqual(h.request.path, '/redirected')
+    h.finish()
 
   def testNewPingSession(self):
     cpe_machine = self.getCpe()

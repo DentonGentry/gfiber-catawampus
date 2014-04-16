@@ -408,6 +408,10 @@ class CPEStateMachine(object):
         # TODO(dgentry): $SPEC3 3.7.1.6 ACS Fault 8005 == retry same request
       else:
         self.session.state_update(acs_to_cpe_empty=True)
+      if self.session.acs_url != response.effective_url:
+        url = response.effective_url
+        print 'Redirecting to %s for remainder of CWMP session' % url
+        self.session.acs_url = url
     else:
       print 'HTTP ERROR {0!s}: {1}'.format(response.code, response.error)
       self._ScheduleRetrySession()
