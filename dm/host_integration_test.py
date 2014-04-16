@@ -164,6 +164,7 @@ class HostIntegrationTest(unittest.TestCase):
     self.assertEqual(len(hl), 4)
     found = 0
     for h in hl.values():
+      self.assertTrue(h.Active)
       if h.PhysAddress == '00:01:02:11:00:01':
         self.assertEqual(h.IPAddress, '192.168.1.1')
         self.assertEqual(h.Layer1Interface, 'Device.MoCA.Interface.1')
