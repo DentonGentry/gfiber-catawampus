@@ -43,7 +43,7 @@
 
         var contact_time = 'n/a';
         if ('onu_acs_contact_time' in data) {
-          contact_time = String(new Date(data.onu_acs_contact_time));
+          contact_time = String(new Date(data.onu_acs_contact_time * 1000));
         }
         populatefield('#onu_acs_contact_time', contact_time);
       }
