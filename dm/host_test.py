@@ -65,7 +65,7 @@ class HostTest(unittest.TestCase):
     h.ValidateExports()
 
   def testHostFields(self):
-    h = host.Host(PhysAddress='mac',
+    h = host.Host(Active=True, PhysAddress='mac',
                   ip4=['ip4_1', 'ip4_2', 'ip4_3'],
                   ip6=['ip6_1', 'ip6_2', 'ip6_3', 'ip6_4'],
                   DHCPClient='dhcpclient',
@@ -75,6 +75,7 @@ class HostTest(unittest.TestCase):
                   VendorClassID='vendor_class_id',
                   ClientID='client_id', UserClassID='user_class_id')
     h.ValidateExports()
+    self.assertEqual(h.Active, True)
     self.assertEqual(h.AssociatedDevice, 'associated_device')
     self.assertEqual(h.ClientID, 'client_id')
     self.assertEqual(h.DHCPClient, 'dhcpclient')
@@ -126,6 +127,7 @@ class HostTest(unittest.TestCase):
     for entry in h.HostList.values():
       self.assertTrue(entry.PhysAddress in expected)
       self.assertEqual(entry.Layer1Interface, expected[entry.PhysAddress])
+      self.assertTrue(entry.Active)
       del expected[entry.PhysAddress]
       entry.ValidateExports()
     self.assertEqual(len(expected), 0)
@@ -143,6 +145,7 @@ class HostTest(unittest.TestCase):
     self.assertEqual(len(hosts.HostList), 3)
     found = 0
     for h in hosts.HostList.values():
+      self.assertTrue(h.Active)
       if h.PhysAddress == 'f8:8f:ca:00:00:01':
         self.assertEqual(h.Layer1Interface, 'Device.Foo.Interface.1')
         self.assertEqual(h.IPAddress, '192.168.1.1')
@@ -220,6 +223,7 @@ class HostTest(unittest.TestCase):
     self.assertEqual(len(hosts.HostList), 2)
     found = 0
     for h in hosts.HostList.values():
+      self.assertTrue(h.Active)
       l1interface = 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1'
       self.assertEqual(h.Layer1Interface, l1interface)
       if h.PhysAddress == '00:01:02:03:04:05':
@@ -242,6 +246,7 @@ class HostTest(unittest.TestCase):
     for h in hosts.HostList.values():
       l1interface = 'Device.MoCA.Interface.1'
       if h.PhysAddress == '00:11:22:33:44:11':
+        self.assertTrue(h.Active)
         self.assertFalse(found & 0x1)
         found |= 0x1
         # Fields from MoCA AssocidatedDevice table
@@ -255,12 +260,14 @@ class HostTest(unittest.TestCase):
         self.assertEqual(h.IPv4AddressList['1'].IPAddress, '192.168.133.7')
         self.assertEqual(h.IPv4AddressList['2'].IPAddress, '192.168.1.1')
       elif h.PhysAddress == '00:11:22:33:44:22':
+        self.assertTrue(h.Active)
         self.assertFalse(found & 0x2)
         found |= 0x2
         self.assertEqual(h.Layer1Interface, l1interface)
         a = l1interface + '.AssociatedDevice.2'
         self.assertEqual(h.AssociatedDevice, a)
       elif h.PhysAddress == '00:11:22:33:44:33':
+        self.assertFalse(h.Active)
         self.assertFalse(found & 0x4)
         found |= 0x4
         # populated by fake_dhcp_server.py

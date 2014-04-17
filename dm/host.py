@@ -182,6 +182,7 @@ class Hosts(BASE181HOSTS):
           host = hosts.get(mac, dict())
           self._AddLayer1Interface(host, iface)
           host['PhysAddress'] = mac
+          host['Active'] = True
           hosts[mac] = host
       except (OSError, IOError):
         print '_GetHostsFromBridges unable to process %s' % brname
@@ -219,6 +220,7 @@ class Hosts(BASE181HOSTS):
       host = hosts.get(mac, dict())
       self._AddLayer1Interface(host, iface)
       host['PhysAddress'] = mac
+      host['Active'] = True
       self._AddIpToHostDict(entry=host, ip4=ip4)
       hosts[mac] = host
 
@@ -247,6 +249,7 @@ class Hosts(BASE181HOSTS):
         host['AssociatedDevice'] = assocdev
         host['Layer1Interface'] = l1interface
         host['PhysAddress'] = mac
+        host['Active'] = True
         hosts[mac] = host
 
   def _GetTr181MocaObjects(self):
@@ -274,6 +277,7 @@ class Hosts(BASE181HOSTS):
         host['AssociatedDevice'] = assocdev
         host['Layer1Interface'] = l1interface
         host['PhysAddress'] = mac
+        host['Active'] = True
         hosts[mac] = host
 
   def _GetTr181Dhcp4ServerPools(self):
@@ -363,6 +367,7 @@ class Hosts(BASE181HOSTS):
         host = hosts.get(mac, dict())
         host['PhysAddress'] = mac
         host['Layer1Interface'] = l1interface
+        host['Active'] = True
         hosts[mac] = host
 
   @tr.session.cache
@@ -395,7 +400,7 @@ class Host(CATA181HOST):
   This is an ephemeral object, created from some data source and
   peristing only for the duration of one CWMP session.
   """
-  Active = tr.types.ReadOnlyBool(True)
+  Active = tr.types.ReadOnlyBool(False)
   AddressSource = tr.types.ReadOnlyString('None')
   AssociatedDevice = tr.types.ReadOnlyString('')
   ClientID = tr.types.ReadOnlyString('')
@@ -408,7 +413,7 @@ class Host(CATA181HOST):
   UserClassID = tr.types.ReadOnlyString('')
   VendorClassID = tr.types.ReadOnlyString('')
 
-  def __init__(self, PhysAddress='', ip4=None, ip6=None,
+  def __init__(self, Active=False, PhysAddress='', ip4=None, ip6=None,
                DHCPClient='', AddressSource='None', AssociatedDevice='',
                Layer1Interface='', Layer3Interface='', HostName='',
                LeaseTimeRemaining=0, VendorClassID='',
@@ -416,6 +421,7 @@ class Host(CATA181HOST):
     super(Host, self).__init__()
     self.Unexport(['Alias'])
 
+    type(self).Active.Set(self, Active)
     type(self).AssociatedDevice.Set(self, AssociatedDevice)
     type(self).AddressSource.Set(self, AddressSource)
     type(self).ClientID.Set(self, ClientID)
