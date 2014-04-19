@@ -87,8 +87,9 @@ class IsostreamTest(unittest.TestCase):
     self._Iter('run-isostream 1.2.3.4 -b 99\n')
     # Validate that we can run client and server at the same time
     isos.ServerEnable = True
+    self._Iter('run-isostream-server\n')
     time.sleep(1)
-    self._Iter('run-isostream-server\nDEAD run-isostream\n')
+    self._Iter('DEAD run-isostream\n')
     isos.ServerEnable = False
     self._Iter('DEAD run-isostream-server\n')
 
