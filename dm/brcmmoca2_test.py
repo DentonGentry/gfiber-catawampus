@@ -36,6 +36,8 @@ class MocaTest(unittest.TestCase):
 
   def setUp(self):
     self.loop = tr.mainloop.MainLoop()
+    self.old_MOCAGLOBALJSON = brcmmoca2.MOCAGLOBALJSON
+    self.old_MOCANODEJSON = brcmmoca2.MOCANODEJSON
     self.old_MOCAP = brcmmoca2.MOCAP
     self.old_MOCATRACE = brcmmoca2.MOCATRACE
     self.old_PYNETIFCONF = brcmmoca2.PYNETIFCONF
@@ -43,6 +45,9 @@ class MocaTest(unittest.TestCase):
     self.tmpdir = tempfile.mkdtemp()
     brcmmoca2.MOCAP = 'testdata/brcmmoca2/mocap'
     self.trace_out = os.path.join(self.tmpdir, 'trace')
+    t = 'testdata/brcmmoca2/cwmp/monitoring/moca2/globals'
+    brcmmoca2.MOCAGLOBALJSON = t
+    brcmmoca2.MOCANODEJSON = 'testdata/brcmmoca2/cwmp/monitoring/moca2/node%d'
     brcmmoca2.MOCATRACE = ['testdata/brcmmoca2/mocatrace', self.trace_out]
     brcmmoca2.PYNETIFCONF = MockPynet
     netdev.PROC_NET_DEV = 'testdata/brcmmoca2/proc/net/dev'
@@ -50,6 +55,8 @@ class MocaTest(unittest.TestCase):
 
   def tearDown(self):
     brcmmoca2.MOCAP = self.old_MOCAP
+    brcmmoca2.MOCAGLOBALJSON = self.old_MOCAGLOBALJSON
+    brcmmoca2.MOCANODEJSON = self.old_MOCANODEJSON
     brcmmoca2.MOCATRACE = self.old_MOCATRACE
     brcmmoca2.PYNETIFCONF = self.old_PYNETIFCONF
     netdev.PROC_NET_DEV = self.old_PROC_NET_DEV
@@ -103,7 +110,8 @@ class MocaTest(unittest.TestCase):
     self.assertRaises(AttributeError, setattr, moca, 'QAM256Capable', True)
 
   def testMocaInterfaceAlt(self):
-    brcmmoca2.MOCAP = 'testdata/brcmmoca2/mocap_alt'
+    t = 'testdata/brcmmoca2/cwmp/monitoring/moca2/globals_alt'
+    brcmmoca2.MOCAGLOBALJSON = t
     moca = brcmmoca2.BrcmMocaInterface(ifname='foo0', upstream=False)
     self.assertEqual(moca.HighestVersion, '1.0')
     self.assertEqual(moca.CurrentVersion, '1.0')
@@ -113,8 +121,15 @@ class MocaTest(unittest.TestCase):
     self.assertFalse(moca.QAM256Capable)
     self.assertEqual(moca.PacketAggregationCapability, 7)
 
+  def testBadJSON(self):
+    t = 'testdata/brcmmoca2/cwmp/monitoring/moca2/badjson'
+    brcmmoca2.MOCAGLOBALJSON = t
+    moca = brcmmoca2.BrcmMocaInterface(ifname='foo0', upstream=False)
+    self.assertEqual(moca.CurrentVersion, '0.0')
+
   def testMocaInterfaceMocaCtlFails(self):
-    brcmmoca2.MOCAP = 'testdata/brcmmoca2/mocap_fail'
+    t = 'testdata/brcmmoca2/cwmp/monitoring/moca2/globals_failed'
+    brcmmoca2.MOCAGLOBALJSON = t
     moca = brcmmoca2.BrcmMocaInterface(ifname='foo0', upstream=False)
     self.assertEqual(moca.FirmwareVersion, '0')
     self.assertEqual(moca.HighestVersion, '0.0')
@@ -123,11 +138,6 @@ class MocaTest(unittest.TestCase):
     self.assertFalse(moca.PrivacyEnabled)
     self.assertFalse(moca.QAM256Capable)
     self.assertEqual(moca.PacketAggregationCapability, 0)
-
-  def testLastChange(self):
-    moca = brcmmoca2.BrcmMocaInterface(ifname='foo0', upstream=False)
-    brcmmoca2.MOCAP = 'testdata/brcmmoca2/mocap_uptime'
-    self.assertEqual(moca.LastChange, 119728800)
 
   def testDiscardFramePresence(self):
     # Content of DiscardFrameCnts is tested in netdev_test.py.
@@ -163,6 +173,14 @@ class MocaTest(unittest.TestCase):
     self.assertEqual(ad.RxErroredAndMissedPackets, 30)
     self.assertEqual(ad.RxSNR, 38)
     self.assertEqual(ad.X_CATAWAMPUS_ORG_RxSNR_dB, 38.063)
+    self.assertEqual(ad.X_CATAWAMPUS_ORG_RxPrimaryCwCorrected, 100)
+    self.assertEqual(ad.X_CATAWAMPUS_ORG_RxPrimaryCwUncorrected, 101)
+    self.assertEqual(ad.X_CATAWAMPUS_ORG_RxPrimaryCwNoErrors, 102)
+    self.assertEqual(ad.X_CATAWAMPUS_ORG_RxPrimaryCwNoSync, 103)
+    self.assertEqual(ad.X_CATAWAMPUS_ORG_RxSecondaryCwCorrected, 104)
+    self.assertEqual(ad.X_CATAWAMPUS_ORG_RxSecondaryCwUncorrected, 105)
+    self.assertEqual(ad.X_CATAWAMPUS_ORG_RxSecondaryCwNoErrors, 106)
+    self.assertEqual(ad.X_CATAWAMPUS_ORG_RxSecondaryCwNoSync, 107)
     self.assertEqual(
         ad.X_CATAWAMPUS_ORG_TxBitloading,
         '$BRCM2$'
@@ -222,12 +240,6 @@ class MocaTest(unittest.TestCase):
     self.assertRaises(AttributeError, setattr, ad,
                       'RxErroredAndMissedPackets', 1)
     self.assertRaises(AttributeError, setattr, ad, 'RxSNR', 39)
-
-  def testCombineBitloading(self):
-    bitlines = ['008 - 015:  22222222', '000 - 007:  11111111',
-                '024 - 031:  44444444', '016 - 023:  33333333']
-    self.assertEqual(brcmmoca2._CombineBitloading(bitlines),
-                     '11111111222222223333333344444444')
 
   def testExtraTracing(self):
     moca = brcmmoca2.BrcmMocaInterface(ifname='foo0', upstream=False)

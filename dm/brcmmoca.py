@@ -357,8 +357,16 @@ class BrcmMocaAssociatedDevice(CATA181MOCA.Interface.AssociatedDevice):
   def __init__(self, nodeid):
     super(BrcmMocaAssociatedDevice, self).__init__()
     type(self).NodeID.Set(self, int(nodeid))
-    self.Unexport(['HighestVersion'])
-
+    self.Unexport(['HighestVersion',
+                   'X_CATAWAMPUS-ORG_RxPrimaryCwCorrected',
+                   'X_CATAWAMPUS-ORG_RxPrimaryCwUncorrected',
+                   'X_CATAWAMPUS-ORG_RxPrimaryCwNoErrors',
+                   'X_CATAWAMPUS-ORG_RxPrimaryCwNoSync',
+                   'X_CATAWAMPUS-ORG_RxSecondaryCwCorrected',
+                   'X_CATAWAMPUS-ORG_RxSecondaryCwUncorrected',
+                   'X_CATAWAMPUS-ORG_RxSecondaryCwNoErrors',
+                   'X_CATAWAMPUS-ORG_RxSecondaryCwNoSync',
+                  ])
     self.ParseNodeStatus()
     self.ParseNodeStats()
 

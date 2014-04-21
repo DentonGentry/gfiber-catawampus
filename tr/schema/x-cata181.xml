@@ -407,6 +407,54 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
           <string/>
         </syntax>
       </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_RxPrimaryCwCorrected" access="readOnly">
+        <description>Number of code words received with errors and corrected.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_RxPrimaryCwUncorrected" access="readOnly">
+        <description>Number of code words received with errors which could not be corrected.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_RxPrimaryCwNoErrors" access="readOnly">
+        <description>Number of code words received without errors.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_RxPrimaryCwNoSync" access="readOnly">
+        <description>Number of code words received where the PHY could not even sync.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_RxSecondaryCwCorrected" access="readOnly">
+        <description>Number of code words received with errors and corrected.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_RxSecondaryCwUncorrected" access="readOnly">
+        <description>Number of code words received with errors which could not be corrected.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_RxSecondaryCwNoErrors" access="readOnly">
+        <description>Number of code words received without errors.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_RxSecondaryCwNoSync" access="readOnly">
+        <description>Number of code words received where the PHY could not even sync.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
     </object>
 
     <object name="Device.X_CATAWAMPUS-ORG.Experiments." access="readOnly" minEntries="1" maxEntries="1">
