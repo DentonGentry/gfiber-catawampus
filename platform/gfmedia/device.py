@@ -38,6 +38,7 @@ import dm.dnsmasq
 import dm.ethernet
 import dm.host
 import dm.igd_time
+import dm.inadyn
 import dm.ipinterface
 import dm.miniupnp
 import dm.nat
@@ -505,7 +506,7 @@ class Device(tr181.Device_v2_6.Device):
   def __init__(self, device_id, periodic_stats, dmroot):
     super(Device, self).__init__()
     self._UnexportStuff()
-    self.Export(objects=['DeviceInfo', 'NAT'])
+    self.Export(objects=['DeviceInfo', 'NAT', 'X_CATAWAMPUS-ORG_DynamicDNS'])
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
     led = dm.device_info.LedStatusReadFromFile('LED', LEDSTATUS)
     self.DeviceInfo.AddLedStatus(led)
@@ -521,6 +522,7 @@ class Device(tr181.Device_v2_6.Device):
     self.Export(objects=['PeriodicStatistics'])
     self.PeriodicStatistics = periodic_stats
     self.UPnP = dm.miniupnp.UPnP()
+    self.X_CATAWAMPUS_ORG_DynamicDNS = dm.inadyn.Inadyn()
     self._AddTemperatureStuff()
     self._AddHostsStuff(dmroot=dmroot)
 
