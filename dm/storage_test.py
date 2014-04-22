@@ -120,11 +120,14 @@ class StorageTest(unittest.TestCase):
     service = storage.StorageServiceLinux26()
     volumes = service.LogicalVolumeList
     self.assertEqual(len(volumes), 3)
+    self.assertEqual(service.LogicalVolumeNumberOfEntries, 3)
     expectedFs = {'/': 'X_CATAWAMPUS-ORG_squashfs',
                   '/foo': 'X_CATAWAMPUS-ORG_ubifs',
                   '/tmp': 'X_CATAWAMPUS-ORG_tmpfs'}
     expectedRo = {'/': False, '/foo': True, '/tmp': False}
+    found = set()
     for vol in volumes.values():
+      found.add(vol.Name)
       t = OsStatVfs(vol.Name)
       self.assertEqual(vol.Status, 'Online')
       self.assertTrue(vol.Enable)
@@ -133,6 +136,7 @@ class StorageTest(unittest.TestCase):
       expected = t.f_bsize * (t.f_blocks - t.f_bavail) / 1024 / 1024
       self.assertEqual(vol.UsedSpace, expected)
       self.assertEqual(vol.X_CATAWAMPUS_ORG_ReadOnly, expectedRo[vol.Name])
+    self.assertEqual(found, set(expectedFs.keys()))
 
   def testCapabilitiesNone(self):
     storage.PROC_FILESYSTEMS = 'testdata/storage/proc.filesystems'

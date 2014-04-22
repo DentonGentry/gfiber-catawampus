@@ -690,8 +690,7 @@ class StorageServiceLinux26(BASESTORAGE):
     self.PhysicalMediumList = {}
     self.StorageArrayList = {}
     self.LogicalVolumeList = tr.core.AutoDict(
-        'LogicalVolumeList', iteritems=self.IterLogicalVolumes,
-        getitem=self.GetLogicalVolumeByIndex)
+        'LogicalVolumeList', iteritems=self.IterLogicalVolumes)
     self.UserAccountList = {}
     self.UserGroupList = {}
     self.X_CATAWAMPUS_ORG_FlashMediaList = {}
@@ -720,39 +719,30 @@ class StorageServiceLinux26(BASESTORAGE):
   def X_CATAWAMPUS_ORG_FlashMediaNumberOfEntries(self):
     return len(self.X_CATAWAMPUS_ORG_FlashMediaList)
 
+  @tr.session.cache
   def _ParseProcMounts(self):
     """Return list of (mount point, filesystem type) tuples."""
     mounts = dict()
     try:
-      with open(PROC_MOUNTS) as f:
-        for line in f:
-          fields = line.split()
-          # ex: /dev/mtdblock9 / squashfs ro,relatime 0 0
-          if len(fields) < 6:
-            continue
-          fsname = fields[0]
-          mountpoint = fields[1]
-          fstype = fields[2]
-          if fsname == 'none' or _IsSillyFilesystem(fstype):
-            continue
-          mounts[mountpoint] = _FsType(fstype)
-    except IOError:
-      return []
+      # Note: when reading /proc/mounts, it's important to read it all
+      # in one chunk. The kernel regenerates it on the fly, so boundaries
+      # between chunks could move around between calls.
+      for line in open(PROC_MOUNTS).read(65536).strip().split('\n'):
+        fields = line.split()
+        # ex: /dev/mtdblock9 / squashfs ro,relatime 0 0
+        if len(fields) < 6:
+          continue
+        fsname = fields[0]
+        mountpoint = fields[1]
+        fstype = fields[2]
+        if fsname == 'none' or _IsSillyFilesystem(fstype):
+          continue
+        mounts[mountpoint] = _FsType(fstype)
+    except IOError, e:
+      print '%r: %s' % (PROC_MOUNTS, e)
     return sorted(mounts.items())
-
-  def GetLogicalVolume(self, fstuple):
-    """Get an LogicalVolume object for a mounted filesystem."""
-    (mountpoint, fstype) = fstuple
-    return LogicalVolumeLinux26(mountpoint, fstype)
 
   def IterLogicalVolumes(self):
     """Retrieves a list of all mounted filesystems."""
-    fstuples = self._ParseProcMounts()
-    for idx, fstuple in enumerate(fstuples):
-      yield idx, self.GetLogicalVolume(fstuple)
-
-  def GetLogicalVolumeByIndex(self, index):
-    fstuples = self._ParseProcMounts()
-    if index >= len(fstuples):
-      raise IndexError('No such object LogicalVolume.{0}'.format(index))
-    return self.GetLogicalVolume(fstuples[index])
+    for idx, (mountpoint, fstype) in enumerate(self._ParseProcMounts()):
+      yield idx, LogicalVolumeLinux26(mountpoint, fstype)
