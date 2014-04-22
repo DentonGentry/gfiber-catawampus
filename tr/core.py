@@ -299,7 +299,7 @@ class Exporter(object):
         except AttributeError:
           raise Exc(name, 'is %r, must implement core.Exporter'
                     % type(obj))
-        obj.ValidateExports(path + [name])
+        obj.ValidateExports(path + [name, str(iname)])
 
   def IsValidExport(self, name):
     if (name in self.export_params or
@@ -317,7 +317,20 @@ class Exporter(object):
       if not path:
         path = ['root']
       fullname = '.'.join(path + [ename])
-      raise SchemaError('%s is exported but does not exist' % fullname)
+      try:
+        # hasattr() just eats all exceptions and returns false, even if
+        # it wasn't the correct AttributeError, which is hard to debug.
+        # So we getattr() if not hasattr(); getattr() will raise the real
+        # exception, which we deliberately allow to percolate out.
+        getattr(self, ename)
+      except AttributeError, e:
+        # AttributeError probably means the attribute actually doesn't exist.
+        # There's one exception to that: running an @property might
+        # accidentally throw AttributeError for some other reason.  Just in
+        # case, we print the original exception string in addition to our
+        # SchemaError.
+        raise SchemaError('%s is exported but does not exist (%s)'
+                          % (fullname, e))
 
   @staticmethod
   def _FixExportName(parent, name):
