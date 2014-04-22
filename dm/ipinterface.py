@@ -84,9 +84,9 @@ class IPInterfaceLinux26(CATA181IP.Interface):
 
   Enable = tr.types.ReadOnlyBool(True)
   IPv4Enable = tr.types.ReadOnlyBool(True)
-  IPv4AddressNumberOfEntries = tr.types.NumberOf()
-  IPv6AddressNumberOfEntries = tr.types.NumberOf()
-  IPv6PrefixNumberOfEntries = tr.types.NumberOf()
+  IPv4AddressNumberOfEntries = tr.types.NumberOf('IPv4AddressList')
+  IPv6AddressNumberOfEntries = tr.types.NumberOf('IPv6AddressList')
+  IPv6PrefixNumberOfEntries = tr.types.NumberOf('IPv6PrefixList')
   IPv6Enable = tr.types.ReadOnlyBool(True)
   LowerLayers = tr.types.ReadOnlyString('')
   Name = tr.types.ReadOnlyString('')
@@ -101,11 +101,8 @@ class IPInterfaceLinux26(CATA181IP.Interface):
     type(self).Name.Set(self, ifname)
     type(self).LowerLayers.Set(self, lowerlayers)
     self.IPv4AddressList = self._PopulateIPv4AddressList()
-    type(self).IPv4AddressNumberOfEntries.SetList(self, self.IPv4AddressList)
     self.IPv6AddressList = self._PopulateIPv6AddressList()
-    type(self).IPv6AddressNumberOfEntries.SetList(self, self.IPv6AddressList)
     self.IPv6PrefixList = {}
-    type(self).IPv6PrefixNumberOfEntries.SetList(self, self.IPv6PrefixList)
 
   def IPv4Address(self):
     return IPv4AddressLinux26(parent=self)

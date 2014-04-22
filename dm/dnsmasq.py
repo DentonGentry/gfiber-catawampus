@@ -139,27 +139,25 @@ def UpdateDnsmasqConfig():
 
 
 class DHCPv4(CATA181DEV.Device.DHCPv4):
-  ClientNumberOfEntries = tr.types.NumberOf()
+  ClientNumberOfEntries = tr.types.NumberOf('ClientList')
 
   def __init__(self):
     super(DHCPv4, self).__init__()
     self.Server = Dhcp4Server()
     self.ClientList = {}
-    type(self).ClientNumberOfEntries.SetList(self, self.ClientList)
     self.Unexport(objects=['Relay'])
 
 
 class Dhcp4Server(DHCP4SERVER):
   """tr-181 Device.DHCPv4.Server."""
   Enable = tr.types.TriggerBool(False)
-  PoolNumberOfEntries = tr.types.NumberOf()
+  PoolNumberOfEntries = tr.types.NumberOf('PoolList')
   X_CATAWAMPUS_ORG_TextConfig = tr.types.FileBacked(
       DNSMASQCONFIG, tr.types.String(), delete_if_empty=False)
 
   def __init__(self):
     super(Dhcp4Server, self).__init__()
     self.PoolList = {}
-    type(self).PoolNumberOfEntries.SetList(self, self.PoolList)
     DhcpServers.add(self)
 
   def Close(self):
@@ -186,8 +184,8 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
   SubnetMask = tr.types.TriggerIP4Addr(None)
   X_CATAWAMPUS_ORG_NTPServers = tr.types.TriggerString('')
 
-  OptionNumberOfEntries = tr.types.NumberOf()
-  StaticAddressNumberOfEntries = tr.types.NumberOf()
+  OptionNumberOfEntries = tr.types.NumberOf('OptionList')
+  StaticAddressNumberOfEntries = tr.types.NumberOf('StaticAddressList')
 
   # Conditional serving parameters
 
@@ -259,10 +257,7 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
     self.name = name
     self.index = None
     self.StaticAddressList = {}
-    type(self).StaticAddressNumberOfEntries.SetList(self,
-                                                    self.StaticAddressList)
     self.OptionList = {}
-    type(self).OptionNumberOfEntries.SetList(self, self.OptionList)
 
     self.Unexport(['Alias'])
 

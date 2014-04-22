@@ -50,8 +50,8 @@ class Client(DHCP4SERVERPOOL.Client):
   """tr-181 Device.DHCPv4.Server.{i}.Client.{i}."""
   Active = tr.types.ReadOnlyBool(True)
   Chaddr = tr.types.ReadOnlyMacAddr('')
-  IPv4AddressNumberOfEntries = tr.types.NumberOf()
-  OptionNumberOfEntries = tr.types.NumberOf()
+  IPv4AddressNumberOfEntries = tr.types.NumberOf('IPv4AddressList')
+  OptionNumberOfEntries = tr.types.NumberOf('OptionList')
 
   def __init__(self, chaddr, ipaddr, expiry=0,
                clientid=None, hostname=None, userclassid=None,
@@ -75,9 +75,7 @@ class Client(DHCP4SERVERPOOL.Client):
         '1': ClientIPv4Address(ip=ipaddr, expiry=expiry),
     }
     self.next_ipv4 = 2
-    type(self).IPv4AddressNumberOfEntries.SetList(self, self.IPv4AddressList)
     self.OptionList = {}
-    type(self).OptionNumberOfEntries.SetList(self, self.OptionList)
     if clientid:
       self.OptionList['1'] = ClientOption(tag=CL, value=clientid)
     if hostname:

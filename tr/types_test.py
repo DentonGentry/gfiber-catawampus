@@ -121,14 +121,12 @@ class ReadOnlyObject(object):
 
 
 class NumberOfObject(object):
-  d = tr.types.NumberOf()
-  l = tr.types.NumberOf()
+  TestDictNumberOfEntries = tr.types.NumberOf('TestDict')
+  TestListNumberOfEntries = tr.types.NumberOf('TestList')
 
   def __init__(self):
     self.TestDict = {}
     self.TestList = []
-    type(self).d.SetList(self, self.TestDict)
-    type(self).l.SetList(self, self.TestList)
 
 
 class TypesTest(unittest.TestCase):
@@ -433,14 +431,17 @@ class TypesTest(unittest.TestCase):
 
   def testNumberOf(self):
     obj = NumberOfObject()
-    l = ['a', 'b', 'c']
-    d = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
-    type(obj).d.SetList(obj, d)
-    type(obj).l.SetList(obj, l)
-    self.assertEqual(obj.l, 3)
-    self.assertEqual(obj.d, 4)
-    l.extend(['d', 'e'])
-    self.assertEqual(obj.l, 5)
+    obj.TestList = ['a', 'b', 'c']
+    obj.TestDict = {1: 'a', 2: 'b', 3: 'c', 4: 'd'}
+    self.assertEqual(obj.TestListNumberOfEntries, 3)
+    self.assertEqual(obj.TestDictNumberOfEntries, 4)
+    obj.TestList.extend(['d', 'e'])
+    self.assertEqual(obj.TestListNumberOfEntries, 5)
+
+    # Make sure two objects correctly have two different counts
+    obj2 = NumberOfObject()
+    self.assertEqual(obj2.TestListNumberOfEntries, 0)
+    self.assertEqual(obj.TestListNumberOfEntries, 5)
 
 
 if __name__ == '__main__':

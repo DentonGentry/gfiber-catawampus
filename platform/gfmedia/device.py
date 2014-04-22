@@ -326,22 +326,17 @@ class Services(tr181.Device_v2_6.Device.Services):
 class Ethernet(tr181.Device_v2_6.Device.Ethernet):
   """Implementation of tr-181 Device.Ethernet for GFMedia platforms."""
 
-  InterfaceNumberOfEntries = tr.types.NumberOf()
-  LinkNumberOfEntries = tr.types.NumberOf()
-  RMONStatsNumberOfEntries = tr.types.NumberOf()
-  VLANTerminationNumberOfEntries = tr.types.NumberOf()
+  InterfaceNumberOfEntries = tr.types.NumberOf('InterfaceList')
+  LinkNumberOfEntries = tr.types.NumberOf('LinkList')
+  RMONStatsNumberOfEntries = tr.types.NumberOf('RMONStatsList')
+  VLANTerminationNumberOfEntries = tr.types.NumberOf('VLANTerminationList')
 
   def __init__(self):
     super(Ethernet, self).__init__()
     self.InterfaceList = {}
-    type(self).InterfaceNumberOfEntries.SetList(self, self.InterfaceList)
     self.LinkList = {}
-    type(self).LinkNumberOfEntries.SetList(self, self.LinkList)
     self.RMONStatsList = {}
-    type(self).RMONStatsNumberOfEntries.SetList(self, self.RMONStatsList)
     self.VLANTerminationList = {}
-    type(self).VLANTerminationNumberOfEntries.SetList(
-        self, self.VLANTerminationList)
 
     i = 1
     for ifc in _ExistingInterfaces(['eth0', 'wan0', 'wan0.2']):
@@ -573,23 +568,20 @@ class Device(tr181.Device_v2_6.Device):
 class LANDevice(BASE98IGD.LANDevice):
   """tr-98 InternetGatewayDevice for Google Fiber media platforms."""
 
-  LANWLANConfigurationNumberOfEntries = tr.types.NumberOf()
-  LANEthernetInterfaceNumberOfEntries = tr.types.NumberOf()
-  LANUSBInterfaceNumberOfEntries = tr.types.NumberOf()
+  LANWLANConfigurationNumberOfEntries = tr.types.NumberOf(
+      'LANWLANConfigurationList')
+  LANEthernetInterfaceNumberOfEntries = tr.types.NumberOf(
+      'LANEthernetInterfaceList')
+  LANUSBInterfaceNumberOfEntries = tr.types.NumberOf(
+      'LANUSBInterfaceList')
 
   def __init__(self):
     super(LANDevice, self).__init__()
     self.Unexport(['Alias'])
     self.Unexport(objects=['Hosts', 'LANHostConfigManagement'])
     self.LANEthernetInterfaceConfigList = {}
-    type(self).LANEthernetInterfaceNumberOfEntries.SetList(
-        self, self.LANEthernetInterfaceConfigList)
     self.LANUSBInterfaceConfigList = {}
-    type(self).LANUSBInterfaceNumberOfEntries.SetList(
-        self, self.LANUSBInterfaceConfigList)
     self.WLANConfigurationList = {}
-    type(self).LANWLANConfigurationNumberOfEntries.SetList(
-        self, self.WLANConfigurationList)
     i = 1
     for wifc in _ExistingInterfaces(['eth2']):
       wifi = dm.brcmwifi.BrcmWifiWlanConfiguration(wifc)

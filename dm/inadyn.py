@@ -37,12 +37,11 @@ RESTARTCMD = ['restart', 'inadyn']
 
 class Inadyn(CATA181DDNS):
   """Device.X_CATAWAMPUS-ORG_DynamicDNS."""
-  ServiceNumberOfEntries = tr.types.NumberOf()
+  ServiceNumberOfEntries = tr.types.NumberOf('ServiceList')
 
   def __init__(self):
     super(Inadyn, self).__init__()
     self.ServiceList = {}
-    type(self).ServiceNumberOfEntries.SetList(self, self.ServiceList)
 
   def Service(self):
     return Service(parent=self)

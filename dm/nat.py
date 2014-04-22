@@ -41,17 +41,14 @@ RESTARTCMD = ['update-acs-iptables']
 
 class NAT(BASENAT):
   """tr181 Device.NAT."""
-  InterfaceSettingNumberOfEntries = tr.types.NumberOf()
-  PortMappingNumberOfEntries = tr.types.NumberOf()
+  InterfaceSettingNumberOfEntries = tr.types.NumberOf('InterfaceSettingList')
+  PortMappingNumberOfEntries = tr.types.NumberOf('PortMappingList')
 
   def __init__(self, dmroot):
     super(NAT, self).__init__()
     self.dmroot = dmroot
     self.InterfaceSettingList = {}
     self.PortMappingList = {}
-    type(self).InterfaceSettingNumberOfEntries.SetList(
-        self, self.InterfaceSettingList)
-    type(self).PortMappingNumberOfEntries.SetList(self, self.PortMappingList)
 
   def PortMapping(self):
     return PortMapping(parent=self)

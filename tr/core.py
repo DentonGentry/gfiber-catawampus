@@ -284,7 +284,16 @@ class Exporter(object):
       obj.ValidateExports(path + [name])
     for name in self.export_object_lists:
       self.AssertValidExport(name, path=path)
+
       l = self._GetExport(self, name)
+      items = list(l.iteritems())
+      try:
+        if getattr(self, name + 'NumberOfEntries') != len(items):
+          raise Exc(name + 'NumberOfEntries', 'does not match len(%s)' % name)
+      except AttributeError:
+        # no NumberOfEntries element; that's allowed
+        pass
+
       try:
         for (iname, obj) in l.iteritems():  # pylint: disable-msg=W0612
           pass
