@@ -95,12 +95,15 @@ class TimeTZ(BASE98IGD.Time):
     """
     (abbrev, hours, _) = re.split(r'(\d+)', tz, 1)
     offset = int(hours) * 60 * 60 * -1
-    thunk = struct.pack('>4sc15x6Ii2x4s', 'TZif', '2', 0, 0, 0, 0, 1, 4,
-                        offset, abbrev)
+    # glibc ignores the TZ string if there are no dst transitions in the
+    # regular tzfile so we provide exactly one, at 0xCB6970 seconds from
+    # the epoch (which is June 4, 1970).
+    thunk32 = struct.pack('>4sc15x6IIBi2x4s', 'TZif', '2', 0, 0, 0, 1, 1, 4,
+                          0xCB6970, 0, offset, abbrev)
+    thunk64 = struct.pack('>4sc15x6IQBi2x4s', 'TZif', '2', 0, 0, 0, 1, 1, 4,
+                          0xCB6970, 0, offset, abbrev)
     newlinetz = '\n%s\n' % tz.strip()
-    # tzfile contains two copies of the struct, one for 32 bit and
-    # one for 64 bit (which are identical in our case)
-    return thunk + thunk + newlinetz
+    return thunk32 + thunk64 + newlinetz
 
   @tr.mainloop.WaitUntilIdle
   def WriteTimezone(self):
