@@ -26,6 +26,7 @@ import core
 import download
 import mainloop
 import quotedblock
+import session
 
 
 class RemoteCommandStreamer(quotedblock.QuotedBlockStreamer):
@@ -64,6 +65,7 @@ class RemoteCommandStreamer(quotedblock.QuotedBlockStreamer):
     except Exception, e:
       print traceback.format_exc()
       return [['ERROR', '-1', str(e)]]
+    session.cache.flush()
     return [['OK']] + out
 
   def CmdHelp(self):

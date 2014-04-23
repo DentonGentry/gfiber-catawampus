@@ -14,8 +14,8 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-# pylint: disable-msg=C6409
-# pylint: disable-msg=W0404
+# pylint: disable=C6409
+# pylint: disable=W0404
 #
 """Implement the TR-069 CWMP Sesion handling."""
 
@@ -131,6 +131,15 @@ def _make_hashable(obj):
     return repr(obj)
 
 
+def _MakeGenerator():
+  yield
+
+
+# TODO(apenwarr): this is in the global 'types' module.
+#  But tr.types has the same name, so we can't get at it from here.  Oops.
+GeneratorType = type(_MakeGenerator())
+
+
 class cache(object):
   """A global cache of arbitrary data for the lifetime of one CWMP session.
 
@@ -166,6 +175,8 @@ class cache(object):
       return cache._thecache[key]
     except KeyError:
       val = self.func(*args, **kwargs)
+      if isinstance(val, GeneratorType):
+        raise TypeError('cannot cache generators; use cache_as_list instead')
       cache._thecache[key] = val
       return val
 
@@ -175,6 +186,26 @@ class cache(object):
             _make_hashable(self.obj),
             tuple(_make_hashable(x) for x in list(args)),
             tuple(_make_hashable(x) for x in list(kwargs)))
+
+
+def cache_as_list(f):
+  """Like cache(), but caches the return value as a list.
+
+  You can't cache the output of generator functions (ie. functions that
+  use yield) because that doesn't make sense.  Rather than silently converting
+  such output to a list, you can declare it using @tr.session.cache_as_list
+  instead of @tr.session.cache, and explicitly do the conversion.
+
+  Args:
+    f: the function being wrapped.
+  Returns:
+    A new function that, when called, passes its arguments to f and typecasts
+    its return value into a list.
+  """
+  @cache
+  def AsList(*args, **kwargs):
+    return list(f(*args, **kwargs))
+  return AsList
 
 
 class _RunAtEnd(object):
@@ -224,7 +255,7 @@ def RunAtEnd(func):
 
 
 def main():
-  # pylint: disable-msg=C6003
+  # pylint: disable=C6003
   print('# pipe this to grapviz, ex:')
   print('# ./session.py | dot -Tpdf -osession.pdf')
   print(graphviz)

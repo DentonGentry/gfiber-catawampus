@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # unittest requires method names starting in 'test'
-# pylint: disable-msg=C6409
+# pylint: disable=C6409
 
 """Unit tests for session.py."""
 
@@ -197,13 +197,39 @@ class SimpleCacheObject(object):
 
   @session.cache
   def cache_function_with_args(
-      self, arg1, arg2, x=0, y=0):  # pylint: disable-msg=W0613
+      self, arg1, arg2, x=0, y=0):  # pylint: disable=W0613
     self.cache_this_function_args_n += 1 + x + y
 
 
 @session.cache
 def SimpleCacheFunction():
   return time.time()
+
+
+cache_iter_start = 1
+
+
+def _CacheIterFunction():
+  global cache_iter_start
+  yield cache_iter_start
+  cache_iter_start += 1
+  yield cache_iter_start
+  cache_iter_start += 1
+
+
+@session.cache
+def CacheIterFunction():
+  return _CacheIterFunction()
+
+
+@session.cache
+def CacheListFunction():
+  return list(_CacheIterFunction())
+
+
+@session.cache_as_list
+def CacheAsListFunction():
+  return _CacheIterFunction()
 
 
 class SessionCacheTest(unittest.TestCase):
@@ -255,6 +281,19 @@ class SessionCacheTest(unittest.TestCase):
     self.assertEqual(t.cache_this_function_args_n,
                      10 * (1 + 5 + 7) +
                      1 + (1 + 9))
+
+  def testCacheIterFunction(self):
+    self.assertRaises(TypeError, CacheIterFunction)
+    self.assertEqual(CacheListFunction(), CacheListFunction())
+    self.assertEqual(list(CacheListFunction()), CacheListFunction())
+    self.assertEqual(len(CacheListFunction()), 2)
+
+    self.assertEqual(CacheAsListFunction(), CacheAsListFunction())
+    self.assertEqual(list(CacheAsListFunction()), CacheAsListFunction())
+    self.assertEqual(len(CacheAsListFunction()), 2)
+
+    self.assertEqual(CacheListFunction(), [1, 2])
+    self.assertEqual(CacheAsListFunction(), [3, 4])
 
 
 RunAtEndTestResults = {}

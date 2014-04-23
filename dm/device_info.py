@@ -29,6 +29,7 @@ import glob
 import os
 import tornado.ioloop
 import tr.core
+import tr.session
 import tr.tr098_v1_4
 import tr.tr181_v2_2
 import tr.types
@@ -331,6 +332,7 @@ class ProcessStatusLinux26(BASE181DEVICE.DeviceInfo.ProcessStatus):
                        CPUTime=0, State='X_CATAWAMPUS-ORG_Exited')
     return p
 
+  @tr.session.cache_as_list
   def IterProcesses(self):
     """Walks through /proc/<pid>/stat to return a list of all processes."""
     for filename in glob.glob(self._ProcFileName('[0123456789]*')):
