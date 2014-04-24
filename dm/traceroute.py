@@ -60,6 +60,7 @@ class TraceRoute(BASE_TRACEROUTE):
   Timeout = tr.types.Unsigned(5000)   # milliseconds
   DataBlockSize = tr.types.Unsigned(38)
   MaxHopCount = tr.types.Unsigned(30)
+  RouteHopsNumberOfEntries = tr.types.NumberOf('RouteHopsList')
 
   def __init__(self, ioloop=None):
     super(TraceRoute, self).__init__()
@@ -72,10 +73,6 @@ class TraceRoute(BASE_TRACEROUTE):
     self.response_time = 0
     self.requested = False
     self.RouteHopsList = {}
-
-  @property
-  def RouteHopsNumberOfEntries(self):
-    return len(self.RouteHopsList)
 
   @property
   def ResponseTime(self):
@@ -138,13 +135,12 @@ class TraceRoute(BASE_TRACEROUTE):
     print 'traceroute starting.'
     if not self.Host:
       raise ValueError('TraceRoute.Host is not set')
-    if ':' in self.Host:
-      # IPv6
+    if tr.helpers.IsIP6Addr(self.Host):
       argv_base = [TRACEROUTE6]
       if sys.platform == 'darwin':
         argv_base += ['-l']  # tell MacOS traceroute6 to include IP addr
     else:
-      # assume IPv4
+      # hostnames are looked up via IPv4
       argv_base = [TRACEROUTE]
     argv = argv_base + ['-m', str(int(self.MaxHopCount)),
                         '-q', str(int(self.NumberOfTries)),
@@ -174,7 +170,7 @@ class TraceRoute(BASE_TRACEROUTE):
   def _GotLine(self, line):
     # TODO(apenwarr): find out how traceroute reports host-unreachable/etc
     print 'traceroute line: %r' % (line,)
-    g = re.match(r'^\s*(\d+)\s+(\S+) \(([\d:.]+)\)((\s+[\d.]+ ms)+)', line)
+    g = re.match(r'^\s*(\d+)\s+(\S+) \(([\da-fA-F:.]+)\)((\s+[\d.]+ ms)+)', line)
     if g:
       hop = g.group(1)
       hostname = g.group(2)
@@ -182,7 +178,7 @@ class TraceRoute(BASE_TRACEROUTE):
       times = g.group(4)
       timelist = re.findall(r'\s+([\d.]+) ms', times)
       self._AddHop(hop, ipaddr, hostname, icmp_error=0,
-                   rttimes=[int(float(t)) for t in timelist])
+                   rttimes=[int(round(float(t))) for t in timelist])
     g = re.match(r'^\s*(\d+)\s+\* \* \*', line)
     if g:
       hop = g.group(1)

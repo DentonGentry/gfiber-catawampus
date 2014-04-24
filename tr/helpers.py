@@ -21,6 +21,7 @@ import errno
 import grp
 import os
 import pwd
+import socket
 
 
 # Unit tests can override these
@@ -99,3 +100,21 @@ def WriteFileAtomic(filename, data, owner=None, group=None):
   """A shortcut for calling AtomicFile with a static string as content."""
   with AtomicFile(filename, owner=owner, group=group) as f:
     f.write(data)
+
+
+def IsIP4Addr(addr):
+  """Returns True for valid dotted-quad IPv4 addresses like 1.2.3.4."""
+  try:
+    socket.inet_pton(socket.AF_INET, str(addr))
+  except socket.error:
+    return False
+  return True
+
+
+def IsIP6Addr(addr):
+  """Returns true for valid IPv6 addresses."""
+  try:
+    socket.inet_pton(socket.AF_INET6, str(addr))
+  except socket.error:
+    return False
+  return True

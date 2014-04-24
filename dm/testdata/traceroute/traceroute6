@@ -1,10 +1,19 @@
 #!/bin/sh
 
-target=${BASH_ARGV[1]}
+target="${BASH_ARGV[1]}"
 
-if [ $target = ::1 ]; then
+if [ "$target" = "::1" ]; then
 echo "traceroute to ::1 (::1), 30 hops max, 80 byte packets
  1  localhost (::1)  0.018 ms  0.007 ms  0.005 ms
+"
+elif [ "$target" = "1000:1000:1000:1000::1000" ]; then
+echo "traceroute to 1000:1000:1000:1000::1000 (1000:1000:1000:1000::1000) from 2000:1000:1000:1000:fa8f:caff:fe00:0001, 30 hops max, 52 byte packets
+ 1  it.was (1000:1000:1000:1001::1)  1.822 ms  1.455 ms  1.722 ms
+ 2  the.best (1000:1000:1000:1002::)  2.291 ms  2.474 ms  2.479 ms
+ 3  of.times (1000:1000:1000:1003::)  3.519 ms  3.745 ms  3.628 ms
+ 4  it.was (1000:1000:1000:1004:1e:1000:0:23)  4.773 ms  4.792 ms  4.903 ms
+ 5  the.worst (1000:1000:1000:1005::)  5.624 ms  5.513 ms  5.472 ms
+ 6  of.times (1000:1000:1000:1006:1e:1000:0:21)  6.786 ms  6.737 ms  6.763 ms
 "
 fi
 

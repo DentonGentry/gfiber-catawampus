@@ -89,6 +89,26 @@ class TraceRouteTest(unittest.TestCase):
     self.assertEqual(trace.DiagnosticsState, 'Complete')
     self.assertEqual(trace.ResponseTime, int(1.277))
 
+  def testATaleOfTwoCitiesIPv6(self):
+    trace = traceroute.TraceRoute(self.loop.ioloop)
+    self._DoTrace(trace, '1000:1000:1000:1000::1000', 30)
+    self.assertEqual(len(trace.RouteHopsList), 6)
+    self.assertEqual(trace.RouteHopsNumberOfEntries, 6)
+    self.assertEqual(trace.RouteHopsList[1].Host, 'it.was')
+    self.assertEqual(trace.RouteHopsList[2].Host, 'the.best')
+    self.assertEqual(trace.RouteHopsList[3].Host, 'of.times')
+    self.assertEqual(trace.RouteHopsList[4].Host, 'it.was')
+    self.assertEqual(trace.RouteHopsList[5].Host, 'the.worst')
+    self.assertEqual(trace.RouteHopsList[6].Host, 'of.times')
+    self.assertEqual(trace.RouteHopsList[1].HostAddress, '1000:1000:1000:1001::1')
+    self.assertEqual(trace.RouteHopsList[2].HostAddress, '1000:1000:1000:1002::')
+    self.assertEqual(trace.RouteHopsList[3].HostAddress, '1000:1000:1000:1003::')
+    self.assertEqual(trace.RouteHopsList[4].HostAddress, '1000:1000:1000:1004:1e:1000:0:23')
+    self.assertEqual(trace.RouteHopsList[5].HostAddress, '1000:1000:1000:1005::')
+    self.assertEqual(trace.RouteHopsList[6].HostAddress, '1000:1000:1000:1006:1e:1000:0:21')
+    self.assertEqual(trace.DiagnosticsState, 'Complete')
+    # rounding up the last RTT in the trace
+    self.assertEqual(trace.ResponseTime, 7)
 
 if __name__ == '__main__':
   unittest.main()

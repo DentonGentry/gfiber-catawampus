@@ -210,24 +210,6 @@ class PortMapping(BASENAT.PortMapping):
       return 'Error_Misconfigured'
     return 'Enabled'
 
-  def _IsIP4(self, addr):
-    """Return true if addr is an IPv4 address w.x.y.z."""
-    try:
-      socket.inet_pton(socket.AF_INET, str(addr))
-      return True
-    except socket.error:
-      pass
-    return False
-
-  def _IsIP6(self, addr):
-    """Return true if addr is an IPv6 address."""
-    try:
-      socket.inet_pton(socket.AF_INET6, str(addr))
-      return True
-    except socket.error:
-      pass
-    return False
-
   def Triggered(self):
     self.parent.WriteConfigs()
 
@@ -243,9 +225,9 @@ class PortMapping(BASENAT.PortMapping):
 
     if not self._IsComplete() or not self.Enable:
       return []
-    if self.InternalClient and self._IsIP6(self.InternalClient):
+    if self.InternalClient and tr.helpers.IsIP6Addr(self.InternalClient):
       return []
-    if self.RemoteHost and self._IsIP6(self.RemoteHost):
+    if self.RemoteHost and tr.helpers.IsIP6Addr(self.RemoteHost):
       return []
 
     encoded = binascii.hexlify(self.Description)
@@ -286,9 +268,9 @@ class PortMapping(BASENAT.PortMapping):
 
     if not self._IsComplete() or not self.Enable:
       return []
-    if self.InternalClient and self._IsIP4(self.InternalClient):
+    if self.InternalClient and tr.helpers.IsIP4Addr(self.InternalClient):
       return []
-    if self.RemoteHost and self._IsIP4(self.RemoteHost):
+    if self.RemoteHost and tr.helpers.IsIP4Addr(self.RemoteHost):
       return []
 
     encoded = binascii.hexlify(self.Description)

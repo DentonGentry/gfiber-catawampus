@@ -92,6 +92,15 @@ class HelpersTest(unittest.TestCase):
     self.assertEqual(chowncalls[1], (tmpfilename, 20, 11))
     self.assertEqual(chowncalls[2], (tmpfilename, -1, 21))
 
+  def testIsIPAddr(self):
+    self.assertTrue(helpers.IsIP4Addr('1.2.3.4'))
+    self.assertFalse(helpers.IsIP4Addr('1.2.3.1024'))
+    self.assertFalse(helpers.IsIP4Addr('this is not an address'))
+    self.assertTrue(helpers.IsIP6Addr('::1'))
+    self.assertTrue(helpers.IsIP6Addr('100:1:a::1'))
+    self.assertTrue(helpers.IsIP6Addr('100:1:a::'))
+    self.assertFalse(helpers.IsIP6Addr('10000:1:a::'))
+    self.assertFalse(helpers.IsIP6Addr('this is not an address'))
 
 if __name__ == '__main__':
   unittest.main()
