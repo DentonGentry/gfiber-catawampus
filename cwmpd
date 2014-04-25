@@ -60,8 +60,8 @@ ca-certs=     SSL ca_certificates.crt file to use
 client-cert=  SSL client certificate to use
 client-key=   SSL client private key to use
 restrict-acs-hosts= Domain names allowed for ACS URL.  Default=unrestricted.  Example: 'google.com gfsvc.com'
-diagui        Listen for diagui requests on diagui_port
-diagui_port=  Port to listen on [80]
+diagui        Listen for diagui requests on diagui-port
+diagui-port=  Port to listen on (0=random) [80]
 """
 
 
@@ -132,6 +132,8 @@ def main():
       root.add_management_server(ms)
       root.configure_tr157(cpe_machine)
       cpe_machine.Startup()
+    else:
+      cpe_machine = None
 
     if opt.close_stdio:
       nullf = open('/dev/null', 'w+')

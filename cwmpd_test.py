@@ -79,6 +79,7 @@ class RunserverTest(unittest.TestCase):
 
   def testRunserver(self):
     self._DoTest(['--no-cpe'])
+    self._DoTest(['--no-cpe', '--diagui', '--diagui-port=0'])
     self._DoTest(['--no-cpe',
                   '--platform', 'fakecpe'])
     self._DoTest(['--fake-acs',
