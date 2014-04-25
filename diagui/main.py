@@ -120,7 +120,7 @@ class DiaguiSettings(tornado.web.Application):
     landevlist = self.root.InternetGatewayDevice.LANDeviceList
     etherlist = self.root.Device.Ethernet.InterfaceList
 
-    if self.cpemach.last_success_response:
+    if self.cpemach and self.cpemach.last_success_response:
       self.data['acs'] = 'OK (%s)' % self.cpemach.last_success_response
     else:
       self.data['acs'] = 'Never Contacted'

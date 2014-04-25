@@ -126,6 +126,8 @@ class ServicesFakeCPE(tr181.Device_v2_2.Device.Services):
 class DeviceFakeCPE(tr181.Device_v2_2.Device):
   """Device implementation for a simulated CPE device."""
 
+  InterfaceStackNumberOfEntries = tr.types.NumberOf('InterfaceStackList')
+
   def __init__(self, device_id, periodic_stats=None):
     super(DeviceFakeCPE, self).__init__()
     self.Export(objects=['DeviceInfo'])
@@ -142,7 +144,6 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
     self.ManagementServer = tr.core.TODO()  # Higher layer code splices this in
     self.Services = ServicesFakeCPE()
 
-    self.InterfaceStackNumberOfEntries = 0
     self.InterfaceStackList = {}
 
     if periodic_stats:
@@ -157,12 +158,12 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
 class EthernetFakeCPE(tr181.Device_v2_2.Device.Ethernet):
   """Implements Device_v2_2.Device.Ethernet for FakeCPE platform."""
 
-  InterfaceNumberOfEntries = tr.types.Int(0)
-  LinkNumberOfEntries = tr.types.Int(0)
+  InterfaceNumberOfEntries = tr.types.NumberOf('InterfaceList')
+  LinkNumberOfEntries = tr.types.NumberOf('LinkList')
+  VLANTerminationNumberOfEntries = tr.types.NumberOf('VLANTermination')
 
   def __init__(self):
     super(EthernetFakeCPE, self).__init__()
-    self.VLANTerminationNumberOfEntries = 0
     self.InterfaceList = {}
     self.LinkList = {}
     self.VLANTerminationList = {}
@@ -178,6 +179,9 @@ class IPFakeCPE(tr181.Device_v2_2.Device.IP):
   IPv6Enable = tr.types.ReadOnlyBool(True)
   IPv6Status = tr.types.ReadOnlyString('Enabled')
 
+  InterfaceNumberOfEntries = tr.types.NumberOf('InterfaceList')
+  ActivePortNumberOfEntries = tr.types.NumberOf('ActivePortList')
+
   def __init__(self):
     super(IPFakeCPE, self).__init__()
     self.InterfaceList = {}
@@ -185,17 +189,12 @@ class IPFakeCPE(tr181.Device_v2_2.Device.IP):
     self.Unexport(objects=['Diagnostics'])
     self.Unexport(['ULAPrefix'])
 
-  @property
-  def InterfaceNumberOfEntries(self):
-    return len(self.InterfaceList)
-
-  @property
-  def ActivePortNumberOfEntries(self):
-    return len(self.ActivePortList)
-
 
 class InternetGatewayDeviceFakeCPE(BASE98IGD):
   """Implements tr-98 InternetGatewayDevice."""
+
+  LANDeviceNumberOfEntries = tr.types.NumberOf('LANDeviceList')
+  WANDeviceNumberOfEntries = tr.types.NumberOf('WANDeviceList')
 
   def __init__(self, device_id, periodic_stats=None):
     super(InternetGatewayDeviceFakeCPE, self).__init__()
@@ -218,14 +217,6 @@ class InternetGatewayDeviceFakeCPE(BASE98IGD):
     if periodic_stats:
       self.PeriodicStatistics = periodic_stats
 
-  @property
-  def LANDeviceNumberOfEntries(self):
-    return len(self.LANDeviceList)
-
-  @property
-  def WANDeviceNumberOfEntries(self):
-    return 0
-
 
 class LANDevice(BASE98IGD.LANDevice):
   """tr-98 InternetGatewayDevice.LANDevice for FakeCPE platforms."""
@@ -239,17 +230,12 @@ class LANDevice(BASE98IGD.LANDevice):
     wifi = dm.fakewifi.FakeWifiWlanConfiguration()
     self.WLANConfigurationList = {'1': wifi}
 
-  @property
-  def LANWLANConfigurationNumberOfEntries(self):
-    return len(self.WLANConfigurationList)
-
-  @property
-  def LANEthernetInterfaceNumberOfEntries(self):
-    return 0
-
-  @property
-  def LANUSBInterfaceNumberOfEntries(self):
-    return 0
+  LANWLANConfigurationNumberOfEntries = tr.types.NumberOf(
+      'WLANConfigurationList')
+  LANEthernetInterfaceNumberOfEntries = tr.types.NumberOf(
+      'LANEthernetInterfaceList')
+  LANUSBInterfaceNumberOfEntries = tr.types.NumberOf(
+      'LANUSBInterfaceList')
 
 
 def PlatformInit(name, device_model_root):

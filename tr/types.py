@@ -51,7 +51,12 @@ class Attr(object):
 
   def __init__(self, init=None):
     self.init = init
-    self.callbacklist = []
+    self._callbacklist = []
+
+  @property
+  def callbacklist(self):
+    """The callbacklist is read-only, but you can change its contents."""
+    return self._callbacklist
 
   def _MakeAttrs(self, obj):
     try:
@@ -371,7 +376,38 @@ class FileBacked(Attr):
     self.WriteFile(value)
 
 
-class Trigger(object):
+class _Proxy(Attr):
+  """Base for classes that wrap a property. See Trigger and ReadOnly."""
+
+  def __init__(self, attr):
+    super(_Proxy, self).__init__(attr)
+    self.attr = attr
+
+  @property
+  def callbacklist(self):
+    # Normally we just want to use the attr's callbacklist, so that changes
+    # it makes internally will trigger callbacks.  But if we wrap a
+    # basic property that doesn't have callbacks, we'll have to provide our
+    # own callback list.
+    return getattr(self.attr, 'callbacklist', self._callbacklist)
+
+  def __get__(self, obj, _):
+    if obj is None:
+      return self
+    return self.attr.__get__(obj, None)
+
+  def validate(self, obj, value):
+    f = getattr(self.attr, 'validate', None)
+    if f: return f(obj, value)
+    return value
+
+  def _SetWithoutNotify(self, obj, value):
+    f = getattr(self.attr, '_SetWithoutNotify', None)
+    if f: return f(obj, value)
+    return self.attr.__set__(obj, value)
+
+
+class Trigger(_Proxy):
   """A type descriptor that calls obj.Triggered() whenever its value changes.
 
   The 'attr' parameter to __init__ must be a descriptor itself.  So it
@@ -403,33 +439,9 @@ class Trigger(object):
     thing = None   # triggers
   """
 
-  def __init__(self, attr):
-    self.attr = attr
-
-  def __get__(self, obj, _):
-    if obj is None:
-      return self
-    return self.attr.__get__(obj, None)
-
-  def validate(self, obj, value):
-    f = getattr(self.attr, 'validate', None)
-    if f:
-      return f(obj, value)
-    else:
-      return value
-
-  def validator(self, valfunc):
-    v = getattr(self.attr, 'validator', None)
-    if v:
-      v(valfunc)
-      return self
-    else:
-      raise AttributeError('attribute %r does not support validators'
-                           % self.attr)
-
   def __set__(self, obj, value):
     old = self.__get__(obj, None)
-    self.attr.__set__(obj, value)
+    super(Trigger, self).__set__(obj, value)
     new = self.__get__(obj, None)
     if old != new:
       # the attr's __set__ function might have rejected the change; only
@@ -477,7 +489,7 @@ def TriggerIP6Addr(*args, **kwargs):
   return Trigger(IP6Addr(*args, **kwargs))
 
 
-class ReadOnly(object):
+class ReadOnly(_Proxy):
   """A type descriptor that prevents setting the wrapped Attr().
 
   Since usually *someone* needs to be able to set the value, we also add a
@@ -494,14 +506,6 @@ class ReadOnly(object):
     x.b = False        # raises AttributeError
     X.b.Set(x, False)  # actually sets the bool
   """
-
-  def __init__(self, attr):
-    self.attr = attr
-
-  def __get__(self, obj, _):
-    if obj is None:
-      return self
-    return self.attr.__get__(obj, None)
 
   def validate(self, unused_obj, _):
     # this is the same exception raised by a read-only @property
