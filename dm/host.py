@@ -26,7 +26,9 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import datetime
 import os
 import struct
+import subprocess
 import time
+import tr.helpers
 import tr.session
 import tr.tr181_v2_6
 import tr.types
@@ -40,6 +42,7 @@ CATA181HOST = CATA181HOSTS.Host
 
 # Unit tests can override these
 DHCP_FINGERPRINTS = '/config/dhcp.fingerprints'
+IP6NEIGH = ['ip', '-6', 'neigh']
 PROC_NET_ARP = '/proc/net/arp'
 SYS_CLASS_NET_PATH = '/sys/class/net'
 TIMENOW = time.time
@@ -101,23 +104,27 @@ class Hosts(BASE181HOSTS):
       self.iflookup_built = True
     return self.iflookup
 
-  def _AddIpToHostDict(self, entry, ip4):
-    """Add ip to entry['ip4'].
+  def _AddIpToHostDict(self, entry, ip):
+    """Add ip to entry['ip4'] or entry['ip6'], as appropriate.
 
-    If entry already contains an 'ip4' key, append the
-    ip4 argument to it. Otherwise, create an 'ip4' key.
+    First, determine whether address should go in the 'ip4'
+    key or the 'ip6' key.
+
+    If entry already contains the key, append the ip
+    argument to it. Otherwise, create an entry
 
     Args:
       entry: the dict for a host entry
-      ip4: the IP address to add, like '1.2.3.4'
+      ip: the IP address to add, like '1.2.3.4'
 
     Returns:
       the entry
     """
-    ip4list = entry.get('ip4', [])
-    if ip4 not in ip4list:
-      ip4list.append(ip4)
-    entry['ip4'] = ip4list
+    key = 'ip6' if tr.helpers.IsIP6Addr(ip) else 'ip4'
+    iplist = entry.get(key, [])
+    if ip not in iplist:
+      iplist.append(ip)
+    entry[key] = iplist
     return entry
 
   def _AddLayer1Interface(self, entry, iface):
@@ -206,6 +213,7 @@ class Hosts(BASE181HOSTS):
         mac = fields[3]
         dev = fields[5]
         if flg & ATF_COM:
+          # Only report entries which are complete, not 00:00:00:00:00:00
           result.append((mac, ip4, dev))
     return result
 
@@ -221,7 +229,48 @@ class Hosts(BASE181HOSTS):
       self._AddLayer1Interface(host, iface)
       host['PhysAddress'] = mac
       host['Active'] = True
-      self._AddIpToHostDict(entry=host, ip4=ip4)
+      self._AddIpToHostDict(entry=host, ip=ip4)
+      hosts[mac] = host
+
+  def _ParseIp6Neighbors(self):
+    """Parse "ip -6 neigh" and return it as a list.
+
+    Returns:
+      a list of (mac, ip, dev, active) tuples, like:
+        [('f8:8f:ca:00:00:01', '1001::0001', 'eth0', True),
+         ('f8:8f:ca:00:00:02', '1001::0001', 'eth1', False)]
+    """
+    ip6neigh = subprocess.Popen(IP6NEIGH, stdout=subprocess.PIPE)
+    out, _ = ip6neigh.communicate(None)
+    result = []
+
+    for line in out.splitlines():
+      fields = line.split()
+      if len(fields) < 5:
+        continue
+      ip6 = fields[0]
+      dev = fields[2]
+      mac = fields[4]
+      active = 'REACHABLE' in line
+      result.append((mac, ip6, dev, active))
+    return result
+
+  def _GetHostsFromIp6Neigh(self, hosts):
+    """Populate a dict of known hosts from IP6 neighbors.
+
+    Args:
+      hosts: a dict (with MAC addresses as keys) of fields
+        to be populated for Device.Hosts.Host
+    """
+    for (mac, ip6, iface, active) in self._ParseIp6Neighbors():
+      host = hosts.get(mac, dict())
+      self._AddLayer1Interface(host, iface)
+      host['PhysAddress'] = mac
+      if active:
+        # Only store if known active. We don't want to override
+        # Active=True from some other source.
+        host['Active'] = active
+      self._AddIpToHostDict(entry=host, ip=ip6)
       hosts[mac] = host
 
   def _GetTr98WifiObjects(self):
@@ -375,6 +424,7 @@ class Hosts(BASE181HOSTS):
     """Return the list of known Hosts on all interfaces."""
     hosts = dict()
     self._GetHostsFromArpTable(hosts=hosts)
+    self._GetHostsFromIp6Neigh(hosts=hosts)
     self._GetHostsFromBridges(hosts=hosts)
     self._GetHostsFromEthernets(hosts=hosts)
     self._GetHostsFromWifiAssociatedDevices(hosts=hosts)

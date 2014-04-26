@@ -31,9 +31,13 @@ fake data sources, to test Device.Hosts.
 To maintain sanity, the following test hosts are used:
 
 00:01:02:11:00:01 192.168.1.1 : MoCA client, IP address from DHCP
+                  fe80::0001:02ff:fe11:0001
 00:01:02:22:00:01 192.168.1.2 : Ethernet client, IP address from ARP
+                  fe80::0001:02ff:fe22:0001
 00:01:02:33:00:01 192.168.1.3 : QCA8337 Ethernet client, IP address from ARP
+                  no IPv6 address
 00:01:02:44:00:01 -           : Wifi client, IP address not known
+                  no IPv6 address
 
 MoCA: moca0, Device.MoCA.Interface.1
 Ethernet: eth0, Device.Ethernet.Interface.1
@@ -137,8 +141,10 @@ class LANDevice(tr.core.Exporter):
 
 class HostIntegrationTest(unittest.TestCase):
   def setUp(self):
+    self.old_IP6NEIGH = host.IP6NEIGH[0]
     self.old_PROC_NET_ARP = host.PROC_NET_ARP
     self.old_SYS_CLASS_NET_PATH = host.SYS_CLASS_NET_PATH
+    host.IP6NEIGH[0] = 'testdata/host_integration/ip6neigh'
     host.PROC_NET_ARP = 'testdata/host_integration/proc_net_arp'
     host.SYS_CLASS_NET_PATH = 'testdata/host_integration/sys/class/net'
     self.old_DNSMASQLEASES = dnsmasq.DNSMASQLEASES[0]
@@ -152,8 +158,9 @@ class HostIntegrationTest(unittest.TestCase):
     self.dmroot = TestDeviceModelRoot()
 
   def tearDown(self):
-    host.SYS_CLASS_NET_PATH = self.old_SYS_CLASS_NET_PATH
+    host.IP6NEIGH[0] = self.old_IP6NEIGH
     host.PROC_NET_ARP = self.old_PROC_NET_ARP
+    host.SYS_CLASS_NET_PATH = self.old_SYS_CLASS_NET_PATH
     dnsmasq.DNSMASQLEASES[0] = self.old_DNSMASQLEASES
     brcmmoca2.MOCAP = self.old_MOCAP
     qca83xx_ethernet.QCAPORT = self.old_QCAPORT
@@ -167,18 +174,26 @@ class HostIntegrationTest(unittest.TestCase):
       self.assertTrue(h.Active)
       if h.PhysAddress == '00:01:02:11:00:01':
         self.assertEqual(h.IPAddress, '192.168.1.1')
+        self.assertEqual(h.IP4Address, '192.168.1.1')
+        self.assertEqual(h.IP6Address, 'fe80::0001:02ff:fe11:0001')
         self.assertEqual(h.Layer1Interface, 'Device.MoCA.Interface.1')
         found |= 1
       elif h.PhysAddress == '00:01:02:22:00:01':
         self.assertEqual(h.IPAddress, '192.168.1.2')
+        self.assertEqual(h.IP4Address, '192.168.1.2')
+        self.assertEqual(h.IP6Address, 'fe80::0001:02ff:fe22:0001')
         self.assertEqual(h.Layer1Interface, 'Device.Ethernet.Interface.1')
         found |= 2
       elif h.PhysAddress == '00:01:02:33:00:01':
         self.assertEqual(h.IPAddress, '192.168.1.3')
+        self.assertEqual(h.IP4Address, '192.168.1.3')
+        self.assertEqual(h.IP6Address, '')
         self.assertEqual(h.Layer1Interface, 'Device.Ethernet.Interface.2')
         found |= 4
       elif h.PhysAddress == '00:01:02:44:00:01':
         self.assertEqual(h.IPAddress, '')
+        self.assertEqual(h.IP4Address, '')
+        self.assertEqual(h.IP6Address, '')
         wifi = 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1'
         self.assertEqual(h.Layer1Interface, wifi)
         found |= 8

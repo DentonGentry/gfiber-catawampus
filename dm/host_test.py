@@ -49,6 +49,7 @@ class HostTest(unittest.TestCase):
     self.old_PROC_NET_ARP = host.PROC_NET_ARP
     self.old_SYS_CLASS_NET_PATH = host.SYS_CLASS_NET_PATH
     host.DHCP_FINGERPRINTS = 'testdata/host/fingerprints-dhcp'
+    host.IP6NEIGH[0] = 'testdata/host/ip6neigh_empty'
     host.PROC_NET_ARP = '/dev/null'
     host.SYS_CLASS_NET_PATH = 'testdata/host/sys/class/net'
     self.old_TIMENOW = host.TIMENOW
@@ -157,6 +158,31 @@ class HostTest(unittest.TestCase):
       elif h.PhysAddress == 'f8:8f:ca:00:00:03':
         self.assertEqual(h.Layer1Interface, 'Device.Foo.Interface.1')
         self.assertEqual(h.IPAddress, '192.168.1.3')
+        found |= 4
+    self.assertEqual(found, 7)
+
+  def testGetHostsFromIp6Neigh(self):
+    host.IP6NEIGH[0] = 'testdata/host/ip6neigh'
+    iflookup = {'foo0': 'Device.Foo.Interface.1',
+                'foo1': 'Device.Foo.Interface.2'}
+    hosts = host.Hosts(iflookup)
+    self.assertEqual(len(hosts.HostList), 3)
+    found = 0
+    for h in hosts.HostList.values():
+      if h.PhysAddress == 'f8:8f:ca:00:00:01':
+        self.assertEqual(h.Layer1Interface, 'Device.Foo.Interface.1')
+        self.assertEqual(h.IPAddress, 'fe80::fa8f:caff:fe00:0001')
+        self.assertTrue(h.Active)
+        found |= 1
+      elif h.PhysAddress == 'f8:8f:ca:00:00:02':
+        self.assertEqual(h.Layer1Interface, 'Device.Foo.Interface.1')
+        self.assertEqual(h.IPAddress, 'fe80::fa8f:caff:fe00:0002')
+        self.assertFalse(h.Active)
+        found |= 2
+      elif h.PhysAddress == 'f8:8f:ca:00:00:03':
+        self.assertEqual(h.Layer1Interface, 'Device.Foo.Interface.2')
+        self.assertEqual(h.IPAddress, 'fe80::fa8f:caff:fe00:0003')
+        self.assertTrue(h.Active)
         found |= 4
     self.assertEqual(found, 7)
 
