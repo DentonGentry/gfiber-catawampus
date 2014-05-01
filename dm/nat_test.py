@@ -30,36 +30,28 @@ import nat
 import tr.mainloop
 
 
-EXPECTED_CONFIG = """CWMP_1_COMMENT=IDX_2:
-CWMP_1_PROTOCOL=UDP
-CWMP_1_SOURCE=2.2.2.2
-CWMP_1_GATEWAY=9.9.9.9
-CWMP_1_DEST=3.3.3.3
-CWMP_1_SPORT=1:9
-CWMP_1_DPORT=90
-CWMP_1_ENABLE=1
+EXPECTED_CONFIG = ['CWMP_1_COMMENT=IDX_2:', 'CWMP_1_PROTOCOL=UDP',
+'CWMP_1_SOURCE=2.2.2.2', 'CWMP_1_GATEWAY=9.9.9.9', 'CWMP_1_DEST=3.3.3.3',
+'CWMP_1_SPORT=1:9', 'CWMP_1_DPORT=90', 'CWMP_1_ENABLE=1',
+'CWMP_2_COMMENT=IDX_1:4465736372697074696f6e',
+'CWMP_2_PROTOCOL=TCP', 'CWMP_2_SOURCE=0/0', 'CWMP_2_GATEWAY=0/0',
+'CWMP_2_DEST=1.1.1.1', 'CWMP_2_SPORT=0', 'CWMP_2_DPORT=80',
+'CWMP_2_ENABLE=1']
 
-CWMP_2_COMMENT=IDX_1:4465736372697074696f6e
-CWMP_2_PROTOCOL=TCP
-CWMP_2_SOURCE=0/0
-CWMP_2_GATEWAY=0/0
-CWMP_2_DEST=1.1.1.1
-CWMP_2_SPORT=0
-CWMP_2_DPORT=80
-CWMP_2_ENABLE=1
+EXPECTED_CONFIG6 = ['CWMP_1_COMMENT=IDX_1:', 'CWMP_1_PROTOCOL=TCP',
+'CWMP_1_SOURCE=::/0', 'CWMP_1_GATEWAY=::/0',
+'CWMP_1_DEST=fe80::fa8f:caff:fe11:1111',
+'CWMP_1_SPORT=0', 'CWMP_1_DPORT=80', 'CWMP_1_ENABLE=1']
 
-"""
+EXPECTED_CONFIG_RANGE4 = [
+'CWMP_1_COMMENT=IDX_1:', 'CWMP_1_PROTOCOL=UDP', 'CWMP_1_SOURCE=5.5.5.5',
+'CWMP_1_GATEWAY=9.9.9.9', 'CWMP_1_DEST=4.4.4.4',
+'CWMP_1_SPORT=1:100', 'CWMP_1_DPORT=90:189', 'CWMP_1_ENABLE=1']
 
-EXPECTED_CONFIG6 = """CWMP_1_COMMENT=IDX_1:
-CWMP_1_PROTOCOL=TCP
-CWMP_1_SOURCE=::/0
-CWMP_1_GATEWAY=::/0
-CWMP_1_DEST=fe80::fa8f:caff:fe11:1111
-CWMP_1_SPORT=0
-CWMP_1_DPORT=80
-CWMP_1_ENABLE=1
-
-"""
+EXPECTED_CONFIG_RANGE6 = [
+'CWMP_2_COMMENT=IDX_2:', 'CWMP_2_PROTOCOL=TCP', 'CWMP_2_SOURCE=::/0',
+'CWMP_2_GATEWAY=1000::0001', 'CWMP_2_DEST=fe80::fa8f:caff:fe11:1111',
+'CWMP_2_SPORT=10:60', 'CWMP_2_DPORT=91:141', 'CWMP_2_ENABLE=1']
 
 
 class NatTest(unittest.TestCase):
@@ -168,7 +160,13 @@ class NatTest(unittest.TestCase):
 
     self.loop.RunOnce(timeout=1)
     config4 = open(self.outputfile4).read()
-    self.assertEqual(config4, EXPECTED_CONFIG)
+    expected = EXPECTED_CONFIG
+    for line in config4.splitlines():
+      line = line.strip()
+      if line and not line.startswith('#'):
+        self.assertTrue(line in expected)
+        expected.remove(line)
+    self.assertEqual(len(expected), 0)
     config6 = open(self.outputfile6).read()
     self.assertEqual(config6, '')
     self.assertTrue(os.path.exists(self.restartfile))
@@ -187,7 +185,13 @@ class NatTest(unittest.TestCase):
     config4 = open(self.outputfile4).read()
     self.assertEqual(config4, '')
     config6 = open(self.outputfile6).read()
-    self.assertEqual(config6, EXPECTED_CONFIG6)
+    expected = EXPECTED_CONFIG6
+    for line in config6.splitlines():
+      line = line.strip()
+      if line and not line.startswith('#'):
+        self.assertTrue(line in expected)
+        expected.remove(line)
+    self.assertEqual(len(expected), 0)
     self.assertTrue(os.path.exists(self.restartfile))
 
   def testConfigIncomplete(self):
@@ -216,6 +220,49 @@ class NatTest(unittest.TestCase):
     self.assertTrue(os.stat(self.outputfile4).st_size)
     self.assertFalse(os.stat(self.outputfile6).st_size)
 
+  def testConfigWritePortRangeSize(self):
+    n = nat.NAT(dmroot=DeviceModelRoot())
+    p = n.PortMapping()
+    p.Enable = True
+    p.ExternalPort = 1
+    p.X_CATAWAMPUS_ORG_PortRangeSize = 99
+    p.InternalClient = '4.4.4.4'
+    p.InternalPort = 90
+    p.Interface = 'Device.IP.Interface.1'
+    p.Protocol = 'UDP'
+    p.RemoteHost = '5.5.5.5'
+    n.PortMappingList['1'] = p
+
+    p = n.PortMapping()
+    p.Enable = True
+    p.ExternalPort = 10
+    p.X_CATAWAMPUS_ORG_PortRangeSize = 50
+    p.InternalClient = 'fe80::fa8f:caff:fe11:1111'
+    p.InternalPort = 91
+    p.Interface = 'Device.IP.Interface.1'
+    p.Protocol = 'TCP'
+    n.PortMappingList['2'] = p
+
+    self.loop.RunOnce(timeout=1)
+    config4 = open(self.outputfile4).read()
+    expected = EXPECTED_CONFIG_RANGE4
+    for line in config4.splitlines():
+      line = line.strip()
+      if line and not line.startswith('#'):
+        self.assertTrue(line in expected)
+        expected.remove(line)
+    self.assertEqual(len(expected), 0)
+
+    config6 = open(self.outputfile6).read()
+    expected = EXPECTED_CONFIG_RANGE6
+    for line in config6.splitlines():
+      line = line.strip()
+      if line and not line.startswith('#'):
+        self.assertTrue(line in expected)
+        expected.remove(line)
+    self.assertEqual(len(expected), 0)
+    self.assertTrue(os.path.exists(self.restartfile))
+
 
 class DeviceModelRoot(tr.core.Exporter):
   def __init__(self):
@@ -243,12 +290,19 @@ class IPInterface(tr.core.Exporter):
   def __init__(self):
     super(IPInterface, self).__init__()
     self.IPv4AddressList = {'1': IPv4Address()}
+    self.IPv6AddressList = {'1': IPv6Address()}
 
 
 class IPv4Address(tr.core.Exporter):
   def __init__(self):
     super(IPv4Address, self).__init__()
     self.IPAddress = '9.9.9.9'
+
+
+class IPv6Address(tr.core.Exporter):
+  def __init__(self):
+    super(IPv6Address, self).__init__()
+    self.IPAddress = '1000::0001'
 
 
 if __name__ == '__main__':

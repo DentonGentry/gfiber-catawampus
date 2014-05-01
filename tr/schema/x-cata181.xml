@@ -418,5 +418,21 @@ While the test is in progress, setting this parameter to {{enum|Requested}} (and
         </syntax>
       </parameter>
     </object>
+
+    <object name="Device.NAT.PortMapping.{i}." access="readWrite" numEntriesParameter="PortMappingNumberOfEntries" enableParameter="Enable" minEntries="0" maxEntries="unbounded">
+      <parameter name="X_CATAWAMPUS-ORG_PortRangeSize" access="readWrite">
+        <description>Maps a contiguous set of ports starting with {{param|ExternalPort}} mapped to {{param|InternalPort}},
+{{param|ExternalPort}} + 1 mapped to {{param|InternalPort}} +1, etc for {{param|X_CATAWAMPUS-ORG_PortRangeSize}} ports.
+A value of zero (0) indicates that no set of ports is specified, i.e. that the mapping is only {{param|ExternalPort}} to {{param|InternalPort}}.
+If {{param|ExternalPort}} is zero (wildcard), the value of this parameter MUST be ignored.
+If both {{param|X_CATAWAMPUS-ORG_PortRangeSize}} and {{param|ExternalPortEndRange}} are set, the results are undefined.</description>
+        <syntax>
+          <unsignedInt>
+            <range minInclusive="0" maxInclusive="65535"/>
+          </unsignedInt>
+          <default type="object" value="0"/>
+        </syntax>
+      </parameter>
+    </object>
   </model>
 </dm:document>
