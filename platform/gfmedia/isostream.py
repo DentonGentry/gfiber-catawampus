@@ -55,6 +55,7 @@ class Isostream(ISOSTREAM):
   ServerEnable = tr.cwmptypes.TriggerBool(False)
   ServerTimeLimit = tr.cwmptypes.Unsigned(60)
   ClientEnable = tr.cwmptypes.TriggerBool(False)
+  ClientDisableIfPortActive = tr.cwmptypes.Unsigned(0)
   ClientTimeLimit = tr.cwmptypes.Unsigned(60)
   ClientRemoteIP = tr.cwmptypes.String('')
   ClientMbps = tr.cwmptypes.Unsigned(1)
@@ -118,12 +119,14 @@ class Isostream(ISOSTREAM):
         self.clientproc = None
       if self.ClientEnable:
         argv = ['run-isostream']
+        env = dict(os.environ)  # make a copy
+        env['ISOSTREAM_DISABLE_IF_PORT'] = str(self.ClientDisableIfPortActive)
         if self.ClientRemoteIP:
           argv += [self.ClientRemoteIP]
         else:
           argv += ['--use-storage-box']
         argv += ['-b', str(self.ClientMbps)]
-        self.clientproc = subprocess.Popen(argv)
+        self.clientproc = subprocess.Popen(argv, env=env)
         if self.ClientTimeLimit:
           def _DisableClient():
             self.ClientEnable = False

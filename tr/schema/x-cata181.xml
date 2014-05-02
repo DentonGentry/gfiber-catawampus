@@ -405,6 +405,12 @@ While the test is in progress, setting this parameter to {{enum|Requested}} (and
           <boolean/>
         </syntax>
       </parameter>
+      <parameter name="ClientDisableIfPortActive" access="readWrite">
+        <description>If nonzero, disable isostream client if a TCP connection exists on the given port.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
       <parameter name="ClientTimeLimit" access="readWrite">
         <description>Automatically disable the client if it runs for more than this many seconds. If zero, there is no limit.</description>
         <syntax>
