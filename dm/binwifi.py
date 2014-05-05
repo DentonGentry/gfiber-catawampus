@@ -242,7 +242,11 @@ class WlanConfiguration(CATA98WIFI):
 
   def GetChannel(self):
     d = self._BinwifiShow()
-    return d.get('Channel', '')
+    try:
+      return int(d.get('Channel', 0))
+    except ValueError:
+      print 'Failed to convert wifi channel to integer: %s' % (d,)
+      return 0
 
   def ValidateChannel(self, value):
     """Check for a valid Wifi channel number."""

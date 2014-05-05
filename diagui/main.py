@@ -173,7 +173,15 @@ class DiaguiSettings(tornado.web.Application):
 
     for unused_i, dev in landevlist.iteritems():
       for unused_j, wlconf in dev.WLANConfigurationList.iteritems():
-        if wlconf.Channel in range(1, 12):
+        # Convert the channel to an int here.  It is returned as a string.
+        try:
+          ch = int(wlconf.Channel)
+        except ValueError:
+          print ('wlconf.Channel returned a non-integer value: %s' %
+                 (wlconf.Channel,))
+          continue
+
+        if ch in range(1, 12):
           self.data['ssid24'] = wlconf.SSID
           if wlconf.WPAAuthenticationMode == 'PSKAuthentication':
             wpa['2.4 GHz'] = '(configured)'
