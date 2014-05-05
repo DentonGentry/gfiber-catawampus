@@ -136,20 +136,29 @@ class DiaguiSettings(tornado.web.Application):
     except AttributeError:
       pass
 
-    t = dict()
+    wan_addrs = dict()
+    lan_addrs = dict()
     for unused_i, inter in self.root.Device.IP.InterfaceList.iteritems():
+      t = wan_addrs if inter.Name in ['wan0', 'wan0.2'] else lan_addrs
       for unused_j, ip4 in inter.IPv4AddressList.iteritems():
         t[ip4.IPAddress] = '(%s)' % ip4.Status
         self.data['subnetmask'] = ip4.SubnetMask
       for unused_i, ip6 in inter.IPv6AddressList.iteritems():
         if ip6.IPAddress[:4] != 'fe80':
           t[ip6.IPAddress] = '(%s)' % ip6.Status
-    self.data['lanip'] = t
+    self.data['lanip'] = lan_addrs
+    self.data['wanip'] = wan_addrs
 
+    wan_mac = dict()
+    lan_mac = dict()
     t = dict()
     for unused_i, interface in etherlist.iteritems():
-      t[interface.MACAddress] = '(%s)' % interface.Status
-    self.data['wiredlan'] = t
+      if interface.Name in ['wan0', 'wan0.2']:
+        wan_mac[interface.MACAddress] = '(%s)' % interface.Status
+      else:
+        lan_mac[interface.MACAddress] = '(%s)' % interface.Status
+    self.data['lanmac'] = lan_mac
+    self.data['wanmac'] = wan_mac
 
     t = dict()
     for unused_i, inter in self.root.Device.MoCA.InterfaceList.iteritems():
@@ -205,17 +214,6 @@ class DiaguiSettings(tornado.web.Application):
     except AttributeError:
       pass
 
-    # TODO(jnewlin): Verify if these are the correct values.
-    try:
-      wan = self.root.InternetGatewayDevice.WANDeviceList
-    except AttributeError:
-      pass
-    else:
-      for unused_i, dev in wan.iteritems():
-        for unused_j, conn in dev.WANConnectionDeviceList.iteritems():
-          for unused_k, ipconn in conn.WANIPConnectionList.iteritems():
-            self.data['wanmac'] = ipconn.MACAddress
-            self.data['wanip'] = ipconn.ExternalIPAddress
     self.ReadOnuStats()
     self.UpdateCheckSum()
 

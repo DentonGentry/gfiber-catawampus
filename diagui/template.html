@@ -55,13 +55,11 @@
             populatefield('#softversion', data.softversion);
             populatefield('#uptime', data.uptime);
             multivaluefield('#temperature', data.temperature);
-            populatefield('#wanmac', data.wanmac);
-            populatefield('#wanip', data.wanip);
+            multivaluefield('#wanmac', data.wanmac);
+            multivaluefield('#wanip', data.wanip);
             multivaluefield('#lanip', data.lanip);
             populatefield('#subnetmask', data.subnetmask);
-            populatefield('#dhcpstart', data.dhcpstart);
-            populatefield('#dhcpend', data.dhcpend);
-            multivaluefield('#wiredlan', data.wiredlan);
+            multivaluefield('#lanmac', data.lanmac);
             multivaluefield('#wireddevices', data.wireddevices);
             populatefield('#ssid24', data.ssid24);
             populatefield('#ssid5', data.ssid5);
@@ -131,11 +129,9 @@
         <p>
          <div id="lanip"><span class="name">LAN IP:</span><ul class="value"></ul></div>
          <div id="subnetmask"><span class="name">Subnet Mask:</span><ul class="value"></ul></div>
-         <div id="dhcpstart"><span class="name">DHCP start address:</span><ul class="value"></ul></div>
-         <div id="dhcpend"><span class="name">DHCP end address:</span><ul class="value"></ul></div>
         </p>
         <p>
-         <div id="wiredlan"><span class="name">Wired LAN MAC:</span><ul class="value"></ul></div>
+         <div id="lanmac"><span class="name">Wired LAN MAC:</span><ul class="value"></ul></div>
          <div id="wireddevices"><span class="name">Wired devices:</span><ul class="value"></ul></div>
         </p>
         <p>
