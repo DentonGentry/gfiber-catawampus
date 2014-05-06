@@ -418,6 +418,9 @@ class WlanConfiguration(CATA98WIFI):
     autotype = self.new_config.AutoChannelType
     if autotype:
       cmd += ['-a', autotype]
+    # TODO(jnewlin): Need a way to pick between 40 or 80Mhz channel for ac.
+    if self._band == '5':
+      cmd += ['-w', '40']
     for psk in self.PreSharedKeyList.values():
       key = psk.GetKey()
       if key:

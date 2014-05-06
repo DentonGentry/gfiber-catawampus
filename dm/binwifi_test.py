@@ -114,6 +114,29 @@ class BinWifiTest(unittest.TestCase):
         ]
     self.assertEqual(buf.strip().splitlines(), exp)
 
+  def test5GhzConfigCommit(self):
+    bw = binwifi.WlanConfiguration('wifi0', band='5')
+    bw.StartTransaction()
+    bw.RadioEnabled = True
+    bw.Enable = True
+    bw.AutoChannelEnable = False
+    bw.Channel=44
+    bw.X_CATAWAMPUS_ORG_AutoChanType = 'HIGH'
+    bw.SSID = 'Test SSID 1'
+    bw.BeaconType = 'WPAand11i'
+    bw.IEEE11iEncryptionModes = 'AESEncryption'
+    bw.KeyPassphrase = 'testpassword'
+    bw.SSIDAdvertisementEnabled = False
+    self.loop.RunOnce(timeout=1)
+    buf = open(self.wifioutfile).read()
+    # testdata/binwifi/binwifi quotes every argument
+    exp = [
+        '"set" "-P" "-b" "5" "-e" "WPA2_PSK_AES" "-H" "-c" "44" '
+        '"-s" "Test SSID 1" "-a" "HIGH" "-w" "40"',
+        'PSK=testpassword'
+        ]
+    self.assertEqual(buf.strip().splitlines(), exp)
+
   def testRadioDisabled(self):
     bw = binwifi.WlanConfiguration('wifi0', band='2.4')
     bw.StartTransaction()
