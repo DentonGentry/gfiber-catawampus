@@ -12,8 +12,8 @@
                                  urn:broadband-forum-org:cwmp:datamodel-report-0-1 cwmp-datamodel-report.xsd"
              spec="urn:google-com:x-gfibertv-1-0">
 <import file="tr-069-biblio.xml" spec="urn:broadband-forum-org:tr-069-biblio"/>
-  <model name="X_GOOGLE_COM_HAT:1.0" isService="true">
-    <object name="X_GOOGLE_COM_HAT." access="readWrite" minEntries="1" maxEntries="1">
+  <model name="X_GOOGLE-COM_HAT:1.0" isService="true">
+    <object name="X_GOOGLE-COM_HAT." access="readWrite" minEntries="1" maxEntries="1">
       <description>Container for parameters supporting the HAT system.</description>
        <parameter name="HAT" access="readWrite">
         <description>If set to true, this variable turns off anything related to the HAT system.</description>
