@@ -28,6 +28,7 @@ import os
 import random
 import socket
 import sys
+import subprocess
 import time
 import urllib
 
@@ -46,6 +47,7 @@ import session
 
 PROC_IF_INET6 = '/proc/net/if_inet6'
 MAX_EVENT_QUEUE_SIZE = 64
+GETWANPORT='activewan'
 
 
 class LimitDeque(collections.deque):
@@ -153,12 +155,11 @@ class CPEStateMachine(object):
     listenport: the port number to listen on for ACS ping requests.
     acs_url: An ACS URL to use. This overrides platform_config.GetAcsUrl()
     ping_path: URL path for the ACS Ping function
-    ping_ip6dev: ifname to use for the CPE Ping address.
     fetch_args: kwargs to pass to HTTPClient.fetch
   """
 
   def __init__(self, ip, cpe, listenport, acs_config,
-               ping_path, acs_url=None, ping_ip6dev=None, fetch_args=None,
+               ping_path, acs_url=None, fetch_args=None,
                ioloop=None, restrict_acs_hosts=None):
     tornado.httpclient.AsyncHTTPClient.configure(
         'tornado.curl_httpclient.CurlAsyncHTTPClient')
@@ -180,7 +181,6 @@ class CPEStateMachine(object):
     self.start_session_timeout = None  # timer for CWMPRetryInterval
     self.session = None
     self.my_configured_ip = ip
-    self.ping_ip6dev = ping_ip6dev
     self.fetch_args = fetch_args or dict()
     self.rate_limit_seconds = 60
     self.previous_ping_time = 0
@@ -214,8 +214,17 @@ class CPEStateMachine(object):
     self.response_queue.append(str(req))
     self.Run()
 
-  def LookupDevIP6(self, name):
+  def LookupDevIP6(self):
     """Returns the global IPv6 address for the named interface."""
+    try:
+      child = subprocess.Popen(GETWANPORT, stdout=subprocess.PIPE)
+      name, _ = child.communicate(None)
+      name = name.strip()
+      if not name:
+        return 0
+    except (IOError, OSError, subprocess.CalledProcessError):
+      return 0
+
     with open(PROC_IF_INET6, 'r') as f:
       for line in f:
         fields = line.split()
@@ -232,8 +241,9 @@ class CPEStateMachine(object):
     """Get the local socket address we *would* use if we were connected."""
     if self.my_configured_ip is not None:
       return self.my_configured_ip
-    if self.ping_ip6dev is not None:
-      return self.LookupDevIP6(self.ping_ip6dev)
+    ip6dev = self.LookupDevIP6()
+    if ip6dev:
+      return ip6dev
     acs_url = self.cpe_management_server.URL
     if not acs_url:
       return 0
@@ -588,7 +598,7 @@ class CPEStateMachine(object):
 
 
 def Listen(ip, port, ping_path, acs, cpe, cpe_listener, acs_config,
-           acs_url=None, ping_ip6dev=None, fetch_args=None, ioloop=None,
+           acs_url=None, fetch_args=None, ioloop=None,
            restrict_acs_hosts=None):
   """Listens for "pings" that start a new session with the ACS."""
   if not ping_path:
@@ -600,7 +610,7 @@ def Listen(ip, port, ping_path, acs, cpe, cpe_listener, acs_config,
                                 ping_path=ping_path,
                                 acs_config=acs_config,
                                 restrict_acs_hosts=restrict_acs_hosts,
-                                acs_url=acs_url, ping_ip6dev=ping_ip6dev,
+                                acs_url=acs_url,
                                 fetch_args=fetch_args, ioloop=ioloop)
   cpe.setCallbacks(
       send_transfer_complete=cpe_machine.SendTransferComplete,

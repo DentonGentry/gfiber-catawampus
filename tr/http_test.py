@@ -131,6 +131,7 @@ class LinearHttpHandler(tornado.web.RequestHandler):
 class HttpTest(tornado.testing.AsyncHTTPTestCase):
   def setUp(self):
     self.old_HTTPCLIENT = session.HTTPCLIENT
+    self.old_GETWANPORT = http.GETWANPORT
     def _WrapWrapper(**kwargs):
       return WrapHttpClient(self.old_HTTPCLIENT, self.stop, **kwargs)
     session.HTTPCLIENT = _WrapWrapper
@@ -150,6 +151,7 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase):
 
   def tearDown(self):
     session.HTTPCLIENT = self.old_HTTPCLIENT
+    http.GETWANPORT = self.old_GETWANPORT
     super(HttpTest, self).tearDown()
     SetMonotime(self.old_monotime)
     for d in self.removedirs:
@@ -220,10 +222,12 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase):
 
   def testLookupDevIP6(self):
     http.PROC_IF_INET6 = 'testdata/http/if_inet6'
+    http.GETWANPORT = 'testdata/http/getwanport_eth0'
     cpe_machine = self.getCpe()
-    self.assertEqual(cpe_machine.LookupDevIP6('eth0'),
+    self.assertEqual(cpe_machine.LookupDevIP6(),
                      '11:2233:4455:6677:8899:aabb:ccdd:eeff')
-    self.assertEqual(cpe_machine.LookupDevIP6('foo0'), 0)
+    http.GETWANPORT = 'testdata/http/getwanport_foo0'
+    self.assertEqual(cpe_machine.LookupDevIP6(), 0)
 
   def testRetryCount(self):
     SetMonotime(self.advanceTime)
