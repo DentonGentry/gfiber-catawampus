@@ -34,6 +34,7 @@ import tr.types
 import tr.x_catawampus_tr181_2_0
 
 BASENAT = tr.tr181_v2_6.Device_v2_6.Device.NAT
+CATANAT = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device.NAT
 OUTPUTFILE4 = '/tmp/cwmp_iptables'
 OUTPUTFILE6 = '/tmp/cwmp_ip6tables'
 RESTARTCMD = ['update-acs-iptables']
@@ -114,7 +115,7 @@ class NAT(BASENAT):
       traceback.print_exc()
 
 
-class PortMapping(BASENAT.PortMapping):
+class PortMapping(CATANAT.PortMapping):
   """tr181 Device.NAT.Portmapping."""
   AllInterfaces = tr.types.TriggerBool(False)
   Description = tr.types.String('')
@@ -126,6 +127,7 @@ class PortMapping(BASENAT.PortMapping):
   LeaseDuration = tr.types.TriggerUnsigned(0)
   Protocol = tr.types.TriggerString()
   RemoteHost = tr.types.TriggerIP4Addr()
+  X_CATAWAMPUS_ORG_PortRangeSize = tr.types.TriggerUnsigned(0)
 
   def __init__(self, parent):
     super(PortMapping, self).__init__()
@@ -213,6 +215,32 @@ class PortMapping(BASENAT.PortMapping):
   def Triggered(self):
     self.parent.WriteConfigs()
 
+  def _CommonConfigLines(self, idx):
+    """Add configuration with identical handling for IPv4 and IPv6."""
+    encoded = binascii.hexlify(self.Description)
+    lines = ['COMMENT=IDX_%s:%s' % (str(idx), encoded)]
+    lines.append('PROTOCOL=' + self.Protocol)
+
+    lines.append('DEST=' + self.InternalClient)
+    # TODO(dgentry) ExternalPort=0 should become a dmzhost instead
+    if self.X_CATAWAMPUS_ORG_PortRangeSize:
+      end = self.ExternalPort + self.X_CATAWAMPUS_ORG_PortRangeSize
+      sport = '%d:%d' % (self.ExternalPort, end)
+    elif self.ExternalPortEndRange:
+      sport = '%d:%d' % (self.ExternalPort, self.ExternalPortEndRange)
+    else:
+      sport = '%d' % self.ExternalPort
+    lines.append('SPORT=' + sport)
+    if self.X_CATAWAMPUS_ORG_PortRangeSize:
+      end = self.InternalPort + self.X_CATAWAMPUS_ORG_PortRangeSize
+      dport = '%d:%d' % (self.InternalPort, end)
+    else:
+      dport = '%d' % self.InternalPort
+    lines.append('DPORT=' + dport)
+    lines.append('ENABLE=%d' % (self.Enable == True))
+
+    return lines
+
   def ConfigLinesIP4(self, idx):
     """Return the configuration lines for update-acs-iptables IP4 rules.
 
@@ -230,9 +258,7 @@ class PortMapping(BASENAT.PortMapping):
     if self.RemoteHost and tr.helpers.IsIP6Addr(self.RemoteHost):
       return []
 
-    encoded = binascii.hexlify(self.Description)
-    lines = ['COMMENT=IDX_%s:%s' % (str(idx), encoded)]
-    lines.append('PROTOCOL=%s' % self.Protocol)
+    lines = self._CommonConfigLines(idx=idx)
     src = '0/0' if not self.RemoteHost else self.RemoteHost
     lines.append('SOURCE=%s' % src)
     if self.AllInterfaces:
@@ -244,16 +270,6 @@ class PortMapping(BASENAT.PortMapping):
       key = ip.IPv4AddressList.keys()[0]
       gw = ip.IPv4AddressList[key].IPAddress
     lines.append('GATEWAY=%s' % gw)
-    lines.append('DEST=%s' % self.InternalClient)
-    # TODO(dgentry) ExternalPort=0 should become a dmzhost instead
-    if self.ExternalPortEndRange:
-      sport = '%d:%d' % (self.ExternalPort, self.ExternalPortEndRange)
-    else:
-      sport = '%d' % self.ExternalPort
-    lines.append('SPORT=%s' % sport)
-    lines.append('DPORT=%d' % self.InternalPort)
-    enb = 1 if self.Enable else 0
-    lines.append('ENABLE=%d' % enb)
     return lines
 
   def ConfigLinesIP6(self, idx):
@@ -273,9 +289,7 @@ class PortMapping(BASENAT.PortMapping):
     if self.RemoteHost and tr.helpers.IsIP4Addr(self.RemoteHost):
       return []
 
-    encoded = binascii.hexlify(self.Description)
-    lines = ['COMMENT=IDX_%s:%s' % (str(idx), encoded)]
-    lines.append('PROTOCOL=%s' % self.Protocol)
+    lines = self._CommonConfigLines(idx=idx)
     src = '::/0' if not self.RemoteHost else self.RemoteHost
     lines.append('SOURCE=%s' % src)
     if self.AllInterfaces:
@@ -287,14 +301,4 @@ class PortMapping(BASENAT.PortMapping):
       key = ip.IPv6AddressList.keys()[0]
       gw = ip.IPv6AddressList[key].IPAddress
     lines.append('GATEWAY=%s' % gw)
-    lines.append('DEST=%s' % self.InternalClient)
-    # TODO(dgentry) ExternalPort=0 should become a dmzhost instead
-    if self.ExternalPortEndRange:
-      sport = '%d:%d' % (self.ExternalPort, self.ExternalPortEndRange)
-    else:
-      sport = '%d' % self.ExternalPort
-    lines.append('SPORT=%s' % sport)
-    lines.append('DPORT=%d' % self.InternalPort)
-    enb = 1 if self.Enable else 0
-    lines.append('ENABLE=%d' % enb)
     return lines
