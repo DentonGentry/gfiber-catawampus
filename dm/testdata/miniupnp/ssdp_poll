@@ -1,0 +1,7 @@
+#!/bin/sh
+
+echo "http://192.168.3.30:80/dms/device.xml|HDHomeRun/1.0 UPnP/1.0"
+echo "http://192.168.3.31:80/dms/device.xml|NT/5.0 Upnp/1.0"
+echo "http://192.168.3.32:80/dms/device.xml|Windows-Vista/6.0 UPnP/1.0"
+
+exit 0

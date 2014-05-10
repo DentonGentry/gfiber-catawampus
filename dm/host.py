@@ -28,6 +28,8 @@ import os
 import struct
 import subprocess
 import time
+import dhcp
+import miniupnp
 import tr.helpers
 import tr.session
 import tr.tr181_v2_6
@@ -186,6 +188,7 @@ class Hosts(BASE181HOSTS):
     for brname in self.bridges:
       try:
         for (mac, iface) in self._GetHostsInBridge(brname):
+          mac = mac.lower()
           host = hosts.get(mac, dict())
           self._AddLayer1Interface(host, iface)
           host['PhysAddress'] = mac
@@ -225,6 +228,7 @@ class Hosts(BASE181HOSTS):
         to be populated for Device.Hosts.Host
     """
     for (mac, ip4, iface) in self._ParseArpTable():
+      mac = mac.lower()
       host = hosts.get(mac, dict())
       self._AddLayer1Interface(host, iface)
       host['PhysAddress'] = mac
@@ -263,6 +267,7 @@ class Hosts(BASE181HOSTS):
         to be populated for Device.Hosts.Host
     """
     for (mac, ip6, iface, active) in self._ParseIp6Neighbors():
+      mac = mac.lower()
       host = hosts.get(mac, dict())
       self._AddLayer1Interface(host, iface)
       host['PhysAddress'] = mac
@@ -412,12 +417,39 @@ class Hosts(BASE181HOSTS):
       if not hasattr(iface, 'GetAssociatedDevices'):
         continue
       for client in iface.GetAssociatedDevices():
-        mac = client['PhysAddress']
+        mac = client['PhysAddress'].lower()
         host = hosts.get(mac, dict())
         host['PhysAddress'] = mac
         host['Layer1Interface'] = l1interface
         host['Active'] = True
         hosts[mac] = host
+
+  def _PopulateDhcpFingerprints(self, hosts):
+    """Add DhcpFingerprint parameters wherever we can."""
+    try:
+      with open(DHCP_FINGERPRINTS) as f:
+        for line in f:
+          fields = line.split()
+          if len(fields) != 2:
+            continue
+          (mac, fingerprint) = fields
+          mac = mac.strip().lower()
+          host = hosts.get(mac, None)
+          if host:
+            host['DhcpFingerprint'] = fingerprint.strip()
+    except IOError:
+      return
+
+  def _PopulateSsdpServers(self, hosts):
+    """Add SsdpServer parameters wherever we can."""
+    ssdp = miniupnp.GetSsdpClientInfo()
+    for host in hosts.values():
+      ip4 = host.get('ip4', [])
+      ip6 = host.get('ip6', [])
+      name = host.get('HostName', '')
+      for key in ip4 + ip6 + [name]:
+        if key in ssdp:
+          host['SsdpServer'] = ssdp[key]
 
   @tr.session.cache
   def _GetHostList(self):
@@ -430,6 +462,8 @@ class Hosts(BASE181HOSTS):
     self._GetHostsFromWifiAssociatedDevices(hosts=hosts)
     self._GetHostsFromMocaAssociatedDevices(hosts=hosts)
     self._GetHostsFromDhcpServers(hosts=hosts)
+    self._PopulateDhcpFingerprints(hosts=hosts)
+    self._PopulateSsdpServers(hosts=hosts)
     host_list = dict()
     for idx, host in enumerate(hosts.values(), start=1):
       host_list[str(idx)] = Host(**host)
@@ -459,7 +493,7 @@ class Host(CATA181HOST):
   Layer1Interface = tr.cwmptypes.ReadOnlyString('')
   Layer3Interface = tr.cwmptypes.ReadOnlyString('')
   LeaseTimeRemaining = tr.cwmptypes.ReadOnlyInt(0)
-  PhysAddress = tr.cwmptypes.ReadOnlyString('')
+  PhysAddress = tr.cwmptypes.ReadOnlyMacAddr('')
   UserClassID = tr.cwmptypes.ReadOnlyString('')
   VendorClassID = tr.cwmptypes.ReadOnlyString('')
 
@@ -467,7 +501,8 @@ class Host(CATA181HOST):
                DHCPClient='', AddressSource='None', AssociatedDevice='',
                Layer1Interface='', Layer3Interface='', HostName='',
                LeaseTimeRemaining=0, VendorClassID='',
-               ClientID='', UserClassID=''):
+               ClientID='', UserClassID='',
+               DhcpFingerprint='', SsdpServer=''):
     super(Host, self).__init__()
     self.Unexport(['Alias'])
 
@@ -485,6 +520,10 @@ class Host(CATA181HOST):
     type(self).PhysAddress.Set(self, PhysAddress)
     type(self).UserClassID.Set(self, UserClassID)
     type(self).VendorClassID.Set(self, VendorClassID)
+    cid = ClientIdentification()
+    self.X_CATAWAMPUS_ORG_ClientIdentification = cid
+    type(cid).DhcpFingerprint.Set(cid, DhcpFingerprint)
+    type(cid).SsdpServer.Set(cid, SsdpServer)
 
   def _PopulateIpList(self, l, obj):
     """Return a dict with d[n] for each item in l."""
@@ -521,10 +560,6 @@ class Host(CATA181HOST):
       return ip6.IPAddress
     return ''
 
-  @property
-  def X_CATAWAMPUS_ORG_ClientIdentification(self):
-    return ClientIdentification(self.PhysAddress)
-
 
 class HostIPv4Address(BASE181HOST.IPv4Address):
   IPAddress = tr.cwmptypes.ReadOnlyString('')
@@ -544,22 +579,4 @@ class HostIPv6Address(BASE181HOST.IPv6Address):
 
 class ClientIdentification(CATA181HOST.X_CATAWAMPUS_ORG_ClientIdentification):
   DhcpFingerprint = tr.cwmptypes.ReadOnlyString('')
-
-  def __init__(self, macaddr):
-    super(ClientIdentification, self).__init__()
-    fp = self._GetDhcpFingerprint(macaddr)
-    type(self).DhcpFingerprint.Set(self, fp)
-
-  def _GetDhcpFingerprint(self, macaddr):
-    try:
-      with open(DHCP_FINGERPRINTS) as f:
-        for line in f:
-          fields = line.split()
-          if len(fields) != 2:
-            continue
-          (mac, fingerprint) = fields
-          if mac.strip() == macaddr:
-            return fingerprint.strip()
-    except IOError:
-      pass
-    return ''
+  SsdpServer = tr.cwmptypes.ReadOnlyString('')
