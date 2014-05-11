@@ -501,7 +501,8 @@ class Device(tr181.Device_v2_6.Device):
   def __init__(self, device_id, periodic_stats, dmroot):
     super(Device, self).__init__()
     self._UnexportStuff()
-    self.Export(objects=['DeviceInfo', 'NAT', 'X_CATAWAMPUS-ORG_DynamicDNS'])
+    # TODO(dgentry): figure out why these are not being exported automatically.
+    self.Export(objects=['DeviceInfo', 'NAT', 'X_CATAWAMPUS-ORG_DynamicDNS', 'UPnP'])
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
     led = dm.device_info.LedStatusReadFromFile('LED', LEDSTATUS)
     self.DeviceInfo.AddLedStatus(led)
