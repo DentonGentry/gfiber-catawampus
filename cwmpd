@@ -55,7 +55,6 @@ cpe-listener  Let CPE listen for http requests (not TR-069 compliant)
 platform=     Activate the platform-specific device tree (see platform/ dir)
 ext-dir=      Activate any extension modules in this dir [%(ext_dir)s]
 close-stdio   Close stdout after listeners are running; exit when stdin closes
-ping_ip6dev=  Use the IPv6 address from dev for the CPE Ping address
 ca-certs=     SSL ca_certificates.crt file to use
 client-cert=  SSL client certificate to use
 client-key=   SSL client private key to use
@@ -126,7 +125,6 @@ def main():
                                    cpe_listener=opt.cpe_listener,
                                    acs_config=tr.acs_config.AcsConfig(),
                                    acs_url=opt.acs_url,
-                                   ping_ip6dev=opt.ping_ip6dev,
                                    fetch_args=fetch_args)
       ms = cpe_machine.GetManagementServer()
       root.add_management_server(ms)
