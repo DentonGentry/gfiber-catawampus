@@ -36,6 +36,7 @@ import subprocess
 import time
 import tr.core
 import tr.cwmpbool
+import tr.helpers
 import tr.session
 import tr.tr098_v1_4
 import tr.x_catawampus_tr098_1_0
@@ -61,6 +62,7 @@ EM_WAPI = 0x100  # Not enumerated in tr-98
 WL_EXE = 'wl'
 # Broadcom recommendation for delay while scanning for a channel
 WL_AUTOCHAN_SLEEP = 3
+WL_RADIO_STATE_MARKER_FILE = '/tmp/wl_radio_on'
 
 # Parameter enumerations
 BEACONS = frozenset(['None', 'Basic', 'WPA', '11i', 'BasicandWPA',
@@ -408,6 +410,15 @@ class Wl(object):
   def SetRadioEnabled(self, value):
     radio = 'on' if value else 'off'
     self._SubprocessCall(['radio', radio])
+
+    # Only modify marker file if command is successful
+    if value:
+      try:
+        open(WL_RADIO_STATE_MARKER_FILE, 'a').close()
+      except IOError:
+        print 'Unable to write ' + WL_RADIO_STATE_MARKER_FILE
+    else:
+      tr.helpers.Unlink(WL_RADIO_STATE_MARKER_FILE)
 
   @tr.session.cache
   def GetRegulatoryDomain(self):
