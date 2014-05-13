@@ -394,6 +394,7 @@ class BrcmWifiTest(unittest.TestCase):
     output = out.read()
     outlist = self.VerifyCommonWlCommands(output)
     self.assertFalse(outlist)
+    self.assertTrue(os.path.isfile(brcmwifi.WL_RADIO_STATE_MARKER_FILE))
     out.truncate()
     bw.StartTransaction()
     bw.RadioEnabled = 'False'
@@ -401,6 +402,7 @@ class BrcmWifiTest(unittest.TestCase):
     output = out.read()
     out.close()
     self.assertEqual(output, '-i wifi0 radio off\n')
+    self.assertFalse(os.path.isfile(brcmwifi.WL_RADIO_STATE_MARKER_FILE))
 
   def testNoEnable(self):
     (script, out) = self.MakeTestScript()
