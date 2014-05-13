@@ -123,7 +123,8 @@ class MockPortLinkDown(object):
   def Fdb(self):
     return [{'PhysAddress': 'f8:8f:ca:00:00:01', 'Ports': ['qca83xx_1']},
             {'PhysAddress': 'f8:8f:ca:00:00:02', 'Ports': ['qca83xx_1']},
-            {'PhysAddress': 'f8:8f:ca:00:00:03', 'Ports': ['qca83xx_1']}]
+            {'PhysAddress': 'f8:8f:ca:00:00:03', 'Ports': ['qca83xx_1']},
+            {'PhysAddress': '01:00:5e:00:00:fb', 'Ports': ['qca83xx_1']}]
 
   def IsLinkUp(self):
     return False

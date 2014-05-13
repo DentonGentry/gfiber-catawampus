@@ -127,7 +127,11 @@ class EthernetInterfaceQca83xx(ETHERNET.Interface):
     result = []
     for entry in self._port.Fdb():
       mac = entry['PhysAddress']
-      result.append({'PhysAddress': mac})
+      octets = mac.split(':')
+      b1 = int(octets[0], 16)
+      if not b1 & 0x01:
+        # only report unicast addresses, not multicast
+        result.append({'PhysAddress': mac})
     return result
 
   def _UpdateStats(self):
