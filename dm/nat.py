@@ -212,6 +212,10 @@ class PortMapping(CATANAT.PortMapping):
       return 'Error_Misconfigured'
     return 'Enabled'
 
+  def Close(self):
+    """Called by core.py:DeleteExportObjects()."""
+    self.Triggered()
+
   def Triggered(self):
     self.parent.WriteConfigs()
 

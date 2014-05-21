@@ -263,6 +263,22 @@ class NatTest(unittest.TestCase):
     self.assertEqual(len(expected), 0)
     self.assertTrue(os.path.exists(self.restartfile))
 
+  def testConfigDeleteObject(self):
+    n = nat.NAT(dmroot=DeviceModelRoot())
+    p = n.PortMapping()
+    p.AllInterfaces = True
+    p.Enable = True
+    p.InternalClient = '1.1.1.1'
+    p.InternalPort = 80
+    p.Protocol = 'TCP'
+    n.PortMappingList['1'] = p
+    self.loop.RunOnce(timeout=1)
+    n.DeleteExportObject('PortMapping', '1')
+    self.loop.RunOnce(timeout=1)
+
+    config = open(self.outputfile4).read()
+    self.assertFalse(config)
+
 
 class DeviceModelRoot(tr.core.Exporter):
   def __init__(self):
