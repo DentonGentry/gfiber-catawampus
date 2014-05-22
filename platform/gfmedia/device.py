@@ -120,6 +120,10 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
   def DownloadDir(self):
     if os.path.isdir('/var/media/swimage'):
       return '/var/media/swimage'
+    elif os.path.isdir('/user/swimage'):
+      return '/user/swimage'
+    elif os.path.isdir('/tmp/swimage'):
+      return '/tmp/swimage'
     else:
       return '/tmp'
 
