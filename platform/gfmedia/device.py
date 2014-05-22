@@ -210,8 +210,6 @@ class DeviceId(dm.device_info.DeviceIdMeta):
 
     # initial builds with no HW_REV; infer a rev.
     cpu = open(PROC_CPUINFO, 'r').read()
-    if cpu.find('BCM7425B0') > 0:
-      return '0'
     if cpu.find('BCM7425B2') > 0:
       # B2 chip with 4 Gig MLC flash == rev1. 1 Gig SLC flash == rev2.
       try:
@@ -222,7 +220,7 @@ class DeviceId(dm.device_info.DeviceIdMeta):
         return '1'
       if siz == 1024:
         return '2'
-    return '?'
+    return '0'
 
 
 class Installer(tr.download.Installer):
