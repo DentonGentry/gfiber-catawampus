@@ -412,7 +412,8 @@ class IPDiagnostics(CATA181.Device.IP.Diagnostics):
     super(IPDiagnostics, self).__init__()
     self.Unexport(objects=['IPPing',
                            'X_CATAWAMPUS-ORG_Speedtest',
-                           'X_CATAWAMPUS-ORG_Isostream'])
+                           'X_CATAWAMPUS-ORG_Isostream',
+                           'X_CATAWAMPUS-ORG_HttpDownload'])
     self.TraceRoute = dm.traceroute.TraceRoute()
 
 

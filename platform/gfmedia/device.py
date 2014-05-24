@@ -39,6 +39,7 @@ import dm.ethernet
 import dm.host
 import dm.igd_time
 import dm.inadyn
+import dm.ip_diag_http
 import dm.ipinterface
 import dm.miniupnp
 import dm.nat
@@ -493,6 +494,7 @@ class IPDiagnostics(CATA181.Device.IP.Diagnostics):
     self.TraceRoute = dm.traceroute.TraceRoute()
     self.X_CATAWAMPUS_ORG_Speedtest = ookla.Speedtest()
     self.X_CATAWAMPUS_ORG_Isostream = isostream.Isostream()
+    self.X_CATAWAMPUS_ORG_HttpDownload = dm.ip_diag_http.DiagHttpDownload()
 
 
 class Device(tr181.Device_v2_6.Device):

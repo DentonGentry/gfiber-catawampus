@@ -419,6 +419,53 @@ While the test is in progress, setting this parameter to {{enum|Requested}} (and
       </parameter>
     </object>
 
+    <object name="Device.IP.Diagnostics.X_CATAWAMPUS-ORG_HttpDownload." access="readOnly" minEntries="1" maxEntries="1">
+      <description>Download a URL using http or https. The file is sent to /dev/null, not stored on the device.</description>
+      <parameter name="DiagnosticsState" access="readWrite" activeNotify="canDeny">
+        <description>Indicates availability of diagnostic data.  {{enum}}
+If the ACS sets the value of this parameter to {{enum|Requested}}, the CPE MUST initiate the corresponding diagnostic test.  When  writing, the only allowed value is {{enum|Requested}}.  To ensure the use of the proper test parameters (the writable parameters in  this object), the test parameters MUST be set either prior to or at the same time as (in the same SetParameterValues) setting the  {{param}} to {{enum|Requested}}.
+When requested, the CPE SHOULD wait until after completion of the communication session with the ACS before starting the diagnostic.
+When the test is completed, the value of this parameter MUST be either {{enum|Complete}} (if the test completed successfully), or one  of the ''Error'' values listed above.
+</description>
+        <syntax>
+          <string>
+            <enumeration value="None" access="readOnly"/>
+            <enumeration value="Requested"/>
+            <enumeration value="Complete" access="readOnly"/>
+            <enumeration value="Error_Internal" access="readOnly"/>
+            <enumeration value="Error_Other" access="readOnly"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="IPVersion" access="readWrite">
+        <description>The connection can be restricted to IPv4 or IPv6.</description>
+        <syntax>
+          <string>
+            <enumeration value="Unspecified"/>
+            <enumeration value="IPv4_Only"/>
+            <enumeration value="IPv6_Only"/>
+          </string>
+          <default type="object" value="Unspecified"/>
+        </syntax>
+      </parameter>
+      <parameter name="LimitMbps" access="readWrite">
+        <description>If non-zero, limit the download to this many Mbits/sec.</description>
+        <syntax><unsignedInt/></syntax>
+      </parameter>
+      <parameter name="Result" access="readOnly">
+        <description>Text output generated during the HTTP test.</description>
+        <syntax><string/></syntax>
+      </parameter>
+      <parameter name="Timeout" access="readWrite">
+        <description>Automatically terminate after this many seconds.</description>
+        <syntax><unsignedInt/></syntax>
+      </parameter>
+      <parameter name="URL" access="readWrite">
+        <description>The URL to access.</description>
+        <syntax><boolean/></syntax>
+      </parameter>
+    </object>
+
     <object name="Device.NAT.PortMapping.{i}." access="readWrite" numEntriesParameter="PortMappingNumberOfEntries" enableParameter="Enable" minEntries="0" maxEntries="unbounded">
       <parameter name="X_CATAWAMPUS-ORG_PortRangeSize" access="readWrite">
         <description>Maps a contiguous set of ports starting with {{param|ExternalPort}} mapped to {{param|InternalPort}},
