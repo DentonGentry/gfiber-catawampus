@@ -571,11 +571,11 @@ class LANDevice(BASE98IGD.LANDevice):
   """tr-98 InternetGatewayDevice for Google Fiber media platforms."""
 
   LANWLANConfigurationNumberOfEntries = tr.types.NumberOf(
-      'LANWLANConfigurationList')
+      'WLANConfigurationList')
   LANEthernetInterfaceNumberOfEntries = tr.types.NumberOf(
-      'LANEthernetInterfaceList')
+      'LANEthernetInterfaceConfigList')
   LANUSBInterfaceNumberOfEntries = tr.types.NumberOf(
-      'LANUSBInterfaceList')
+      'LANUSBInterfaceConfigList')
 
   def __init__(self):
     super(LANDevice, self).__init__()

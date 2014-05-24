@@ -54,9 +54,11 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.old_LEDSTATUS = device.LEDSTATUS
     self.old_NAND_MB = device.NAND_MB
     self.old_PROC_CPUINFO = device.PROC_CPUINFO
+    self.old_PYNETIFCONF = device.PYNETIFCONF
     self.old_REBOOT = device.REBOOT
     self.old_REPOMANIFEST = device.REPOMANIFEST
     self.old_VERSIONFILE = device.VERSIONFILE
+    device.PYNETIFCONF = MockPynetInterface
     self.install_cb_called = False
     self.install_cb_faultcode = None
     self.install_cb_faultstring = None
@@ -71,6 +73,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     device.LEDSTATUS = self.old_LEDSTATUS
     device.NAND_MB = self.old_NAND_MB
     device.PROC_CPUINFO = self.old_PROC_CPUINFO
+    device.PYNETIFCONF = self.old_PYNETIFCONF
     device.REBOOT = self.old_REBOOT
     device.REPOMANIFEST = self.old_REPOMANIFEST
     device.VERSIONFILE = self.old_VERSIONFILE
@@ -182,6 +185,19 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.assertTrue(self.install_cb_called)
     self.assertEqual(self.install_cb_faultcode, 9002)
     self.assertTrue(self.install_cb_faultstring)
+
+  def testValidateExports(self):
+    device.LANDevice().ValidateExports()
+    device.IP().ValidateExports()
+    device.Ethernet().ValidateExports()
+
+
+class MockPynetInterface(object):
+  def __init__(self, ifname):
+    self.ifname = ifname
+
+  def get_index(self):
+    raise IOError('No such interface in test')
 
 
 if __name__ == '__main__':
