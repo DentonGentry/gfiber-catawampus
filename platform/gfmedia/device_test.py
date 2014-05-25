@@ -47,6 +47,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def setUp(self):
     super(DeviceTest, self).setUp()
+    self.old_ACTIVEWAN = device.ACTIVEWAN
     self.old_CONFIGDIR = device.CONFIGDIR
     self.old_GINSTALL = device.GINSTALL
     self.old_HNVRAM = device.HNVRAM
@@ -58,6 +59,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.old_REBOOT = device.REBOOT
     self.old_REPOMANIFEST = device.REPOMANIFEST
     self.old_VERSIONFILE = device.VERSIONFILE
+    device.ACTIVEWAN = 'testdata/device/activewan'
     device.PYNETIFCONF = MockPynetInterface
     self.install_cb_called = False
     self.install_cb_faultcode = None
@@ -66,6 +68,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def tearDown(self):
     super(DeviceTest, self).tearDown()
+    device.ACTIVEWAN = self.old_ACTIVEWAN
     device.CONFIGDIR = self.old_CONFIGDIR
     device.GINSTALL = self.old_GINSTALL
     device.HNVRAM = self.old_HNVRAM
@@ -133,7 +136,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
     device.NAND_MB = 'testdata/device/nand_size_mb_unk'
     did = device.DeviceId()
-    self.assertEqual(did.HardwareVersion, '?')
+    self.assertEqual(did.HardwareVersion, '0')
 
   def testFanSpeed(self):
     fan = device.FanReadGpio(speed_filename='testdata/fanspeed',
@@ -190,6 +193,17 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     device.LANDevice().ValidateExports()
     device.IP().ValidateExports()
     device.Ethernet().ValidateExports()
+
+  def testActiveWan(self):
+    device.ACTIVEWAN = 'testdata/device/activewan'
+    self.assertEqual(device.activewan('foo0'), '')
+    self.assertEqual(device.activewan('bar0'), 'Down')
+    device.ACTIVEWAN = 'testdata/device/activewan_fail'
+    self.assertEqual(device.activewan('foo0'), '')
+    self.assertEqual(device.activewan('bar0'), '')
+    device.ACTIVEWAN = 'testdata/device/activewan_empty'
+    self.assertEqual(device.activewan('foo0'), '')
+    self.assertEqual(device.activewan('bar0'), '')
 
 
 class MockPynetInterface(object):
