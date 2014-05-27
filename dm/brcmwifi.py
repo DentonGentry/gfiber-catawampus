@@ -529,12 +529,12 @@ class Wl(object):
 class BrcmWifiWlanConfiguration(CATA98WIFI):
   """An implementation of tr98 WLANConfiguration for Broadcom Wifi chipsets."""
 
-  DeviceOperationMode = tr.types.ReadOnlyString('InfrastructureAccessPoint')
-  Standard = tr.types.ReadOnlyString('n')
-  SupportedFrequencyBands = tr.types.ReadOnlyString('2.4GHz,5GHz')
-  UAPSDSupported = tr.types.ReadOnlyBool(False)
-  WEPEncryptionLevel = tr.types.ReadOnlyString('Disabled,40-bit,104-bit')
-  WMMSupported = tr.types.ReadOnlyBool(False)
+  DeviceOperationMode = tr.cwmptypes.ReadOnlyString('InfrastructureAccessPoint')
+  Standard = tr.cwmptypes.ReadOnlyString('n')
+  SupportedFrequencyBands = tr.cwmptypes.ReadOnlyString('2.4GHz,5GHz')
+  UAPSDSupported = tr.cwmptypes.ReadOnlyBool(False)
+  WEPEncryptionLevel = tr.cwmptypes.ReadOnlyString('Disabled,40-bit,104-bit')
+  WMMSupported = tr.cwmptypes.ReadOnlyBool(False)
 
   def __init__(self, ifname):
     super(BrcmWifiWlanConfiguration, self).__init__()

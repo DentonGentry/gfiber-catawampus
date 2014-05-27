@@ -131,17 +131,17 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
 class DeviceId(dm.device_info.DeviceIdMeta):
   """Fetch the DeviceInfo parameters from NVRAM."""
 
-  AdditionalHardwareVersion = tr.types.ReadOnlyString('')
-  AdditionalSoftwareVersion = tr.types.ReadOnlyString('')
-  Description = tr.types.ReadOnlyString('Set top box for Google Fiber network')
-  HardwareVersion = tr.types.ReadOnlyString('')
-  Manufacturer = tr.types.ReadOnlyString('Google Fiber')
-  ManufacturerOUI = tr.types.ReadOnlyString('F88FCA')
-  ModelName = tr.types.ReadOnlyString('')
-  ModemFirmwareVersion = tr.types.ReadOnlyString('0')
-  ProductClass = tr.types.ReadOnlyString('0')
-  SerialNumber = tr.types.ReadOnlyString('')
-  SoftwareVersion = tr.types.ReadOnlyString('')
+  AdditionalHardwareVersion = tr.cwmptypes.ReadOnlyString('')
+  AdditionalSoftwareVersion = tr.cwmptypes.ReadOnlyString('')
+  Description = tr.cwmptypes.ReadOnlyString('Set top box for Google Fiber network')
+  HardwareVersion = tr.cwmptypes.ReadOnlyString('')
+  Manufacturer = tr.cwmptypes.ReadOnlyString('Google Fiber')
+  ManufacturerOUI = tr.cwmptypes.ReadOnlyString('F88FCA')
+  ModelName = tr.cwmptypes.ReadOnlyString('')
+  ModemFirmwareVersion = tr.cwmptypes.ReadOnlyString('0')
+  ProductClass = tr.cwmptypes.ReadOnlyString('0')
+  SerialNumber = tr.cwmptypes.ReadOnlyString('')
+  SoftwareVersion = tr.cwmptypes.ReadOnlyString('')
 
   def __init__(self):
     super(DeviceId, self).__init__()
@@ -328,10 +328,10 @@ class Services(tr181.Device_v2_6.Device.Services):
 class Ethernet(tr181.Device_v2_6.Device.Ethernet):
   """Implementation of tr-181 Device.Ethernet for GFMedia platforms."""
 
-  InterfaceNumberOfEntries = tr.types.NumberOf('InterfaceList')
-  LinkNumberOfEntries = tr.types.NumberOf('LinkList')
-  RMONStatsNumberOfEntries = tr.types.NumberOf('RMONStatsList')
-  VLANTerminationNumberOfEntries = tr.types.NumberOf('VLANTerminationList')
+  InterfaceNumberOfEntries = tr.cwmptypes.NumberOf('InterfaceList')
+  LinkNumberOfEntries = tr.cwmptypes.NumberOf('LinkList')
+  RMONStatsNumberOfEntries = tr.cwmptypes.NumberOf('RMONStatsList')
+  VLANTerminationNumberOfEntries = tr.cwmptypes.NumberOf('VLANTerminationList')
 
   def __init__(self):
     super(Ethernet, self).__init__()
@@ -387,7 +387,7 @@ class Moca(tr181.Device_v2_6.Device.MoCA):
 
 class FanReadGpio(CATA181.DeviceInfo.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
   """Implementation of Fan object, reading rev/sec from a file."""
-  Name = tr.types.ReadOnlyString('')
+  Name = tr.cwmptypes.ReadOnlyString('')
 
   def __init__(self, name='Fan', speed_filename='/tmp/gpio/fanspeed',
                percent_filename='/tmp/gpio/fanpercent'):
@@ -428,12 +428,12 @@ class FanReadGpio(CATA181.DeviceInfo.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
 class IP(tr181.Device_v2_6.Device.IP):
   """tr-181 Device.IP implementation for Google Fiber media platforms."""
   # Enable fields are supposed to be writeable, but we don't support that.
-  IPv4Capable = tr.types.ReadOnlyBool(True)
-  IPv4Enable = tr.types.ReadOnlyBool(True)
-  IPv4Status = tr.types.ReadOnlyString('Enabled')
-  IPv6Capable = tr.types.ReadOnlyBool(True)
-  IPv6Enable = tr.types.ReadOnlyBool(True)
-  IPv6Status = tr.types.ReadOnlyString('Enabled')
+  IPv4Capable = tr.cwmptypes.ReadOnlyBool(True)
+  IPv4Enable = tr.cwmptypes.ReadOnlyBool(True)
+  IPv4Status = tr.cwmptypes.ReadOnlyString('Enabled')
+  IPv6Capable = tr.cwmptypes.ReadOnlyBool(True)
+  IPv6Enable = tr.cwmptypes.ReadOnlyBool(True)
+  IPv6Status = tr.cwmptypes.ReadOnlyString('Enabled')
 
   def __init__(self):
     super(IP, self).__init__()
@@ -498,7 +498,7 @@ class IPDiagnostics(CATA181.Device.IP.Diagnostics):
 class Device(tr181.Device_v2_6.Device):
   """tr-181 Device implementation for Google Fiber media platforms."""
 
-  RootDataModelVersion = tr.types.ReadOnlyString('2.6')
+  RootDataModelVersion = tr.cwmptypes.ReadOnlyString('2.6')
 
   def __init__(self, device_id, periodic_stats, dmroot):
     super(Device, self).__init__()
@@ -571,11 +571,11 @@ class Device(tr181.Device_v2_6.Device):
 class LANDevice(BASE98IGD.LANDevice):
   """tr-98 InternetGatewayDevice for Google Fiber media platforms."""
 
-  LANWLANConfigurationNumberOfEntries = tr.types.NumberOf(
+  LANWLANConfigurationNumberOfEntries = tr.cwmptypes.NumberOf(
       'WLANConfigurationList')
-  LANEthernetInterfaceNumberOfEntries = tr.types.NumberOf(
+  LANEthernetInterfaceNumberOfEntries = tr.cwmptypes.NumberOf(
       'LANEthernetInterfaceConfigList')
-  LANUSBInterfaceNumberOfEntries = tr.types.NumberOf(
+  LANUSBInterfaceNumberOfEntries = tr.cwmptypes.NumberOf(
       'LANUSBInterfaceConfigList')
 
   def __init__(self):

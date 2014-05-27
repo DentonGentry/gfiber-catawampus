@@ -23,7 +23,7 @@ __author__ = 'irinams@google.com (Irina Stanescu)'
 import google3
 import tr.helpers
 import tr.mainloop
-import tr.types
+import tr.cwmptypes
 import tr.x_gfibertv_1_0
 BASETV = tr.x_gfibertv_1_0.X_GOOGLE_COM_HAT_v1_0.X_GOOGLE_COM_HAT
 
@@ -31,7 +31,7 @@ SYSTEMPROPS = ['/rw/sagesrv/sagesrv.properties']
 USERPROPS = ['/rw/sagesrv/sagesrv_user.properties']
 CONTRACTS = ['/var/media/ads/contracts/ad_contracts.csv']
 
-class TargetAttr(tr.types.Attr):
+class TargetAttr(tr.cwmptypes.Attr):
   """An attribute that has the string representation of targeting.
 
   You can set it to the strings 'targeting=1' or 'targeting=0'.
@@ -48,22 +48,22 @@ class TargetAttr(tr.types.Attr):
 
 class Hat(BASETV):
   """Implementation of x-hat.xml."""
-  HAT = tr.types.TriggerBool()
-  DVRReplacement = tr.types.TriggerBool()
-  Insert = tr.types.TriggerBool()
-  TestCueTones = tr.types.TriggerBool()
-  AFillPercent = tr.types.TriggerUnsigned()
-  HTFillPercent = tr.types.TriggerUnsigned()
-  SwapoutSecs = tr.types.TriggerUnsigned()
-  GFTSPollingIntervalSecs = tr.types.TriggerUnsigned()
-  CMSGCIntervalSecs = tr.types.TriggerUnsigned()
-  FreqCapSecs = tr.types.TriggerUnsigned()
+  HAT = tr.cwmptypes.TriggerBool()
+  DVRReplacement = tr.cwmptypes.TriggerBool()
+  Insert = tr.cwmptypes.TriggerBool()
+  TestCueTones = tr.cwmptypes.TriggerBool()
+  AFillPercent = tr.cwmptypes.TriggerUnsigned()
+  HTFillPercent = tr.cwmptypes.TriggerUnsigned()
+  SwapoutSecs = tr.cwmptypes.TriggerUnsigned()
+  GFTSPollingIntervalSecs = tr.cwmptypes.TriggerUnsigned()
+  CMSGCIntervalSecs = tr.cwmptypes.TriggerUnsigned()
+  FreqCapSecs = tr.cwmptypes.TriggerUnsigned()
 
-  GFTSUrl = tr.types.TriggerString()
-  GFASUrl = tr.types.TriggerString()
+  GFTSUrl = tr.cwmptypes.TriggerString()
+  GFASUrl = tr.cwmptypes.TriggerString()
 
-  Target = tr.types.ReadOnly(tr.types.FileBacked(USERPROPS, TargetAttr()))
-  HATContracts = tr.types.FileBacked(CONTRACTS, tr.types.String())
+  Target = tr.cwmptypes.ReadOnly(tr.cwmptypes.FileBacked(USERPROPS, TargetAttr()))
+  HATContracts = tr.cwmptypes.FileBacked(CONTRACTS, tr.cwmptypes.String())
 
   def __init__(self):
     super(Hat, self).__init__()

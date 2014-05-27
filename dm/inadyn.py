@@ -26,7 +26,7 @@ import shutil
 import subprocess
 import traceback
 import tr.helpers
-import tr.types
+import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 
 CATA181DEV = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
@@ -37,7 +37,7 @@ RESTARTCMD = ['restart', 'inadyn']
 
 class Inadyn(CATA181DDNS):
   """Device.X_CATAWAMPUS-ORG_DynamicDNS."""
-  ServiceNumberOfEntries = tr.types.NumberOf('ServiceList')
+  ServiceNumberOfEntries = tr.cwmptypes.NumberOf('ServiceList')
 
   def __init__(self):
     super(Inadyn, self).__init__()
@@ -69,13 +69,13 @@ class Inadyn(CATA181DDNS):
 class Service(CATA181DDNS.Service):
   """Device.X_CATAWAMPUS-ORG_DynamicDNS.Service."""
 
-  Domain = tr.types.TriggerString('')
-  Enable = tr.types.TriggerBool(False)
-  Password = tr.types.TriggerString('')
-  ServiceName = tr.types.TriggerString('')
-  ServiceURL = tr.types.TriggerString('')
-  UpdateFrequency = tr.types.TriggerUnsigned(1)
-  Username = tr.types.TriggerString('')
+  Domain = tr.cwmptypes.TriggerString('')
+  Enable = tr.cwmptypes.TriggerBool(False)
+  Password = tr.cwmptypes.TriggerString('')
+  ServiceName = tr.cwmptypes.TriggerString('')
+  ServiceURL = tr.cwmptypes.TriggerString('')
+  UpdateFrequency = tr.cwmptypes.TriggerUnsigned(1)
+  Username = tr.cwmptypes.TriggerString('')
 
   def __init__(self, parent):
     super(Service, self).__init__()

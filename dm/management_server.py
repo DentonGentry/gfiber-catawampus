@@ -27,7 +27,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import tr.core
 import tr.tr098_v1_4
 import tr.tr181_v2_2
-import tr.types
+import tr.cwmptypes
 
 
 BASEMGMT181 = tr.tr181_v2_2.Device_v2_2.Device.ManagementServer

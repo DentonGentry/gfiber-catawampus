@@ -30,7 +30,7 @@ import subprocess
 import tr.helpers
 import tr.mainloop
 import tr.tr181_v2_6
-import tr.types
+import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 
 BASENAT = tr.tr181_v2_6.Device_v2_6.Device.NAT
@@ -42,8 +42,8 @@ RESTARTCMD = ['update-acs-iptables']
 
 class NAT(BASENAT):
   """tr181 Device.NAT."""
-  InterfaceSettingNumberOfEntries = tr.types.NumberOf('InterfaceSettingList')
-  PortMappingNumberOfEntries = tr.types.NumberOf('PortMappingList')
+  InterfaceSettingNumberOfEntries = tr.cwmptypes.NumberOf('InterfaceSettingList')
+  PortMappingNumberOfEntries = tr.cwmptypes.NumberOf('PortMappingList')
 
   def __init__(self, dmroot):
     super(NAT, self).__init__()
@@ -117,17 +117,17 @@ class NAT(BASENAT):
 
 class PortMapping(CATANAT.PortMapping):
   """tr181 Device.NAT.Portmapping."""
-  AllInterfaces = tr.types.TriggerBool(False)
-  Description = tr.types.String('')
-  Enable = tr.types.TriggerBool(False)
-  ExternalPort = tr.types.TriggerUnsigned(0)
-  ExternalPortEndRange = tr.types.TriggerUnsigned(0)
-  InternalClient = tr.types.TriggerString()
-  InternalPort = tr.types.TriggerUnsigned(0)
-  LeaseDuration = tr.types.TriggerUnsigned(0)
-  Protocol = tr.types.TriggerString()
-  RemoteHost = tr.types.TriggerIP4Addr()
-  X_CATAWAMPUS_ORG_PortRangeSize = tr.types.TriggerUnsigned(0)
+  AllInterfaces = tr.cwmptypes.TriggerBool(False)
+  Description = tr.cwmptypes.String('')
+  Enable = tr.cwmptypes.TriggerBool(False)
+  ExternalPort = tr.cwmptypes.TriggerUnsigned(0)
+  ExternalPortEndRange = tr.cwmptypes.TriggerUnsigned(0)
+  InternalClient = tr.cwmptypes.TriggerString()
+  InternalPort = tr.cwmptypes.TriggerUnsigned(0)
+  LeaseDuration = tr.cwmptypes.TriggerUnsigned(0)
+  Protocol = tr.cwmptypes.TriggerString()
+  RemoteHost = tr.cwmptypes.TriggerIP4Addr()
+  X_CATAWAMPUS_ORG_PortRangeSize = tr.cwmptypes.TriggerUnsigned(0)
 
   def __init__(self, parent):
     super(PortMapping, self).__init__()

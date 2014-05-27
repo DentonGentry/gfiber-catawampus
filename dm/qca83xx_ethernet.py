@@ -27,7 +27,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import sys
 import tr.core
 import tr.tr181_v2_6
-import tr.types
+import tr.cwmptypes
 
 
 QCAPORT = None
@@ -62,11 +62,11 @@ class EthernetInterfaceQca83xx(ETHERNET.Interface):
     upstream: whether the port faces the WAN (unlikely).
   """
 
-  Enable = tr.types.ReadOnlyBool(True)
-  LowerLayers = tr.types.ReadOnlyString('')
-  MACAddress = tr.types.ReadOnlyMacAddr('')
-  Name = tr.types.ReadOnlyString('')
-  Upstream = tr.types.ReadOnlyBool(False)
+  Enable = tr.cwmptypes.ReadOnlyBool(True)
+  LowerLayers = tr.cwmptypes.ReadOnlyString('')
+  MACAddress = tr.cwmptypes.ReadOnlyMacAddr('')
+  Name = tr.cwmptypes.ReadOnlyString('')
+  Upstream = tr.cwmptypes.ReadOnlyBool(False)
 
   def __init__(self, portnum, mac, ifname, upstream=False):
     super(EthernetInterfaceQca83xx, self).__init__()

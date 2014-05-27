@@ -31,7 +31,7 @@ import time
 import tr.helpers
 import tr.session
 import tr.tr181_v2_6
-import tr.types
+import tr.cwmptypes
 import dhcp
 
 BASE181HOSTS = tr.tr181_v2_6.Device_v2_6.Device.Hosts
@@ -450,18 +450,18 @@ class Host(CATA181HOST):
   This is an ephemeral object, created from some data source and
   peristing only for the duration of one CWMP session.
   """
-  Active = tr.types.ReadOnlyBool(False)
-  AddressSource = tr.types.ReadOnlyString('None')
-  AssociatedDevice = tr.types.ReadOnlyString('')
-  ClientID = tr.types.ReadOnlyString('')
-  DHCPClient = tr.types.ReadOnlyString('')
-  HostName = tr.types.ReadOnlyString('')
-  Layer1Interface = tr.types.ReadOnlyString('')
-  Layer3Interface = tr.types.ReadOnlyString('')
-  LeaseTimeRemaining = tr.types.ReadOnlyInt(0)
-  PhysAddress = tr.types.ReadOnlyString('')
-  UserClassID = tr.types.ReadOnlyString('')
-  VendorClassID = tr.types.ReadOnlyString('')
+  Active = tr.cwmptypes.ReadOnlyBool(False)
+  AddressSource = tr.cwmptypes.ReadOnlyString('None')
+  AssociatedDevice = tr.cwmptypes.ReadOnlyString('')
+  ClientID = tr.cwmptypes.ReadOnlyString('')
+  DHCPClient = tr.cwmptypes.ReadOnlyString('')
+  HostName = tr.cwmptypes.ReadOnlyString('')
+  Layer1Interface = tr.cwmptypes.ReadOnlyString('')
+  Layer3Interface = tr.cwmptypes.ReadOnlyString('')
+  LeaseTimeRemaining = tr.cwmptypes.ReadOnlyInt(0)
+  PhysAddress = tr.cwmptypes.ReadOnlyString('')
+  UserClassID = tr.cwmptypes.ReadOnlyString('')
+  VendorClassID = tr.cwmptypes.ReadOnlyString('')
 
   def __init__(self, Active=False, PhysAddress='', ip4=None, ip6=None,
                DHCPClient='', AddressSource='None', AssociatedDevice='',
@@ -527,7 +527,7 @@ class Host(CATA181HOST):
 
 
 class HostIPv4Address(BASE181HOST.IPv4Address):
-  IPAddress = tr.types.ReadOnlyString('')
+  IPAddress = tr.cwmptypes.ReadOnlyString('')
 
   def __init__(self, address=''):
     super(HostIPv4Address, self).__init__()
@@ -535,7 +535,7 @@ class HostIPv4Address(BASE181HOST.IPv4Address):
 
 
 class HostIPv6Address(BASE181HOST.IPv6Address):
-  IPAddress = tr.types.ReadOnlyString('')
+  IPAddress = tr.cwmptypes.ReadOnlyString('')
 
   def __init__(self, address=''):
     super(HostIPv6Address, self).__init__()
@@ -543,7 +543,7 @@ class HostIPv6Address(BASE181HOST.IPv6Address):
 
 
 class ClientIdentification(CATA181HOST.X_CATAWAMPUS_ORG_ClientIdentification):
-  DhcpFingerprint = tr.types.ReadOnlyString('')
+  DhcpFingerprint = tr.cwmptypes.ReadOnlyString('')
 
   def __init__(self, macaddr):
     super(ClientIdentification, self).__init__()

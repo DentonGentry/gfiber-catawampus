@@ -23,7 +23,7 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 import unittest
 
 import google3
-import tr.types
+import tr.cwmptypes
 import api
 import core
 
@@ -51,7 +51,7 @@ class Word(core.Exporter):
   def readonlyword(self):
     return 'cant-write-me!'
 
-  validatedword = tr.types.String()
+  validatedword = tr.cwmptypes.String()
   @validatedword.validator
   def validatedword(self, value):
     if value not in ['yes', 'no']:

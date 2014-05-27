@@ -29,7 +29,7 @@ import subprocess
 import tr.core
 import tr.session
 import tr.tr140_v1_1
-import tr.types
+import tr.cwmptypes
 import tr.x_catawampus_storage_1_0
 
 
@@ -143,10 +143,10 @@ def _IntOrNegativeOne(result, name):
 class LogicalVolumeLinux26(BASESTORAGE.LogicalVolume):
   """Implementation of tr-140 StorageService.LogicalVolume for Linux FS."""
 
-  Enable = tr.types.ReadOnlyBool(True)
-  FileSystem = tr.types.ReadOnlyString('')
-  Name = tr.types.ReadOnlyString('')
-  Status = tr.types.ReadOnlyString('Online')
+  Enable = tr.cwmptypes.ReadOnlyBool(True)
+  FileSystem = tr.cwmptypes.ReadOnlyString('')
+  Name = tr.cwmptypes.ReadOnlyString('')
+  Status = tr.cwmptypes.ReadOnlyString('Online')
 
   def __init__(self, rootpath, fstype):
     super(LogicalVolumeLinux26, self).__init__()
@@ -202,11 +202,11 @@ class PhysicalMediumDiskLinux26(BASESTORAGE.PhysicalMedium):
        'Ultra2 SCSI', 'Ultra2 Wide SCSI', 'Ultra3 SCSI', 'Ultra-320 SCSI',
        'Ultra-640 SCSI', 'SSA', 'SSA-40', 'Fibre Channel'])
 
-  ConnectionType = tr.types.ReadOnlyString('')
-  FirmwareVersion = tr.types.ReadOnlyString('')
-  Removable = tr.types.ReadOnlyBool(False)
-  SerialNumber = tr.types.ReadOnlyString('')
-  SMARTCapable = tr.types.ReadOnlyBool(False)
+  ConnectionType = tr.cwmptypes.ReadOnlyString('')
+  FirmwareVersion = tr.cwmptypes.ReadOnlyString('')
+  Removable = tr.cwmptypes.ReadOnlyBool(False)
+  SerialNumber = tr.cwmptypes.ReadOnlyString('')
+  SMARTCapable = tr.cwmptypes.ReadOnlyBool(False)
 
   def __init__(self, dev, conn_type=None):
     super(PhysicalMediumDiskLinux26, self).__init__()
@@ -315,39 +315,39 @@ class PhysicalMediumDiskLinux26(BASESTORAGE.PhysicalMedium):
 class SmartAttributes(PHYSICALMEDIUM.X_CATAWAMPUS_ORG_SmartAttributes):
   """Catawampus Storage SMART Attributes implementation."""
 
-  CalibrationRetryCount = tr.types.ReadOnlyInt(-1)
-  CurrentPendingSector = tr.types.ReadOnlyInt(-1)
-  FlyingHeight = tr.types.ReadOnlyInt(-1)
-  HardwareEccRecovered = tr.types.ReadOnlyInt(-1)
-  LoadCycleCount = tr.types.ReadOnlyInt(-1)
-  MultiZoneErrorRate = tr.types.ReadOnlyInt(-1)
-  OfflineSeekPerformance = tr.types.ReadOnlyInt(-1)
-  OfflineUncorrectable = tr.types.ReadOnlyInt(-1)
-  PowerCycleCount = tr.types.ReadOnlyInt(-1)
-  PowerOffRetractCount = tr.types.ReadOnlyInt(-1)
-  PowerOnHours = tr.types.ReadOnlyInt(-1)
-  RawReadErrorRate = tr.types.ReadOnlyInt(-1)
-  ReadChannelMargin = tr.types.ReadOnlyInt(-1)
-  ReallocatedEventCount = tr.types.ReadOnlyInt(-1)
-  ReallocatedSectorsCount = tr.types.ReadOnlyInt(-1)
-  RunOutCancel = tr.types.ReadOnlyInt(-1)
-  SeekErrorRate = tr.types.ReadOnlyInt(-1)
-  SeekTimePerformance = tr.types.ReadOnlyInt(-1)
-  ShockCountWriteOperation = tr.types.ReadOnlyInt(-1)
-  ShockRateWriteOperation = tr.types.ReadOnlyInt(-1)
-  SoftReadErrorRate = tr.types.ReadOnlyInt(-1)
-  SpinBuzz = tr.types.ReadOnlyInt(-1)
-  SpinHighCurrent = tr.types.ReadOnlyInt(-1)
-  SpinRetryCount = tr.types.ReadOnlyInt(-1)
-  SpinUpTime = tr.types.ReadOnlyInt(-1)
-  SpinUpTimeLatest = tr.types.ReadOnlyInt(-1)
-  StartStopCount = tr.types.ReadOnlyInt(-1)
-  TaIncreaseCount = tr.types.ReadOnlyInt(-1)
-  TemperatureCelsius = tr.types.ReadOnlyInt(-1)
-  TemperatureCelsiusMax = tr.types.ReadOnlyInt(-1)
-  TemperatureCelsiusMin = tr.types.ReadOnlyInt(-1)
-  ThroughputPerformance = tr.types.ReadOnlyInt(-1)
-  UdmaCrcErrorCount = tr.types.ReadOnlyInt(-1)
+  CalibrationRetryCount = tr.cwmptypes.ReadOnlyInt(-1)
+  CurrentPendingSector = tr.cwmptypes.ReadOnlyInt(-1)
+  FlyingHeight = tr.cwmptypes.ReadOnlyInt(-1)
+  HardwareEccRecovered = tr.cwmptypes.ReadOnlyInt(-1)
+  LoadCycleCount = tr.cwmptypes.ReadOnlyInt(-1)
+  MultiZoneErrorRate = tr.cwmptypes.ReadOnlyInt(-1)
+  OfflineSeekPerformance = tr.cwmptypes.ReadOnlyInt(-1)
+  OfflineUncorrectable = tr.cwmptypes.ReadOnlyInt(-1)
+  PowerCycleCount = tr.cwmptypes.ReadOnlyInt(-1)
+  PowerOffRetractCount = tr.cwmptypes.ReadOnlyInt(-1)
+  PowerOnHours = tr.cwmptypes.ReadOnlyInt(-1)
+  RawReadErrorRate = tr.cwmptypes.ReadOnlyInt(-1)
+  ReadChannelMargin = tr.cwmptypes.ReadOnlyInt(-1)
+  ReallocatedEventCount = tr.cwmptypes.ReadOnlyInt(-1)
+  ReallocatedSectorsCount = tr.cwmptypes.ReadOnlyInt(-1)
+  RunOutCancel = tr.cwmptypes.ReadOnlyInt(-1)
+  SeekErrorRate = tr.cwmptypes.ReadOnlyInt(-1)
+  SeekTimePerformance = tr.cwmptypes.ReadOnlyInt(-1)
+  ShockCountWriteOperation = tr.cwmptypes.ReadOnlyInt(-1)
+  ShockRateWriteOperation = tr.cwmptypes.ReadOnlyInt(-1)
+  SoftReadErrorRate = tr.cwmptypes.ReadOnlyInt(-1)
+  SpinBuzz = tr.cwmptypes.ReadOnlyInt(-1)
+  SpinHighCurrent = tr.cwmptypes.ReadOnlyInt(-1)
+  SpinRetryCount = tr.cwmptypes.ReadOnlyInt(-1)
+  SpinUpTime = tr.cwmptypes.ReadOnlyInt(-1)
+  SpinUpTimeLatest = tr.cwmptypes.ReadOnlyInt(-1)
+  StartStopCount = tr.cwmptypes.ReadOnlyInt(-1)
+  TaIncreaseCount = tr.cwmptypes.ReadOnlyInt(-1)
+  TemperatureCelsius = tr.cwmptypes.ReadOnlyInt(-1)
+  TemperatureCelsiusMax = tr.cwmptypes.ReadOnlyInt(-1)
+  TemperatureCelsiusMin = tr.cwmptypes.ReadOnlyInt(-1)
+  ThroughputPerformance = tr.cwmptypes.ReadOnlyInt(-1)
+  UdmaCrcErrorCount = tr.cwmptypes.ReadOnlyInt(-1)
 
   def __init__(self, dev):
     super(SmartAttributes, self).__init__()
@@ -459,7 +459,7 @@ class FlashSubVolUbiLinux26(BASESTORAGE.X_CATAWAMPUS_ORG_FlashMedia.SubVolume):
 class FlashMediumUbiLinux26(BASESTORAGE.X_CATAWAMPUS_ORG_FlashMedia):
   """Catawampus Storage FlashMedium implementation for UBI volumes."""
 
-  Name = tr.types.ReadOnlyString('')
+  Name = tr.cwmptypes.ReadOnlyString('')
 
   def __init__(self, ubiname):
     super(FlashMediumUbiLinux26, self).__init__()
@@ -527,17 +527,17 @@ class FlashMediumUbiLinux26(BASESTORAGE.X_CATAWAMPUS_ORG_FlashMedia):
 class DrivePerformance(PHYSICALMEDIUM.X_CATAWAMPUS_ORG_DrivePerformance):
   """Catawampus Storage Drive Performance implementation."""
 
-  IoInProgress = tr.types.ReadOnlyUnsigned(0)
-  IoMilliseconds = tr.types.ReadOnlyUnsigned(0)
-  ReadMilliseconds = tr.types.ReadOnlyUnsigned(0)
-  ReadSectors = tr.types.ReadOnlyUnsigned(0)
-  ReadsCompleted = tr.types.ReadOnlyUnsigned(0)
-  ReadsMerged = tr.types.ReadOnlyUnsigned(0)
-  WeightedIoMilliseconds = tr.types.ReadOnlyUnsigned(0)
-  WriteMilliseconds = tr.types.ReadOnlyUnsigned(0)
-  WriteSectors = tr.types.ReadOnlyUnsigned(0)
-  WritesCompleted = tr.types.ReadOnlyUnsigned(0)
-  WritesMerged = tr.types.ReadOnlyUnsigned(0)
+  IoInProgress = tr.cwmptypes.ReadOnlyUnsigned(0)
+  IoMilliseconds = tr.cwmptypes.ReadOnlyUnsigned(0)
+  ReadMilliseconds = tr.cwmptypes.ReadOnlyUnsigned(0)
+  ReadSectors = tr.cwmptypes.ReadOnlyUnsigned(0)
+  ReadsCompleted = tr.cwmptypes.ReadOnlyUnsigned(0)
+  ReadsMerged = tr.cwmptypes.ReadOnlyUnsigned(0)
+  WeightedIoMilliseconds = tr.cwmptypes.ReadOnlyUnsigned(0)
+  WriteMilliseconds = tr.cwmptypes.ReadOnlyUnsigned(0)
+  WriteSectors = tr.cwmptypes.ReadOnlyUnsigned(0)
+  WritesCompleted = tr.cwmptypes.ReadOnlyUnsigned(0)
+  WritesMerged = tr.cwmptypes.ReadOnlyUnsigned(0)
 
   def __init__(self, dev):
     super(DrivePerformance, self).__init__()
@@ -561,22 +561,22 @@ class DrivePerformance(PHYSICALMEDIUM.X_CATAWAMPUS_ORG_DrivePerformance):
 class SataPHY(PHYSICALMEDIUM.X_CATAWAMPUS_ORG_SataPHY):
   """Catawampus Storage SATA PHY counters implementation."""
 
-  CmdFailedICRC = tr.types.ReadOnlyInt(-1)
-  DeviceToHostNonDataRetries = tr.types.ReadOnlyInt(-1)
-  HostToDeviceCrcErrors = tr.types.ReadOnlyInt(-1)
-  HostToDeviceNonCrcErrors = tr.types.ReadOnlyInt(-1)
-  PhyRdyToPhyNRdy = tr.types.ReadOnlyInt(-1)
-  RErrDataFis = tr.types.ReadOnlyInt(-1)
-  RErrDeviceToHostDataFis = tr.types.ReadOnlyInt(-1)
-  RErrDeviceToHostNonDataFis = tr.types.ReadOnlyInt(-1)
-  RErrHostToDeviceDataFis = tr.types.ReadOnlyInt(-1)
-  RErrHostToDeviceDataFisCrc = tr.types.ReadOnlyInt(-1)
-  RErrHostToDeviceDataFisNonCrc = tr.types.ReadOnlyInt(-1)
-  RErrHostToDeviceNonDataFis = tr.types.ReadOnlyInt(-1)
-  RErrHostToDeviceNonDataFisCrc = tr.types.ReadOnlyInt(-1)
-  RErrHostToDeviceNonDataFisNonCrc = tr.types.ReadOnlyInt(-1)
-  RErrNonDataFis = tr.types.ReadOnlyInt(-1)
-  RegisterFisComreset = tr.types.ReadOnlyInt(-1)
+  CmdFailedICRC = tr.cwmptypes.ReadOnlyInt(-1)
+  DeviceToHostNonDataRetries = tr.cwmptypes.ReadOnlyInt(-1)
+  HostToDeviceCrcErrors = tr.cwmptypes.ReadOnlyInt(-1)
+  HostToDeviceNonCrcErrors = tr.cwmptypes.ReadOnlyInt(-1)
+  PhyRdyToPhyNRdy = tr.cwmptypes.ReadOnlyInt(-1)
+  RErrDataFis = tr.cwmptypes.ReadOnlyInt(-1)
+  RErrDeviceToHostDataFis = tr.cwmptypes.ReadOnlyInt(-1)
+  RErrDeviceToHostNonDataFis = tr.cwmptypes.ReadOnlyInt(-1)
+  RErrHostToDeviceDataFis = tr.cwmptypes.ReadOnlyInt(-1)
+  RErrHostToDeviceDataFisCrc = tr.cwmptypes.ReadOnlyInt(-1)
+  RErrHostToDeviceDataFisNonCrc = tr.cwmptypes.ReadOnlyInt(-1)
+  RErrHostToDeviceNonDataFis = tr.cwmptypes.ReadOnlyInt(-1)
+  RErrHostToDeviceNonDataFisCrc = tr.cwmptypes.ReadOnlyInt(-1)
+  RErrHostToDeviceNonDataFisNonCrc = tr.cwmptypes.ReadOnlyInt(-1)
+  RErrNonDataFis = tr.cwmptypes.ReadOnlyInt(-1)
+  RegisterFisComreset = tr.cwmptypes.ReadOnlyInt(-1)
 
   def __init__(self, dev):
     super(SataPHY, self).__init__()
@@ -631,14 +631,14 @@ class SataPHY(PHYSICALMEDIUM.X_CATAWAMPUS_ORG_SataPHY):
 class CapabilitiesNoneLinux26(BASESTORAGE.Capabilities):
   """Trivial tr-140 StorageService.Capabilities, all False."""
 
-  FTPCapable = tr.types.ReadOnlyBool(False)
-  HTTPCapable = tr.types.ReadOnlyBool(False)
-  HTTPSCapable = tr.types.ReadOnlyBool(False)
-  HTTPWritable = tr.types.ReadOnlyBool(False)
-  SFTPCapable = tr.types.ReadOnlyBool(False)
-  SupportedNetworkProtocols = tr.types.ReadOnlyString('')
-  SupportedRaidTypes = tr.types.ReadOnlyString('')
-  VolumeEncryptionCapable = tr.types.ReadOnlyBool(False)
+  FTPCapable = tr.cwmptypes.ReadOnlyBool(False)
+  HTTPCapable = tr.cwmptypes.ReadOnlyBool(False)
+  HTTPSCapable = tr.cwmptypes.ReadOnlyBool(False)
+  HTTPWritable = tr.cwmptypes.ReadOnlyBool(False)
+  SFTPCapable = tr.cwmptypes.ReadOnlyBool(False)
+  SupportedNetworkProtocols = tr.cwmptypes.ReadOnlyString('')
+  SupportedRaidTypes = tr.cwmptypes.ReadOnlyString('')
+  VolumeEncryptionCapable = tr.cwmptypes.ReadOnlyBool(False)
 
   @property
   def SupportedFileSystemTypes(self):
@@ -679,7 +679,7 @@ class StorageServiceLinux26(BASESTORAGE):
   """
 
   # TODO(dgentry): tr-140 says this is supposed to be writable
-  Enable = tr.types.ReadOnlyBool(True)
+  Enable = tr.cwmptypes.ReadOnlyBool(True)
 
   def __init__(self):
     super(StorageServiceLinux26, self).__init__()

@@ -33,13 +33,13 @@ import tr.cwmpdate
 import tr.helpers
 import tr.mainloop
 import tr.session
-import tr.types
+import tr.cwmptypes
 import tr.x_gfibertv_1_0
 import selftest
 BASETV = tr.x_gfibertv_1_0.X_GOOGLE_COM_GFIBERTV_v1_0.X_GOOGLE_COM_GFIBERTV
 
 # These are lists so list[0] can be reassigned in a unit test to affect
-# the operation of tr.types.FileBacked.
+# the operation of tr.cwmptypes.FileBacked.
 NICKFILE = ['/tmp/nicknames']
 MYNICKFILE = ['/config/nickname']
 BTDEVICES = ['/user/bsa/bt_devices.xml']
@@ -65,30 +65,30 @@ def _SageEscape(s):
 
 class GFiberTv(BASETV):
   """Implementation of x-gfibertv.xml."""
-  BtConfig = tr.types.FileBacked(BTCONFIG, tr.types.String())
-  BtDevices = tr.types.FileBacked(BTDEVICES, tr.types.String())
-  BtHHDevices = tr.types.FileBacked(BTHHDEVICES, tr.types.String())
-  BtNoPairing = tr.types.FileBacked(BTNOPAIRING, tr.types.String())
+  BtConfig = tr.cwmptypes.FileBacked(BTCONFIG, tr.cwmptypes.String())
+  BtDevices = tr.cwmptypes.FileBacked(BTDEVICES, tr.cwmptypes.String())
+  BtHHDevices = tr.cwmptypes.FileBacked(BTHHDEVICES, tr.cwmptypes.String())
+  BtNoPairing = tr.cwmptypes.FileBacked(BTNOPAIRING, tr.cwmptypes.String())
 
   @BtNoPairing.validator
   def BtNoPairing(self, value):
-    # tr.types.Bool is picky about parsing, and we don't want that when
-    # reading possibly-invalid data from a file, so we use tr.types.String
+    # tr.cwmptypes.Bool is picky about parsing, and we don't want that when
+    # reading possibly-invalid data from a file, so we use tr.cwmptypes.String
     # and parse it ourselves.
     if not value or value == 'false' or value == 'False' or value == '0':
       return ''
     else:
       return True
 
-  EASFipsCode = tr.types.FileBacked(EASFIPSFILE, tr.types.String())
-  EASServiceAddress = tr.types.FileBacked(EASADDRFILE, tr.types.String())
-  EASServicePort = tr.types.FileBacked(EASPORTFILE, tr.types.String())
-  f = tr.types.FileBacked(EASHEARTBEATFILE, tr.types.Date())
-  EASHeartbeatTimestamp = tr.types.ReadOnly(f)
-  TcpAlgorithm = tr.types.FileBacked(TCPALGORITHM, tr.types.String())
-  UiControlUrl = tr.types.FileBacked(UICONTROLURLFILE, tr.types.String())
-  TvBufferAddress = tr.types.FileBacked(TVBUFFERADDRESS, tr.types.String())
-  TvBufferKey = tr.types.FileBacked(TVBUFFERKEY, tr.types.String())
+  EASFipsCode = tr.cwmptypes.FileBacked(EASFIPSFILE, tr.cwmptypes.String())
+  EASServiceAddress = tr.cwmptypes.FileBacked(EASADDRFILE, tr.cwmptypes.String())
+  EASServicePort = tr.cwmptypes.FileBacked(EASPORTFILE, tr.cwmptypes.String())
+  f = tr.cwmptypes.FileBacked(EASHEARTBEATFILE, tr.cwmptypes.Date())
+  EASHeartbeatTimestamp = tr.cwmptypes.ReadOnly(f)
+  TcpAlgorithm = tr.cwmptypes.FileBacked(TCPALGORITHM, tr.cwmptypes.String())
+  UiControlUrl = tr.cwmptypes.FileBacked(UICONTROLURLFILE, tr.cwmptypes.String())
+  TvBufferAddress = tr.cwmptypes.FileBacked(TVBUFFERADDRESS, tr.cwmptypes.String())
+  TvBufferKey = tr.cwmptypes.FileBacked(TVBUFFERKEY, tr.cwmptypes.String())
 
   def __init__(self, mailbox_url, my_serial=None):
     """GFiberTV object.
@@ -146,8 +146,8 @@ class GFiberTv(BASETV):
   class _DeviceProperties(BASETV.DeviceProperties):
     """Implementation of gfibertv.DeviceProperties."""
 
-    NickName = tr.types.TriggerString()
-    SerialNumber = tr.types.TriggerString()
+    NickName = tr.cwmptypes.TriggerString()
+    SerialNumber = tr.cwmptypes.TriggerString()
 
     def __init__(self, parent, my_serial):
       super(GFiberTv._DeviceProperties, self).__init__()
@@ -194,10 +194,10 @@ class DvrSpace(BASETV.DvrSpace):
   Ephemeral object to export information from /tmp/dvr_space.
   """
 
-  PermanentMBytes = tr.types.ReadOnlyInt(-1)
-  PermanentFiles = tr.types.ReadOnlyInt(-1)
-  TransientMBytes = tr.types.ReadOnlyInt(-1)
-  TransientFiles = tr.types.ReadOnlyInt(-1)
+  PermanentMBytes = tr.cwmptypes.ReadOnlyInt(-1)
+  PermanentFiles = tr.cwmptypes.ReadOnlyInt(-1)
+  TransientMBytes = tr.cwmptypes.ReadOnlyInt(-1)
+  TransientFiles = tr.cwmptypes.ReadOnlyInt(-1)
 
   def __init__(self):
     super(DvrSpace, self).__init__()
@@ -237,8 +237,8 @@ class Mailbox(BASETV.Mailbox):
   instead.
   """
 
-  Node = tr.types.String('')
-  Name = tr.types.String('')
+  Node = tr.cwmptypes.String('')
+  Name = tr.cwmptypes.String('')
 
   def __init__(self, url):
     super(Mailbox, self).__init__()

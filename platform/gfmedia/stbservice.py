@@ -32,7 +32,7 @@ import tornado.ioloop
 import tr.cwmpdate
 import tr.session
 import tr.tr135_v1_2
-import tr.types
+import tr.cwmptypes
 import tr.x_catawampus_videomonitoring_1_0 as vmonitor
 
 
@@ -240,7 +240,7 @@ class IGMP(BASE135STB.Components.FrontEnd.IP.IGMP):
 
 class ClientGroup(BASE135STB.Components.FrontEnd.IP.IGMP.ClientGroup):
   """STBService.{i}.Components.FrontEnd.{i}.IP.IGMP.ClientGroup.{i}."""
-  GroupAddress = tr.types.ReadOnlyString('')
+  GroupAddress = tr.cwmptypes.ReadOnlyString('')
 
   def __init__(self, ipaddr):
     super(ClientGroup, self).__init__()
@@ -250,7 +250,7 @@ class ClientGroup(BASE135STB.Components.FrontEnd.IP.IGMP.ClientGroup):
 
 class HDMI(BASE135STB.Components.HDMI):
   """STBService.{i}.Components.HDMI."""
-  ResolutionMode = tr.types.ReadOnlyString('Auto')
+  ResolutionMode = tr.cwmptypes.ReadOnlyString('Auto')
 
   def __init__(self):
     super(HDMI, self).__init__()
@@ -389,8 +389,8 @@ class HDMIDisplayDevice(CATA135STB.Components.HDMI.DisplayDevice):
 class ServiceMonitoring(CATA135STB.ServiceMonitoring):
   """STBService.{i}.ServiceMonitoring."""
 
-  X_CATAWAMPUS_ORG_StallAlarmResetTime = tr.types.Unsigned()
-  X_CATAWAMPUS_ORG_StallAlarmValue = tr.types.Unsigned()
+  X_CATAWAMPUS_ORG_StallAlarmResetTime = tr.cwmptypes.Unsigned()
+  X_CATAWAMPUS_ORG_StallAlarmValue = tr.cwmptypes.Unsigned()
 
   def __init__(self, ioloop=None):
     super(ServiceMonitoring, self).__init__()
