@@ -43,7 +43,7 @@ import tr.helpers
 import tr.mainloop
 import tr.session
 import tr.tr181_v2_6
-import tr.types
+import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 import dhcp
 
@@ -139,7 +139,7 @@ def UpdateDnsmasqConfig():
 
 
 class DHCPv4(CATA181DEV.Device.DHCPv4):
-  ClientNumberOfEntries = tr.types.NumberOf('ClientList')
+  ClientNumberOfEntries = tr.cwmptypes.NumberOf('ClientList')
 
   def __init__(self):
     super(DHCPv4, self).__init__()
@@ -150,10 +150,10 @@ class DHCPv4(CATA181DEV.Device.DHCPv4):
 
 class Dhcp4Server(DHCP4SERVER):
   """tr-181 Device.DHCPv4.Server."""
-  Enable = tr.types.TriggerBool(False)
-  PoolNumberOfEntries = tr.types.NumberOf('PoolList')
-  X_CATAWAMPUS_ORG_TextConfig = tr.types.FileBacked(
-      DNSMASQCONFIG, tr.types.String(), delete_if_empty=False)
+  Enable = tr.cwmptypes.TriggerBool(False)
+  PoolNumberOfEntries = tr.cwmptypes.NumberOf('PoolList')
+  X_CATAWAMPUS_ORG_TextConfig = tr.cwmptypes.FileBacked(
+      DNSMASQCONFIG, tr.cwmptypes.String(), delete_if_empty=False)
 
   def __init__(self):
     super(Dhcp4Server, self).__init__()
@@ -172,26 +172,26 @@ class Dhcp4Server(DHCP4SERVER):
 class Dhcp4ServerPool(DHCP4SERVERPOOL):
   """tr-181 Device.DHCPv4.Server.Pool."""
 
-  Enable = tr.types.TriggerBool(False)
-  DNSServers = tr.types.TriggerString('')
-  DomainName = tr.types.TriggerString('')
-  Interface = tr.types.TriggerString('')
-  IPRouters = tr.types.TriggerString('')
-  LeaseTime = tr.types.TriggerUnsigned(86400)
-  MinAddress = tr.types.TriggerIP4Addr(None)
-  MaxAddress = tr.types.TriggerIP4Addr(None)
-  Order = tr.types.TriggerInt(1)
-  SubnetMask = tr.types.TriggerIP4Addr(None)
-  X_CATAWAMPUS_ORG_NTPServers = tr.types.TriggerString('')
+  Enable = tr.cwmptypes.TriggerBool(False)
+  DNSServers = tr.cwmptypes.TriggerString('')
+  DomainName = tr.cwmptypes.TriggerString('')
+  Interface = tr.cwmptypes.TriggerString('')
+  IPRouters = tr.cwmptypes.TriggerString('')
+  LeaseTime = tr.cwmptypes.TriggerUnsigned(86400)
+  MinAddress = tr.cwmptypes.TriggerIP4Addr(None)
+  MaxAddress = tr.cwmptypes.TriggerIP4Addr(None)
+  Order = tr.cwmptypes.TriggerInt(1)
+  SubnetMask = tr.cwmptypes.TriggerIP4Addr(None)
+  X_CATAWAMPUS_ORG_NTPServers = tr.cwmptypes.TriggerString('')
 
-  OptionNumberOfEntries = tr.types.NumberOf('OptionList')
-  StaticAddressNumberOfEntries = tr.types.NumberOf('StaticAddressList')
+  OptionNumberOfEntries = tr.cwmptypes.NumberOf('OptionList')
+  StaticAddressNumberOfEntries = tr.cwmptypes.NumberOf('StaticAddressList')
 
   # Conditional serving parameters
 
-  Chaddr = tr.types.TriggerMacAddr('')
+  Chaddr = tr.cwmptypes.TriggerMacAddr('')
   # dnsmasq only allows octet masks
-  ChaddrMask = tr.types.TriggerEnum(
+  ChaddrMask = tr.cwmptypes.TriggerEnum(
       ['',
        '00:00:00:00:00:00', '00-00-00-00-00-00',
        'ff:00:00:00:00:00', 'FF:00:00:00:00:00',
@@ -207,16 +207,16 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
        'ff-ff-ff-ff-ff-00', 'FF-FF-FF-FF-FF-00',
        'ff-ff-ff-ff-ff-ff', 'FF-FF-FF-FF-FF-FF',
       ], init='')
-  UserClassID = tr.types.TriggerString('')
-  VendorClassID = tr.types.TriggerString('')
+  UserClassID = tr.cwmptypes.TriggerString('')
+  VendorClassID = tr.cwmptypes.TriggerString('')
   # dnsmasq doesn't implement exact, prefix, or suffix matching.
-  VendorClassIDMode = tr.types.TriggerEnum(['Substring'], init='Substring')
+  VendorClassIDMode = tr.cwmptypes.TriggerEnum(['Substring'], init='Substring')
 
   class Option(DHCP4SERVERPOOL.Option):
     """tr-181 Device.DHCPv4.Server.Pool.Option."""
-    Enable = tr.types.TriggerBool(True)
-    Tag = tr.types.TriggerUnsigned(0)
-    Value = tr.types.TriggerString('')
+    Enable = tr.cwmptypes.TriggerBool(True)
+    Tag = tr.cwmptypes.TriggerUnsigned(0)
+    Value = tr.cwmptypes.TriggerString('')
 
     def __init__(self):
       super(Dhcp4ServerPool.Option, self).__init__()
@@ -227,10 +227,10 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
 
   class StaticAddress(DHCP4SERVERPOOL.StaticAddress):
     """tr-181 Device.DHCPv4.Server.Pool.StaticAddress."""
-    Enable = tr.types.TriggerBool(True)
-    Chaddr = tr.types.TriggerMacAddr(None)
-    Yiaddr = tr.types.TriggerIP4Addr(None)
-    X_CATAWAMPUS_ORG_ClientID = tr.types.TriggerString('')
+    Enable = tr.cwmptypes.TriggerBool(True)
+    Chaddr = tr.cwmptypes.TriggerMacAddr(None)
+    Yiaddr = tr.cwmptypes.TriggerIP4Addr(None)
+    X_CATAWAMPUS_ORG_ClientID = tr.cwmptypes.TriggerString('')
 
     def __init__(self):
       super(Dhcp4ServerPool.StaticAddress, self).__init__()

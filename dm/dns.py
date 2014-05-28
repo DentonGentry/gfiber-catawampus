@@ -24,7 +24,7 @@ in http://www.broadband-forum.org/cwmp/tr-181-2-6-0.html
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import tr.types
+import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 
 BASEDNS = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device.DNS
@@ -34,7 +34,7 @@ DNS_CHECK_FILE = ['/tmp/dnsck_servers']
 class DNS(BASEDNS):
   """tr181 Device.DNS object."""
 
-  SupportedRecordTypes = tr.types.ReadOnlyString('A,AAAA,SRV,PTR')
+  SupportedRecordTypes = tr.cwmptypes.ReadOnlyString('A,AAAA,SRV,PTR')
 
   def __init__(self):
     super(DNS, self).__init__()
@@ -45,8 +45,8 @@ class DNS(BASEDNS):
 class Diagnostics(BASEDNS.Diagnostics):
   """tr181 Device.DNS.Diagnostics object."""
 
-  X_CATAWAMPUS_ORG_ExtraCheckServers = tr.types.FileBacked(
-      DNS_CHECK_FILE, tr.types.String())
+  X_CATAWAMPUS_ORG_ExtraCheckServers = tr.cwmptypes.FileBacked(
+      DNS_CHECK_FILE, tr.cwmptypes.String())
 
   def __init__(self):
     super(Diagnostics, self).__init__()

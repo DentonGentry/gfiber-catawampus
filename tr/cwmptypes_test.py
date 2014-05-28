@@ -26,7 +26,7 @@ import time
 import unittest
 import google3
 import mainloop
-import tr.types
+import tr.cwmptypes
 
 
 TEST_FILE = 'testobject.tmp'
@@ -34,28 +34,28 @@ TEST2_FILE = 'testobject2.tmp'
 
 
 class TestObject(object):
-  a = tr.types.Attr()
-  b = tr.types.Bool()
-  s = tr.types.String('defaultstring')
-  i = tr.types.Int()
-  u = tr.types.Unsigned()
-  f = tr.types.Float(4)
-  e = tr.types.Enum(['one', 'two', 'three', 7, None])
-  e2 = tr.types.Enum(['thing'])
-  d = tr.types.Date()
-  m = tr.types.MacAddr(init='')
-  ip4 = tr.types.IP4Addr()
-  ip6 = tr.types.IP6Addr()
-  file = tr.types.FileBacked([TEST_FILE], tr.types.Bool())
-  file2 = tr.types.FileBacked([TEST_FILE], tr.types.Bool(),
+  a = tr.cwmptypes.Attr()
+  b = tr.cwmptypes.Bool()
+  s = tr.cwmptypes.String('defaultstring')
+  i = tr.cwmptypes.Int()
+  u = tr.cwmptypes.Unsigned()
+  f = tr.cwmptypes.Float(4)
+  e = tr.cwmptypes.Enum(['one', 'two', 'three', 7, None])
+  e2 = tr.cwmptypes.Enum(['thing'])
+  d = tr.cwmptypes.Date()
+  m = tr.cwmptypes.MacAddr(init='')
+  ip4 = tr.cwmptypes.IP4Addr()
+  ip6 = tr.cwmptypes.IP6Addr()
+  file = tr.cwmptypes.FileBacked([TEST_FILE], tr.cwmptypes.Bool())
+  file2 = tr.cwmptypes.FileBacked([TEST_FILE], tr.cwmptypes.Bool(),
                               delete_if_empty=False)
 
-  v = tr.types.Unsigned()
+  v = tr.cwmptypes.Unsigned()
   @v.validator
   def v(self, value):
     return value * self.f
 
-  vv = tr.types.Int()
+  vv = tr.cwmptypes.Int()
   @vv.validator
   def vv(self, value):
     return -value
@@ -65,8 +65,8 @@ class TestObject(object):
 
 
 class NotifierTestObject(object):
-  a = tr.types.Int(0)
-  b = tr.types.Int(5)
+  a = tr.cwmptypes.Int(0)
+  b = tr.cwmptypes.Int(5)
 
 def ChangeValues(obj):
   obj.b = obj.a
@@ -84,45 +84,45 @@ class TriggerObject(object):
   def val(self):
     return self.xval
 
-  @tr.types.Trigger
+  @tr.cwmptypes.Trigger
   @val.setter
   def val(self, value):
     self.xval = value
 
-  a = tr.types.Trigger(tr.types.Attr())
-  b = tr.types.TriggerBool()
-  i = tr.types.TriggerInt()
-  m = tr.types.TriggerMacAddr(init='')
-  ip4 = tr.types.TriggerIP4Addr('1.2.3.4')
-  ip6 = tr.types.TriggerIP6Addr('1111:2222::3333:4444')
+  a = tr.cwmptypes.Trigger(tr.cwmptypes.Attr())
+  b = tr.cwmptypes.TriggerBool()
+  i = tr.cwmptypes.TriggerInt()
+  m = tr.cwmptypes.TriggerMacAddr(init='')
+  ip4 = tr.cwmptypes.TriggerIP4Addr('1.2.3.4')
+  ip6 = tr.cwmptypes.TriggerIP6Addr('1111:2222::3333:4444')
 
-  v = tr.types.TriggerFloat()
+  v = tr.cwmptypes.TriggerFloat()
   @v.validator
   def v(self, value):
     return value + 1
 
-  vv = tr.types.Float()
+  vv = tr.cwmptypes.Float()
   @vv.validator
   def vv(self, value):
     return 2 * value
-  vv = tr.types.Trigger(vv)
+  vv = tr.cwmptypes.Trigger(vv)
 
 
 class ReadOnlyObject(object):
-  b = tr.types.ReadOnlyBool(True)
-  d = tr.types.ReadOnlyDate(0.0)
-  i = tr.types.ReadOnlyInt('5')
-  s = tr.types.ReadOnlyString('foo')
-  e = tr.types.ReadOnlyEnum(['x', 'y', 'z'])
-  u = tr.types.ReadOnlyUnsigned(6)
-  m = tr.types.ReadOnlyMacAddr('00:11:22:33:44:55')
-  ip4 = tr.types.ReadOnlyIP4Addr('1.2.3.4')
-  ip6 = tr.types.ReadOnlyIP6Addr('1111:2222::3333:4444')
+  b = tr.cwmptypes.ReadOnlyBool(True)
+  d = tr.cwmptypes.ReadOnlyDate(0.0)
+  i = tr.cwmptypes.ReadOnlyInt('5')
+  s = tr.cwmptypes.ReadOnlyString('foo')
+  e = tr.cwmptypes.ReadOnlyEnum(['x', 'y', 'z'])
+  u = tr.cwmptypes.ReadOnlyUnsigned(6)
+  m = tr.cwmptypes.ReadOnlyMacAddr('00:11:22:33:44:55')
+  ip4 = tr.cwmptypes.ReadOnlyIP4Addr('1.2.3.4')
+  ip6 = tr.cwmptypes.ReadOnlyIP6Addr('1111:2222::3333:4444')
 
 
 class NumberOfObject(object):
-  TestDictNumberOfEntries = tr.types.NumberOf('TestDict')
-  TestListNumberOfEntries = tr.types.NumberOf('TestList')
+  TestDictNumberOfEntries = tr.cwmptypes.NumberOf('TestDict')
+  TestListNumberOfEntries = tr.cwmptypes.NumberOf('TestList')
 
   def __init__(self):
     self.TestDict = {}
@@ -215,7 +215,7 @@ class TypesTest(unittest.TestCase):
     self.assertRaises(ValueError, setattr, obj, 'e2', None)
 
     obj.f = 11.5
-    self.assertEquals(tr.types.tryattr(obj, 'v', 3.4), int(int(3.4) * 11.5))
+    self.assertEquals(tr.cwmptypes.tryattr(obj, 'v', 3.4), int(int(3.4) * 11.5))
     self.assertRaises(ValueError, setattr, obj, 'v', -1)
     obj.v = 7.3
     self.assertEquals(obj.v, int(int(7.3) * 11.5))
@@ -416,8 +416,8 @@ class TypesTest(unittest.TestCase):
   def testNotifications(self):
     obj = NotifierTestObject()
     obj1 = NotifierTestObject()
-    tr.types.AddNotifier(type(obj), 'a', ChangeValues)
-    tr.types.AddNotifier(type(obj1), 'a', ChangeValues)
+    tr.cwmptypes.AddNotifier(type(obj), 'a', ChangeValues)
+    tr.cwmptypes.AddNotifier(type(obj1), 'a', ChangeValues)
     self.assertNotEqual(obj.a, obj.b)
     obj.b = 7
     self.assertEquals(obj.a, 0)

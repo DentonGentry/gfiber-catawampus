@@ -27,7 +27,7 @@ import time
 
 import dhcp
 import tr.tr181_v2_6
-import tr.types
+import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 
 CATA181DEV = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
@@ -36,7 +36,7 @@ DHCP4SERVERPOOL = DHCP4SERVER.Pool
 
 
 class DHCPv4(CATA181DEV.Device.DHCPv4):
-  ClientNumberOfEntries = tr.types.ReadOnlyUnsigned(0)
+  ClientNumberOfEntries = tr.cwmptypes.ReadOnlyUnsigned(0)
 
   def __init__(self):
     super(DHCPv4, self).__init__()
@@ -47,8 +47,8 @@ class DHCPv4(CATA181DEV.Device.DHCPv4):
 
 class Dhcp4Server(DHCP4SERVER):
   """tr-181 Device.DHCPv4.Server."""
-  Enable = tr.types.Bool(False)
-  X_CATAWAMPUS_ORG_TextConfig = tr.types.String('FakeCPE DHCP Config')
+  Enable = tr.cwmptypes.Bool(False)
+  X_CATAWAMPUS_ORG_TextConfig = tr.cwmptypes.String('FakeCPE DHCP Config')
 
   def __init__(self):
     super(Dhcp4Server, self).__init__()
@@ -63,31 +63,31 @@ class Dhcp4Server(DHCP4SERVER):
 class Dhcp4ServerPool(DHCP4SERVERPOOL):
   """tr-181 Device.DHCPv4.Server.Pool."""
 
-  Enable = tr.types.Bool(False)
-  DNSServers = tr.types.String('8.8.8.8')
-  DomainName = tr.types.String('example.com')
-  Interface = tr.types.String('')
-  IPRouters = tr.types.String('192.168.1.1')
-  LeaseTime = tr.types.Unsigned(86400)
-  MinAddress = tr.types.IP4Addr('192.168.1.32')
-  MaxAddress = tr.types.IP4Addr('192.168.1.63')
-  Order = tr.types.Int(1)
-  SubnetMask = tr.types.IP4Addr('192.168.1.255')
-  X_CATAWAMPUS_ORG_NTPServers = tr.types.String('')
+  Enable = tr.cwmptypes.Bool(False)
+  DNSServers = tr.cwmptypes.String('8.8.8.8')
+  DomainName = tr.cwmptypes.String('example.com')
+  Interface = tr.cwmptypes.String('')
+  IPRouters = tr.cwmptypes.String('192.168.1.1')
+  LeaseTime = tr.cwmptypes.Unsigned(86400)
+  MinAddress = tr.cwmptypes.IP4Addr('192.168.1.32')
+  MaxAddress = tr.cwmptypes.IP4Addr('192.168.1.63')
+  Order = tr.cwmptypes.Int(1)
+  SubnetMask = tr.cwmptypes.IP4Addr('192.168.1.255')
+  X_CATAWAMPUS_ORG_NTPServers = tr.cwmptypes.String('')
 
   # Conditional serving parameters
 
-  Chaddr = tr.types.MacAddr('')
-  ChaddrMask = tr.types.MacAddr('')
-  UserClassID = tr.types.String('')
-  VendorClassID = tr.types.String('')
-  VendorClassIDMode = tr.types.Enum(['Substring'], init='Substring')
+  Chaddr = tr.cwmptypes.MacAddr('')
+  ChaddrMask = tr.cwmptypes.MacAddr('')
+  UserClassID = tr.cwmptypes.String('')
+  VendorClassID = tr.cwmptypes.String('')
+  VendorClassIDMode = tr.cwmptypes.Enum(['Substring'], init='Substring')
 
   class Option(DHCP4SERVERPOOL.Option):
     """tr-181 Device.DHCPv4.Server.Pool.Option."""
-    Enable = tr.types.Bool(True)
-    Tag = tr.types.Unsigned(0)
-    Value = tr.types.String('')
+    Enable = tr.cwmptypes.Bool(True)
+    Tag = tr.cwmptypes.Unsigned(0)
+    Value = tr.cwmptypes.String('')
 
     def __init__(self):
       super(Dhcp4ServerPool.Option, self).__init__()
@@ -95,10 +95,10 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
 
   class StaticAddress(DHCP4SERVERPOOL.StaticAddress):
     """tr-181 Device.DHCPv4.Server.Pool.StaticAddress."""
-    Enable = tr.types.Bool(True)
-    Chaddr = tr.types.MacAddr(None)
-    Yiaddr = tr.types.IP4Addr(None)
-    X_CATAWAMPUS_ORG_ClientID = tr.types.String('')
+    Enable = tr.cwmptypes.Bool(True)
+    Chaddr = tr.cwmptypes.MacAddr(None)
+    Yiaddr = tr.cwmptypes.IP4Addr(None)
+    X_CATAWAMPUS_ORG_ClientID = tr.cwmptypes.String('')
 
     def __init__(self):
       super(Dhcp4ServerPool.StaticAddress, self).__init__()

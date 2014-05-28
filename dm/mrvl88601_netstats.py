@@ -23,7 +23,7 @@
 __author__ = 'jnewlin@google.com (John Newlin)'
 
 import google3
-import tr.types
+import tr.cwmptypes
 import tr.tr181_v2_6
 
 ETHERNET = tr.tr181_v2_6.Device_v2_6.Device.Ethernet
@@ -32,21 +32,21 @@ ETHERNET = tr.tr181_v2_6.Device_v2_6.Device.Ethernet
 class NetdevStatsMrvl88601(ETHERNET.Interface.Stats):
   """Parses mrvl stats to populate Stats objects in several TRs."""
 
-  BroadcastPacketsReceived = tr.types.ReadOnlyUnsigned(0)
-  BroadcastPacketsSent = tr.types.ReadOnlyUnsigned(0)
-  BytesReceived = tr.types.ReadOnlyUnsigned(0)
-  BytesSent = tr.types.ReadOnlyUnsigned(0)
-  DiscardPacketsReceived = tr.types.ReadOnlyUnsigned(0)
-  DiscardPacketsSent = tr.types.ReadOnlyUnsigned(0)
-  ErrorsReceived = tr.types.ReadOnlyUnsigned(0)
-  ErrorsSent = tr.types.ReadOnlyUnsigned(0)
-  MulticastPacketsReceived = tr.types.ReadOnlyUnsigned(0)
-  MulticastPacketsSent = tr.types.ReadOnlyUnsigned(0)
-  PacketsReceived = tr.types.ReadOnlyUnsigned(0)
-  PacketsSent = tr.types.ReadOnlyUnsigned(0)
-  UnicastPacketsReceived = tr.types.ReadOnlyUnsigned(0)
-  UnicastPacketsSent = tr.types.ReadOnlyUnsigned(0)
-  UnknownProtoPacketsReceived = tr.types.ReadOnlyUnsigned(0)
+  BroadcastPacketsReceived = tr.cwmptypes.ReadOnlyUnsigned(0)
+  BroadcastPacketsSent = tr.cwmptypes.ReadOnlyUnsigned(0)
+  BytesReceived = tr.cwmptypes.ReadOnlyUnsigned(0)
+  BytesSent = tr.cwmptypes.ReadOnlyUnsigned(0)
+  DiscardPacketsReceived = tr.cwmptypes.ReadOnlyUnsigned(0)
+  DiscardPacketsSent = tr.cwmptypes.ReadOnlyUnsigned(0)
+  ErrorsReceived = tr.cwmptypes.ReadOnlyUnsigned(0)
+  ErrorsSent = tr.cwmptypes.ReadOnlyUnsigned(0)
+  MulticastPacketsReceived = tr.cwmptypes.ReadOnlyUnsigned(0)
+  MulticastPacketsSent = tr.cwmptypes.ReadOnlyUnsigned(0)
+  PacketsReceived = tr.cwmptypes.ReadOnlyUnsigned(0)
+  PacketsSent = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UnicastPacketsReceived = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UnicastPacketsSent = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UnknownProtoPacketsReceived = tr.cwmptypes.ReadOnlyUnsigned(0)
 
   def __init__(self, stat_dir):
     """Read network interface stats from sysfs.

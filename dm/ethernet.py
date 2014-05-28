@@ -28,7 +28,7 @@ import pynetlinux
 import tr.core
 import tr.cwmpdate
 import tr.tr181_v2_4
-import tr.types
+import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 import netdev
 
@@ -62,10 +62,10 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
     hipriq: which queue number is high priority
   """
 
-  Enable = tr.types.ReadOnlyBool(True)
-  LowerLayers = tr.types.ReadOnlyString('')
-  Name = tr.types.ReadOnlyString('')
-  Upstream = tr.types.ReadOnlyBool(False)
+  Enable = tr.cwmptypes.ReadOnlyBool(True)
+  LowerLayers = tr.cwmptypes.ReadOnlyString('')
+  Name = tr.cwmptypes.ReadOnlyString('')
+  Upstream = tr.cwmptypes.ReadOnlyBool(False)
 
   def __init__(self, ifname, upstream=False,
                qfiles=None, numq=0, hipriq=0):

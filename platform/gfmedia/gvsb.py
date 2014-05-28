@@ -23,7 +23,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import copy
 import google3
-import tr.types
+import tr.cwmptypes
 import tr.x_gvsb_1_0
 
 # Unit tests can override these.
@@ -37,19 +37,19 @@ GVSBSERVERFILE = ['/tmp/gvsbhost']
 
 class Gvsb(tr.x_gvsb_1_0.X_GOOGLE_COM_GVSB_v1_1):
   """Implementation of x-gvsb.xml."""
-  EpgPrimary = tr.types.FileBacked(
-      EPGPRIMARYFILE, tr.types.String(), delete_if_empty=False)
-  EpgSecondary = tr.types.FileBacked(
-      EPGSECONDARYFILE, tr.types.String(), delete_if_empty=False)
-  EpgUrl = tr.types.FileBacked(
-      EPGURLFILE, tr.types.String(), delete_if_empty=False)
-  GvsbChannelLineup = tr.types.FileBacked(
-      GVSBCHANNELFILE, tr.types.String(), delete_if_empty=False)
-  GvsbKick = tr.types.FileBacked(
-      GVSBKICKFILE, tr.types.String(), delete_if_empty=False,
+  EpgPrimary = tr.cwmptypes.FileBacked(
+      EPGPRIMARYFILE, tr.cwmptypes.String(), delete_if_empty=False)
+  EpgSecondary = tr.cwmptypes.FileBacked(
+      EPGSECONDARYFILE, tr.cwmptypes.String(), delete_if_empty=False)
+  EpgUrl = tr.cwmptypes.FileBacked(
+      EPGURLFILE, tr.cwmptypes.String(), delete_if_empty=False)
+  GvsbChannelLineup = tr.cwmptypes.FileBacked(
+      GVSBCHANNELFILE, tr.cwmptypes.String(), delete_if_empty=False)
+  GvsbKick = tr.cwmptypes.FileBacked(
+      GVSBKICKFILE, tr.cwmptypes.String(), delete_if_empty=False,
       file_owner='video', file_group='video')
-  GvsbServer = tr.types.FileBacked(
-      GVSBSERVERFILE, tr.types.String(), delete_if_empty=False)
+  GvsbServer = tr.cwmptypes.FileBacked(
+      GVSBSERVERFILE, tr.cwmptypes.String(), delete_if_empty=False)
 
   def __init__(self):
     super(Gvsb, self).__init__()

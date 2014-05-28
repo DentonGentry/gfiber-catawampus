@@ -33,7 +33,7 @@ import google3
 import tornado.ioloop
 import tr.core
 import tr.mainloop
-import tr.types
+import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 
 
@@ -46,10 +46,10 @@ TIMENOW = datetime.datetime.now
 
 class Speedtest(CATA181SPEED):
   """Implementation of the Speedtest vendor extension for TR-181."""
-  Arguments = tr.types.String('')
-  License = tr.types.String('')
-  Output = tr.types.ReadOnlyString('')
-  LastResultTime = tr.types.ReadOnlyDate()
+  Arguments = tr.cwmptypes.String('')
+  License = tr.cwmptypes.String('')
+  Output = tr.cwmptypes.ReadOnlyString('')
+  LastResultTime = tr.cwmptypes.ReadOnlyDate()
 
   def __init__(self, ioloop=None):
     super(Speedtest, self).__init__()

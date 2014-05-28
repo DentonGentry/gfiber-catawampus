@@ -37,7 +37,7 @@ import tr.core
 import tr.download
 import tr.tr098_v1_4
 import tr.tr181_v2_2 as tr181
-import tr.types
+import tr.cwmptypes
 
 
 FAKECPEINSTANCE = None
@@ -96,16 +96,16 @@ def FakeCPEInstance():
 
 class DeviceIdFakeCPE(dm.device_info.DeviceIdMeta):
   """Parameters for the DeviceInfo object for a FakeCPE platform."""
-  AdditionalHardwareVersion = tr.types.ReadOnlyString('0')
-  AdditionalSoftwareVersion = tr.types.ReadOnlyString('0')
-  Description = tr.types.ReadOnlyString('Simulated CPE device')
-  HardwareVersion = tr.types.ReadOnlyString('0')
-  Manufacturer = tr.types.ReadOnlyString('Catawampus')
-  ManufacturerOUI = tr.types.ReadOnlyString('001A11')
-  ModelName = tr.types.ReadOnlyString('FakeCPE')
-  ModemFirmwareVersion = tr.types.ReadOnlyString('0')
-  ProductClass = tr.types.ReadOnlyString('Simulation')
-  SerialNumber = tr.types.ReadOnlyString(FakeCPEInstance())
+  AdditionalHardwareVersion = tr.cwmptypes.ReadOnlyString('0')
+  AdditionalSoftwareVersion = tr.cwmptypes.ReadOnlyString('0')
+  Description = tr.cwmptypes.ReadOnlyString('Simulated CPE device')
+  HardwareVersion = tr.cwmptypes.ReadOnlyString('0')
+  Manufacturer = tr.cwmptypes.ReadOnlyString('Catawampus')
+  ManufacturerOUI = tr.cwmptypes.ReadOnlyString('001A11')
+  ModelName = tr.cwmptypes.ReadOnlyString('FakeCPE')
+  ModemFirmwareVersion = tr.cwmptypes.ReadOnlyString('0')
+  ProductClass = tr.cwmptypes.ReadOnlyString('Simulation')
+  SerialNumber = tr.cwmptypes.ReadOnlyString(FakeCPEInstance())
 
   @property
   def SoftwareVersion(self):
@@ -126,7 +126,7 @@ class ServicesFakeCPE(tr181.Device_v2_2.Device.Services):
 class DeviceFakeCPE(tr181.Device_v2_2.Device):
   """Device implementation for a simulated CPE device."""
 
-  InterfaceStackNumberOfEntries = tr.types.NumberOf('InterfaceStackList')
+  InterfaceStackNumberOfEntries = tr.cwmptypes.NumberOf('InterfaceStackList')
 
   def __init__(self, device_id, periodic_stats=None):
     super(DeviceFakeCPE, self).__init__()
@@ -158,9 +158,9 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
 class EthernetFakeCPE(tr181.Device_v2_2.Device.Ethernet):
   """Implements Device_v2_2.Device.Ethernet for FakeCPE platform."""
 
-  InterfaceNumberOfEntries = tr.types.NumberOf('InterfaceList')
-  LinkNumberOfEntries = tr.types.NumberOf('LinkList')
-  VLANTerminationNumberOfEntries = tr.types.NumberOf('VLANTermination')
+  InterfaceNumberOfEntries = tr.cwmptypes.NumberOf('InterfaceList')
+  LinkNumberOfEntries = tr.cwmptypes.NumberOf('LinkList')
+  VLANTerminationNumberOfEntries = tr.cwmptypes.NumberOf('VLANTermination')
 
   def __init__(self):
     super(EthernetFakeCPE, self).__init__()
@@ -172,15 +172,15 @@ class EthernetFakeCPE(tr181.Device_v2_2.Device.Ethernet):
 class IPFakeCPE(tr181.Device_v2_2.Device.IP):
   """Implements Device_v2_2.Device.IP for FakeCPE Platform."""
   # Enable fields are supposed to be writeable; we don't support that.
-  IPv4Capable = tr.types.ReadOnlyBool(True)
-  IPv4Enable = tr.types.ReadOnlyBool(True)
-  IPv4Status = tr.types.ReadOnlyString('Enabled')
-  IPv6Capable = tr.types.ReadOnlyBool(True)
-  IPv6Enable = tr.types.ReadOnlyBool(True)
-  IPv6Status = tr.types.ReadOnlyString('Enabled')
+  IPv4Capable = tr.cwmptypes.ReadOnlyBool(True)
+  IPv4Enable = tr.cwmptypes.ReadOnlyBool(True)
+  IPv4Status = tr.cwmptypes.ReadOnlyString('Enabled')
+  IPv6Capable = tr.cwmptypes.ReadOnlyBool(True)
+  IPv6Enable = tr.cwmptypes.ReadOnlyBool(True)
+  IPv6Status = tr.cwmptypes.ReadOnlyString('Enabled')
 
-  InterfaceNumberOfEntries = tr.types.NumberOf('InterfaceList')
-  ActivePortNumberOfEntries = tr.types.NumberOf('ActivePortList')
+  InterfaceNumberOfEntries = tr.cwmptypes.NumberOf('InterfaceList')
+  ActivePortNumberOfEntries = tr.cwmptypes.NumberOf('ActivePortList')
 
   def __init__(self):
     super(IPFakeCPE, self).__init__()
@@ -193,8 +193,8 @@ class IPFakeCPE(tr181.Device_v2_2.Device.IP):
 class InternetGatewayDeviceFakeCPE(BASE98IGD):
   """Implements tr-98 InternetGatewayDevice."""
 
-  LANDeviceNumberOfEntries = tr.types.NumberOf('LANDeviceList')
-  WANDeviceNumberOfEntries = tr.types.NumberOf('WANDeviceList')
+  LANDeviceNumberOfEntries = tr.cwmptypes.NumberOf('LANDeviceList')
+  WANDeviceNumberOfEntries = tr.cwmptypes.NumberOf('WANDeviceList')
 
   def __init__(self, device_id, periodic_stats=None):
     super(InternetGatewayDeviceFakeCPE, self).__init__()
@@ -230,11 +230,11 @@ class LANDevice(BASE98IGD.LANDevice):
     wifi = dm.fakewifi.FakeWifiWlanConfiguration()
     self.WLANConfigurationList = {'1': wifi}
 
-  LANWLANConfigurationNumberOfEntries = tr.types.NumberOf(
+  LANWLANConfigurationNumberOfEntries = tr.cwmptypes.NumberOf(
       'WLANConfigurationList')
-  LANEthernetInterfaceNumberOfEntries = tr.types.NumberOf(
+  LANEthernetInterfaceNumberOfEntries = tr.cwmptypes.NumberOf(
       'LANEthernetInterfaceList')
-  LANUSBInterfaceNumberOfEntries = tr.types.NumberOf(
+  LANUSBInterfaceNumberOfEntries = tr.cwmptypes.NumberOf(
       'LANUSBInterfaceList')
 
 

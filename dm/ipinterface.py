@@ -35,7 +35,7 @@ import tr.cwmpdate
 import tr.mainloop
 import tr.session
 import tr.tr181_v2_6
-import tr.types
+import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 
 try:
@@ -82,15 +82,15 @@ class IPInterfaceLinux26(CATA181IP.Interface):
     lowerlayers: string path of Device.{Ethernet,MoCA,etc}
   """
 
-  Enable = tr.types.ReadOnlyBool(True)
-  IPv4Enable = tr.types.ReadOnlyBool(True)
-  IPv4AddressNumberOfEntries = tr.types.NumberOf('IPv4AddressList')
-  IPv6AddressNumberOfEntries = tr.types.NumberOf('IPv6AddressList')
-  IPv6PrefixNumberOfEntries = tr.types.NumberOf('IPv6PrefixList')
-  IPv6Enable = tr.types.ReadOnlyBool(True)
-  LowerLayers = tr.types.ReadOnlyString('')
-  Name = tr.types.ReadOnlyString('')
-  Type = tr.types.ReadOnlyString('Normal')
+  Enable = tr.cwmptypes.ReadOnlyBool(True)
+  IPv4Enable = tr.cwmptypes.ReadOnlyBool(True)
+  IPv4AddressNumberOfEntries = tr.cwmptypes.NumberOf('IPv4AddressList')
+  IPv6AddressNumberOfEntries = tr.cwmptypes.NumberOf('IPv6AddressList')
+  IPv6PrefixNumberOfEntries = tr.cwmptypes.NumberOf('IPv6PrefixList')
+  IPv6Enable = tr.cwmptypes.ReadOnlyBool(True)
+  LowerLayers = tr.cwmptypes.ReadOnlyString('')
+  Name = tr.cwmptypes.ReadOnlyString('')
+  Type = tr.cwmptypes.ReadOnlyString('Normal')
 
   def __init__(self, ifname, lowerlayers=''):
     super(IPInterfaceLinux26, self).__init__()
@@ -183,10 +183,10 @@ class IPInterfaceLinux26(CATA181IP.Interface):
 
 class IPv4AddressLinux26(BASEIPINTF.IPv4Address):
   """tr181 Device.IP.Interface.{i}.IPv4Address implementation for Linux."""
-  Enable = tr.types.ReadOnlyBool(True)
-  IPAddress = tr.types.TriggerIP4Addr('')
-  Status = tr.types.ReadOnlyString('Enabled')
-  SubnetMask = tr.types.TriggerIP4Addr('')
+  Enable = tr.cwmptypes.ReadOnlyBool(True)
+  IPAddress = tr.cwmptypes.TriggerIP4Addr('')
+  Status = tr.cwmptypes.ReadOnlyString('Enabled')
+  SubnetMask = tr.cwmptypes.TriggerIP4Addr('')
 
   def __init__(self, parent, ipaddr='', netmask=''):
     super(IPv4AddressLinux26, self).__init__()
@@ -208,10 +208,10 @@ class IPv4AddressLinux26(BASEIPINTF.IPv4Address):
 
 class IPv6AddressLinux26(BASEIPINTF.IPv6Address):
   """tr181 Device.IP.Interface.{i}.IPv6Address implementation for Linux."""
-  Enable = tr.types.ReadOnlyBool(True)
-  IPAddress = tr.types.ReadOnlyIP6Addr('')
-  IPAddressStatus = tr.types.ReadOnlyString('Preferred')
-  Status = tr.types.ReadOnlyString('Enabled')
+  Enable = tr.cwmptypes.ReadOnlyBool(True)
+  IPAddress = tr.cwmptypes.ReadOnlyIP6Addr('')
+  IPAddressStatus = tr.cwmptypes.ReadOnlyString('Preferred')
+  Status = tr.cwmptypes.ReadOnlyString('Enabled')
 
   def __init__(self, parent, ipaddr=''):
     super(IPv6AddressLinux26, self).__init__()

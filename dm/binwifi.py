@@ -55,36 +55,36 @@ class WlanConfiguration(CATA98WIFI):
                       'WEPandAESEncryption', 'TKIPandAESEncryption',
                       'WEPandTKIPandAESEncryption']
 
-  BasicAuthenticationMode = tr.types.TriggerEnum(
+  BasicAuthenticationMode = tr.cwmptypes.TriggerEnum(
       ['None', 'SharedAuthentication'], init='SharedAuthentication')
-  BasicEncryptionModes = tr.types.TriggerEnum(
+  BasicEncryptionModes = tr.cwmptypes.TriggerEnum(
       ['None', 'WEPEncryption'], init='None')
-  BeaconAdvertisementEnabled = tr.types.ReadOnlyBool(True)
-  BeaconType = tr.types.TriggerEnum(
+  BeaconAdvertisementEnabled = tr.cwmptypes.ReadOnlyBool(True)
+  BeaconType = tr.cwmptypes.TriggerEnum(
       ['None', 'Basic', 'WPA', '11i', 'BasicandWPA', 'Basicand11i', 'WPAand11i',
        'BasicandWPAand11i'], init='11i')
-  DeviceOperationMode = tr.types.ReadOnlyString('InfrastructureAccessPoint')
-  Enable = tr.types.TriggerBool(False)
-  IEEE11iAuthenticationMode = tr.types.TriggerEnum(
+  DeviceOperationMode = tr.cwmptypes.ReadOnlyString('InfrastructureAccessPoint')
+  Enable = tr.cwmptypes.TriggerBool(False)
+  IEEE11iAuthenticationMode = tr.cwmptypes.TriggerEnum(
       ['PSKAuthentication'], init='PSKAuthentication')
-  IEEE11iEncryptionModes = tr.types.TriggerEnum(
+  IEEE11iEncryptionModes = tr.cwmptypes.TriggerEnum(
       encryption_modes, init='AESEncryption')
-  LocationDescription = tr.types.String()
-  Name = tr.types.ReadOnlyString()
+  LocationDescription = tr.cwmptypes.String()
+  Name = tr.cwmptypes.ReadOnlyString()
   # TODO(dgentry): this should be readwrite on GFHD* and read-only on GFRG*
-  OperatingFrequencyBand = tr.types.TriggerEnum(['2.4GHz', '5GHz'])
-  RadioEnabled = tr.types.TriggerBool(False)
-  SSIDAdvertisementEnabled = tr.types.TriggerBool(True)
-  Standard = tr.types.ReadOnlyString()
-  SupportedFrequencyBands = tr.types.ReadOnlyString('2.4GHz,5GHz')
-  TransmitPowerSupported = tr.types.ReadOnlyString('0,20,40,60,80,100')
-  UAPSDSupported = tr.types.ReadOnlyBool(False)
-  WEPEncryptionLevel = tr.types.ReadOnlyString('Disabled,40-bit,104-bit')
-  WEPKeyIndex = tr.types.Unsigned(1)
-  WMMSupported = tr.types.ReadOnlyBool(False)
-  WPAAuthenticationMode = tr.types.TriggerEnum(
+  OperatingFrequencyBand = tr.cwmptypes.TriggerEnum(['2.4GHz', '5GHz'])
+  RadioEnabled = tr.cwmptypes.TriggerBool(False)
+  SSIDAdvertisementEnabled = tr.cwmptypes.TriggerBool(True)
+  Standard = tr.cwmptypes.ReadOnlyString()
+  SupportedFrequencyBands = tr.cwmptypes.ReadOnlyString('2.4GHz,5GHz')
+  TransmitPowerSupported = tr.cwmptypes.ReadOnlyString('0,20,40,60,80,100')
+  UAPSDSupported = tr.cwmptypes.ReadOnlyBool(False)
+  WEPEncryptionLevel = tr.cwmptypes.ReadOnlyString('Disabled,40-bit,104-bit')
+  WEPKeyIndex = tr.cwmptypes.Unsigned(1)
+  WMMSupported = tr.cwmptypes.ReadOnlyBool(False)
+  WPAAuthenticationMode = tr.cwmptypes.TriggerEnum(
       ['PSKAuthentication'], init='PSKAuthentication')
-  WPAEncryptionModes = tr.types.TriggerEnum(
+  WPAEncryptionModes = tr.cwmptypes.TriggerEnum(
       encryption_modes, init='AESEncryption')
 
   def __init__(self, ifname, band='5', standard='n'):
@@ -476,7 +476,7 @@ class PreSharedKey(BASE98WIFI.PreSharedKey):
 class WEPKey(BASE98WIFI.WEPKey):
   """InternetGatewayDevice.WLANConfiguration.{i}.WEPKey.{i}."""
 
-  WEPKey = tr.types.TriggerString('')
+  WEPKey = tr.cwmptypes.TriggerString('')
 
   def __init__(self, parent):
     super(WEPKey, self).__init__()
@@ -498,15 +498,15 @@ class WlanConfigurationStats(netdev.NetdevStatsLinux26, BASE98WIFI.Stats):
 class AssociatedDevice(CATA98WIFI.AssociatedDevice):
   """InternetGatewayDevice.LANDevice.WLANConfiguration.AssociatedDevice."""
 
-  AssociatedDeviceAuthenticationState = tr.types.ReadOnlyBool(True)
-  AssociatedDeviceMACAddress = tr.types.ReadOnlyMacAddr()
+  AssociatedDeviceAuthenticationState = tr.cwmptypes.ReadOnlyBool(True)
+  AssociatedDeviceMACAddress = tr.cwmptypes.ReadOnlyMacAddr()
   # tr-098-1-6 defines LastDataTransmitRate as a string(4). Bizarre.
-  LastDataTransmitRate = tr.types.ReadOnlyString()
-  X_CATAWAMPUS_ORG_Active = tr.types.ReadOnlyBool(False)
-  X_CATAWAMPUS_ORG_LastDataDownlinkRate = tr.types.ReadOnlyUnsigned()
-  X_CATAWAMPUS_ORG_LastDataUplinkRate = tr.types.ReadOnlyUnsigned()
-  X_CATAWAMPUS_ORG_SignalStrength = tr.types.ReadOnlyInt()
-  X_CATAWAMPUS_ORG_SignalStrengthAverage = tr.types.ReadOnlyInt()
+  LastDataTransmitRate = tr.cwmptypes.ReadOnlyString()
+  X_CATAWAMPUS_ORG_Active = tr.cwmptypes.ReadOnlyBool(False)
+  X_CATAWAMPUS_ORG_LastDataDownlinkRate = tr.cwmptypes.ReadOnlyUnsigned()
+  X_CATAWAMPUS_ORG_LastDataUplinkRate = tr.cwmptypes.ReadOnlyUnsigned()
+  X_CATAWAMPUS_ORG_SignalStrength = tr.cwmptypes.ReadOnlyInt()
+  X_CATAWAMPUS_ORG_SignalStrengthAverage = tr.cwmptypes.ReadOnlyInt()
 
   def __init__(self, device):
     super(AssociatedDevice, self).__init__()

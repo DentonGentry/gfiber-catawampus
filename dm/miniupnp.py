@@ -27,7 +27,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import os
 import subprocess
 import tr.helpers
-import tr.types
+import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 
 BASEUPNP = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.UPnP
@@ -47,16 +47,16 @@ class UPnP(BASEUPNP):
 class Device(BASEUPNP.Device):
   """tr181 Device.UPnP.Device object."""
 
-  Enable = tr.types.TriggerBool(False)
-  UPnPDMBasicMgmt = tr.types.ReadOnlyBool(False)
-  UPnPDMConfigurationMgmt = tr.types.ReadOnlyBool(False)
-  UPnPDMSoftwareMgmt = tr.types.ReadOnlyBool(False)
-  UPnPIGD = tr.types.TriggerBool(False)
-  UPnPMediaRenderer = tr.types.ReadOnlyBool(False)
-  UPnPMediaServer = tr.types.ReadOnlyBool(False)
-  UPnPQoSDevice = tr.types.ReadOnlyBool(False)
-  UPnPQoSPolicyHolder = tr.types.ReadOnlyBool(False)
-  UPnPWLANAccessPoint = tr.types.ReadOnlyBool(False)
+  Enable = tr.cwmptypes.TriggerBool(False)
+  UPnPDMBasicMgmt = tr.cwmptypes.ReadOnlyBool(False)
+  UPnPDMConfigurationMgmt = tr.cwmptypes.ReadOnlyBool(False)
+  UPnPDMSoftwareMgmt = tr.cwmptypes.ReadOnlyBool(False)
+  UPnPIGD = tr.cwmptypes.TriggerBool(False)
+  UPnPMediaRenderer = tr.cwmptypes.ReadOnlyBool(False)
+  UPnPMediaServer = tr.cwmptypes.ReadOnlyBool(False)
+  UPnPQoSDevice = tr.cwmptypes.ReadOnlyBool(False)
+  UPnPQoSPolicyHolder = tr.cwmptypes.ReadOnlyBool(False)
+  UPnPWLANAccessPoint = tr.cwmptypes.ReadOnlyBool(False)
 
   def __init__(self):
     super(Device, self).__init__()
@@ -80,15 +80,15 @@ class Device(BASEUPNP.Device):
 class DeviceCapabilities(BASEUPNP.Device.Capabilities):
   """tr181 Device.UPnP.Device.Capabilities object."""
 
-  UPnPArchitecture = tr.types.ReadOnlyUnsigned(1)
-  UPnPArchitectureMinorVer = tr.types.ReadOnlyUnsigned(1)
-  UPnPBasicDevice = tr.types.ReadOnlyUnsigned(0)
-  UPnPDMBasicMgmt = tr.types.ReadOnlyUnsigned(0)
-  UPnPDMConfigurationMgmt = tr.types.ReadOnlyUnsigned(0)
-  UPnPDMSoftwareMgmt = tr.types.ReadOnlyUnsigned(0)
-  UPnPIGD = tr.types.ReadOnlyUnsigned(1)
-  UPnPMediaRenderer = tr.types.ReadOnlyUnsigned(0)
-  UPnPMediaServer = tr.types.ReadOnlyUnsigned(0)
-  UPnPQoSDevice = tr.types.ReadOnlyUnsigned(0)
-  UPnPQoSPolicyHolder = tr.types.ReadOnlyUnsigned(0)
-  UPnPWLANAccessPoint = tr.types.ReadOnlyUnsigned(0)
+  UPnPArchitecture = tr.cwmptypes.ReadOnlyUnsigned(1)
+  UPnPArchitectureMinorVer = tr.cwmptypes.ReadOnlyUnsigned(1)
+  UPnPBasicDevice = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UPnPDMBasicMgmt = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UPnPDMConfigurationMgmt = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UPnPDMSoftwareMgmt = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UPnPIGD = tr.cwmptypes.ReadOnlyUnsigned(1)
+  UPnPMediaRenderer = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UPnPMediaServer = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UPnPQoSDevice = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UPnPQoSPolicyHolder = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UPnPWLANAccessPoint = tr.cwmptypes.ReadOnlyUnsigned(0)

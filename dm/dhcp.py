@@ -33,7 +33,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
 import tr.tr181_v2_6
-import tr.types
+import tr.cwmptypes
 
 
 # DHCP Option values
@@ -48,10 +48,10 @@ DHCP4SERVERPOOL = tr.tr181_v2_6.Device_v2_6.Device.DHCPv4.Server.Pool
 
 class Client(DHCP4SERVERPOOL.Client):
   """tr-181 Device.DHCPv4.Server.{i}.Client.{i}."""
-  Active = tr.types.ReadOnlyBool(True)
-  Chaddr = tr.types.ReadOnlyMacAddr('')
-  IPv4AddressNumberOfEntries = tr.types.NumberOf('IPv4AddressList')
-  OptionNumberOfEntries = tr.types.NumberOf('OptionList')
+  Active = tr.cwmptypes.ReadOnlyBool(True)
+  Chaddr = tr.cwmptypes.ReadOnlyMacAddr('')
+  IPv4AddressNumberOfEntries = tr.cwmptypes.NumberOf('IPv4AddressList')
+  OptionNumberOfEntries = tr.cwmptypes.NumberOf('OptionList')
 
   def __init__(self, chaddr, ipaddr, expiry=0,
                clientid=None, hostname=None, userclassid=None,
@@ -93,8 +93,8 @@ class Client(DHCP4SERVERPOOL.Client):
 
 
 class ClientIPv4Address(DHCP4SERVERPOOL.Client.IPv4Address):
-  IPAddress = tr.types.ReadOnlyIP4Addr('')
-  LeaseTimeRemaining = tr.types.ReadOnlyDate(0)
+  IPAddress = tr.cwmptypes.ReadOnlyIP4Addr('')
+  LeaseTimeRemaining = tr.cwmptypes.ReadOnlyDate(0)
 
   def __init__(self, ip, expiry):
     """tr-181 Device.DHCPv4.Server.{i}.Client.{i}.IPv4Address.{i}.
@@ -109,8 +109,8 @@ class ClientIPv4Address(DHCP4SERVERPOOL.Client.IPv4Address):
 
 
 class ClientOption(DHCP4SERVERPOOL.Client.Option):
-  Tag = tr.types.ReadOnlyInt()
-  Value = tr.types.ReadOnlyString()
+  Tag = tr.cwmptypes.ReadOnlyInt()
+  Value = tr.cwmptypes.ReadOnlyString()
 
   def __init__(self, tag, value):
     """tr-181 Device.DHCPv4.Server.{i}.Client.{i}.Option.{i}.

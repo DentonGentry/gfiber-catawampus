@@ -308,12 +308,12 @@ class IP(tr181.Device_v2_2.Device.IP):
   """Implements Device_v2_2.Device.IP for TomatoUSB Platform."""
 
   # Enable fields are supposed to be writeable; we don't support that.
-  IPv4Capable = tr.types.ReadOnlyBool(True)
-  IPv4Enable = tr.types.ReadOnlyBool(True)
-  IPv4Status = tr.types.ReadOnlyString('Enabled')
-  IPv6Capable = tr.types.ReadOnlyBool(False)
-  IPv6Enable = tr.types.ReadOnlyBool(False)
-  IPv6Status = tr.types.ReadOnlyString('Disabled')
+  IPv4Capable = tr.cwmptypes.ReadOnlyBool(True)
+  IPv4Enable = tr.cwmptypes.ReadOnlyBool(True)
+  IPv4Status = tr.cwmptypes.ReadOnlyString('Enabled')
+  IPv6Capable = tr.cwmptypes.ReadOnlyBool(False)
+  IPv6Enable = tr.cwmptypes.ReadOnlyBool(False)
+  IPv6Status = tr.cwmptypes.ReadOnlyString('Disabled')
 
   def __init__(self):
     super(IP, self).__init__()

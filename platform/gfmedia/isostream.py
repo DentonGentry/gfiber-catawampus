@@ -31,7 +31,7 @@ import google3
 import tornado.ioloop
 import tr.core
 import tr.mainloop
-import tr.types
+import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 
 
@@ -52,12 +52,12 @@ def _KillWait(proc):
 
 class Isostream(ISOSTREAM):
   """Implementation of the Isostream vendor extension for TR-181."""
-  ServerEnable = tr.types.TriggerBool(False)
-  ServerTimeLimit = tr.types.Unsigned(60)
-  ClientEnable = tr.types.TriggerBool(False)
-  ClientTimeLimit = tr.types.Unsigned(60)
-  ClientRemoteIP = tr.types.String('')
-  ClientMbps = tr.types.Unsigned(1)
+  ServerEnable = tr.cwmptypes.TriggerBool(False)
+  ServerTimeLimit = tr.cwmptypes.Unsigned(60)
+  ClientEnable = tr.cwmptypes.TriggerBool(False)
+  ClientTimeLimit = tr.cwmptypes.Unsigned(60)
+  ClientRemoteIP = tr.cwmptypes.String('')
+  ClientMbps = tr.cwmptypes.Unsigned(1)
 
   def __init__(self):
     super(Isostream, self).__init__()
