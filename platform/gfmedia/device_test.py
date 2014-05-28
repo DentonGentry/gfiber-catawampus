@@ -133,7 +133,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
     device.NAND_MB = 'testdata/device/nand_size_mb_unk'
     did = device.DeviceId()
-    self.assertEqual(did.HardwareVersion, '?')
+    self.assertEqual(did.HardwareVersion, '0')
 
   def testFanSpeed(self):
     fan = device.FanReadGpio(speed_filename='testdata/fanspeed',
