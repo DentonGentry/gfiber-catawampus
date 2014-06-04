@@ -86,6 +86,7 @@ PYNETIFCONF = pynetlinux.ifconfig.Interface
 INTERNAL_ERROR = 9002
 
 # Unit tests can override these with fake data
+ACTIVEWAN = 'activewan'
 CONFIGDIR = '/config/tr69'
 GINSTALL = 'ginstall.py'
 HNVRAM = 'hnvram'
@@ -98,15 +99,12 @@ REPOMANIFEST = '/etc/manifest'
 VERSIONFILE = '/etc/version'
 
 
-def _ExistingInterfaces(ifcnames):
-  out = []
-  for ifcname in ifcnames:
-    try:
-      PYNETIFCONF(ifcname).get_index()
-      out.append(ifcname)
-    except IOError:
-      pass
-  return out
+def _DoesInterfaceExist(ifcname):
+  try:
+    PYNETIFCONF(ifcname).get_index()
+    return True
+  except IOError:
+    return False
 
 
 class PlatformConfig(platform_config.PlatformConfigMeta):
@@ -326,6 +324,25 @@ class Services(tr181.Device_v2_6.Device.Services):
         pass
 
 
+def activewan(ifname):
+  """Returns 'Down' if ifname is not the active WAN port."""
+  cmd = [ACTIVEWAN]
+  try:
+    act = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    out, _ = act.communicate()
+    if act.returncode != 0:
+      return ''
+  except OSError:
+    return ''
+  out = out.strip()
+  if not out:
+    return ''
+  elif out != ifname:
+    return 'Down'
+  else:
+    return ''
+
+
 class Ethernet(tr181.Device_v2_6.Device.Ethernet):
   """Implementation of tr-181 Device.Ethernet for GFMedia platforms."""
 
@@ -341,27 +358,53 @@ class Ethernet(tr181.Device_v2_6.Device.Ethernet):
     self.RMONStatsList = {}
     self.VLANTerminationList = {}
 
-    i = 1
-    for ifc in _ExistingInterfaces(['eth0', 'wan0', 'wan0.2']):
-      qprefix = '/sys/kernel/debug/bcmgenet/%s/bcmgenet_discard_cnt_q' % ifc
+    has_wan_port = False
+    if _DoesInterfaceExist('eth0'):
+      qprefix = '/sys/kernel/debug/bcmgenet/eth0/bcmgenet_discard_cnt_q'
       qglob = glob.glob(qprefix + '*')
-      self.InterfaceList[str(i)] = dm.ethernet.EthernetInterfaceLinux26(
-          ifname=ifc,
+      self.InterfaceList[1] = dm.ethernet.EthernetInterfaceLinux26(
+          ifname='eth0',
           qfiles=(qprefix + '%d') if qglob else None,
           numq=len(qglob),
           hipriq=1 if qglob else 0)
-      i += 1
+    elif _DoesInterfaceExist('wan0'):
+      has_wan_port = True
+      self.InterfaceList[1] = dm.ethernet.EthernetInterfaceLinux26(
+          ifname='wan0', qfiles=None, numq=0, hipriq=0,
+          status_fcn=lambda: activewan('wan0'))
+
+    if _DoesInterfaceExist('wan0.2'):
+      has_wan_port = True
+      self.InterfaceList[2] = dm.ethernet.EthernetInterfaceLinux26(
+          ifname='wan0.2', qfiles=None, numq=0, hipriq=0,
+          status_fcn=lambda: activewan('wan0.2'))
+
     if QCASWITCHPORT is not None:
       mac = PYNETIFCONF('lan0').get_mac()
       for port in range(1, 5):
         q = QCASWITCHPORT(portnum=port, mac=mac, ifname='lan0')
-        self.InterfaceList[str(i)] = q
-        i += 1
-    i = 256
-    for ifc in _ExistingInterfaces(['br0', 'lan0']):
-      e = dm.ethernet.EthernetInterfaceLinux26(ifname=ifc)
-      self.InterfaceList[str(i)] = e
-      i -= 1
+        self.InterfaceList[2 + port] = q
+
+    if _DoesInterfaceExist('br0'):
+      e = dm.ethernet.EthernetInterfaceLinux26(ifname='br0')
+      if has_wan_port:
+        # though all platforms have a br0 interface, it is used
+        # very differently on Network Boxes versus not. On
+        # Network Box it is the LAN port, and ACS should assign
+        # an internal address to it. On non-Network Box, it is
+        # the uplink. We give them different numbers to avoid
+        # accidentally mistaking one use for the other.
+        self.InterfaceList[254] = e
+        # For a transition period, support both 254 and 256
+        self.InterfaceList[256] = e
+      else:
+        self.InterfaceList[256] = e
+
+    if _DoesInterfaceExist('lan0'):
+      e = dm.ethernet.EthernetInterfaceLinux26(ifname='lan0')
+      self.InterfaceList[255] = e
+
+    # Do not use idx 254, it is used for br0 above if has_wan_port
 
 
 class Moca(tr181.Device_v2_6.Device.MoCA):
@@ -369,7 +412,7 @@ class Moca(tr181.Device_v2_6.Device.MoCA):
 
   def __init__(self):
     super(Moca, self).__init__()
-    ifname = _ExistingInterfaces(['moca0', 'eth1'])[0]
+    ifname = 'moca0' if _DoesInterfaceExist('moca0') else 'eth1'
     qfiles = '/sys/kernel/debug/bcmgenet/%s/bcmgenet_discard_cnt_q%%d' % ifname
     numq = 17
     hipriq = 1
@@ -440,36 +483,41 @@ class IP(tr181.Device_v2_6.Device.IP):
     super(IP, self).__init__()
     self.Unexport(['ULAPrefix'])
     self.InterfaceList = {}
-    if _ExistingInterfaces(['br0']):
+    if _DoesInterfaceExist('br0'):
       self.InterfaceList[256] = dm.ipinterface.IPInterfaceLinux26(
           ifname='br0', lowerlayers='Device.Ethernet.Interface.256')
 
     # Maintain numbering consistency between GFHD100 and GFRG200.
     # The LAN interface is first, then the MoCA interface, then the WAN
     # interfaces (if any) and then wifi (if any).
-    lanifc = _ExistingInterfaces(['lan0', 'eth0'])
-    if lanifc:
+    if _DoesInterfaceExist('lan0'):
       self.InterfaceList[1] = dm.ipinterface.IPInterfaceLinux26(
-          ifname=lanifc[0], lowerlayers='Device.Ethernet.Interface.1')
-    mocaifc = _ExistingInterfaces(['moca0', 'eth1'])
-    if mocaifc:
-      self.InterfaceList[2] = dm.ipinterface.IPInterfaceLinux26(
-          ifname=mocaifc[0], lowerlayers='Device.MoCA.Interface.1')
+          ifname='lan0', lowerlayers='Device.Ethernet.Interface.255')
+    elif _DoesInterfaceExist('eth0'):
+      self.InterfaceList[1] = dm.ipinterface.IPInterfaceLinux26(
+          ifname='eth0', lowerlayers='Device.Ethernet.Interface.1')
 
-    if _ExistingInterfaces(['wan0']):
+    if _DoesInterfaceExist('moca0'):
+      self.InterfaceList[2] = dm.ipinterface.IPInterfaceLinux26(
+          ifname='moca0', lowerlayers='Device.MoCA.Interface.1')
+    elif _DoesInterfaceExist('eth1'):
+      self.InterfaceList[2] = dm.ipinterface.IPInterfaceLinux26(
+          ifname='eth1', lowerlayers='Device.MoCA.Interface.1')
+
+    if _DoesInterfaceExist('wan0'):
       self.InterfaceList[4] = dm.ipinterface.IPInterfaceLinux26(
           ifname='wan0', lowerlayers='Device.Ethernet.Interface.1')
-    if _ExistingInterfaces(['wan0.2']):
+    if _DoesInterfaceExist('wan0.2'):
       self.InterfaceList[5] = dm.ipinterface.IPInterfaceLinux26(
           ifname='wan0.2', lowerlayers='Device.Ethernet.Interface.2')
 
-    if _ExistingInterfaces(['wlan0']):
+    if _DoesInterfaceExist('wlan0'):
       self.InterfaceList[6] = dm.ipinterface.IPInterfaceLinux26(
           ifname='wlan0', lowerlayers='')
-    if _ExistingInterfaces(['wlan1']):
+    if _DoesInterfaceExist('wlan1'):
       self.InterfaceList[7] = dm.ipinterface.IPInterfaceLinux26(
           ifname='wlan1', lowerlayers='')
-    if _ExistingInterfaces(['eth2']):
+    if _DoesInterfaceExist('eth2'):
       self.InterfaceList[8] = dm.ipinterface.IPInterfaceLinux26(
           ifname='eth2', lowerlayers='')
 
@@ -587,16 +635,16 @@ class LANDevice(BASE98IGD.LANDevice):
     self.LANEthernetInterfaceConfigList = {}
     self.LANUSBInterfaceConfigList = {}
     self.WLANConfigurationList = {}
-    i = 1
-    for wifc in _ExistingInterfaces(['eth2']):
-      wifi = dm.brcmwifi.BrcmWifiWlanConfiguration(wifc)
-      self.WLANConfigurationList[str(i)] = wifi
-      i += 1
-    bands = {'wlan0': '2.4', 'wlan1': '5'}
-    for wifc in _ExistingInterfaces(['wlan0', 'wlan1']):
-      wifi = dm.binwifi.WlanConfiguration(wifc, band=bands[wifc])
-      self.WLANConfigurationList[str(i)] = wifi
-      i += 1
+    if _DoesInterfaceExist('eth2'):
+      wifi = dm.brcmwifi.BrcmWifiWlanConfiguration('eth2')
+      self.WLANConfigurationList['1'] = wifi
+    elif _DoesInterfaceExist('wlan0'):
+      wifi = dm.binwifi.WlanConfiguration('wlan0', band='2.4')
+      self.WLANConfigurationList['1'] = wifi
+
+    if _DoesInterfaceExist('wlan1'):
+      wifi = dm.binwifi.WlanConfiguration('wlan1', band='5.0')
+      self.WLANConfigurationList['2'] = wifi
 
 
 class InternetGatewayDevice(BASE98IGD):
