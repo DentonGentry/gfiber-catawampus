@@ -99,16 +99,11 @@ class IPInterfaceLinux26(CATA181IP.Interface):
                    'ULAEnable'])
     type(self).Name.Set(self, ifname)
     type(self).LowerLayers.Set(self, lowerlayers)
-    self.IPv4AddressList = self._PopulateIPv4AddressList()
-    self.IPv6AddressList = self._PopulateIPv6AddressList()
     self.IPv6PrefixList = {}
     self._Stats = IPInterfaceStatsLinux26(ifname=ifname)
 
   def IPv4Address(self):
-    return IPv4AddressLinux26(parent=self)
-
-  def IPv6Address(self):
-    return IPv6AddressLinux26(parent=self)
+    return IPv4Address(parent=self, origin='Static')
 
   @property
   def X_CATAWAMPUS_ORG_IP4Address(self):
@@ -155,7 +150,9 @@ class IPInterfaceLinux26(CATA181IP.Interface):
       print 'Unable to execute %s\n' % cmd
       traceback.print_exc()
 
-  def _PopulateIPv4AddressList(self):
+  @property
+  @tr.session.cache
+  def IPv4AddressList(self):
     """Device.IP.Interface.{i}.IPv4Address.{i}."""
     ips = IFADDRESSES(self._ifname)
     ip4s = ips.get(socket.AF_INET, [])
@@ -163,38 +160,43 @@ class IPInterfaceLinux26(CATA181IP.Interface):
     for idx, ipdict in enumerate(ip4s, start=1):
       ip4 = ipdict.get('addr', '0.0.0.0')
       mask = ipdict.get('netmask', '0.0.0.0')
-      ipa = IPv4AddressLinux26(parent=self, ipaddr=ip4, netmask=mask)
+      ipa = IPv4Address(parent=self, ipaddr=ip4, netmask=mask)
       result[str(idx)] = ipa
     return result
 
-  def _PopulateIPv6AddressList(self):
+  @property
+  @tr.session.cache
+  def IPv6AddressList(self):
     """Device.IP.Interface.{i}.IPv6Address.{i}."""
     ips = IFADDRESSES(self._ifname)
     ip6s = ips.get(socket.AF_INET6, [])
     result = {}
     for idx, ipdict in enumerate(ip6s, start=1):
       ip6 = ipdict.get('addr', '::0')
-      # Handle Link Local addresses 'fe80::fa8f:caff:fe00:24a4%lan0'
-      ip6 = ip6.split('%')[0]
-      ipa = IPv6AddressLinux26(parent=self, ipaddr=ip6)
+      ipa = IPv6Address(parent=self, ipaddr=ip6)
       result[str(idx)] = ipa
     return result
 
 
-class IPv4AddressLinux26(BASEIPINTF.IPv4Address):
+class IPv4Address(BASEIPINTF.IPv4Address):
   """tr181 Device.IP.Interface.{i}.IPv4Address implementation for Linux."""
+  AddressingType = tr.cwmptypes.ReadOnlyEnum(['DHCP', 'IKEv2', 'AutoIP',
+                                              'IPCP', 'Static', 'Unknown'],
+                                             'Unknown')
   Enable = tr.cwmptypes.ReadOnlyBool(True)
   IPAddress = tr.cwmptypes.TriggerIP4Addr('')
   Status = tr.cwmptypes.ReadOnlyString('Enabled')
   SubnetMask = tr.cwmptypes.TriggerIP4Addr('')
 
-  def __init__(self, parent, ipaddr='', netmask=''):
-    super(IPv4AddressLinux26, self).__init__()
-    self.Unexport(['AddressingType', 'Alias'])
+  def __init__(self, parent, ipaddr='', netmask='', origin=None):
+    super(IPv4Address, self).__init__()
+    self.Unexport(['Alias'])
     self._initialized = False
     self._parent = parent
     self.IPAddress = ipaddr
     self.SubnetMask = netmask
+    if origin:
+      type(self).AddressingType.Set(self, origin)
     self._initialized = True
 
   def Triggered(self):
@@ -206,16 +208,24 @@ class IPv4AddressLinux26(BASEIPINTF.IPv4Address):
       self._parent.UpdateConfig()
 
 
-class IPv6AddressLinux26(BASEIPINTF.IPv6Address):
+class IPv6Address(BASEIPINTF.IPv6Address):
   """tr181 Device.IP.Interface.{i}.IPv6Address implementation for Linux."""
   Enable = tr.cwmptypes.ReadOnlyBool(True)
   IPAddress = tr.cwmptypes.ReadOnlyIP6Addr('')
   IPAddressStatus = tr.cwmptypes.ReadOnlyString('Preferred')
+  Origin = tr.cwmptypes.ReadOnlyEnum(['AutoConfigured', 'DHCPv6', 'IKEv2',
+                                      'WellKnown', 'Static', 'Unknown'],
+                                     'Unknown')
   Status = tr.cwmptypes.ReadOnlyString('Enabled')
 
-  def __init__(self, parent, ipaddr=''):
-    super(IPv6AddressLinux26, self).__init__()
-    self.Unexport(['Alias', 'Anycast', 'Origin', 'PreferredLifetime',
+  def __init__(self, parent, ipaddr='', origin='Unknown'):
+    super(IPv6Address, self).__init__()
+    self.Unexport(['Alias', 'Anycast', 'PreferredLifetime',
                    'Prefix', 'ValidLifetime'])
     self._parent = parent
+    if '%' in ipaddr:
+      # Handle Link Local addresses 'fe80::fa8f:caff:fe00:24a4%lan0'
+      ipaddr = ipaddr.split('%')[0]
+      origin = 'AutoConfigured'
     type(self).IPAddress.Set(self, ipaddr)
+    type(self).Origin.Set(self, origin)
