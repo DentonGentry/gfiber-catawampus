@@ -23,6 +23,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import unittest
 
 import google3
+import miniupnp
 import platform.fakecpe.device
 import tr.tr098_v1_4
 import host
@@ -48,16 +49,19 @@ class HostTest(unittest.TestCase):
     self.old_DHCP_FINGERPRINTS = host.DHCP_FINGERPRINTS
     self.old_PROC_NET_ARP = host.PROC_NET_ARP
     self.old_SYS_CLASS_NET_PATH = host.SYS_CLASS_NET_PATH
+    self.old_POLL_CMD = miniupnp.POLL_CMD
     host.DHCP_FINGERPRINTS = 'testdata/host/fingerprints-dhcp'
     host.IP6NEIGH[0] = 'testdata/host/ip6neigh_empty'
     host.PROC_NET_ARP = '/dev/null'
     host.SYS_CLASS_NET_PATH = 'testdata/host/sys/class/net'
     self.old_TIMENOW = host.TIMENOW
     host.TIMENOW = TimeNow
+    miniupnp.POLL_CMD = ['testdata/host/ssdp_poll']
 
   def tearDown(self):
     host.SYS_CLASS_NET_PATH = self.old_SYS_CLASS_NET_PATH
     host.TIMENOW = self.old_TIMENOW
+    miniupnp.POLL_CMD = self.old_POLL_CMD
 
   def testValidateExports(self):
     hosts = host.Hosts()
@@ -66,7 +70,7 @@ class HostTest(unittest.TestCase):
     h.ValidateExports()
 
   def testHostFields(self):
-    h = host.Host(Active=True, PhysAddress='mac',
+    h = host.Host(Active=True, PhysAddress='00:00:00:00:00:00',
                   ip4=['ip4_1', 'ip4_2', 'ip4_3'],
                   ip6=['ip6_1', 'ip6_2', 'ip6_3', 'ip6_4'],
                   DHCPClient='dhcpclient',
@@ -87,7 +91,7 @@ class HostTest(unittest.TestCase):
     self.assertEqual(h.Layer1Interface, 'l1iface')
     self.assertEqual(h.Layer3Interface, 'l3iface')
     self.assertEqual(h.LeaseTimeRemaining, 1000)
-    self.assertEqual(h.PhysAddress, 'mac')
+    self.assertEqual(h.PhysAddress, '00:00:00:00:00:00')
     self.assertEqual(h.UserClassID, 'user_class_id')
     self.assertEqual(h.VendorClassID, 'vendor_class_id')
     self.assertEqual(len(h.IPv4AddressList), 3)
@@ -232,6 +236,26 @@ class HostTest(unittest.TestCase):
     for h in hosts.HostList.values():
       fp = h.X_CATAWAMPUS_ORG_ClientIdentification.DhcpFingerprint
       self.assertEqual(fp, '')
+
+  def testSsdpServers(self):
+    host.PROC_NET_ARP = 'testdata/host/proc_net_arp'
+    iflookup = {'foo0': 'Device.Foo.Interface.1',
+                'foo1': 'Device.Foo.Interface.2'}
+    hosts = host.Hosts(iflookup)
+    self.assertEqual(len(hosts.HostList), 3)
+    found = 0
+    for h in hosts.HostList.values():
+      srv = h.X_CATAWAMPUS_ORG_ClientIdentification.SsdpServer
+      if h.PhysAddress == 'f8:8f:ca:00:00:01':
+        self.assertEqual(srv, 'SsdpServer1')
+        found |= 1
+      elif h.PhysAddress == 'f8:8f:ca:00:00:02':
+        self.assertEqual(srv, '')
+        found |= 2
+      elif h.PhysAddress == 'f8:8f:ca:00:00:03':
+        self.assertEqual(srv, 'SsdpServer3')
+        found |= 4
+    self.assertEqual(found, 7)
 
   def _GetFakeCPE(self, tr98=True, tr181=True):
     igd = device = None
