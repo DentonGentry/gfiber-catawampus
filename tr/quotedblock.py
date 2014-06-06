@@ -42,9 +42,12 @@ purposes.
 """
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-
 import bup.shquote
 import mainloop
+
+
+def _HasQuotes(s):
+  return '\\' in s or '"' in s or "'" in s
 
 
 class QuotedBlockProtocol(object):
@@ -87,8 +90,9 @@ class QuotedBlockProtocol(object):
       None or a string that should be returned to the remote.
     """
     line = self.partial_line + data
-    # pylint: disable-msg=W0612
-    firstchar, word = bup.shquote.unfinished_word(line)
+    word = None
+    if _HasQuotes(line):
+      _, word = bup.shquote.unfinished_word(line)
     if word:
       self.partial_line = line
     else:
@@ -113,9 +117,12 @@ class QuotedBlockProtocol(object):
     """
     if line.strip():
       # a new line in this block
-      parts = bup.shquote.quotesplit(line)
-      # pylint: disable-msg=W0612
-      self.lines.append([word for offset, word in parts])
+      if _HasQuotes(line):
+        parts = bup.shquote.quotesplit(line)
+        # pylint: disable-msg=W0612
+        self.lines.append([word for offset, word in parts])
+      else:
+        self.lines.append(line.split())
     else:
       # blank line means end of block
       lines = self.lines

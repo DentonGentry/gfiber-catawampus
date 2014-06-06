@@ -133,14 +133,16 @@ class Client(object):
     self.loop.ioloop.stop()
 
   def _StartRead(self):
-    self.stream.read_until('\n', HandleFatal(self.GotData))
+    self.stream.read_until('\r\n\r\n', HandleFatal(self.GotData))
 
   def OnClose(self):
     Log('Server connection closed!')
     self._StartConnect()
 
   def GotData(self, data):
-    self.quotedblock.GotData(data)
+    assert data.endswith('\r\n\r\n')
+    for i in data.split('\r\n')[:-1]:
+      self.quotedblock.GotData(i)
     self._StartRead()
 
   def GotBlock(self, lines):
