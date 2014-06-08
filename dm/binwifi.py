@@ -143,6 +143,7 @@ class WlanConfiguration(CATA98WIFI):
     self.new_config = None
     self.last_bin_wifi = None
     self.last_env = None
+    self._Stats = WlanConfigurationStats(ifname=self._ifname)
     self._initialized = True
 
     # Need to be implemented, but not done yet.
@@ -394,7 +395,7 @@ class WlanConfiguration(CATA98WIFI):
 
   @property
   def Stats(self):
-    return WlanConfigurationStats(ifname=self._ifname)
+    return self._Stats
 
   X_CATAWAMPUS_ORG_AllowAutoDisable = tr.cwmptypes.TriggerBool(False)
 

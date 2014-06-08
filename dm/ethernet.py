@@ -77,14 +77,13 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
     super(EthernetInterfaceLinux26, self).__init__()
     self._pynet = PYNETIFCONF(ifname)
     self._ifname = ifname
-    self._qfiles = qfiles
-    self._numq = numq
-    self._hipriq = hipriq
     self._status_fcn = status_fcn
     self._maxbitrate = maxbitrate
     self.Unexport(['Alias'])
     type(self).Name.Set(self, ifname)
     type(self).Upstream.Set(self, upstream)
+    self._Stats = EthernetInterfaceStatsLinux26(ifname=ifname, qfiles=qfiles,
+                                                numq=numq, hipriq=hipriq)
 
   @property
   def LastChange(self):
@@ -112,9 +111,7 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
 
   @property
   def Stats(self):
-    return EthernetInterfaceStatsLinux26(
-        ifname=self._ifname, qfiles=self._qfiles,
-        numq=self._numq, hipriq=self._hipriq)
+    return self._Stats
 
   @property
   def MaxBitRate(self):

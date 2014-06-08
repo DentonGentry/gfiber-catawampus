@@ -560,6 +560,8 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
       # BRCM only supports one.
       self.PreSharedKeyList[i] = wifi.PreSharedKey98()
 
+    self._Stats = BrcmWlanConfigurationStats(ifname)
+
     self.WEPKeyList = {}
     for i in range(1, 5):
       self.WEPKeyList[i] = wifi.WEPKey98()
@@ -632,7 +634,7 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
 
   @property
   def Stats(self):
-    return BrcmWlanConfigurationStats(self._ifname)
+    return self._Stats
 
   @property
   def TotalAssociations(self):

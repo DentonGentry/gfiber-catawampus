@@ -102,6 +102,7 @@ class IPInterfaceLinux26(CATA181IP.Interface):
     self.IPv4AddressList = self._PopulateIPv4AddressList()
     self.IPv6AddressList = self._PopulateIPv6AddressList()
     self.IPv6PrefixList = {}
+    self._Stats = IPInterfaceStatsLinux26(ifname=ifname)
 
   def IPv4Address(self):
     return IPv4AddressLinux26(parent=self)
@@ -133,7 +134,7 @@ class IPInterfaceLinux26(CATA181IP.Interface):
 
   @property
   def Stats(self):
-    return IPInterfaceStatsLinux26(ifname=self._ifname)
+    return self._Stats
 
   @property
   def Status(self):

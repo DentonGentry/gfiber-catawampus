@@ -128,9 +128,8 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
     type(self).Name.Set(self, ifname)
     type(self).Upstream.Set(self, bool(upstream))
     self._pynet = PYNETIFCONF(ifname)
-    self._qfiles = qfiles
-    self._numq = numq
-    self._hipriq = hipriq
+    self._Stats = BrcmMocaInterfaceStatsLinux26(ifname=ifname, qfiles=qfiles,
+                                                numq=numq, hipriq=hipriq)
 
     self.Unexport(['Alias', 'MaxBitRate', 'MaxIngressBW', 'MaxEgressBW',
                    'PreferredNC', 'PrivacyEnabledSetting', 'FreqCapabilityMask',
@@ -142,8 +141,7 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
 
   @property
   def Stats(self):
-    return BrcmMocaInterfaceStatsLinux26(self.Name, self._qfiles,
-                                         self._numq, self._hipriq)
+    return self._Stats
 
   @tr.session.cache
   def _MocaCtlShowStatus(self):

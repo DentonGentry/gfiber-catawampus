@@ -22,6 +22,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
 from tr.wvtest import unittest
+import tr.session
 import netdev
 
 
@@ -42,9 +43,9 @@ class NetdevTest(unittest.TestCase):
     self.assertEqual(eth.BytesReceived, 1)
     self.assertEqual(eth.BytesSent, 9)
     self.assertEqual(eth.DiscardPacketsReceived, 9)
-    self.assertEqual(eth.DiscardPacketsSent, 11)
+    self.assertEqual(eth.DiscardPacketsSent, 12)
     self.assertEqual(eth.ErrorsReceived, 9)
-    self.assertEqual(eth.ErrorsSent, 12)
+    self.assertEqual(eth.ErrorsSent, 11 + 13)
     self.assertEqual(eth.MulticastPacketsReceived, 8)
     self.assertEqual(eth.MulticastPacketsSent, 0)
     self.assertEqual(eth.PacketsReceived, 100)
@@ -106,7 +107,43 @@ class NetdevTest(unittest.TestCase):
     self.assertEqual(eth.PacketsReceived, 1)
     # b/12022359 would try to set UnicastPacketsReceived negative, and result
     # in a ValueError. We want to check that no exception is raised.
-    self.assertGreater(eth.UnicastPacketsReceived, 0)
+    self.assertGreaterEqual(eth.UnicastPacketsReceived, 0)
+
+  def test32bitCounterWraps(self):
+    netdev.PROC_NET_DEV = 'testdata/netdev/proc_net_dev_wrap1'
+    eth = netdev.NetdevStatsLinux26(ifname='eth0')
+    self.assertEqual(eth.BroadcastPacketsReceived, 0)
+    self.assertEqual(eth.BroadcastPacketsSent, 0)
+    self.assertEqual(eth.BytesReceived, 4294967231)
+    self.assertEqual(eth.BytesSent, 4294967239)
+    self.assertEqual(eth.DiscardPacketsReceived, 4294967234 + 4294967235)
+    self.assertEqual(eth.DiscardPacketsSent, 4294967242)
+    self.assertEqual(eth.ErrorsReceived, 4294967233 + 4294967236)
+    self.assertEqual(eth.ErrorsSent, 4294967241 + 4294967243)
+    self.assertEqual(eth.MulticastPacketsReceived, 4294967200)
+    self.assertEqual(eth.MulticastPacketsSent, 0)
+    self.assertEqual(eth.PacketsReceived, 4294967232)
+    self.assertEqual(eth.PacketsSent, 4294967240)
+    self.assertEqual(eth.UnicastPacketsReceived, 4294967232 - 4294967200)
+    self.assertEqual(eth.UnicastPacketsSent, 4294967240)
+    self.assertEqual(eth.UnknownProtoPacketsReceived, 0)
+    netdev.PROC_NET_DEV = 'testdata/netdev/proc_net_dev_wrap2'
+    # vaues should be cached for one CWMP session
+    self.assertEqual(eth.BytesReceived, 4294967231)
+    tr.session.cache.flush()
+    # Now we should see the accumulated values
+    MAX_UINT = 0xffffffff
+    self.assertEqual(eth.BytesReceived, MAX_UINT + 1000)
+    self.assertEqual(eth.BytesSent, MAX_UINT + 1008)
+    self.assertEqual(eth.DiscardPacketsReceived, 2*MAX_UINT + 1003 + 1004)
+    self.assertEqual(eth.DiscardPacketsSent, MAX_UINT + 1011)
+    self.assertEqual(eth.ErrorsReceived, 2*MAX_UINT + 1002 + 1005)
+    self.assertEqual(eth.ErrorsSent, 2*MAX_UINT + 1010 + 1012)
+    self.assertEqual(eth.MulticastPacketsReceived, MAX_UINT + 1007)
+    self.assertEqual(eth.PacketsReceived, MAX_UINT + 1021)
+    self.assertEqual(eth.PacketsSent, MAX_UINT + 1009)
+    self.assertEqual(eth.UnicastPacketsReceived, 1021 - 1007)
+    self.assertEqual(eth.UnicastPacketsSent, MAX_UINT + 1009)
 
 
 if __name__ == '__main__':
