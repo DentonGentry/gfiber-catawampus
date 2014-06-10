@@ -74,6 +74,13 @@ def _StripNamespace(tag):
     return tag
 
 
+def _SuppressSensitiveParams(name, value):
+  """Don't log passwords, and other sensitive information."""
+  if 'KeyPassphrase' in name or 'WEPKey' in name:
+    value = 'XXXXXXXX'
+  return (name, value)
+
+
 def _LogSoapETree(et, prefix=''):
   """Tersely log an ElementTree CWMP message.
 
@@ -97,10 +104,11 @@ def _LogSoapETree(et, prefix=''):
     # to:
     #   InternetGatewayDevice.Foo.Bar = 60
     text0 = et[0].text and et[0].text.strip()
-    text0 = _Shorten(text0, 8, 32, 64)
+    name = _Shorten(text0, 8, 32, 64)
     text1 = et[1].text and et[1].text.strip()
-    text1 = _Shorten(text1, 16, 64, 192)
-    return '%s%s = %s\n' % (prefix, text0, text1)
+    value = _Shorten(text1, 16, 64, 192)
+    (name, value) = _SuppressSensitiveParams(name, value)
+    return '%s%s = %s\n' % (prefix, name, value)
   if et.text and et.text.strip():
     return '%s%s\n' % (prefix, et.text.strip())
   out = ''
