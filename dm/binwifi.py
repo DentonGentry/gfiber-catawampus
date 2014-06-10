@@ -95,6 +95,8 @@ class WlanConfiguration(CATA98WIFI):
     # TODO(dgentry): can /bin/wifi tell us the capability of the chipset?
     type(self).Standard.Set(self, standard)
     self.new_config = None
+    self.last_bin_wifi = None
+    self.last_env = None
 
     # Need to be implemented, but not done yet.
     self.Unexport(['BasicDataTransmitRates', 'AutoRateFallBackEnabled',
@@ -375,7 +377,7 @@ class WlanConfiguration(CATA98WIFI):
       The -e argument to pass to /bin/wifi.
     """
     if 'Basic' in self.BeaconType:
-      return 'WEP' if 'WEP' in crypto else 'NONE'
+      return 'WEP' if 'WEP' in self.BasicEncryptionModes else 'NONE'
 
     if '11i' in self.BeaconType:
       auth = 'WPA2'
@@ -421,7 +423,8 @@ class WlanConfiguration(CATA98WIFI):
     # TODO(jnewlin): Need a way to pick between 40 or 80Mhz channel for ac.
     if self._band == '5':
       cmd += ['-w', '40']
-    for psk in self.PreSharedKeyList.values():
+    sl = sorted(self.PreSharedKeyList.iteritems(), key=lambda x: int(x[0]))
+    for (_, psk) in sl:
       key = psk.GetKey()
       if key:
         env['WIFI_PSK'] = key
@@ -430,11 +433,17 @@ class WlanConfiguration(CATA98WIFI):
 
   @tr.mainloop.WaitUntilIdle
   def UpdateBinWifi(self):
+    """Apply config to device by running /bin/wifi."""
     if self.Enable and self.RadioEnabled:
       (cmd, env) = self._MakeBinWifiCommand()
     else:
       cmd = BINWIFI + ['off', '-P', '-b', self._band]
       env = None
+
+    if cmd == self.last_bin_wifi and env == self.last_env:
+      print 'No change in wifi configuration, not executing.'
+      return
+
     try:
       print 'Running %s' % str(cmd)
       child = subprocess.Popen(cmd, env=env, close_fds=True, shell=False)
@@ -442,6 +451,9 @@ class WlanConfiguration(CATA98WIFI):
     except (IOError, OSError, subprocess.CalledProcessError):
       print 'Unable to configure Wifi.'
       traceback.print_exc()
+
+    self.last_bin_wifi = cmd
+    self.last_env = env
 
 
 class PreSharedKey(BASE98WIFI.PreSharedKey):
