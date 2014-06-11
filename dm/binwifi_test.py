@@ -184,11 +184,31 @@ class BinWifiTest(unittest.TestCase):
     buf = open(self.wifioutfile).read()
 
     # Test that setting the KeyPassphrase alone is enough to write the config
+    bw.PreSharedKeyList['1'].KeyPassphrase = ''
     for i in reversed(range(1, 11)):
       bw.PreSharedKeyList[str(i)].KeyPassphrase = 'testpassword' + str(i)
       self.loop.RunOnce(timeout=1)
       newbuf = open(self.wifioutfile).read()
       self.assertNotEqual(newbuf, buf)
+      buf = newbuf
+
+  def testWEP(self):
+    bw = binwifi.WlanConfiguration('wifi0', band='2.4')
+    bw.StartTransaction()
+    bw.RadioEnabled = True
+    bw.Enable = True
+    bw.AutoChannelEnable = True
+    bw.SSID = 'Test SSID'
+    bw.BeaconType = 'Basic'
+    bw.BasicEncryptionModes = 'WEPEncryption'
+    self.loop.RunOnce(timeout=1)
+    buf = open(self.wifioutfile).read()
+    exp = [
+        '"set" "-P" "-b" "2.4" "-e" "WEP" '
+        '"-c" "auto" "-s" "Test SSID"',
+        'PSK='
+        ]
+    self.assertEqual(buf.strip().splitlines(), exp)
 
   def testSSID(self):
     bw = binwifi.WlanConfiguration('wifi0')
@@ -228,6 +248,24 @@ class BinWifiTest(unittest.TestCase):
         self.assertEqual(c.X_CATAWAMPUS_ORG_SignalStrengthAverage, -31)
         found |= 4
     self.assertEqual(found, 0x7)
+
+  def testConfigNotChanged(self):
+    bw = binwifi.WlanConfiguration('wifi0', band='5')
+    bw.StartTransaction()
+    bw.RadioEnabled = True
+    bw.Enable = True
+    bw.AutoChannelEnable = False
+    bw.Channel=44
+    bw.SSID = 'Test SSID'
+    bw.BeaconType = 'Basic'
+    self.loop.RunOnce(timeout=1)
+    self.assertTrue(os.path.exists(self.wifioutfile))
+    os.unlink(self.wifioutfile)
+    # Make no actual change in the object, /bin/wifi should not be run again.
+    bw.StartTransaction()
+    bw.Channel=44
+    self.loop.RunOnce(timeout=1)
+    self.assertFalse(os.path.exists(self.wifioutfile))
 
 
 if __name__ == '__main__':
