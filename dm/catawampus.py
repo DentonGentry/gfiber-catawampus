@@ -20,21 +20,26 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import cProfile
 import json
+import pstats
+import StringIO
 import sys
 import google3
 import tr.core
+import tr.cwmptypes
 import tr.x_catawampus_1_0
 
 BASEDM = tr.x_catawampus_1_0.X_CATAWAMPUS_ORG_CATAWAMPUS_v1_0
 
 
 #pylint: disable-msg=W0231
-class CatawampusDm(BASEDM):
+class CatawampusDm(BASEDM.X_CATAWAMPUS_ORG_CATAWAMPUS):
   """Implementation of x-catawampus-1.0. See tr/schema/x-catawampus.xml."""
 
   def __init__(self):
-    BASEDM.__init__(self)
+    super(CatawampusDm, self).__init__()
+    self.Profiler = Profiler()
 
   @property
   def RuntimeEnvInfo(self):
@@ -51,6 +56,30 @@ class CatawampusDm(BASEDM):
     env['python'] = python
 
     return json.dumps(env)
+
+
+class Profiler(BASEDM.X_CATAWAMPUS_ORG_CATAWAMPUS.Profiler):
+  """Implements a profiler for cwmpd."""
+
+  Enable = tr.cwmptypes.TriggerBool(False)
+  Result = tr.cwmptypes.ReadOnlyString('')
+
+  def __init__(self):
+    super(Profiler, self).__init__()
+    self.prof = None
+
+  def Triggered(self):
+    if self.Enable and not self.prof:
+      self.prof = cProfile.Profile()
+      self.prof.enable()
+    if not self.Enable and self.prof:
+      self.prof.disable()
+      s = StringIO.StringIO()
+      ps = pstats.Stats(self.prof, stream=s).sort_stats('cumulative')
+      ps.print_stats()
+      val = s.getvalue()
+      type(self).Result.Set(self, val[:16384])
+      self.prof = None
 
 
 if __name__ == '__main__':
