@@ -47,6 +47,8 @@ class BinWifiTest(unittest.TestCase):
     binwifi.BINWIFI = self.old_BINWIFI
     netdev.PROC_NET_DEV = self.old_PROC_NET_DEV
     shutil.rmtree(self.tmpdir)
+    # Let any pending callbacks expire
+    self.loop.RunOnce(timeout=1)
 
   def testValidateExports(self):
     bw = binwifi.WlanConfiguration('wifi0')
