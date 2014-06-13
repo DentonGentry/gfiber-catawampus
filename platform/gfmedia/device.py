@@ -413,9 +413,13 @@ class Moca(tr181.Device_v2_6.Device.MoCA):
   def __init__(self):
     super(Moca, self).__init__()
     ifname = 'moca0' if _DoesInterfaceExist('moca0') else 'eth1'
-    qfiles = '/sys/kernel/debug/bcmgenet/%s/bcmgenet_discard_cnt_q%%d' % ifname
-    numq = 17
-    hipriq = 1
+    if os.path.exists('/sys/kernel/debug/bcmgenet'):
+      qfiles = '/sys/kernel/debug/bcmgenet/%s/bcmgenet_discard_cnt_q%%d' % ifname
+      numq = 17
+      hipriq = 1
+    else:
+      qfiles = None
+      numq = hipriq = 0
     self.InterfaceList = {}
     if dm.brcmmoca2.IsMoca2_0():
       self.InterfaceList['1'] = dm.brcmmoca2.BrcmMocaInterface(
