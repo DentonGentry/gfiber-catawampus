@@ -134,7 +134,7 @@ class BinWifiTest(unittest.TestCase):
     # testdata/binwifi/binwifi quotes every argument
     exp = [
         '"set" "-P" "-b" "5" "-e" "WPA2_PSK_AES" "-H" "-c" "44" '
-        '"-s" "Test SSID 1" "-a" "HIGH" "-w" "40"',
+        '"-s" "Test SSID 1" "-a" "HIGH" "-w" "80"',
         'PSK=testpassword'
         ]
     self.assertEqual(buf.strip().splitlines(), exp)
