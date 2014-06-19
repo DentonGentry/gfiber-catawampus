@@ -31,6 +31,7 @@ import datetime
 import tornado.ioloop
 import tr.cwmpbool
 import tr.cwmptypes
+import tr.monohelper
 import download
 
 # Time in seconds to refetch the values that are being watched
@@ -40,6 +41,10 @@ REFRESH_TIMEOUT = 60
 # TR69 constants for which notification method to use.
 PASSIVE_NOTIFY = 1
 ACTIVE_NOTIFY = 2
+
+
+# Tracking of notifications which are particularly expensive to process.
+ExpensiveNotifications = {}
 
 
 class SetParameterErrors(Exception):
@@ -248,7 +253,13 @@ class ParameterAttributes(object):
     """Checks if a notification needs to be sent to the ACS."""
     for paramname in self.params.keys():
       try:
+        print 'Checking notifications for ' + str(paramname)
+        start = tr.monohelper.monotime()
         value = self.root.GetExport(paramname)
+        end = tr.monohelper.monotime()
+        accumulated = ExpensiveNotifications.get(paramname, 0.0)
+        accumulated += end - start
+        ExpensiveNotifications[paramname] = accumulated
       except KeyError:
         # ACS sets notifications for ephemeral objects like Device.Hosts.Host.
         # The object doesn't exist right now, it clearly has no notifications.
