@@ -292,6 +292,7 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
   def AssociatedDeviceNumberOfEntries(self):
     return len(self.AssociatedDeviceList)
 
+  @tr.session.cache
   def _MocaGetNodeIDs(self):
     """Return a list of active MoCA Node IDs."""
     nodes = list()
@@ -457,6 +458,7 @@ class BrcmMocaAssociatedDevice(CATA181MOCA.Interface.AssociatedDevice):
     rc['bitloading'] = '$BRCM2$' + _CombineBitloading(bitl)
     return rc
 
+  @tr.session.cache
   def _ParseGenNodeExtStatus(self):
     """Check TX and RX profiles of mocap --gen_node_ext_status."""
     rc = self._ExtractGenNodeExtStatus(self.NodeID,
