@@ -647,7 +647,7 @@ class LANDevice(BASE98IGD.LANDevice):
       self.WLANConfigurationList['1'] = wifi
 
     if _DoesInterfaceExist('wlan1'):
-      wifi = dm.binwifi.WlanConfiguration('wlan1', band='5.0')
+      wifi = dm.binwifi.WlanConfiguration('wlan1', band='5')
       self.WLANConfigurationList['2'] = wifi
 
 
