@@ -228,7 +228,7 @@ class PortMapping(CATANAT.PortMapping):
     lines.append('DEST=' + self.InternalClient)
     # TODO(dgentry) ExternalPort=0 should become a dmzhost instead
     if self.X_CATAWAMPUS_ORG_PortRangeSize:
-      end = self.ExternalPort + self.X_CATAWAMPUS_ORG_PortRangeSize
+      end = self.ExternalPort + self.X_CATAWAMPUS_ORG_PortRangeSize - 1
       sport = '%d:%d' % (self.ExternalPort, end)
     elif self.ExternalPortEndRange:
       sport = '%d:%d' % (self.ExternalPort, self.ExternalPortEndRange)
@@ -236,7 +236,7 @@ class PortMapping(CATANAT.PortMapping):
       sport = '%d' % self.ExternalPort
     lines.append('SPORT=' + sport)
     if self.X_CATAWAMPUS_ORG_PortRangeSize:
-      end = self.InternalPort + self.X_CATAWAMPUS_ORG_PortRangeSize
+      end = self.InternalPort + self.X_CATAWAMPUS_ORG_PortRangeSize - 1
       dport = '%d:%d' % (self.InternalPort, end)
     else:
       dport = '%d' % self.InternalPort
