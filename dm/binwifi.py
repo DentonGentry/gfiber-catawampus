@@ -71,8 +71,6 @@ class WlanConfiguration(CATA98WIFI):
       encryption_modes, init='AESEncryption')
   LocationDescription = tr.cwmptypes.String()
   Name = tr.cwmptypes.ReadOnlyString()
-  # TODO(dgentry): this should be readwrite on GFHD* and read-only on GFRG*
-  OperatingFrequencyBand = tr.cwmptypes.TriggerEnum(['2.4GHz', '5GHz'])
   RadioEnabled = tr.cwmptypes.TriggerBool(False)
   SSIDAdvertisementEnabled = tr.cwmptypes.TriggerBool(True)
   Standard = tr.cwmptypes.ReadOnlyString()
@@ -87,16 +85,19 @@ class WlanConfiguration(CATA98WIFI):
   WPAEncryptionModes = tr.cwmptypes.TriggerEnum(
       encryption_modes, init='AESEncryption')
 
-  def __init__(self, ifname, band='5', standard='n'):
+  def __init__(self, ifname, band=None, standard='n'):
     super(WlanConfiguration, self).__init__()
+    self._initialized = False
     self._ifname = ifname
-    self._band = band
     type(self).Name.Set(self, ifname)
+    self._band = band if band else '5'
+    self._fixed_band = band
     # TODO(dgentry): can /bin/wifi tell us the capability of the chipset?
     type(self).Standard.Set(self, standard)
     self.new_config = None
     self.last_bin_wifi = None
     self.last_env = None
+    self._initialized = True
 
     # Need to be implemented, but not done yet.
     self.Unexport(['BasicDataTransmitRates', 'AutoRateFallBackEnabled',
@@ -286,6 +287,29 @@ class WlanConfiguration(CATA98WIFI):
   KeyPassphrase = property(GetKeyPassphrase, SetKeyPassphrase, None,
                            'WLANConfiguration.KeyPassphrase')
 
+  def _InternalBandToExternal(self, internal):
+    return '2.4GHz' if internal == '2.4' else '5GHz'
+
+  def _ExternalBandToInternal(self, external):
+    return '2.4' if external == '2.4GHz' else '5'
+
+  def GetOperatingFrequencyBand(self):
+    return self._InternalBandToExternal(self._band)
+
+  def SetOperatingFrequencyBand(self, value):
+    if str(value) not in ['2.4GHz', '5GHz', '']:
+      raise ValueError('Invalid band')
+    internal = self._ExternalBandToInternal(str(value))
+    if self._fixed_band and self._fixed_band != internal:
+      raise AttributeError("can't set read-only attribute")
+    else:
+      self._band = internal
+    self.Triggered()
+
+  OperatingFrequencyBand = property(GetOperatingFrequencyBand,
+                                    SetOperatingFrequencyBand, None,
+                                    'WLANConfiguration.OperatingFrequencyBand')
+
   @property
   def RegulatoryDomain(self):
     return self._BinwifiShow().get('RegDomain', '').strip()
@@ -358,7 +382,8 @@ class WlanConfiguration(CATA98WIFI):
 
   def Triggered(self):
     """Called when a parameter is modified."""
-    self.UpdateBinWifi()
+    if self._initialized:
+      self.UpdateBinWifi()
 
   def _IsConfigComplete(self):
     """Returns true if configuration is ready to be applied."""

@@ -99,7 +99,7 @@ class BinWifiTest(unittest.TestCase):
     bw.RadioEnabled = True
     bw.Enable = True
     bw.AutoChannelEnable = False
-    bw.Channel=10
+    bw.Channel = 10
     bw.X_CATAWAMPUS_ORG_AutoChanType = 'HIGH'
     bw.SSID = 'Test SSID 1'
     bw.BeaconType = 'WPAand11i'
@@ -122,7 +122,7 @@ class BinWifiTest(unittest.TestCase):
     bw.RadioEnabled = True
     bw.Enable = True
     bw.AutoChannelEnable = False
-    bw.Channel=44
+    bw.Channel = 44
     bw.X_CATAWAMPUS_ORG_AutoChanType = 'HIGH'
     bw.SSID = 'Test SSID 1'
     bw.BeaconType = 'WPAand11i'
@@ -213,12 +213,15 @@ class BinWifiTest(unittest.TestCase):
     self.assertEqual(buf.strip().splitlines(), exp)
 
   def testSSID(self):
-    bw = binwifi.WlanConfiguration('wifi0')
+    bw = binwifi.WlanConfiguration('wifi0', band='5')
     bw.StartTransaction()
     bw.SSID = 'this is ok'
+    self.loop.RunOnce(timeout=1)
     bw.SSID = '0123456789abcdef0123456789abcdef'  # should still be ok
+    self.loop.RunOnce(timeout=1)
     self.assertRaises(ValueError, setattr, bw, 'SSID',
                       '0123456789abcdef0123456789abcdef0')
+    self.loop.RunOnce(timeout=1)
 
   def testAssociatedDevices(self):
     bw = binwifi.WlanConfiguration('wifi0')
@@ -257,7 +260,7 @@ class BinWifiTest(unittest.TestCase):
     bw.RadioEnabled = True
     bw.Enable = True
     bw.AutoChannelEnable = False
-    bw.Channel=44
+    bw.Channel = 44
     bw.SSID = 'Test SSID'
     bw.BeaconType = 'Basic'
     self.loop.RunOnce(timeout=1)
@@ -265,9 +268,52 @@ class BinWifiTest(unittest.TestCase):
     os.unlink(self.wifioutfile)
     # Make no actual change in the object, /bin/wifi should not be run again.
     bw.StartTransaction()
-    bw.Channel=44
+    bw.Channel = 44
     self.loop.RunOnce(timeout=1)
     self.assertFalse(os.path.exists(self.wifioutfile))
+
+  def testVariousOperatingFrequencyBand(self):
+    bw = binwifi.WlanConfiguration('wifi0')
+    self.assertEqual(bw.OperatingFrequencyBand, '5GHz')
+    bw.OperatingFrequencyBand = '2.4GHz'
+    self.assertEqual(bw.OperatingFrequencyBand, '2.4GHz')
+    bw.OperatingFrequencyBand = ''
+    self.assertEqual(bw.OperatingFrequencyBand, '5GHz')
+    self.assertRaises(ValueError, setattr, bw,
+                      'OperatingFrequencyBand', '60GHz')
+    self.loop.RunOnce(timeout=1)
+
+  def testOperatingFrequencyBand(self):
+    bw = binwifi.WlanConfiguration('wifi0')
+    bw.StartTransaction()
+    bw.RadioEnabled = True
+    bw.Enable = True
+    bw.AutoChannelEnable = True
+    bw.OperatingFrequencyBand = '5GHz'
+    bw.SSID = 'Test SSID'
+    bw.BeaconType = 'Basic'
+    bw.BasicEncryptionModes = 'None'
+    self.loop.RunOnce(timeout=1)
+    buf = open(self.wifioutfile).read()
+    exp = [
+        '"set" "-P" "-b" "5" "-e" "NONE" '
+        '"-c" "auto" "-s" "Test SSID" '
+        '"-a" "NONDFS" "-w" "80"',
+        'PSK='
+        ]
+    self.assertEqual(buf.strip().splitlines(), exp)
+
+    bw.OperatingFrequencyBand = '2.4GHz'
+    self.loop.RunOnce(timeout=1)
+    buf = open(self.wifioutfile).read()
+    exp = [
+        '"set" "-P" "-b" "2.4" "-e" "NONE" '
+        '"-c" "auto" "-s" "Test SSID" '
+        '"-a" "NONDFS"',
+        'PSK='
+        ]
+    self.assertEqual(buf.strip().splitlines(), exp)
+
 
 
 if __name__ == '__main__':

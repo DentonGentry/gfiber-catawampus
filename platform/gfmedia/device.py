@@ -642,13 +642,16 @@ class LANDevice(BASE98IGD.LANDevice):
     if _DoesInterfaceExist('eth2'):
       wifi = dm.brcmwifi.BrcmWifiWlanConfiguration('eth2')
       self.WLANConfigurationList['1'] = wifi
-    elif _DoesInterfaceExist('wlan0'):
+    if _DoesInterfaceExist('wlan0') and _DoesInterfaceExist('wlan1'):
+      # Two radios, instantiate both with fixed bands
       wifi = dm.binwifi.WlanConfiguration('wlan0', band='2.4')
       self.WLANConfigurationList['1'] = wifi
-
-    if _DoesInterfaceExist('wlan1'):
       wifi = dm.binwifi.WlanConfiguration('wlan1', band='5')
       self.WLANConfigurationList['2'] = wifi
+    elif _DoesInterfaceExist('wlan0'):
+      # One radio, allow switching bands
+      wifi = dm.binwifi.WlanConfiguration('wlan0')
+      self.WLANConfigurationList['1'] = wifi
 
 
 class InternetGatewayDevice(BASE98IGD):
