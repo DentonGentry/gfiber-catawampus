@@ -87,6 +87,20 @@ SYS_BLOCK = '/sys/block/'
 SYS_UBI = '/sys/class/ubi/'
 
 
+class ErrorStatVfs(object):
+  def __init__(self):
+    self.f_bsize = 0
+    self.f_frsize = 0
+    self.f_blocks = 0
+    self.f_bfree = 0
+    self.f_bavail = 0
+    self.f_files = 0
+    self.f_ffree = 0
+    self.f_favail = 0
+    self.f_flag = 0
+    self.f_namemax = 0
+
+
 def _FsType(fstype):
   supported = {'vfat': 'FAT32', 'ext2': 'ext2', 'ext3': 'ext3',
                'ext4': 'ext4', 'msdos': 'FAT32', 'xfs': 'xfs',
@@ -160,7 +174,10 @@ class LogicalVolumeLinux26(BASESTORAGE.LogicalVolume):
 
   @tr.session.cache
   def _GetStatVfs(self):
-    return STATVFS(self.rootpath)
+    try:
+      return STATVFS(self.rootpath)
+    except OSError, IOError:
+      return ErrorStatVfs()
 
   @property
   def Capacity(self):
