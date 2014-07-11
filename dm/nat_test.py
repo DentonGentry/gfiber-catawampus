@@ -38,9 +38,15 @@ class NatTest(unittest.TestCase):
     self.old_OUTPUTFILE4 = nat.OUTPUTFILE4
     self.old_OUTPUTFILE6 = nat.OUTPUTFILE6
     self.old_RESTARTCMD = nat.RESTARTCMD
+    self.old_DMZFILE4 = nat.DMZFILE4
+    self.old_DMZFILE6 = nat.DMZFILE6
     self.restartfile = os.path.join(self.tmpdir, 'restarted')
     self.outputfile4 = os.path.join(self.tmpdir, 'config4')
     self.outputfile6 = os.path.join(self.tmpdir, 'config6')
+    self.dmzfile4 = os.path.join(self.tmpdir, 'dmz4')
+    self.dmzfile6 = os.path.join(self.tmpdir, 'dmz6')
+    nat.DMZFILE4 = self.dmzfile4
+    nat.DMZFILE6 = self.dmzfile6
     nat.OUTPUTFILE4 = self.outputfile4
     nat.OUTPUTFILE6 = self.outputfile6
     nat.RESTARTCMD = ['testdata/nat/restart', self.restartfile]
@@ -48,6 +54,8 @@ class NatTest(unittest.TestCase):
   def tearDown(self):
     super(NatTest, self).tearDown()
     shutil.rmtree(self.tmpdir)
+    nat.DMZFILE4 = self.old_DMZFILE4
+    nat.DMZFILE6 = self.old_DMZFILE6
     nat.OUTPUTFILE4 = self.old_OUTPUTFILE4
     nat.OUTPUTFILE6 = self.old_OUTPUTFILE6
     nat.RESTARTCMD = self.old_RESTARTCMD
@@ -72,13 +80,13 @@ class NatTest(unittest.TestCase):
     self.assertEqual(p.Status, 'Disabled')
     p.Enable = True
     self.assertEqual(p.Status, 'Error_Misconfigured')
-    p.InternalClient = '1.1.1.1'
+    p.Protocol = 'TCP'
     self.assertEqual(p.Status, 'Error_Misconfigured')
     p.InternalPort = 80
     self.assertEqual(p.Status, 'Error_Misconfigured')
     p.Interface = 'Device.IP.Interface.1'
     self.assertEqual(p.Status, 'Error_Misconfigured')
-    p.Protocol = 'TCP'
+    p.InternalClient = '1.1.1.1'
     self.assertEqual(p.Status, 'Enabled')
 
   def testInterface(self):
@@ -270,6 +278,45 @@ class NatTest(unittest.TestCase):
 
     config = open(self.outputfile4).read()
     self.assertFalse(config)
+
+  def testRestartFails(self):
+    print 'The following tracebacks are normal, they are part of the test.'
+    nat.RESTARTCMD = ['testdata/nat/restart_fails']
+    n = nat.NAT(dmroot=DeviceModelRoot())
+    p = n.PortMapping()
+    p.InternalClient = '1.1.1.1'
+    p.Enable = True
+    n.PortMappingList['1'] = p
+    self.loop.RunOnce(timeout=1)
+    self.assertTrue(os.path.exists(self.outputfile4))
+
+  def testDmz4(self):
+    n = nat.NAT(dmroot=DeviceModelRoot())
+    p = n.PortMapping()
+    n.PortMappingList['1'] = p
+    p.InternalClient = '1.1.1.1'
+    p.Enable = True
+    self.assertFalse(os.path.exists(self.dmzfile4))
+    self.loop.RunOnce(timeout=1)
+    self.assertTrue(os.path.exists(self.dmzfile4))
+    self.assertFalse(os.path.exists(self.dmzfile6))
+    self.assertTrue(os.path.exists(self.outputfile4))
+    config4 = open(self.outputfile4).read()
+    self.assertFalse(config4)
+
+  def testDmz6(self):
+    n = nat.NAT(dmroot=DeviceModelRoot())
+    p = n.PortMapping()
+    n.PortMappingList['1'] = p
+    p.InternalClient = 'fe80::fa8f:caff:fe11:1111'
+    p.Enable = True
+    self.assertFalse(os.path.exists(self.dmzfile6))
+    self.loop.RunOnce(timeout=1)
+    self.assertFalse(os.path.exists(self.dmzfile4))
+    self.assertTrue(os.path.exists(self.dmzfile6))
+    self.assertTrue(os.path.exists(self.outputfile6))
+    config4 = open(self.outputfile4).read()
+    self.assertFalse(config4)
 
 
 class DeviceModelRoot(tr.core.Exporter):
