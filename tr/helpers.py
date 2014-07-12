@@ -118,3 +118,25 @@ def IsIP6Addr(addr):
   except socket.error:
     return False
   return True
+
+
+def NormalizeIPAddr(addr):
+  """Returns a normalized IP address string.
+
+  For example, it will return ::1 for 0000:0000:0000:0000:0000:0000:0000:0001.
+
+  Args:
+    addr: an IP4 or IP6 address string, like 192.168.1.1 or ::1.
+
+  Returns:
+    a normalized string.
+  """
+  if IsIP4Addr(addr):
+    i = socket.inet_pton(socket.AF_INET, str(addr))
+    return socket.inet_ntop(socket.AF_INET, i)
+  elif IsIP6Addr(addr):
+    i = socket.inet_pton(socket.AF_INET6, str(addr))
+    return socket.inet_ntop(socket.AF_INET6, i)
+  else:
+    return str(addr)
+

@@ -23,6 +23,7 @@ Provides a way to discover network topologies.
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import codecs
 import datetime
 import os
 import struct
@@ -43,11 +44,16 @@ CATA181HOSTS = CATA181.Device.Hosts
 CATA181HOST = CATA181HOSTS.Host
 
 # Unit tests can override these
-DHCP_FINGERPRINTS = '/config/dhcp.fingerprints'
 IP6NEIGH = ['ip', '-6', 'neigh']
 PROC_NET_ARP = '/proc/net/arp'
 SYS_CLASS_NET_PATH = '/sys/class/net'
 TIMENOW = time.time
+
+# Fingerprinting files
+ASUS_HOSTNAMES = '/tmp/asus_hostnames'
+DHCP_FINGERPRINTS = '/config/dhcp.fingerprints'
+DNSSD_HOSTNAMES = '/tmp/dnssd_hostnames'
+NETBIOS_HOSTNAMES = '/tmp/netbios_hostnames'
 
 
 def HexIntOrZero(arg):
@@ -122,6 +128,7 @@ class Hosts(BASE181HOSTS):
     Returns:
       the entry
     """
+    ip = tr.helpers.NormalizeIPAddr(ip)
     key = 'ip6' if tr.helpers.IsIP6Addr(ip) else 'ip4'
     iplist = entry.get(key, [])
     if ip not in iplist:
@@ -211,7 +218,7 @@ class Hosts(BASE181HOSTS):
       result = []
       for line in f:
         fields = line.split()
-        ip4 = fields[0]
+        ip4 = tr.helpers.NormalizeIPAddr(fields[0])
         flg = HexIntOrZero(fields[2])
         mac = fields[3]
         dev = fields[5]
@@ -228,6 +235,7 @@ class Hosts(BASE181HOSTS):
         to be populated for Device.Hosts.Host
     """
     for (mac, ip4, iface) in self._ParseArpTable():
+      ip4 = tr.helpers.NormalizeIPAddr(ip4)
       mac = mac.lower()
       host = hosts.get(mac, dict())
       self._AddLayer1Interface(host, iface)
@@ -252,7 +260,7 @@ class Hosts(BASE181HOSTS):
       fields = line.split()
       if len(fields) < 5:
         continue
-      ip6 = fields[0]
+      ip6 = tr.helpers.NormalizeIPAddr(fields[0])
       dev = fields[2]
       mac = fields[4]
       active = 'REACHABLE' in line
@@ -267,6 +275,7 @@ class Hosts(BASE181HOSTS):
         to be populated for Device.Hosts.Host
     """
     for (mac, ip6, iface, active) in self._ParseIp6Neighbors():
+      ip6 = tr.helpers.NormalizeIPAddr(ip6)
       mac = mac.lower()
       host = hosts.get(mac, dict())
       self._AddLayer1Interface(host, iface)
@@ -391,7 +400,8 @@ class Hosts(BASE181HOSTS):
         host['PhysAddress'] = mac
         host['DHCPClient'] = server + 'Client.' + str(idx)
         for v in client.IPv4AddressList.values():
-          self._AddIpToHostDict(host, v.IPAddress)
+          ip = tr.helpers.NormalizeIPAddr(v.IPAddress)
+          self._AddIpToHostDict(host, ip)
         self._PopulateDhcpLeaseTime(host, client)
         self._PopulateFromDhcpOptions(host, client)
         hosts[mac] = host
@@ -451,6 +461,71 @@ class Hosts(BASE181HOSTS):
         if key in ssdp:
           host['SsdpServer'] = ssdp[key]
 
+  def _ReadHostnameFile(self, filename):
+    """Read in a hostname mapping file.
+
+      1.2.3.4|hostname
+      5555:6666::0001|hostname
+
+    Args:
+      filename: the filename to read
+
+    Returns:
+      A dict of {'1.2.3.4': 'hostname'} mappings.
+    """
+    hostnames = {}
+    try:
+      with codecs.open(filename, 'r', 'utf-8') as f:
+        for line in f:
+          try:
+            (ip, name) = line.split('|', 1)
+            ip = tr.helpers.NormalizeIPAddr(str(ip))
+            name = name.strip()
+            hostnames[ip] = name
+          except ValueError:
+            # line was malformed, no '|' is present
+            print 'Malformed line in %s: %s' % (filename, line)
+            continue
+    except IOError:
+      # Nonexistent file means no hosts responded. Skip it.
+      pass
+    return hostnames
+
+  def _PopulateDiscoveredHostnames(self, hosts):
+    """Fill in hostnames for hosts we know about.
+
+    If the client provided its hostname in its DHCP request,
+    we use that. If it didn't, we try to discover its hostname
+    via other means.
+
+    We check the different mechanisms in an order based on how
+    nice the result looks to the user.
+      ASUS - prints the model name, nicely
+      dnssd - prints the hostname, but often appends trailing stuff to it.
+      netbios - munges computer name to fit into 16 chars, all caps.
+    """
+    asus = self._ReadHostnameFile(ASUS_HOSTNAMES)
+    dnssd = self._ReadHostnameFile(DNSSD_HOSTNAMES)
+    netbios = self._ReadHostnameFile(NETBIOS_HOSTNAMES)
+    for host in hosts.values():
+      asusmodel = dnssdname = netbiosname = ''
+      ip4 = host.get('ip4', [])
+      ip6 = host.get('ip6', [])
+      for key in ip4 + ip6:
+        asusmodel = asusmodel or asus.get(key, '')
+        dnssdname = dnssdname or dnssd.get(key, '')
+        netbiosname = netbiosname or netbios.get(key, '')
+      host['AsusModel'] = asusmodel
+      host['DnsSdName'] = dnssdname
+      host['NetbiosName'] = netbiosname
+      if 'HostName' not in host or not host['HostName']:
+        # Make names prettier, humans will see this one.
+        if dnssdname.endswith('.local'):
+          dnssdname = dnssdname[:-len('.local')]
+        if asusmodel and 'ASUS' not in asusmodel.upper():
+          asusmodel = 'ASUS ' + asusmodel
+        host['HostName'] = asusmodel or dnssdname or netbiosname
+
   @tr.session.cache
   def _GetHostList(self):
     """Return the list of known Hosts on all interfaces."""
@@ -464,6 +539,7 @@ class Hosts(BASE181HOSTS):
     self._GetHostsFromDhcpServers(hosts=hosts)
     self._PopulateDhcpFingerprints(hosts=hosts)
     self._PopulateSsdpServers(hosts=hosts)
+    self._PopulateDiscoveredHostnames(hosts=hosts)
     host_list = dict()
     for idx, host in enumerate(hosts.values(), start=1):
       host_list[str(idx)] = Host(**host)
@@ -502,7 +578,8 @@ class Host(CATA181HOST):
                Layer1Interface='', Layer3Interface='', HostName='',
                LeaseTimeRemaining=0, VendorClassID='',
                ClientID='', UserClassID='',
-               DhcpFingerprint='', SsdpServer=''):
+               DhcpFingerprint='', SsdpServer='', AsusModel='',
+               DnsSdName='', NetbiosName=''):
     super(Host, self).__init__()
     self.Unexport(['Alias'])
 
@@ -522,7 +599,10 @@ class Host(CATA181HOST):
     type(self).VendorClassID.Set(self, VendorClassID)
     cid = ClientIdentification()
     self.X_CATAWAMPUS_ORG_ClientIdentification = cid
+    type(cid).AsusModel.Set(cid, AsusModel)
     type(cid).DhcpFingerprint.Set(cid, DhcpFingerprint)
+    type(cid).DnsSdName.Set(cid, DnsSdName)
+    type(cid).NetbiosName.Set(cid, NetbiosName)
     type(cid).SsdpServer.Set(cid, SsdpServer)
 
   def _PopulateIpList(self, l, obj):
@@ -578,5 +658,8 @@ class HostIPv6Address(BASE181HOST.IPv6Address):
 
 
 class ClientIdentification(CATA181HOST.X_CATAWAMPUS_ORG_ClientIdentification):
+  AsusModel = tr.cwmptypes.ReadOnlyString('')
   DhcpFingerprint = tr.cwmptypes.ReadOnlyString('')
+  DnsSdName = tr.cwmptypes.ReadOnlyString('')
+  NetbiosName = tr.cwmptypes.ReadOnlyString('')
   SsdpServer = tr.cwmptypes.ReadOnlyString('')

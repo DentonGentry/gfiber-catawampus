@@ -175,13 +175,13 @@ class HostIntegrationTest(unittest.TestCase):
       if h.PhysAddress == '00:01:02:11:00:01':
         self.assertEqual(h.IPAddress, '192.168.1.1')
         self.assertEqual(h.IP4Address, '192.168.1.1')
-        self.assertEqual(h.IP6Address, 'fe80::0001:02ff:fe11:0001')
+        self.assertEqual(h.IP6Address, 'fe80::1:2ff:fe11:1')
         self.assertEqual(h.Layer1Interface, 'Device.MoCA.Interface.1')
         found |= 1
       elif h.PhysAddress == '00:01:02:22:00:01':
         self.assertEqual(h.IPAddress, '192.168.1.2')
         self.assertEqual(h.IP4Address, '192.168.1.2')
-        self.assertEqual(h.IP6Address, 'fe80::0001:02ff:fe22:0001')
+        self.assertEqual(h.IP6Address, 'fe80::1:2ff:fe22:1')
         self.assertEqual(h.Layer1Interface, 'Device.Ethernet.Interface.1')
         found |= 2
       elif h.PhysAddress == '00:01:02:33:00:01':
