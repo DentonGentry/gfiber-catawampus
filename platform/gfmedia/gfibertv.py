@@ -24,9 +24,12 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import errno
 import glob
 import json
+import os
 import re
+import subprocess
 import xmlrpclib
 import google3
+import tr.api
 import tr.core
 import tr.cwmpbool
 import tr.cwmpdate
@@ -40,8 +43,6 @@ BASETV = tr.x_gfibertv_1_0.X_GOOGLE_COM_GFIBERTV_v1_0.X_GOOGLE_COM_GFIBERTV
 
 # These are lists so list[0] can be reassigned in a unit test to affect
 # the operation of tr.cwmptypes.FileBacked.
-NICKFILE = ['/tmp/nicknames']
-MYNICKFILE = ['/config/nickname']
 BTDEVICES = ['/user/bsa/bt_devices.xml']
 BTHHDEVICES = ['/user/bsa/bt_hh_devices.xml']
 BTCONFIG = ['/user/bsa/bt_config.xml']
@@ -51,10 +52,14 @@ EASADDRFILE = ['/tmp/eas_service_address']
 EASFIPSFILE = ['/tmp/eas_fips']
 EASHEARTBEATFILE = ['/tmp/eas_heartbeat']
 EASPORTFILE = ['/tmp/eas_service_port']
-UICONTROLURLFILE = [ '/tmp/oregano_url' ]
+HNVRAM = ['hnvram']
+MYNICKFILE = ['/config/nickname']
+NICKFILE = ['/tmp/nicknames']
 TCPALGORITHM = ['/config/tcp_congestion_control']
 TVBUFFERADDRESS = ['/tmp/tv_buffer_address']
 TVBUFFERKEY = ['/tmp/tv_buffer_key']
+UICONTROLURLFILE = ['/tmp/oregano_url']
+UITYPEFILE = ['/tmp/ui/uitype']
 
 
 def _SageEscape(s):
@@ -116,6 +121,48 @@ class GFiberTv(BASETV):
                                      iteritems=self._ListNodes,
                                      getitem=self._GetNode)
     self.Export(objects=['Config'], lists=['Node'])
+
+  def GetUiType(self):
+    cmd = HNVRAM + ['-q', '-r', 'UITYPE']
+    devnull = open('/dev/null', 'w')
+    try:
+      hnvram = subprocess.Popen(cmd, stdin=devnull, stderr=devnull,
+                                stdout=subprocess.PIPE)
+      out, _ = hnvram.communicate()
+      if hnvram.returncode != 0:
+        return 'Unknown'
+    except OSError:
+      return 'Unknown'
+    return out.strip()
+
+  @tr.mainloop.WaitUntilIdle
+  def _CreateIfNotExist(self, filename, content):
+    """Create filename with content, but only if it does not already exist.
+
+    If the system has already booted and chosen a uitype, don't disrupt
+    that choice. If the system is waiting for the uitype to be set, then
+    set it.
+
+    Args:
+      filename: file to write to
+      content: content to write to filename
+    """
+    try:
+      fd = os.open(UITYPEFILE[0], os.O_WRONLY | os.O_CREAT | os.O_EXCL)
+      f = os.fdopen(fd, 'w')
+      f.write(content)
+      f.close()
+    except OSError as e:
+      if e.errno != errno.EEXIST:
+        raise
+
+  def SetUiType(self, value):
+    cmd = HNVRAM + ['-w', 'UITYPE=' + str(value)]
+    if subprocess.call(cmd) != 0:
+      raise OSError('hnvram write failed')
+    self._CreateIfNotExist(UITYPEFILE[0], str(value))
+
+  UiType = property(GetUiType, SetUiType, None, 'UiType')
 
   @property
   def DvrSpace(self):
