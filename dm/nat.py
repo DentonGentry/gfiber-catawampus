@@ -121,9 +121,13 @@ class NAT(BASENAT):
       if dmz4:
         with tr.helpers.AtomicFile(DMZFILE4) as f:
           f.write(dmz4)
+      else:
+        tr.helpers.Unlink(DMZFILE4)
       if dmz6:
         with tr.helpers.AtomicFile(DMZFILE6) as f:
           f.write(dmz6)
+      else:
+        tr.helpers.Unlink(DMZFILE6)
       subprocess.check_call(RESTARTCMD)
     except (IOError, OSError, subprocess.CalledProcessError):
       print 'Unable to update NAT\n'

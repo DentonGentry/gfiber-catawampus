@@ -303,6 +303,9 @@ class NatTest(unittest.TestCase):
     self.assertTrue(os.path.exists(self.outputfile4))
     config4 = open(self.outputfile4).read()
     self.assertFalse(config4)
+    p.Enable = False
+    self.loop.RunOnce(timeout=1)
+    self.assertFalse(os.path.exists(self.dmzfile4))
 
   def testDmz6(self):
     n = nat.NAT(dmroot=DeviceModelRoot())
@@ -317,6 +320,9 @@ class NatTest(unittest.TestCase):
     self.assertTrue(os.path.exists(self.outputfile6))
     config4 = open(self.outputfile4).read()
     self.assertFalse(config4)
+    p.Enable = False
+    self.loop.RunOnce(timeout=1)
+    self.assertFalse(os.path.exists(self.dmzfile6))
 
 
 class DeviceModelRoot(tr.core.Exporter):
