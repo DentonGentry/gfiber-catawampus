@@ -80,14 +80,14 @@ class BinWifiTest(unittest.TestCase):
     bw.AutoChannelEnable = True
     bw.X_CATAWAMPUS_ORG_AutoChanType = 'HIGH'
     bw.SSID = 'Test SSID 1'
-    bw.BeaconType = 'WPAand11i'
+    bw.BeaconType = 'WPA'
     bw.IEEE11iEncryptionModes = 'AESEncryption'
     bw.KeyPassphrase = 'testpassword'
     self.loop.RunOnce(timeout=1)
     buf = open(self.wifioutfile).read()
     # testdata/binwifi/binwifi quotes every argument
     exp = [
-        '"set" "-P" "-b" "2.4" "-e" "WPA2_PSK_AES" "-c" "auto" "-s" '
+        '"set" "-P" "-b" "2.4" "-e" "WPA_PSK_AES" "-c" "auto" "-s" '
         '"Test SSID 1" "-a" "HIGH"',
         'PSK=testpassword'
         ]
@@ -102,7 +102,7 @@ class BinWifiTest(unittest.TestCase):
     bw.Channel = 10
     bw.X_CATAWAMPUS_ORG_AutoChanType = 'HIGH'
     bw.SSID = 'Test SSID 1'
-    bw.BeaconType = 'WPAand11i'
+    bw.BeaconType = '11i'
     bw.IEEE11iEncryptionModes = 'AESEncryption'
     bw.KeyPassphrase = 'testpassword'
     bw.SSIDAdvertisementEnabled = False
@@ -125,7 +125,7 @@ class BinWifiTest(unittest.TestCase):
     bw.Channel = 44
     bw.X_CATAWAMPUS_ORG_AutoChanType = 'HIGH'
     bw.SSID = 'Test SSID 1'
-    bw.BeaconType = 'WPAand11i'
+    bw.BeaconType = '11i'
     bw.IEEE11iEncryptionModes = 'AESEncryption'
     bw.KeyPassphrase = 'testpassword'
     bw.SSIDAdvertisementEnabled = False
@@ -165,7 +165,7 @@ class BinWifiTest(unittest.TestCase):
       buf = open(self.wifioutfile).read()
       # testdata/binwifi/binwifi quotes every argument
       exp = [
-          '"set" "-P" "-b" "2.4" "-e" "WPA2_PSK_AES" '
+          '"set" "-P" "-b" "2.4" "-e" "WPA12_PSK_AES" '
           '"-c" "auto" "-s" "Test SSID 1"',
           'PSK=testpassword'
           ]
@@ -314,6 +314,44 @@ class BinWifiTest(unittest.TestCase):
         ]
     self.assertEqual(buf.strip().splitlines(), exp)
 
+  def testBeaconType(self):
+    bw = binwifi.WlanConfiguration('wifi0', band='5')
+    bw.StartTransaction()
+    bw.RadioEnabled = True
+    bw.Enable = True
+    bw.AutoChannelEnable = False
+    bw.Channel = 44
+    bw.X_CATAWAMPUS_ORG_AutoChanType = 'HIGH'
+    bw.SSID = 'SSID'
+    bw.BeaconType = '11i'
+    bw.IEEE11iEncryptionModes = 'AESEncryption'
+    bw.KeyPassphrase = 'testpassword'
+    self.loop.RunOnce(timeout=1)
+    buf = open(self.wifioutfile).read()
+    exp = [
+        '"set" "-P" "-b" "5" "-e" "WPA2_PSK_AES" "-c" "44" '
+        '"-s" "SSID" "-a" "HIGH" "-w" "80"',
+        'PSK=testpassword'
+        ]
+    self.assertEqual(buf.strip().splitlines(), exp)
+    bw.BeaconType = 'WPA'
+    self.loop.RunOnce(timeout=1)
+    buf = open(self.wifioutfile).read()
+    exp = [
+        '"set" "-P" "-b" "5" "-e" "WPA_PSK_AES" "-c" "44" '
+        '"-s" "SSID" "-a" "HIGH" "-w" "80"',
+        'PSK=testpassword'
+        ]
+    self.assertEqual(buf.strip().splitlines(), exp)
+    bw.BeaconType = 'WPAand11i'
+    self.loop.RunOnce(timeout=1)
+    buf = open(self.wifioutfile).read()
+    exp = [
+        '"set" "-P" "-b" "5" "-e" "WPA12_PSK_AES" "-c" "44" '
+        '"-s" "SSID" "-a" "HIGH" "-w" "80"',
+        'PSK=testpassword'
+        ]
+    self.assertEqual(buf.strip().splitlines(), exp)
 
 
 if __name__ == '__main__':

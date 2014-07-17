@@ -404,14 +404,18 @@ class WlanConfiguration(CATA98WIFI):
     if 'Basic' in self.BeaconType:
       return 'WEP' if 'WEP' in self.BasicEncryptionModes else 'NONE'
 
-    if '11i' in self.BeaconType:
+
+    if 'WPAand11i' in self.BeaconType:
+      auth = 'WPA12'
+      encryption = self.WPAEncryptionModes
+    elif '11i' in self.BeaconType:
       auth = 'WPA2'
       encryption = self.IEEE11iEncryptionModes
     elif 'WPA' in self.BeaconType:
       auth = 'WPA'
       encryption = self.WPAEncryptionModes
     else:
-      print 'Invalid BeaconType %s using WPA2' % self.BeaconType
+      print 'Invalid BeaconType %s, using WPA2' % self.BeaconType
       auth = 'WPA2'
       encryption = self.IEEE11iEncryptionModes
 
