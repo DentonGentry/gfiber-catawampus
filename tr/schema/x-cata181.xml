@@ -299,6 +299,15 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
       </parameter>
     </object>
 
+    <object name="Device.MoCA.Interface.{i}." access="readOnly" numEntriesParameter="InterfaceNumberOfEntries" minEntries="0"  maxEntries="unbounded" dmr:fixedObject="true">
+      <parameter name="X_CATAWAMPUS-ORG_ExtraTracing" access="readWrite">
+        <description>Enables or disables additional trace messages from mocad.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+    </object>
+
     <object name="Device.MoCA.Interface.{i}.Stats." access="readOnly" minEntries="1" maxEntries="1">
       <parameter name="X_CATAWAMPUS-ORG_DiscardFrameCnts" access="readOnly">
         <description>The count of discarded frames per queue.</description>

@@ -26,7 +26,9 @@ import pynetlinux
 import tr.core
 import tr.session
 import tr.tr181_v2_2
+import tr.cwmpbool
 import tr.cwmptypes
+import tr.mainloop
 import tr.x_catawampus_tr181_2_0
 import netdev
 
@@ -34,6 +36,7 @@ import netdev
 BASE181MOCA = tr.tr181_v2_2.Device_v2_2.Device.MoCA
 CATA181MOCA = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device.MoCA
 MOCAP = 'mocap'
+MOCATRACE = ['mocatrace']
 PYNETIFCONF = pynetlinux.ifconfig.Interface
 
 
@@ -105,7 +108,7 @@ def _CombineBitloading(bitlines):
   return ''.join(bitloading)
 
 
-class BrcmMocaInterface(BASE181MOCA.Interface):
+class BrcmMocaInterface(CATA181MOCA.Interface):
   """An implementation of tr181 Device.MoCA.Interface for Broadcom chipsets."""
   # TODO(dgentry) Supposed to be read/write, but we don't handle disabling.
   Enable = tr.cwmptypes.ReadOnlyBool(True)
@@ -120,7 +123,7 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
   Upstream = tr.cwmptypes.ReadOnlyBool(False)
 
   def __init__(self, ifname, upstream=False, qfiles=None, numq=0, hipriq=0):
-    BASE181MOCA.Interface.__init__(self)
+    super(BrcmMocaInterface, self).__init__()
     type(self).MaxNodes.Set(self, self.MAX_NODES_MOCA2)
     type(self).Name.Set(self, ifname)
     type(self).Upstream.Set(self, bool(upstream))
@@ -314,6 +317,26 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
     for idx, nodeid in enumerate(mocanodes, start=1):
       result[str(idx)] = BrcmMocaAssociatedDevice(nodeid)
     return result
+
+  def GetExtraTracing(self):
+    mt = subprocess.Popen(MOCATRACE, stdout=subprocess.PIPE)
+    out, _ = mt.communicate(None)
+    return False if 'false' in out else True
+
+  @tr.mainloop.WaitUntilIdle
+  def _WriteTracing(self, enb):
+    cmd = MOCATRACE + [enb]
+    rc = subprocess.call(cmd)
+    if rc:
+      print '%s failed, exit code:%d' % (str(cmd), rc)
+
+  def SetExtraTracing(self, value):
+    enb = 'true' if tr.cwmpbool.parse(value) else 'false'
+    self._WriteTracing(enb)
+
+  X_CATAWAMPUS_ORG_ExtraTracing = property(
+      GetExtraTracing, SetExtraTracing, None,
+      'Device.MoCA.Interface.{i}.X_CATAWAMPUS-ORG_ExtraTracing')
 
 
 class BrcmMocaInterfaceStatsLinux26(netdev.NetdevStatsLinux26,

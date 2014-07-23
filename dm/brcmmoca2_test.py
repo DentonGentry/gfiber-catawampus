@@ -20,6 +20,9 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import os
+import shutil
+import tempfile
 import unittest
 import google3
 import tr.session
@@ -31,18 +34,25 @@ class MocaTest(unittest.TestCase):
   """Tests for brcmmoca2.py."""
 
   def setUp(self):
+    self.loop = tr.mainloop.MainLoop()
     self.old_MOCAP = brcmmoca2.MOCAP
+    self.old_MOCATRACE = brcmmoca2.MOCATRACE
     self.old_PYNETIFCONF = brcmmoca2.PYNETIFCONF
     self.old_PROC_NET_DEV = netdev.PROC_NET_DEV
+    self.tmpdir = tempfile.mkdtemp()
     brcmmoca2.MOCAP = 'testdata/brcmmoca2/mocap'
+    self.trace_out = os.path.join(self.tmpdir, 'trace')
+    brcmmoca2.MOCATRACE = ['testdata/brcmmoca2/mocatrace', self.trace_out]
     brcmmoca2.PYNETIFCONF = MockPynet
     netdev.PROC_NET_DEV = 'testdata/brcmmoca2/proc/net/dev'
     tr.session.cache.flush()
 
   def tearDown(self):
     brcmmoca2.MOCAP = self.old_MOCAP
+    brcmmoca2.MOCATRACE = self.old_MOCATRACE
     brcmmoca2.PYNETIFCONF = self.old_PYNETIFCONF
     netdev.PROC_NET_DEV = self.old_PROC_NET_DEV
+    shutil.rmtree(self.tmpdir)
 
   def testIsMoCA2_0(self):
     brcmmoca2.MOCAP = 'testdata/brcmmoca2/mocap'
@@ -217,6 +227,26 @@ class MocaTest(unittest.TestCase):
                 '024 - 031:  44444444', '016 - 023:  33333333']
     self.assertEqual(brcmmoca2._CombineBitloading(bitlines),
                      '11111111222222223333333344444444')
+
+  def testExtraTracing(self):
+    moca = brcmmoca2.BrcmMocaInterface(ifname='foo0', upstream=False)
+    self.assertFalse(moca.X_CATAWAMPUS_ORG_ExtraTracing)
+    brcmmoca2.MOCATRACE = ['testdata/brcmmoca2/mocatrace_true', self.trace_out]
+    self.assertTrue(moca.X_CATAWAMPUS_ORG_ExtraTracing)
+
+    moca.X_CATAWAMPUS_ORG_ExtraTracing = True
+    self.loop.RunOnce(timeout=1)
+    out = open(self.trace_out).read()
+    self.assertEqual('true', out.strip())
+    moca.X_CATAWAMPUS_ORG_ExtraTracing = False
+    self.loop.RunOnce(timeout=1)
+    out = open(self.trace_out).read()
+    self.assertEqual('false', out.strip())
+    brcmmoca2.MOCATRACE = ['testdata/brcmmoca2/mocatrace_fails']
+    moca.X_CATAWAMPUS_ORG_ExtraTracing = True
+    self.loop.RunOnce(timeout=1)
+    out = open(self.trace_out).read()
+    self.assertEqual('false', out.strip())
 
 
 class MockPynet(object):

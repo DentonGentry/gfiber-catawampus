@@ -1,0 +1,10 @@
+#!/bin/sh
+
+out=$1
+shift
+
+if [ $# -eq 0 ]; then
+  echo false
+else
+  echo "$@" >$out
+fi
