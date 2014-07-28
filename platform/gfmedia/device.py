@@ -644,13 +644,14 @@ class LANDevice(BASE98IGD.LANDevice):
       self.WLANConfigurationList['1'] = wifi
     if _DoesInterfaceExist('wlan0') and _DoesInterfaceExist('wlan1'):
       # Two radios, instantiate both with fixed bands
-      wifi = dm.binwifi.WlanConfiguration('wlan0', band='2.4')
+      wifi = dm.binwifi.WlanConfiguration('wlan0', band='2.4', width=40)
       self.WLANConfigurationList['1'] = wifi
-      wifi = dm.binwifi.WlanConfiguration('wlan1', band='5')
+      wifi = dm.binwifi.WlanConfiguration('wlan1', band='5', standard='ac',
+                                          width=80, autochan='HIGH')
       self.WLANConfigurationList['2'] = wifi
     elif _DoesInterfaceExist('wlan0'):
       # One radio, allow switching bands
-      wifi = dm.binwifi.WlanConfiguration('wlan0')
+      wifi = dm.binwifi.WlanConfiguration('wlan0', width=40, autochan='LOW')
       self.WLANConfigurationList['1'] = wifi
 
 

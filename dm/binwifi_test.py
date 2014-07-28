@@ -117,7 +117,7 @@ class BinWifiTest(unittest.TestCase):
     self.assertEqual(buf.strip().splitlines(), exp)
 
   def test5GhzConfigCommit(self):
-    bw = binwifi.WlanConfiguration('wifi0', band='5')
+    bw = binwifi.WlanConfiguration('wifi0', band='5', width=80)
     bw.StartTransaction()
     bw.RadioEnabled = True
     bw.Enable = True
@@ -298,7 +298,7 @@ class BinWifiTest(unittest.TestCase):
     exp = [
         '"set" "-P" "-b" "5" "-e" "NONE" '
         '"-c" "auto" "-s" "Test SSID" '
-        '"-a" "NONDFS" "-w" "80"',
+        '"-a" "NONDFS"',
         'PSK='
         ]
     self.assertEqual(buf.strip().splitlines(), exp)
@@ -330,7 +330,7 @@ class BinWifiTest(unittest.TestCase):
     buf = open(self.wifioutfile).read()
     exp = [
         '"set" "-P" "-b" "5" "-e" "WPA2_PSK_AES" "-c" "44" '
-        '"-s" "SSID" "-a" "HIGH" "-w" "80"',
+        '"-s" "SSID" "-a" "HIGH"',
         'PSK=testpassword'
         ]
     self.assertEqual(buf.strip().splitlines(), exp)
@@ -339,7 +339,7 @@ class BinWifiTest(unittest.TestCase):
     buf = open(self.wifioutfile).read()
     exp = [
         '"set" "-P" "-b" "5" "-e" "WPA_PSK_AES" "-c" "44" '
-        '"-s" "SSID" "-a" "HIGH" "-w" "80"',
+        '"-s" "SSID" "-a" "HIGH"',
         'PSK=testpassword'
         ]
     self.assertEqual(buf.strip().splitlines(), exp)
@@ -348,7 +348,7 @@ class BinWifiTest(unittest.TestCase):
     buf = open(self.wifioutfile).read()
     exp = [
         '"set" "-P" "-b" "5" "-e" "WPA12_PSK_AES" "-c" "44" '
-        '"-s" "SSID" "-a" "HIGH" "-w" "80"',
+        '"-s" "SSID" "-a" "HIGH"',
         'PSK=testpassword'
         ]
     self.assertEqual(buf.strip().splitlines(), exp)

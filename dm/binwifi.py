@@ -85,7 +85,8 @@ class WlanConfiguration(CATA98WIFI):
   WPAEncryptionModes = tr.cwmptypes.TriggerEnum(
       encryption_modes, init='AESEncryption')
 
-  def __init__(self, ifname, band=None, standard='n'):
+  def __init__(self, ifname, band=None, standard='n', width=0,
+               autochan=None):
     super(WlanConfiguration, self).__init__()
     self._initialized = False
     self._ifname = ifname
@@ -94,6 +95,8 @@ class WlanConfiguration(CATA98WIFI):
     self._fixed_band = band
     # TODO(dgentry): can /bin/wifi tell us the capability of the chipset?
     type(self).Standard.Set(self, standard)
+    self._channelwidth = width
+    self._autochan = autochan
     self.new_config = None
     self.last_bin_wifi = None
     self.last_env = None
@@ -211,7 +214,8 @@ class WlanConfiguration(CATA98WIFI):
   def StartTransaction(self):
     """Returns a dict of config updates to be applied."""
     self.new_config = WifiConfig()
-    self.new_config.AutoChannelType = self.X_CATAWAMPUS_ORG_AutoChanType
+    atype = self.X_CATAWAMPUS_ORG_AutoChanType
+    self.new_config.AutoChannelType = self._autochan or atype
     self.new_config.AutoChannelEnable = self.AutoChannelEnable
     self.new_config.Channel = self.Channel
     self.new_config.SSID = self.SSID
@@ -449,8 +453,8 @@ class WlanConfiguration(CATA98WIFI):
     autotype = self.new_config.AutoChannelType
     if autotype:
       cmd += ['-a', autotype]
-    if self._band == '5':
-      cmd += ['-w', '80']
+    if self._channelwidth:
+      cmd += ['-w', str(self._channelwidth)]
     sl = sorted(self.PreSharedKeyList.iteritems(), key=lambda x: int(x[0]))
     for (_, psk) in sl:
       key = psk.GetKey()
