@@ -377,6 +377,7 @@ class SmartAttributes(PHYSICALMEDIUM.X_CATAWAMPUS_ORG_SmartAttributes):
                              stdout=subprocess.PIPE)
     out, _ = smart.communicate(None)
     for line in out.splitlines():
+      print 'smartctl: ' + line
       result = SMARTATTR.search(line)
       if result is None:
         continue
