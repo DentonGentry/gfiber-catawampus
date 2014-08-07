@@ -75,8 +75,11 @@ class Device(BASEUPNP.Device):
 
   def Triggered(self):
     """Called at the end of the transaction to apply changes."""
-    self._UpdateFile(self.Enable and self.UPnPIGD)
-    subprocess.call(RESTARTCMD)
+    previous = os.path.exists(UPNPFILE)
+    enable = self.Enable and self.UPnPIGD
+    if previous != enable:
+      self._UpdateFile(enable)
+      subprocess.call(RESTARTCMD)
 
 
 class DeviceCapabilities(BASEUPNP.Device.Capabilities):

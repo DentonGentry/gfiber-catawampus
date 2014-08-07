@@ -57,26 +57,32 @@ class MiniUPnPTest(unittest.TestCase):
 
   def testEnable(self):
     upnp = miniupnp.UPnP()
+
+    # not fully enabled yet
     upnp.Device.Enable = True
     self.loop.RunOnce(timeout=1)
     self.assertFalse(os.path.exists(miniupnp.UPNPFILE))
-    self.assertTrue(os.path.exists(self.restartfile))
-    tr.helpers.Unlink(self.restartfile)
+    self.assertFalse(os.path.exists(self.restartfile))
+
+    # enable for realz
     upnp.Device.UPnPIGD = True
     self.loop.RunOnce(timeout=1)
     self.assertTrue(os.path.exists(miniupnp.UPNPFILE))
     self.assertTrue(os.path.exists(self.restartfile))
     tr.helpers.Unlink(self.restartfile)
+
+    # disable for realz
     upnp.Device.Enable = False
     self.loop.RunOnce(timeout=1)
     self.assertFalse(os.path.exists(miniupnp.UPNPFILE))
     self.assertTrue(os.path.exists(self.restartfile))
     tr.helpers.Unlink(self.restartfile)
+
+    # already disabled, no action should be taken
     upnp.Device.UPnPIGD = False
     self.loop.RunOnce(timeout=1)
     self.assertFalse(os.path.exists(miniupnp.UPNPFILE))
-    self.assertTrue(os.path.exists(self.restartfile))
-    tr.helpers.Unlink(self.restartfile)
+    self.assertFalse(os.path.exists(self.restartfile))
 
   def testSsdpClientInfo(self):
     ssdp = miniupnp.GetSsdpClientInfo()
