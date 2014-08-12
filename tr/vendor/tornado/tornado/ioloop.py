@@ -333,6 +333,10 @@ class IOLoop(object):
                     else:
                         logging.error("Exception in I/O handler for fd %s",
                                       fd, exc_info=True)
+                except KeyError:
+                    logging.error("Handler for fd %s no longer exists, closing",
+                                  fd, exc_info=True)
+                    self._impl.unregister(fd)
                 except Exception:
                     logging.error("Exception in I/O handler for fd %s",
                                   fd, exc_info=True)
