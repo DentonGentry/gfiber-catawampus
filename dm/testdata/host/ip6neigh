@@ -4,7 +4,8 @@ if [ "$1" = "-6" ] && [ "$2" = neigh ]; then
 echo "fe80::fa8f:caff:fe00:00ff dev bar0  FAILED
 fe80::fa8f:caff:fe00:0001 dev foo0 lladdr f8:8f:ca:00:00:01 REACHABLE
 fe80::fa8f:caff:fe00:0002 dev foo0 lladdr f8:8f:ca:00:00:02 router STALE
-fe80::fa8f:caff:fe00:0003 dev foo1 lladdr f8:8f:ca:00:00:03 REACHABLE"
+fe80::fa8f:caff:fe00:0003 dev foo1 lladdr f8:8f:ca:00:00:03 REACHABLE
+fe80::fa8f:caff:fe00:0003 dev foo1 FAILED router STALE"
 fi
 
 exit 0

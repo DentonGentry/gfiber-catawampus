@@ -66,6 +66,8 @@ def HexIntOrZero(arg):
 class Hosts(BASE181HOSTS):
   """Implement tr-181 Device.Hosts table."""
 
+  _MacValidator = tr.cwmptypes.ReadOnlyMacAddr()
+
   def __init__(self, iflookup=None, bridgename=None, dmroot=None):
     """Device.Hosts.
 
@@ -263,6 +265,10 @@ class Hosts(BASE181HOSTS):
       ip6 = tr.helpers.NormalizeIPAddr(fields[0])
       dev = fields[2]
       mac = fields[4]
+      try:
+        type(self)._MacValidator.Set(self, mac)
+      except ValueError:
+        continue
       active = 'REACHABLE' in line
       result.append((mac, ip6, dev, active))
     return result
