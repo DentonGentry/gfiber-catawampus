@@ -90,9 +90,9 @@ class SelfTest(BASE.X_GOOGLE_COM_GFIBERTV.SelfTest):
     if self.ServerIP:
       env['IPERF_CLIENT'] = str(self.ServerIP)
       env['IPERF_TIME'] = '40'
-      env['TCP_WINDOW_SIZE'] = '32767'
     else:
       env['IPERF_SERVER'] = '1'
+    env['TCP_WINDOW_SIZE'] = '1M'
     return (IPERF_BIN, env)
 
   def _StartTest(self, exe, env):
