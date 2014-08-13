@@ -199,6 +199,28 @@ class PeriodicStatisticsTest(unittest.TestCase):
     sample_set.CollectSample()
     self.assertEqual('2013-07-08T12:00:01Z', sampled_param.Values)
 
+  def testEscapeCommas(self):
+    sampled_param = periodic_statistics.PeriodicStatistics.SampleSet.Parameter()
+    sampled_param.Enable = True
+    sampled_param.Reference = 'Foo.CommaParameter.1.Bar'
+    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
+    self.mock_root.GetExport(mox.IsA(str)).AndReturn('1000,20 0')
+    self.mock_root.GetExport(mox.IsA(str)).AndReturn('3%00,40$&')
+    self.mock_root.GetExport(mox.IsA(str)).AndReturn('5000\t\n6000')
+    self.m.ReplayAll()
+
+    sample_set.SetCpeAndRoot(cpe=self.mock_cpe, root=self.mock_root)
+    sample_set.SetParameter('1', sampled_param)
+    sample_set.ReportSamples = 3
+    sample_set.CollectSample()
+    sample_set.CollectSample()
+    sample_set.CollectSample()
+
+    # Check that the commas within each sample were correctly escaped.
+    self.assertEqual('1000%2c20%200,3%2500%2c40$&,5000%09%0a6000',
+                     sampled_param.Values.lower())
+
+
 
 class SampleSetTest(unittest.TestCase):
   def setUp(self):
