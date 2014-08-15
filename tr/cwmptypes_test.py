@@ -31,6 +31,7 @@ import tr.cwmptypes
 
 TEST_FILE = 'testobject.tmp'
 TEST2_FILE = 'testobject2.tmp'
+TEST3_FILE = '/this/file/does/not/exist/i/hope'
 
 
 class TestObject(object):
@@ -49,6 +50,7 @@ class TestObject(object):
   file = tr.cwmptypes.FileBacked([TEST_FILE], tr.cwmptypes.Bool())
   file2 = tr.cwmptypes.FileBacked([TEST_FILE], tr.cwmptypes.Bool(),
                               delete_if_empty=False)
+  file3 = tr.cwmptypes.FileBacked([TEST3_FILE], tr.cwmptypes.String())
 
   v = tr.cwmptypes.Unsigned()
   @v.validator
@@ -294,6 +296,13 @@ class TypesTest(unittest.TestCase):
     loop.RunOnce()
     self.assertTrue(os.path.exists(TEST2_FILE))
     os.unlink(TEST2_FILE)
+
+  def testFileBackedNotExist(self):
+    obj = TestObject()
+    with self.assertRaises(IOError):
+      obj.file3 = 'this should assert!'
+    loop = mainloop.MainLoop()
+    loop.RunOnce()
 
   def testTypeCoercion(self):
     obj = TestObject()
