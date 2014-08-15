@@ -212,7 +212,7 @@ class DeviceId(dm.device_info.DeviceIdMeta):
       # B2 chip with 4 Gig MLC flash == rev1. 1 Gig SLC flash == rev2.
       try:
         siz = int(open(NAND_MB, 'r').read())
-      except OSError:
+      except (OSError, IOError):
         return '?'
       if siz == 4096:
         return '1'
