@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-# pylint: disable-msg=C6409
+# pylint: disable=C6409
 
 """Implementation of tr-98 WLAN objects for /bin/wifi.
 
@@ -106,7 +106,7 @@ class WlanConfiguration(CATA98WIFI):
     self.Unexport(['BasicDataTransmitRates', 'AutoRateFallBackEnabled',
                    'OperationalDataTransmitRates',
                    'PossibleChannels', 'TransmitPower',
-                   ])
+                  ])
 
     # Unimplemented, but not yet evaluated
     self.Unexport(['Alias', 'ChannelsInUse', 'MaxBitRate',
@@ -145,7 +145,7 @@ class WlanConfiguration(CATA98WIFI):
   def _ParseBinwifiOutput(self, lines):
     """Parse output of /bin/wifi show.
 
-      Example:
+    Example:
         GSAFSJ1234E0123# wifi show
         Band: 5
         RegDomain: US
@@ -166,7 +166,10 @@ class WlanConfiguration(CATA98WIFI):
                 tx bitrate:     10.0 MBit/s
                 rx bitrate:     11.0 MBit/s
 
-      Returns:
+    Args:
+        lines: The text that is being parsed.
+
+    Returns:
         A dict populated with parameter names.
         The dict will contain a AssociatedDevices
         key, which holds a list of dicts (one per
@@ -398,16 +401,11 @@ class WlanConfiguration(CATA98WIFI):
   def _GetEncryptionMode(self):
     """Return /bin/wifi -e argument.
 
-    Args:
-      beacon: the BeaconType, either 11i or WPA or Basic
-      crypto: the EncryptionMode, like AESEncryption
-
     Returns:
       The -e argument to pass to /bin/wifi.
     """
     if 'Basic' in self.BeaconType:
       return 'WEP' if 'WEP' in self.BasicEncryptionModes else 'NONE'
-
 
     if 'WPAand11i' in self.BeaconType:
       auth = 'WPA12'
