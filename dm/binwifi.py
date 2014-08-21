@@ -431,7 +431,7 @@ class WlanConfiguration(CATA98WIFI):
     elif 'TKIP' in encryption:
       crypto = '_PSK_TKIP'
     else:
-      print 'Invalid EncryptionMode %s, using AES' % crypto
+      print 'Invalid EncryptionMode %s, using AES' % encryption
       crypto = '_PSK_AES'
 
     return auth + crypto
