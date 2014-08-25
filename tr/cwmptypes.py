@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-# pylint: disable-msg=C6409,W0212
+# pylint: disable=C6409,W0212
 #
 """Type descriptors for common TR-069 data types."""
 
@@ -22,6 +22,7 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import datetime
 import errno
+import os
 import re
 import socket
 import cwmpdate
@@ -85,7 +86,7 @@ class Attr(object):
         self._SetWithoutNotify(obj, self.validate(obj, self.init))
       return d[id(self)]
 
-  def validate(self, obj, value):  # pylint: disable-msg=unused-argument
+  def validate(self, obj, value):  # pylint: disable=unused-argument
     """Validate or convert a potential new value for this attribute.
 
     Callers can check this function to see if the attribute *could* be
@@ -263,7 +264,7 @@ class Date(Attr):
   """An attribute that is always a datetime.datetime object."""
 
   def validate(self, obj, value):
-    # pylint: disable-msg=g-explicit-bool-comparison
+    # pylint: disable=g-explicit-bool-comparison
     if value is None or value == '':
       return None
     try:
@@ -353,24 +354,35 @@ class FileBacked(Attr):
     except ValueError:
       return ''
 
-  def _WriteEmpty(self):
-    if self.delete_if_empty:
-      helpers.Unlink(self.filename_ptr[0])
-    else:
-      helpers.WriteFileAtomic(self.filename_ptr[0], '',
-                              owner=self.file_owner,
-                              group=self.file_group)
-
   @mainloop.WaitUntilIdle
+  def _ReallyWriteFile(self, delete):
+    os.rename(self.filename_ptr[0] + '.tmp', self.filename_ptr[0])
+    if delete:
+      helpers.Unlink(self.filename_ptr[0])
+
   def WriteFile(self, value):
-    # pylint: disable-msg=g-explicit-bool-comparison
+    """Writes the data out the file, the file is updated at idle time."""
+
+    # First write a .tmp file, we do this to catch exceptions where the
+    # directory doesn't exist or permission issues etc.  Once we write a
+    # tmp file, _ReallyWriteFile will schedule to rename the tmp file to the
+    # real file.  This can still fail if we don't have permission to the actual
+    # file but we have permission to the directory, but that seems less likely
+    # then the directory just not existig.
+
+    # pylint: disable=g-explicit-bool-comparison
+
+    delete = False
     if value is None or value == '':
-      self._WriteEmpty()
+      data = ''
+      delete = self.delete_if_empty
     else:
-      helpers.WriteFileAtomic(self.filename_ptr[0],
-                              unicode(value).rstrip().encode('utf-8') + '\n',
-                              owner=self.file_owner,
-                              group=self.file_group)
+      data = unicode(value).rstrip().encode('utf-8') + '\n'
+    helpers.WriteFileAtomic(self.filename_ptr[0] + '.tmp',
+                            data,
+                            owner=self.file_owner,
+                            group=self.file_group)
+    self._ReallyWriteFile(delete)
 
   def _SetWithoutNotify(self, obj, value):
     self.WriteFile(value)

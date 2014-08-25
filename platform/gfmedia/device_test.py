@@ -47,6 +47,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def setUp(self):
     super(DeviceTest, self).setUp()
+    self.old_ACTIVEWAN = device.ACTIVEWAN
     self.old_CONFIGDIR = device.CONFIGDIR
     self.old_GINSTALL = device.GINSTALL
     self.old_HNVRAM = device.HNVRAM
@@ -54,9 +55,12 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.old_LEDSTATUS = device.LEDSTATUS
     self.old_NAND_MB = device.NAND_MB
     self.old_PROC_CPUINFO = device.PROC_CPUINFO
+    self.old_PYNETIFCONF = device.PYNETIFCONF
     self.old_REBOOT = device.REBOOT
     self.old_REPOMANIFEST = device.REPOMANIFEST
     self.old_VERSIONFILE = device.VERSIONFILE
+    device.ACTIVEWAN = 'testdata/device/activewan'
+    device.PYNETIFCONF = MockPynetInterface
     self.install_cb_called = False
     self.install_cb_faultcode = None
     self.install_cb_faultstring = None
@@ -64,6 +68,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
   def tearDown(self):
     super(DeviceTest, self).tearDown()
+    device.ACTIVEWAN = self.old_ACTIVEWAN
     device.CONFIGDIR = self.old_CONFIGDIR
     device.GINSTALL = self.old_GINSTALL
     device.HNVRAM = self.old_HNVRAM
@@ -71,6 +76,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     device.LEDSTATUS = self.old_LEDSTATUS
     device.NAND_MB = self.old_NAND_MB
     device.PROC_CPUINFO = self.old_PROC_CPUINFO
+    device.PYNETIFCONF = self.old_PYNETIFCONF
     device.REBOOT = self.old_REBOOT
     device.REPOMANIFEST = self.old_REPOMANIFEST
     device.VERSIONFILE = self.old_VERSIONFILE
@@ -130,7 +136,7 @@ class DeviceTest(tornado.testing.AsyncTestCase):
 
     device.NAND_MB = 'testdata/device/nand_size_mb_unk'
     did = device.DeviceId()
-    self.assertEqual(did.HardwareVersion, '?')
+    self.assertEqual(did.HardwareVersion, '0')
 
   def testFanSpeed(self):
     fan = device.FanReadGpio(speed_filename='testdata/fanspeed',
@@ -182,6 +188,30 @@ class DeviceTest(tornado.testing.AsyncTestCase):
     self.assertTrue(self.install_cb_called)
     self.assertEqual(self.install_cb_faultcode, 9002)
     self.assertTrue(self.install_cb_faultstring)
+
+  def testValidateExports(self):
+    device.LANDevice().ValidateExports()
+    device.IP().ValidateExports()
+    device.Ethernet().ValidateExports()
+
+  def testActiveWan(self):
+    device.ACTIVEWAN = 'testdata/device/activewan'
+    self.assertEqual(device.activewan('foo0'), '')
+    self.assertEqual(device.activewan('bar0'), 'Down')
+    device.ACTIVEWAN = 'testdata/device/activewan_fail'
+    self.assertEqual(device.activewan('foo0'), '')
+    self.assertEqual(device.activewan('bar0'), '')
+    device.ACTIVEWAN = 'testdata/device/activewan_empty'
+    self.assertEqual(device.activewan('foo0'), '')
+    self.assertEqual(device.activewan('bar0'), '')
+
+
+class MockPynetInterface(object):
+  def __init__(self, ifname):
+    self.ifname = ifname
+
+  def get_index(self):
+    raise IOError('No such interface in test')
 
 
 if __name__ == '__main__':

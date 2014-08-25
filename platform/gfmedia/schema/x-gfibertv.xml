@@ -88,6 +88,12 @@
           <string/>
         </syntax>
       </parameter>
+      <parameter name="UiType" access="readWrite">
+        <description>UI version to run.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
       <parameter name="TvBufferAddress" access="readWrite">
         <description>The ip:port address of the buffering service. Enables use of the service if present and non-empty.</description>
         <syntax>

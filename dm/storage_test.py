@@ -35,6 +35,8 @@ test_mtdpath = ''
 
 
 def OsStatVfs(rootpath):
+  if rootpath == '/raise_os_error':
+    raise OSError('If you see this, the test fails.')
   teststatvfs = dict()
   teststatvfs['/fakepath'] = statvfsstruct(
       f_bsize=4096, f_frsize=512, f_blocks=1024, f_bfree=512, f_bavail=498,
@@ -316,6 +318,10 @@ class StorageTest(unittest.TestCase):
     self.assertEqual(sata.RErrHostToDeviceDataFisNonCrc, 160)
     self.assertEqual(sata.RErrHostToDeviceNonDataFisCrc, 180)
     self.assertEqual(sata.RErrHostToDeviceNonDataFisNonCrc, 190)
+
+  def testOsError(self):
+    stor = storage.LogicalVolumeLinux26('/raise_os_error', 'fstype')
+    self.assertEqual(stor.Capacity, 0)
 
 
 if __name__ == '__main__':

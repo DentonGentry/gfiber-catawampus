@@ -26,7 +26,7 @@ import pynetlinux
 import tr.core
 import tr.session
 import tr.tr181_v2_2
-import tr.types
+import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 import netdev
 
@@ -112,16 +112,16 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
   """An implementation of tr181 Device.MoCA.Interface for Broadcom chipsets."""
 
   # TODO(dgentry) Supposed to be read/write, but we don't disable yet.
-  Enable = tr.types.ReadOnlyBool(True)
-  Name = tr.types.ReadOnlyString('')
+  Enable = tr.cwmptypes.ReadOnlyBool(True)
+  Name = tr.cwmptypes.ReadOnlyString('')
   # In theory LowerLayers is writeable, but it is nonsensical to write to it.
-  LowerLayers = tr.types.ReadOnlyString('')
+  LowerLayers = tr.cwmptypes.ReadOnlyString('')
 
   MAX_NODES_MOCA1 = 8
   MAX_NODES_MOCA2 = 16
-  MaxNodes = tr.types.ReadOnlyInt(0)
+  MaxNodes = tr.cwmptypes.ReadOnlyInt(0)
 
-  Upstream = tr.types.ReadOnlyBool(False)
+  Upstream = tr.cwmptypes.ReadOnlyBool(False)
 
   def __init__(self, ifname, upstream=False, qfiles=None, numq=0, hipriq=0):
     BASE181MOCA.Interface.__init__(self)
@@ -333,27 +333,27 @@ class BrcmMocaInterfaceStatsLinux26(netdev.NetdevStatsLinux26,
 
 class BrcmMocaAssociatedDevice(CATA181MOCA.Interface.AssociatedDevice):
   """tr-181 Device.MoCA.Interface.AssociatedDevice for Broadcom chipsets."""
-  Active = tr.types.ReadOnlyBool(True)
-  MACAddress = tr.types.ReadOnlyString('')
-  NodeID = tr.types.ReadOnlyInt(-1)
-  PacketAggregationCapability = tr.types.ReadOnlyInt(0)
-  PHYTxRate = tr.types.ReadOnlyInt(0)
-  PHYRxRate = tr.types.ReadOnlyInt(0)
-  PreferredNC = tr.types.ReadOnlyBool(False)
-  QAM256Capable = tr.types.ReadOnlyInt(0)
-  RxBcastPowerLevel = tr.types.ReadOnlyInt(0)
-  RxErroredAndMissedPackets = tr.types.ReadOnlyInt(0)
-  RxPackets = tr.types.ReadOnlyInt(0)
-  RxPowerLevel = tr.types.ReadOnlyInt(0)
-  RxSNR = tr.types.ReadOnlyInt(0)
-  TxBcastRate = tr.types.ReadOnlyInt(0)
-  TxPackets = tr.types.ReadOnlyInt(0)
-  TxPowerControlReduction = tr.types.ReadOnlyInt(0)
-  X_CATAWAMPUS_ORG_RxBcastPowerLevel_dBm = tr.types.ReadOnlyFloat(0.0)
-  X_CATAWAMPUS_ORG_RxPowerLevel_dBm = tr.types.ReadOnlyFloat(0.0)
-  X_CATAWAMPUS_ORG_RxSNR_dB = tr.types.ReadOnlyFloat(0.0)
-  X_CATAWAMPUS_ORG_RxBitloading = tr.types.ReadOnlyString('')
-  X_CATAWAMPUS_ORG_TxBitloading = tr.types.ReadOnlyString('')
+  Active = tr.cwmptypes.ReadOnlyBool(True)
+  MACAddress = tr.cwmptypes.ReadOnlyString('')
+  NodeID = tr.cwmptypes.ReadOnlyInt(-1)
+  PacketAggregationCapability = tr.cwmptypes.ReadOnlyInt(0)
+  PHYTxRate = tr.cwmptypes.ReadOnlyInt(0)
+  PHYRxRate = tr.cwmptypes.ReadOnlyInt(0)
+  PreferredNC = tr.cwmptypes.ReadOnlyBool(False)
+  QAM256Capable = tr.cwmptypes.ReadOnlyInt(0)
+  RxBcastPowerLevel = tr.cwmptypes.ReadOnlyInt(0)
+  RxErroredAndMissedPackets = tr.cwmptypes.ReadOnlyInt(0)
+  RxPackets = tr.cwmptypes.ReadOnlyInt(0)
+  RxPowerLevel = tr.cwmptypes.ReadOnlyInt(0)
+  RxSNR = tr.cwmptypes.ReadOnlyInt(0)
+  TxBcastRate = tr.cwmptypes.ReadOnlyInt(0)
+  TxPackets = tr.cwmptypes.ReadOnlyInt(0)
+  TxPowerControlReduction = tr.cwmptypes.ReadOnlyInt(0)
+  X_CATAWAMPUS_ORG_RxBcastPowerLevel_dBm = tr.cwmptypes.ReadOnlyFloat(0.0)
+  X_CATAWAMPUS_ORG_RxPowerLevel_dBm = tr.cwmptypes.ReadOnlyFloat(0.0)
+  X_CATAWAMPUS_ORG_RxSNR_dB = tr.cwmptypes.ReadOnlyFloat(0.0)
+  X_CATAWAMPUS_ORG_RxBitloading = tr.cwmptypes.ReadOnlyString('')
+  X_CATAWAMPUS_ORG_TxBitloading = tr.cwmptypes.ReadOnlyString('')
 
   def __init__(self, nodeid):
     super(BrcmMocaAssociatedDevice, self).__init__()

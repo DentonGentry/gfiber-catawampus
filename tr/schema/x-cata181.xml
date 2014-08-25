@@ -246,6 +246,38 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
           </string>
         </syntax>
       </parameter>
+      <parameter name="SsdpServer" access="readOnly">
+        <description>The Server: line from an SSDP message sent by this client. Ex: "Windows-Vista/6.0 UPnP/1.0"</description>
+        <syntax>
+          <string>
+            <size maxLength="256"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="AsusModel" access="readOnly">
+        <description>The model name advertised using the ASUS Discovery Protocol.</description>
+        <syntax>
+          <string>
+            <size maxLength="32"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="DnsSdName" access="readOnly">
+        <description>The hostname advertised using DNS-SD.</description>
+        <syntax>
+          <string>
+            <size maxLength="256"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="NetbiosName" access="readOnly">
+        <description>The hostname advertised using NETBIOS.</description>
+        <syntax>
+          <string>
+            <size maxLength="16"/>
+          </string>
+        </syntax>
+      </parameter>
     </object>
 
     <object name="Device.IP.Interface.{i}." access="readWrite" numEntriesParameter="InterfaceNumberOfEntries" enableParameter="Enable" minEntries="0" maxEntries="unbounded">
@@ -263,6 +295,15 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
           <string>
             <size maxLength="45"/>
           </string>
+        </syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.MoCA.Interface.{i}." access="readOnly" numEntriesParameter="InterfaceNumberOfEntries" minEntries="0"  maxEntries="unbounded" dmr:fixedObject="true">
+      <parameter name="X_CATAWAMPUS-ORG_ExtraTracing" access="readWrite">
+        <description>Enables or disables additional trace messages from mocad.</description>
+        <syntax>
+          <boolean/>
         </syntax>
       </parameter>
     </object>
@@ -397,6 +438,12 @@ While the test is in progress, setting this parameter to {{enum|Requested}} (and
           <boolean/>
         </syntax>
       </parameter>
+      <parameter name="ClientDisableIfPortActive" access="readWrite">
+        <description>If nonzero, disable isostream client if a TCP connection exists on the given port.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
       <parameter name="ClientTimeLimit" access="readWrite">
         <description>Automatically disable the client if it runs for more than this many seconds. If zero, there is no limit.</description>
         <syntax>
@@ -416,6 +463,53 @@ While the test is in progress, setting this parameter to {{enum|Requested}} (and
         <syntax>
           <unsignedInt/>
         </syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.IP.Diagnostics.X_CATAWAMPUS-ORG_HttpDownload." access="readOnly" minEntries="1" maxEntries="1">
+      <description>Download a URL using http or https. The file is sent to /dev/null, not stored on the device.</description>
+      <parameter name="DiagnosticsState" access="readWrite" activeNotify="canDeny">
+        <description>Indicates availability of diagnostic data.  {{enum}}
+If the ACS sets the value of this parameter to {{enum|Requested}}, the CPE MUST initiate the corresponding diagnostic test.  When  writing, the only allowed value is {{enum|Requested}}.  To ensure the use of the proper test parameters (the writable parameters in  this object), the test parameters MUST be set either prior to or at the same time as (in the same SetParameterValues) setting the  {{param}} to {{enum|Requested}}.
+When requested, the CPE SHOULD wait until after completion of the communication session with the ACS before starting the diagnostic.
+When the test is completed, the value of this parameter MUST be either {{enum|Complete}} (if the test completed successfully), or one  of the ''Error'' values listed above.
+</description>
+        <syntax>
+          <string>
+            <enumeration value="None" access="readOnly"/>
+            <enumeration value="Requested"/>
+            <enumeration value="Complete" access="readOnly"/>
+            <enumeration value="Error_Internal" access="readOnly"/>
+            <enumeration value="Error_Other" access="readOnly"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="IPVersion" access="readWrite">
+        <description>The connection can be restricted to IPv4 or IPv6.</description>
+        <syntax>
+          <string>
+            <enumeration value="Unspecified"/>
+            <enumeration value="IPv4_Only"/>
+            <enumeration value="IPv6_Only"/>
+          </string>
+          <default type="object" value="Unspecified"/>
+        </syntax>
+      </parameter>
+      <parameter name="LimitMbps" access="readWrite">
+        <description>If non-zero, limit the download to this many Mbits/sec.</description>
+        <syntax><unsignedInt/></syntax>
+      </parameter>
+      <parameter name="Result" access="readOnly">
+        <description>Text output generated during the HTTP test.</description>
+        <syntax><string/></syntax>
+      </parameter>
+      <parameter name="Timeout" access="readWrite">
+        <description>Automatically terminate after this many seconds.</description>
+        <syntax><unsignedInt/></syntax>
+      </parameter>
+      <parameter name="URL" access="readWrite">
+        <description>The URL to access.</description>
+        <syntax><boolean/></syntax>
       </parameter>
     </object>
 

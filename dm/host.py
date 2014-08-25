@@ -23,15 +23,18 @@ Provides a way to discover network topologies.
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import codecs
 import datetime
 import os
 import struct
 import subprocess
 import time
+import dhcp
+import miniupnp
 import tr.helpers
 import tr.session
 import tr.tr181_v2_6
-import tr.types
+import tr.cwmptypes
 import dhcp
 
 BASE181HOSTS = tr.tr181_v2_6.Device_v2_6.Device.Hosts
@@ -41,11 +44,16 @@ CATA181HOSTS = CATA181.Device.Hosts
 CATA181HOST = CATA181HOSTS.Host
 
 # Unit tests can override these
-DHCP_FINGERPRINTS = '/config/dhcp.fingerprints'
 IP6NEIGH = ['ip', '-6', 'neigh']
 PROC_NET_ARP = '/proc/net/arp'
 SYS_CLASS_NET_PATH = '/sys/class/net'
 TIMENOW = time.time
+
+# Fingerprinting files
+ASUS_HOSTNAMES = '/tmp/asus_hostnames'
+DHCP_FINGERPRINTS = '/config/dhcp.fingerprints'
+DNSSD_HOSTNAMES = '/tmp/dnssd_hostnames'
+NETBIOS_HOSTNAMES = '/tmp/netbios_hostnames'
 
 
 def HexIntOrZero(arg):
@@ -57,6 +65,8 @@ def HexIntOrZero(arg):
 
 class Hosts(BASE181HOSTS):
   """Implement tr-181 Device.Hosts table."""
+
+  _MacValidator = tr.cwmptypes.ReadOnlyMacAddr()
 
   def __init__(self, iflookup=None, bridgename=None, dmroot=None):
     """Device.Hosts.
@@ -120,6 +130,7 @@ class Hosts(BASE181HOSTS):
     Returns:
       the entry
     """
+    ip = tr.helpers.NormalizeIPAddr(ip)
     key = 'ip6' if tr.helpers.IsIP6Addr(ip) else 'ip4'
     iplist = entry.get(key, [])
     if ip not in iplist:
@@ -186,6 +197,7 @@ class Hosts(BASE181HOSTS):
     for brname in self.bridges:
       try:
         for (mac, iface) in self._GetHostsInBridge(brname):
+          mac = mac.lower()
           host = hosts.get(mac, dict())
           self._AddLayer1Interface(host, iface)
           host['PhysAddress'] = mac
@@ -208,7 +220,7 @@ class Hosts(BASE181HOSTS):
       result = []
       for line in f:
         fields = line.split()
-        ip4 = fields[0]
+        ip4 = tr.helpers.NormalizeIPAddr(fields[0])
         flg = HexIntOrZero(fields[2])
         mac = fields[3]
         dev = fields[5]
@@ -225,6 +237,8 @@ class Hosts(BASE181HOSTS):
         to be populated for Device.Hosts.Host
     """
     for (mac, ip4, iface) in self._ParseArpTable():
+      ip4 = tr.helpers.NormalizeIPAddr(ip4)
+      mac = mac.lower()
       host = hosts.get(mac, dict())
       self._AddLayer1Interface(host, iface)
       host['PhysAddress'] = mac
@@ -248,9 +262,13 @@ class Hosts(BASE181HOSTS):
       fields = line.split()
       if len(fields) < 5:
         continue
-      ip6 = fields[0]
+      ip6 = tr.helpers.NormalizeIPAddr(fields[0])
       dev = fields[2]
       mac = fields[4]
+      try:
+        type(self)._MacValidator.Set(self, mac)
+      except ValueError:
+        continue
       active = 'REACHABLE' in line
       result.append((mac, ip6, dev, active))
     return result
@@ -263,6 +281,8 @@ class Hosts(BASE181HOSTS):
         to be populated for Device.Hosts.Host
     """
     for (mac, ip6, iface, active) in self._ParseIp6Neighbors():
+      ip6 = tr.helpers.NormalizeIPAddr(ip6)
+      mac = mac.lower()
       host = hosts.get(mac, dict())
       self._AddLayer1Interface(host, iface)
       host['PhysAddress'] = mac
@@ -386,7 +406,8 @@ class Hosts(BASE181HOSTS):
         host['PhysAddress'] = mac
         host['DHCPClient'] = server + 'Client.' + str(idx)
         for v in client.IPv4AddressList.values():
-          self._AddIpToHostDict(host, v.IPAddress)
+          ip = tr.helpers.NormalizeIPAddr(v.IPAddress)
+          self._AddIpToHostDict(host, ip)
         self._PopulateDhcpLeaseTime(host, client)
         self._PopulateFromDhcpOptions(host, client)
         hosts[mac] = host
@@ -412,12 +433,104 @@ class Hosts(BASE181HOSTS):
       if not hasattr(iface, 'GetAssociatedDevices'):
         continue
       for client in iface.GetAssociatedDevices():
-        mac = client['PhysAddress']
+        mac = client['PhysAddress'].lower()
         host = hosts.get(mac, dict())
         host['PhysAddress'] = mac
         host['Layer1Interface'] = l1interface
         host['Active'] = True
         hosts[mac] = host
+
+  def _PopulateDhcpFingerprints(self, hosts):
+    """Add DhcpFingerprint parameters wherever we can."""
+    try:
+      with open(DHCP_FINGERPRINTS) as f:
+        for line in f:
+          fields = line.split()
+          if len(fields) != 2:
+            continue
+          (mac, fingerprint) = fields
+          mac = mac.strip().lower()
+          host = hosts.get(mac, None)
+          if host:
+            host['DhcpFingerprint'] = fingerprint.strip()
+    except IOError:
+      return
+
+  def _PopulateSsdpServers(self, hosts):
+    """Add SsdpServer parameters wherever we can."""
+    ssdp = miniupnp.GetSsdpClientInfo()
+    for host in hosts.values():
+      ip4 = host.get('ip4', [])
+      ip6 = host.get('ip6', [])
+      name = host.get('HostName', '')
+      for key in ip4 + ip6 + [name]:
+        if key in ssdp:
+          host['SsdpServer'] = ssdp[key]
+
+  def _ReadHostnameFile(self, filename):
+    """Read in a hostname mapping file.
+
+      1.2.3.4|hostname
+      5555:6666::0001|hostname
+
+    Args:
+      filename: the filename to read
+
+    Returns:
+      A dict of {'1.2.3.4': 'hostname'} mappings.
+    """
+    hostnames = {}
+    try:
+      with codecs.open(filename, 'r', 'utf-8') as f:
+        for line in f:
+          try:
+            (ip, name) = line.split('|', 1)
+            ip = tr.helpers.NormalizeIPAddr(str(ip))
+            name = name.strip()
+            hostnames[ip] = name
+          except ValueError:
+            # line was malformed, no '|' is present
+            print 'Malformed line in %s: %s' % (filename, line)
+            continue
+    except IOError:
+      # Nonexistent file means no hosts responded. Skip it.
+      pass
+    return hostnames
+
+  def _PopulateDiscoveredHostnames(self, hosts):
+    """Fill in hostnames for hosts we know about.
+
+    If the client provided its hostname in its DHCP request,
+    we use that. If it didn't, we try to discover its hostname
+    via other means.
+
+    We check the different mechanisms in an order based on how
+    nice the result looks to the user.
+      ASUS - prints the model name, nicely
+      dnssd - prints the hostname, but often appends trailing stuff to it.
+      netbios - munges computer name to fit into 16 chars, all caps.
+    """
+    asus = self._ReadHostnameFile(ASUS_HOSTNAMES)
+    dnssd = self._ReadHostnameFile(DNSSD_HOSTNAMES)
+    netbios = self._ReadHostnameFile(NETBIOS_HOSTNAMES)
+    for host in hosts.values():
+      asusmodel = dnssdname = netbiosname = ''
+      ip4 = host.get('ip4', [])
+      ip6 = host.get('ip6', [])
+      for key in ip4 + ip6:
+        asusmodel = asusmodel or asus.get(key, '')
+        dnssdname = dnssdname or dnssd.get(key, '')
+        netbiosname = netbiosname or netbios.get(key, '')
+      host['AsusModel'] = asusmodel
+      host['DnsSdName'] = dnssdname
+      host['NetbiosName'] = netbiosname
+      if 'HostName' not in host or not host['HostName']:
+        # Make names prettier, humans will see this one.
+        if dnssdname.endswith('.local'):
+          dnssdname = dnssdname[:-len('.local')]
+        if asusmodel and 'ASUS' not in asusmodel.upper():
+          asusmodel = 'ASUS ' + asusmodel
+        host['HostName'] = asusmodel or dnssdname or netbiosname
 
   @tr.session.cache
   def _GetHostList(self):
@@ -430,6 +543,9 @@ class Hosts(BASE181HOSTS):
     self._GetHostsFromWifiAssociatedDevices(hosts=hosts)
     self._GetHostsFromMocaAssociatedDevices(hosts=hosts)
     self._GetHostsFromDhcpServers(hosts=hosts)
+    self._PopulateDhcpFingerprints(hosts=hosts)
+    self._PopulateSsdpServers(hosts=hosts)
+    self._PopulateDiscoveredHostnames(hosts=hosts)
     host_list = dict()
     for idx, host in enumerate(hosts.values(), start=1):
       host_list[str(idx)] = Host(**host)
@@ -450,24 +566,26 @@ class Host(CATA181HOST):
   This is an ephemeral object, created from some data source and
   peristing only for the duration of one CWMP session.
   """
-  Active = tr.types.ReadOnlyBool(False)
-  AddressSource = tr.types.ReadOnlyString('None')
-  AssociatedDevice = tr.types.ReadOnlyString('')
-  ClientID = tr.types.ReadOnlyString('')
-  DHCPClient = tr.types.ReadOnlyString('')
-  HostName = tr.types.ReadOnlyString('')
-  Layer1Interface = tr.types.ReadOnlyString('')
-  Layer3Interface = tr.types.ReadOnlyString('')
-  LeaseTimeRemaining = tr.types.ReadOnlyInt(0)
-  PhysAddress = tr.types.ReadOnlyString('')
-  UserClassID = tr.types.ReadOnlyString('')
-  VendorClassID = tr.types.ReadOnlyString('')
+  Active = tr.cwmptypes.ReadOnlyBool(False)
+  AddressSource = tr.cwmptypes.ReadOnlyString('None')
+  AssociatedDevice = tr.cwmptypes.ReadOnlyString('')
+  ClientID = tr.cwmptypes.ReadOnlyString('')
+  DHCPClient = tr.cwmptypes.ReadOnlyString('')
+  HostName = tr.cwmptypes.ReadOnlyString('')
+  Layer1Interface = tr.cwmptypes.ReadOnlyString('')
+  Layer3Interface = tr.cwmptypes.ReadOnlyString('')
+  LeaseTimeRemaining = tr.cwmptypes.ReadOnlyInt(0)
+  PhysAddress = tr.cwmptypes.ReadOnlyMacAddr('')
+  UserClassID = tr.cwmptypes.ReadOnlyString('')
+  VendorClassID = tr.cwmptypes.ReadOnlyString('')
 
   def __init__(self, Active=False, PhysAddress='', ip4=None, ip6=None,
                DHCPClient='', AddressSource='None', AssociatedDevice='',
                Layer1Interface='', Layer3Interface='', HostName='',
                LeaseTimeRemaining=0, VendorClassID='',
-               ClientID='', UserClassID=''):
+               ClientID='', UserClassID='',
+               DhcpFingerprint='', SsdpServer='', AsusModel='',
+               DnsSdName='', NetbiosName=''):
     super(Host, self).__init__()
     self.Unexport(['Alias'])
 
@@ -485,6 +603,13 @@ class Host(CATA181HOST):
     type(self).PhysAddress.Set(self, PhysAddress)
     type(self).UserClassID.Set(self, UserClassID)
     type(self).VendorClassID.Set(self, VendorClassID)
+    cid = ClientIdentification()
+    self.X_CATAWAMPUS_ORG_ClientIdentification = cid
+    type(cid).AsusModel.Set(cid, AsusModel)
+    type(cid).DhcpFingerprint.Set(cid, DhcpFingerprint)
+    type(cid).DnsSdName.Set(cid, DnsSdName)
+    type(cid).NetbiosName.Set(cid, NetbiosName)
+    type(cid).SsdpServer.Set(cid, SsdpServer)
 
   def _PopulateIpList(self, l, obj):
     """Return a dict with d[n] for each item in l."""
@@ -521,13 +646,9 @@ class Host(CATA181HOST):
       return ip6.IPAddress
     return ''
 
-  @property
-  def X_CATAWAMPUS_ORG_ClientIdentification(self):
-    return ClientIdentification(self.PhysAddress)
-
 
 class HostIPv4Address(BASE181HOST.IPv4Address):
-  IPAddress = tr.types.ReadOnlyString('')
+  IPAddress = tr.cwmptypes.ReadOnlyString('')
 
   def __init__(self, address=''):
     super(HostIPv4Address, self).__init__()
@@ -535,7 +656,7 @@ class HostIPv4Address(BASE181HOST.IPv4Address):
 
 
 class HostIPv6Address(BASE181HOST.IPv6Address):
-  IPAddress = tr.types.ReadOnlyString('')
+  IPAddress = tr.cwmptypes.ReadOnlyString('')
 
   def __init__(self, address=''):
     super(HostIPv6Address, self).__init__()
@@ -543,23 +664,8 @@ class HostIPv6Address(BASE181HOST.IPv6Address):
 
 
 class ClientIdentification(CATA181HOST.X_CATAWAMPUS_ORG_ClientIdentification):
-  DhcpFingerprint = tr.types.ReadOnlyString('')
-
-  def __init__(self, macaddr):
-    super(ClientIdentification, self).__init__()
-    fp = self._GetDhcpFingerprint(macaddr)
-    type(self).DhcpFingerprint.Set(self, fp)
-
-  def _GetDhcpFingerprint(self, macaddr):
-    try:
-      with open(DHCP_FINGERPRINTS) as f:
-        for line in f:
-          fields = line.split()
-          if len(fields) != 2:
-            continue
-          (mac, fingerprint) = fields
-          if mac.strip() == macaddr:
-            return fingerprint.strip()
-    except IOError:
-      pass
-    return ''
+  AsusModel = tr.cwmptypes.ReadOnlyString('')
+  DhcpFingerprint = tr.cwmptypes.ReadOnlyString('')
+  DnsSdName = tr.cwmptypes.ReadOnlyString('')
+  NetbiosName = tr.cwmptypes.ReadOnlyString('')
+  SsdpServer = tr.cwmptypes.ReadOnlyString('')

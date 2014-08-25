@@ -35,7 +35,7 @@ import tornado.ioloop
 import tr.core
 import tr.mainloop
 import tr.tr181_v2_6
-import tr.types
+import tr.cwmptypes
 
 
 BASE_TRACEROUTE = tr.tr181_v2_6.Device_v2_6.Device.IP.Diagnostics.TraceRoute
@@ -55,12 +55,12 @@ class State(object):
 
 class TraceRoute(BASE_TRACEROUTE):
   """Implementation of the TraceRoute object from TR-181."""
-  DSCP = tr.types.Unsigned(0)
-  NumberOfTries = tr.types.Unsigned(3)
-  Timeout = tr.types.Unsigned(5000)   # milliseconds
-  DataBlockSize = tr.types.Unsigned(38)
-  MaxHopCount = tr.types.Unsigned(30)
-  RouteHopsNumberOfEntries = tr.types.NumberOf('RouteHopsList')
+  DSCP = tr.cwmptypes.Unsigned(0)
+  NumberOfTries = tr.cwmptypes.Unsigned(3)
+  Timeout = tr.cwmptypes.Unsigned(5000)   # milliseconds
+  DataBlockSize = tr.cwmptypes.Unsigned(38)
+  MaxHopCount = tr.cwmptypes.Unsigned(30)
+  RouteHopsNumberOfEntries = tr.cwmptypes.NumberOf('RouteHopsList')
 
   def __init__(self, ioloop=None):
     super(TraceRoute, self).__init__()

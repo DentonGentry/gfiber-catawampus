@@ -26,13 +26,15 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import os
 import subprocess
+import urlparse
 import tr.helpers
-import tr.types
+import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 
 BASEUPNP = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.UPnP
-UPNPFILE = '/tmp/upnpd-enabled'
+POLL_CMD = ['ssdp_poll']
 RESTARTCMD = ['restart', 'upnpd']
+UPNPFILE = '/tmp/upnpd-enabled'
 
 
 class UPnP(BASEUPNP):
@@ -47,16 +49,16 @@ class UPnP(BASEUPNP):
 class Device(BASEUPNP.Device):
   """tr181 Device.UPnP.Device object."""
 
-  Enable = tr.types.TriggerBool(False)
-  UPnPDMBasicMgmt = tr.types.ReadOnlyBool(False)
-  UPnPDMConfigurationMgmt = tr.types.ReadOnlyBool(False)
-  UPnPDMSoftwareMgmt = tr.types.ReadOnlyBool(False)
-  UPnPIGD = tr.types.TriggerBool(False)
-  UPnPMediaRenderer = tr.types.ReadOnlyBool(False)
-  UPnPMediaServer = tr.types.ReadOnlyBool(False)
-  UPnPQoSDevice = tr.types.ReadOnlyBool(False)
-  UPnPQoSPolicyHolder = tr.types.ReadOnlyBool(False)
-  UPnPWLANAccessPoint = tr.types.ReadOnlyBool(False)
+  Enable = tr.cwmptypes.TriggerBool(False)
+  UPnPDMBasicMgmt = tr.cwmptypes.ReadOnlyBool(False)
+  UPnPDMConfigurationMgmt = tr.cwmptypes.ReadOnlyBool(False)
+  UPnPDMSoftwareMgmt = tr.cwmptypes.ReadOnlyBool(False)
+  UPnPIGD = tr.cwmptypes.TriggerBool(False)
+  UPnPMediaRenderer = tr.cwmptypes.ReadOnlyBool(False)
+  UPnPMediaServer = tr.cwmptypes.ReadOnlyBool(False)
+  UPnPQoSDevice = tr.cwmptypes.ReadOnlyBool(False)
+  UPnPQoSPolicyHolder = tr.cwmptypes.ReadOnlyBool(False)
+  UPnPWLANAccessPoint = tr.cwmptypes.ReadOnlyBool(False)
 
   def __init__(self):
     super(Device, self).__init__()
@@ -73,22 +75,59 @@ class Device(BASEUPNP.Device):
 
   def Triggered(self):
     """Called at the end of the transaction to apply changes."""
-    self._UpdateFile(self.Enable and self.UPnPIGD)
-    subprocess.call(RESTARTCMD)
+    previous = os.path.exists(UPNPFILE)
+    enable = self.Enable and self.UPnPIGD
+    if previous != enable:
+      self._UpdateFile(enable)
+      subprocess.call(RESTARTCMD)
 
 
 class DeviceCapabilities(BASEUPNP.Device.Capabilities):
   """tr181 Device.UPnP.Device.Capabilities object."""
 
-  UPnPArchitecture = tr.types.ReadOnlyUnsigned(1)
-  UPnPArchitectureMinorVer = tr.types.ReadOnlyUnsigned(1)
-  UPnPBasicDevice = tr.types.ReadOnlyUnsigned(0)
-  UPnPDMBasicMgmt = tr.types.ReadOnlyUnsigned(0)
-  UPnPDMConfigurationMgmt = tr.types.ReadOnlyUnsigned(0)
-  UPnPDMSoftwareMgmt = tr.types.ReadOnlyUnsigned(0)
-  UPnPIGD = tr.types.ReadOnlyUnsigned(1)
-  UPnPMediaRenderer = tr.types.ReadOnlyUnsigned(0)
-  UPnPMediaServer = tr.types.ReadOnlyUnsigned(0)
-  UPnPQoSDevice = tr.types.ReadOnlyUnsigned(0)
-  UPnPQoSPolicyHolder = tr.types.ReadOnlyUnsigned(0)
-  UPnPWLANAccessPoint = tr.types.ReadOnlyUnsigned(0)
+  UPnPArchitecture = tr.cwmptypes.ReadOnlyUnsigned(1)
+  UPnPArchitectureMinorVer = tr.cwmptypes.ReadOnlyUnsigned(1)
+  UPnPBasicDevice = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UPnPDMBasicMgmt = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UPnPDMConfigurationMgmt = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UPnPDMSoftwareMgmt = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UPnPIGD = tr.cwmptypes.ReadOnlyUnsigned(1)
+  UPnPMediaRenderer = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UPnPMediaServer = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UPnPQoSDevice = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UPnPQoSPolicyHolder = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UPnPWLANAccessPoint = tr.cwmptypes.ReadOnlyUnsigned(0)
+
+
+def GetSsdpClientInfo():
+  """Obtain information about SSDP clients.
+
+  The SERVER: field in a SSDP message tends to be quite
+  descriptive for determining the client OS.
+    Server:NT/5.0 Upnp/1.0
+    SERVER: Windows-Vista/6.0 UPnP/1.0
+
+  Returns:
+    a dict of keys which identify the host (IPv4 address,
+    IPv6 address, or hostname) and value of the SERVER:
+    field it sent in its SSDP advertisement.
+  """
+
+  try:
+    ssdp = subprocess.Popen(POLL_CMD, stdout=subprocess.PIPE)
+    out, _ = ssdp.communicate(None)
+  except (IOError, OSError, subprocess.CalledProcessError):
+    # SSDP not running, or not present on this platform.
+    return {}
+
+  result = {}
+  for line in out.splitlines():
+    try:
+      (url, server) = line.split('|')
+      p = urlparse.urlparse(url)
+    except ValueError:
+      continue
+    if p.hostname:
+      result[p.hostname] = server
+
+  return result

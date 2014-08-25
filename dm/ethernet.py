@@ -28,7 +28,7 @@ import pynetlinux
 import tr.core
 import tr.cwmpdate
 import tr.tr181_v2_4
-import tr.types
+import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 import netdev
 
@@ -60,21 +60,26 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
     qfiles: path to per-queue discard count files
     numq: number of per-queue discard files to look for
     hipriq: which queue number is high priority
+    status_fcn: function to be called in Status method. If it
+      returns a string, use it for Status instead of the builtin
+      handling.
   """
 
-  Enable = tr.types.ReadOnlyBool(True)
-  LowerLayers = tr.types.ReadOnlyString('')
-  Name = tr.types.ReadOnlyString('')
-  Upstream = tr.types.ReadOnlyBool(False)
+  Enable = tr.cwmptypes.ReadOnlyBool(True)
+  LowerLayers = tr.cwmptypes.ReadOnlyString('')
+  Name = tr.cwmptypes.ReadOnlyString('')
+  Upstream = tr.cwmptypes.ReadOnlyBool(False)
 
   def __init__(self, ifname, upstream=False,
-               qfiles=None, numq=0, hipriq=0):
+               qfiles=None, numq=0, hipriq=0,
+               status_fcn=None):
     super(EthernetInterfaceLinux26, self).__init__()
     self._pynet = PYNETIFCONF(ifname)
     self._ifname = ifname
     self._qfiles = qfiles
     self._numq = numq
     self._hipriq = hipriq
+    self._status_fcn = status_fcn
     self.Unexport(['Alias'])
     type(self).Name.Set(self, ifname)
     type(self).Upstream.Set(self, upstream)
@@ -89,6 +94,9 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
 
   @property
   def Status(self):
+    if self._status_fcn:
+      s = self._status_fcn()
+      if s: return s
     if not self._pynet.is_up():
       return 'Down'
     (_, _, _, link_up) = self._GetLinkInfo()

@@ -114,6 +114,12 @@ class CwmpLogTest(unittest.TestCase):
     self.assertEqual(logger.LogSoapXML(GetParameterValuesResponseLongXML),
                      GetParameterValuesResponseLongLog)
 
+  def testKeyPassphrase(self):
+    logger = cwmplog.Logger(full_logs=0)
+    log = logger.LogSoapXML(KeyPassphraseXML)
+    self.assertFalse('password' in log)
+    self.assertTrue('ThisIsTheOtherValue' in log)
+
 
 # pylint: disable-msg=C6310
 InformXML = """<?xml version="1.0" encoding="utf-8"?>
@@ -393,6 +399,31 @@ GetParameterValuesResponseLongLog = """ID: google.acs.1370224916205.16224788
 GetParameterValuesResponse:
   Device.D.....uce.The.Footprint.Of.The.Logging = abcdefghijklmnop.....ijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789
 """
+
+KeyPassphraseXML = """<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <soap:Header>
+    <cwmp:ID soap:mustUnderstand="1">google.acs.1370224916205.16224788</cwmp:ID>
+  </soap:Header>
+  <soap:Body>
+    <cwmp:GetParameterValuesResponse>
+      <ParameterList soap-enc:arrayType="cwmp:ParameterValueStruct[3]">
+        <ParameterValueStruct>
+          <Name>Foo.1.KeyPassphrase</Name>
+          <Value xsi:type="xsd:string">password</Value>
+        </ParameterValueStruct>
+        <ParameterValueStruct>
+          <Name>Foo.1.WEPKey</Name>
+          <Value xsi:type="xsd:string">password</Value>
+        </ParameterValueStruct>
+        <ParameterValueStruct>
+          <Name>Foo.1.SomeOtherValue</Name>
+          <Value xsi:type="xsd:string">ThisIsTheOtherValue</Value>
+        </ParameterValueStruct>
+      </ParameterList>
+    </cwmp:GetParameterValuesResponse>
+  </soap:Body>
+</soap:Envelope>"""
 
 
 if __name__ == '__main__':

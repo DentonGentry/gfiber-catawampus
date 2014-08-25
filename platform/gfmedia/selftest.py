@@ -31,7 +31,7 @@ import google3
 import tornado.ioloop
 import tr.core
 import tr.mainloop
-import tr.types
+import tr.cwmptypes
 import tr.x_selftest_1_0
 
 
@@ -57,12 +57,12 @@ class SelfTest(BASE.X_GOOGLE_COM_GFIBERTV.SelfTest):
     self.Log = ''
     self.proc = None
 
-  Mode = tr.types.TriggerEnum(['None', 'Success', 'Error',
+  Mode = tr.cwmptypes.TriggerEnum(['None', 'Success', 'Error',
                                'StressTest', 'Throughput'])
-  ServerIP = tr.types.TriggerString()
-  AutoRestartEnable = tr.types.TriggerBool()
-  MaxBitRate = tr.types.TriggerFloat()
-  LastResultTime = tr.types.ReadOnlyDate()
+  ServerIP = tr.cwmptypes.TriggerString()
+  AutoRestartEnable = tr.cwmptypes.TriggerBool()
+  MaxBitRate = tr.cwmptypes.TriggerFloat()
+  LastResultTime = tr.cwmptypes.ReadOnlyDate()
 
   def _StressTest(self):
     print 'starting selftest process.'
@@ -90,9 +90,9 @@ class SelfTest(BASE.X_GOOGLE_COM_GFIBERTV.SelfTest):
     if self.ServerIP:
       env['IPERF_CLIENT'] = str(self.ServerIP)
       env['IPERF_TIME'] = '40'
-      env['TCP_WINDOW_SIZE'] = '32767'
     else:
       env['IPERF_SERVER'] = '1'
+    env['TCP_WINDOW_SIZE'] = '1M'
     return (IPERF_BIN, env)
 
   def _StartTest(self, exe, env):

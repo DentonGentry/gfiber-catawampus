@@ -30,7 +30,7 @@ import datetime
 
 import tornado.ioloop
 import tr.cwmpbool
-import tr.types
+import tr.cwmptypes
 import download
 
 # Time in seconds to refetch the values that are being watched
@@ -400,7 +400,7 @@ class CPE(TR069Service):
     assert not error_list
     for key, (obj, param), value in zip(keys, lookup, values):
       self._Apply(error_list, key, ParameterNotWritableError,
-                  tr.types.tryattr, obj, param, value)
+                  tr.cwmptypes.tryattr, obj, param, value)
     if error_list:
       # don't need to _ConcludeTransaction since we didn't change anything yet
       raise SetParameterErrors(error_list=error_list,

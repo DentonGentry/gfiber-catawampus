@@ -20,5 +20,15 @@
         </string>
       </syntax>
     </parameter>
+    <object name="X_CATAWAMPUS-ORG_CATAWAMPUS.Profiler." access="readOnly" minEntries="1" maxEntries="1">
+      <parameter name="Enable" access="readWrite">
+        <description>Enables profiling.</description>
+        <syntax><boolean/></syntax>
+      </parameter>
+      <parameter name="Result" access="readOnly">
+        <description>Current profiling result, updated when profiler is enabled and then disabled.</description>
+        <syntax><boolean/></syntax>
+      </parameter>
+    </object>
   </model>
 </dm:document>

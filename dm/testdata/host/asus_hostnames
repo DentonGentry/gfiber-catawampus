@@ -1,0 +1,4 @@
+192.168.1.1|model4_1
+fe80::fa8f:caff:fe00:0001|model6_1
+192.168.1.10|asus_shouldbeignored
+fe80::fa8f:caff:fe00:0010|asus_shouldbeignored

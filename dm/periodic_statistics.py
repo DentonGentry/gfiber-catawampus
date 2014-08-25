@@ -479,13 +479,35 @@ class PeriodicStatistics(BASE157PS):
         """Convert the stored time values to a SampleSeconds string."""
         return _MakeSampleSeconds(self._sample_times)
 
+      def _tr106_escape(self, value):
+        """Escape string according to tr-106 section 3.2.3.
+
+           '...Any whitespace or comma characters within an item value
+            MUST be escaped using percent encoding as specified in
+            Section 2.1/RFC 3986.'
+
+        Args:
+          value: a list of sampled parameters
+
+        Returns:
+          a list with whitespace and commas escaped for each sample.
+        """
+        escaped = value
+        escaped = [x.replace('%', '%25') for x in escaped]
+        escaped = [x.replace(',', '%2c') for x in escaped]
+        escaped = [x.replace(' ', '%20') for x in escaped]
+        escaped = [x.replace('\t', '%09') for x in escaped]
+        escaped = [x.replace('\n', '%0a') for x in escaped]
+        escaped = [x.replace('\r', '%0d') for x in escaped]
+        return escaped
+
       @property
       def SuspectData(self):
-        return ','.join(self._suspect_data)
+        return ','.join(self._tr106_escape(self._suspect_data))
 
       @property
       def Values(self):
-        return ','.join(self._values)
+        return ','.join(self._tr106_escape(self._values))
 
       def SetParent(self, parent):
         """Set the parent object (should be a SampleSet)."""

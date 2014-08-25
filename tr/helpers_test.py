@@ -102,5 +102,14 @@ class HelpersTest(unittest.TestCase):
     self.assertFalse(helpers.IsIP6Addr('10000:1:a::'))
     self.assertFalse(helpers.IsIP6Addr('this is not an address'))
 
+  def testNormalizeAddr(self):
+    self.assertEqual('192.168.1.1', helpers.NormalizeIPAddr('192.168.1.1'))
+    normal = helpers.NormalizeIPAddr('0000:0000:0000:0000:0000:0000:0000:0001')
+    self.assertEqual('::1', normal)
+    self.assertEqual('fe80::21d:9ff:fe11:f55f', helpers.NormalizeIPAddr('fe80::21d:9ff:fe11:f55f'))
+    self.assertEqual('fe80::21d:9ff:fe11:f55f', helpers.NormalizeIPAddr('FE80::21D:9FF:FE11:F55F'))
+    self.assertEqual('boo!', helpers.NormalizeIPAddr('boo!'))
+
+
 if __name__ == '__main__':
   unittest.main()

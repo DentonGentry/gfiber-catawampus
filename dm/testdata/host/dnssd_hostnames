@@ -1,0 +1,6 @@
+192.168.1.1|dnssd_hostname4_1.local
+192.168.1.2|dnssd_hostname4_2.local
+fe80::fa8f:caff:fe00:0001|dnssd_hostname6_1.local
+fe80::fa8f:caff:fe00:0002|dnssd_hostname6_2.local
+192.168.1.20|dnssd_shouldbeignored.local
+fe80::fa8f:caff:fe00:0020|dnssd_shouldbeignored.local

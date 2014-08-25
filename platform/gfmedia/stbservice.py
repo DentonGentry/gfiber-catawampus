@@ -32,7 +32,7 @@ import tornado.ioloop
 import tr.cwmpdate
 import tr.session
 import tr.tr135_v1_2
-import tr.types
+import tr.cwmptypes
 import tr.x_catawampus_videomonitoring_1_0 as vmonitor
 
 
@@ -167,6 +167,7 @@ class IGMP(BASE135STB.Components.FrontEnd.IP.IGMP):
   def ClientGroupNumberOfEntries(self):
     return len(self.ClientGroupList)
 
+  @tr.session.cache_as_list
   def _ParseProcIgmp(self):
     """Get the list of multicast groups subscribed to.
 
@@ -201,6 +202,7 @@ class IGMP(BASE135STB.Components.FrontEnd.IP.IGMP):
               socket.AF_INET6, socket.inet_pton(socket.AF_INET6, ip6)))
     return sorted(list(igmp4s)) + sorted(list(igmp6s))
 
+  @tr.session.cache
   def _UpdateClientGroups(self):
     """Maintain stable instance numbers for ClientGroups."""
     igmps = self._ParseProcIgmp()
@@ -232,6 +234,7 @@ class IGMP(BASE135STB.Components.FrontEnd.IP.IGMP):
     for key, ipaddr in self._ClientGroups.items():
       yield str(key), self.GetClientGroup(ipaddr)
 
+  @tr.session.cache
   def GetClientGroupByIndex(self, index):
     """Directly access the value corresponding to a given key."""
     self._UpdateClientGroups()
@@ -240,7 +243,7 @@ class IGMP(BASE135STB.Components.FrontEnd.IP.IGMP):
 
 class ClientGroup(BASE135STB.Components.FrontEnd.IP.IGMP.ClientGroup):
   """STBService.{i}.Components.FrontEnd.{i}.IP.IGMP.ClientGroup.{i}."""
-  GroupAddress = tr.types.ReadOnlyString('')
+  GroupAddress = tr.cwmptypes.ReadOnlyString('')
 
   def __init__(self, ipaddr):
     super(ClientGroup, self).__init__()
@@ -250,13 +253,14 @@ class ClientGroup(BASE135STB.Components.FrontEnd.IP.IGMP.ClientGroup):
 
 class HDMI(BASE135STB.Components.HDMI):
   """STBService.{i}.Components.HDMI."""
-  ResolutionMode = tr.types.ReadOnlyString('Auto')
+  ResolutionMode = tr.cwmptypes.ReadOnlyString('Auto')
 
   def __init__(self):
     super(HDMI, self).__init__()
     self.Unexport(['Alias', 'Enable', 'Name', 'Status'])
     self._UpdateStats()
 
+  @tr.session.cache
   def _UpdateStats(self):
     """Read data in from JSON files."""
     data = dict()
@@ -293,6 +297,7 @@ class HDMIDisplayDevice(CATA135STB.Components.HDMI.DisplayDevice):
     self.Unexport(['CECSupport'])
     self.data = self._UpdateStats()
 
+  @tr.session.cache
   def _UpdateStats(self):
     data = dict()
     for wildcard in HDMI_DISPLAY_DEVICE_STATS_FILES:
@@ -389,8 +394,8 @@ class HDMIDisplayDevice(CATA135STB.Components.HDMI.DisplayDevice):
 class ServiceMonitoring(CATA135STB.ServiceMonitoring):
   """STBService.{i}.ServiceMonitoring."""
 
-  X_CATAWAMPUS_ORG_StallAlarmResetTime = tr.types.Unsigned()
-  X_CATAWAMPUS_ORG_StallAlarmValue = tr.types.Unsigned()
+  X_CATAWAMPUS_ORG_StallAlarmResetTime = tr.cwmptypes.Unsigned()
+  X_CATAWAMPUS_ORG_StallAlarmValue = tr.cwmptypes.Unsigned()
 
   def __init__(self, ioloop=None):
     super(ServiceMonitoring, self).__init__()
@@ -492,6 +497,7 @@ class Total(CATA135STBTOTAL):
     self._UpdateStats()
     return DecoderStats(self.data.get('DecoderStats', {}))
 
+  @tr.session.cache
   def _UpdateProcNetUDP(self, udp):
     """Parse /proc/net/udp.
 
@@ -517,6 +523,7 @@ class Total(CATA135STBTOTAL):
           # comment line, or something
           continue
 
+  @tr.session.cache
   def _UpdateTotalStats(self, data):
     """Read stats in from JSON files."""
     for pattern in CONT_MONITOR_FILES:
@@ -534,6 +541,7 @@ class Total(CATA135STBTOTAL):
         print('ServiceMonitoring: Failed to read stats from file {0}, '
               'error = {1}'.format(filename, e))
 
+  @tr.session.cache
   def _UpdateStats(self):
     self.data = {}
     self._UpdateTotalStats(self.data)
@@ -851,6 +859,7 @@ class EPG(CATA135STB.X_CATAWAMPUS_ORG_ProgramMetadata.EPG):
     super(EPG, self).__init__()
     self.data = self._GetStats()
 
+  @tr.session.cache
   def _GetStats(self):
     """Generate stats object from the JSON stats."""
     data = dict()

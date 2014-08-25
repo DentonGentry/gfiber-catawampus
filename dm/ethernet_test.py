@@ -38,6 +38,7 @@ class EthernetTest(unittest.TestCase):
     self.old_PYNETIFCONF = ethernet.PYNETIFCONF
     netdev.PROC_NET_DEV = 'testdata/ethernet/net_dev'
     ethernet.PYNETIFCONF = MockPynet
+    MockPynet.reset()
 
   def tearDown(self):
     netdev.PROC_NET_DEV = self.old_PROC_NET_DEV
@@ -97,7 +98,6 @@ class EthernetTest(unittest.TestCase):
     self._CheckEthernetInterfaceParameters('foo0', upstream, eth, MockPynet)
 
   def testIOError(self):
-
     ethernet.PYNETIFCONF = MockIOErrorPynet
 
     upstream = False
@@ -118,6 +118,34 @@ class EthernetTest(unittest.TestCase):
     self.assertTrue(eth.Stats.IsValidExport(d1))
     self.assertTrue(eth.Stats.IsValidExport(d2))
 
+  def testStatus(self):
+    eth = ethernet.EthernetInterfaceLinux26('foo0')
+    MockPynet.v_is_up = False
+    MockPynet.v_link_up = True
+    self.assertEqual(eth.Status, 'Down')
+    MockPynet.v_is_up = True
+    MockPynet.v_link_up = True
+    self.assertEqual(eth.Status, 'Up')
+    MockPynet.v_is_up = True
+    MockPynet.v_link_up = False
+    self.assertEqual(eth.Status, 'Down')
+
+  def testStatusFcn(self):
+    eth = ethernet.EthernetInterfaceLinux26(
+        'foo0', status_fcn=lambda: None)
+    MockPynet.v_is_up = False
+    self.assertEqual(eth.Status, 'Down')
+    MockPynet.v_is_up = True
+    MockPynet.v_link_up = True
+    self.assertEqual(eth.Status, 'Up')
+
+    eth = ethernet.EthernetInterfaceLinux26(
+        'foo0', status_fcn=lambda: 'Forced')
+    MockPynet.v_is_up = False
+    self.assertEqual(eth.Status, 'Forced')
+    MockPynet.v_is_up = True
+    self.assertEqual(eth.Status, 'Forced')
+
 
 class MockPynet(object):
   v_is_up = True
@@ -126,6 +154,15 @@ class MockPynet(object):
   v_duplex = True
   v_auto = True
   v_link_up = True
+
+  @staticmethod
+  def reset():
+    MockPynet.v_is_up = True
+    MockPynet.v_mac = '00:11:22:33:44:55'
+    MockPynet.v_speed = 1000
+    MockPynet.v_duplex = True
+    MockPynet.v_auto = True
+    MockPynet.v_link_up = True
 
   def __init__(self, ifname):
     self.ifname = ifname

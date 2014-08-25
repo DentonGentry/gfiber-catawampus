@@ -32,7 +32,7 @@ import tr.core
 import tr.session
 import tr.tr098_v1_4
 import tr.tr181_v2_2
-import tr.types
+import tr.cwmptypes
 import temperature
 
 BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
@@ -180,8 +180,8 @@ class MemoryStatusLinux26(BASE181DEVICE.DeviceInfo.MemoryStatus):
   Reads /proc/meminfo to find TotalMem and FreeMem.
   """
 
-  Free = tr.types.ReadOnlyUnsigned(0)
-  Total = tr.types.ReadOnlyUnsigned(0)
+  Free = tr.cwmptypes.ReadOnlyUnsigned(0)
+  Total = tr.cwmptypes.ReadOnlyUnsigned(0)
 
   def __init__(self):
     super(MemoryStatusLinux26, self).__init__()
@@ -343,7 +343,7 @@ class ProcessStatusLinux26(BASE181DEVICE.DeviceInfo.ProcessStatus):
 
 class LedStatusReadFromFile(CATA181DEVICEINFO.X_CATAWAMPUS_ORG_LedStatus):
   """X_CATAWAMPUS-ORG_LedStatus implementation to read a line from a file."""
-  Name = tr.types.ReadOnlyString('')
+  Name = tr.cwmptypes.ReadOnlyString('')
 
   def __init__(self, name, filename):
     super(LedStatusReadFromFile, self).__init__()
@@ -357,7 +357,7 @@ class LedStatusReadFromFile(CATA181DEVICEINFO.X_CATAWAMPUS_ORG_LedStatus):
 
 class DeviceInfo98Linux26(BASE98IGD.DeviceInfo):
   """Implementation of tr-98 DeviceInfo for Linux."""
-  SpecVersion = tr.types.ReadOnlyString('1.0')
+  SpecVersion = tr.cwmptypes.ReadOnlyString('1.0')
 
   def __init__(self, device_id):
     super(DeviceInfo98Linux26, self).__init__()

@@ -31,7 +31,7 @@ import google3
 import tornado.ioloop
 import tr.core
 import tr.mainloop
-import tr.types
+import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 
 
@@ -52,12 +52,13 @@ def _KillWait(proc):
 
 class Isostream(ISOSTREAM):
   """Implementation of the Isostream vendor extension for TR-181."""
-  ServerEnable = tr.types.TriggerBool(False)
-  ServerTimeLimit = tr.types.Unsigned(60)
-  ClientEnable = tr.types.TriggerBool(False)
-  ClientTimeLimit = tr.types.Unsigned(60)
-  ClientRemoteIP = tr.types.String('')
-  ClientMbps = tr.types.Unsigned(1)
+  ServerEnable = tr.cwmptypes.TriggerBool(False)
+  ServerTimeLimit = tr.cwmptypes.Unsigned(60)
+  ClientEnable = tr.cwmptypes.TriggerBool(False)
+  ClientDisableIfPortActive = tr.cwmptypes.Unsigned(0)
+  ClientTimeLimit = tr.cwmptypes.Unsigned(60)
+  ClientRemoteIP = tr.cwmptypes.String('')
+  ClientMbps = tr.cwmptypes.Unsigned(1)
 
   def __init__(self):
     super(Isostream, self).__init__()
@@ -118,12 +119,14 @@ class Isostream(ISOSTREAM):
         self.clientproc = None
       if self.ClientEnable:
         argv = ['run-isostream']
+        env = dict(os.environ)  # make a copy
+        env['ISOSTREAM_DISABLE_IF_PORT'] = str(self.ClientDisableIfPortActive)
         if self.ClientRemoteIP:
           argv += [self.ClientRemoteIP]
         else:
           argv += ['--use-storage-box']
         argv += ['-b', str(self.ClientMbps)]
-        self.clientproc = subprocess.Popen(argv)
+        self.clientproc = subprocess.Popen(argv, env=env)
         if self.ClientTimeLimit:
           def _DisableClient():
             self.ClientEnable = False

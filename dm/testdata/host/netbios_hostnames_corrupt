@@ -1,0 +1,3 @@
+192.168.1.1|NETBIOS_HOSTNAME4_1
+This line is corrupt, check that it is properly skipped.
+192.168.1.3|NETBIOS_HOSTNAME4_3

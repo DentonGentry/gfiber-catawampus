@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-# pylint: disable-msg=C6409
+# pylint: disable=C6409
 
 """Implementation of tr-98 WLAN objects for /bin/wifi.
 
@@ -55,52 +55,58 @@ class WlanConfiguration(CATA98WIFI):
                       'WEPandAESEncryption', 'TKIPandAESEncryption',
                       'WEPandTKIPandAESEncryption']
 
-  BasicAuthenticationMode = tr.types.TriggerEnum(
+  BasicAuthenticationMode = tr.cwmptypes.TriggerEnum(
       ['None', 'SharedAuthentication'], init='SharedAuthentication')
-  BasicEncryptionModes = tr.types.TriggerEnum(
+  BasicEncryptionModes = tr.cwmptypes.TriggerEnum(
       ['None', 'WEPEncryption'], init='None')
-  BeaconAdvertisementEnabled = tr.types.ReadOnlyBool(True)
-  BeaconType = tr.types.TriggerEnum(
+  BeaconAdvertisementEnabled = tr.cwmptypes.ReadOnlyBool(True)
+  BeaconType = tr.cwmptypes.TriggerEnum(
       ['None', 'Basic', 'WPA', '11i', 'BasicandWPA', 'Basicand11i', 'WPAand11i',
        'BasicandWPAand11i'], init='11i')
-  DeviceOperationMode = tr.types.ReadOnlyString('InfrastructureAccessPoint')
-  Enable = tr.types.TriggerBool(False)
-  IEEE11iAuthenticationMode = tr.types.TriggerEnum(
+  DeviceOperationMode = tr.cwmptypes.ReadOnlyString('InfrastructureAccessPoint')
+  Enable = tr.cwmptypes.TriggerBool(False)
+  IEEE11iAuthenticationMode = tr.cwmptypes.TriggerEnum(
       ['PSKAuthentication'], init='PSKAuthentication')
-  IEEE11iEncryptionModes = tr.types.TriggerEnum(
+  IEEE11iEncryptionModes = tr.cwmptypes.TriggerEnum(
       encryption_modes, init='AESEncryption')
-  LocationDescription = tr.types.String()
-  Name = tr.types.ReadOnlyString()
-  # TODO(dgentry): this should be readwrite on GFHD* and read-only on GFRG*
-  OperatingFrequencyBand = tr.types.TriggerEnum(['2.4GHz', '5GHz'])
-  RadioEnabled = tr.types.TriggerBool(False)
-  SSIDAdvertisementEnabled = tr.types.TriggerBool(True)
-  Standard = tr.types.ReadOnlyString()
-  SupportedFrequencyBands = tr.types.ReadOnlyString('2.4GHz,5GHz')
-  TransmitPowerSupported = tr.types.ReadOnlyString('0,20,40,60,80,100')
-  UAPSDSupported = tr.types.ReadOnlyBool(False)
-  WEPEncryptionLevel = tr.types.ReadOnlyString('Disabled,40-bit,104-bit')
-  WEPKeyIndex = tr.types.Unsigned(1)
-  WMMSupported = tr.types.ReadOnlyBool(False)
-  WPAAuthenticationMode = tr.types.TriggerEnum(
+  LocationDescription = tr.cwmptypes.String()
+  Name = tr.cwmptypes.ReadOnlyString()
+  RadioEnabled = tr.cwmptypes.TriggerBool(False)
+  SSIDAdvertisementEnabled = tr.cwmptypes.TriggerBool(True)
+  Standard = tr.cwmptypes.ReadOnlyString()
+  SupportedFrequencyBands = tr.cwmptypes.ReadOnlyString('2.4GHz,5GHz')
+  TransmitPowerSupported = tr.cwmptypes.ReadOnlyString('0,20,40,60,80,100')
+  UAPSDSupported = tr.cwmptypes.ReadOnlyBool(False)
+  WEPEncryptionLevel = tr.cwmptypes.ReadOnlyString('Disabled,40-bit,104-bit')
+  WEPKeyIndex = tr.cwmptypes.Unsigned(1)
+  WMMSupported = tr.cwmptypes.ReadOnlyBool(False)
+  WPAAuthenticationMode = tr.cwmptypes.TriggerEnum(
       ['PSKAuthentication'], init='PSKAuthentication')
-  WPAEncryptionModes = tr.types.TriggerEnum(
+  WPAEncryptionModes = tr.cwmptypes.TriggerEnum(
       encryption_modes, init='AESEncryption')
 
-  def __init__(self, ifname, band='5', standard='n'):
+  def __init__(self, ifname, band=None, standard='n', width=0,
+               autochan=None):
     super(WlanConfiguration, self).__init__()
+    self._initialized = False
     self._ifname = ifname
-    self._band = band
     type(self).Name.Set(self, ifname)
+    self._band = band if band else '5'
+    self._fixed_band = band
     # TODO(dgentry): can /bin/wifi tell us the capability of the chipset?
     type(self).Standard.Set(self, standard)
+    self._channelwidth = width
+    self._autochan = autochan
     self.new_config = None
+    self.last_bin_wifi = None
+    self.last_env = None
+    self._initialized = True
 
     # Need to be implemented, but not done yet.
     self.Unexport(['BasicDataTransmitRates', 'AutoRateFallBackEnabled',
                    'OperationalDataTransmitRates',
                    'PossibleChannels', 'TransmitPower',
-                   ])
+                  ])
 
     # Unimplemented, but not yet evaluated
     self.Unexport(['Alias', 'ChannelsInUse', 'MaxBitRate',
@@ -139,7 +145,7 @@ class WlanConfiguration(CATA98WIFI):
   def _ParseBinwifiOutput(self, lines):
     """Parse output of /bin/wifi show.
 
-      Example:
+    Example:
         GSAFSJ1234E0123# wifi show
         Band: 5
         RegDomain: US
@@ -160,7 +166,10 @@ class WlanConfiguration(CATA98WIFI):
                 tx bitrate:     10.0 MBit/s
                 rx bitrate:     11.0 MBit/s
 
-      Returns:
+    Args:
+        lines: The text that is being parsed.
+
+    Returns:
         A dict populated with parameter names.
         The dict will contain a AssociatedDevices
         key, which holds a list of dicts (one per
@@ -208,7 +217,8 @@ class WlanConfiguration(CATA98WIFI):
   def StartTransaction(self):
     """Returns a dict of config updates to be applied."""
     self.new_config = WifiConfig()
-    self.new_config.AutoChannelType = self.X_CATAWAMPUS_ORG_AutoChanType
+    atype = self.X_CATAWAMPUS_ORG_AutoChanType
+    self.new_config.AutoChannelType = self._autochan or atype
     self.new_config.AutoChannelEnable = self.AutoChannelEnable
     self.new_config.Channel = self.Channel
     self.new_config.SSID = self.SSID
@@ -284,6 +294,29 @@ class WlanConfiguration(CATA98WIFI):
   KeyPassphrase = property(GetKeyPassphrase, SetKeyPassphrase, None,
                            'WLANConfiguration.KeyPassphrase')
 
+  def _InternalBandToExternal(self, internal):
+    return '2.4GHz' if internal == '2.4' else '5GHz'
+
+  def _ExternalBandToInternal(self, external):
+    return '2.4' if external == '2.4GHz' else '5'
+
+  def GetOperatingFrequencyBand(self):
+    return self._InternalBandToExternal(self._band)
+
+  def SetOperatingFrequencyBand(self, value):
+    if str(value) not in ['2.4GHz', '5GHz', '']:
+      raise ValueError('Invalid band')
+    internal = self._ExternalBandToInternal(str(value))
+    if self._fixed_band and self._fixed_band != internal:
+      raise AttributeError("can't set read-only attribute")
+    else:
+      self._band = internal
+    self.Triggered()
+
+  OperatingFrequencyBand = property(GetOperatingFrequencyBand,
+                                    SetOperatingFrequencyBand, None,
+                                    'WLANConfiguration.OperatingFrequencyBand')
+
   @property
   def RegulatoryDomain(self):
     return self._BinwifiShow().get('RegDomain', '').strip()
@@ -356,7 +389,8 @@ class WlanConfiguration(CATA98WIFI):
 
   def Triggered(self):
     """Called when a parameter is modified."""
-    self.UpdateBinWifi()
+    if self._initialized:
+      self.UpdateBinWifi()
 
   def _IsConfigComplete(self):
     """Returns true if configuration is ready to be applied."""
@@ -367,24 +401,23 @@ class WlanConfiguration(CATA98WIFI):
   def _GetEncryptionMode(self):
     """Return /bin/wifi -e argument.
 
-    Args:
-      beacon: the BeaconType, either 11i or WPA or Basic
-      crypto: the EncryptionMode, like AESEncryption
-
     Returns:
       The -e argument to pass to /bin/wifi.
     """
     if 'Basic' in self.BeaconType:
-      return 'WEP' if 'WEP' in crypto else 'NONE'
+      return 'WEP' if 'WEP' in self.BasicEncryptionModes else 'NONE'
 
-    if '11i' in self.BeaconType:
+    if 'WPAand11i' in self.BeaconType:
+      auth = 'WPA12'
+      encryption = self.WPAEncryptionModes
+    elif '11i' in self.BeaconType:
       auth = 'WPA2'
       encryption = self.IEEE11iEncryptionModes
     elif 'WPA' in self.BeaconType:
       auth = 'WPA'
       encryption = self.WPAEncryptionModes
     else:
-      print 'Invalid BeaconType %s using WPA2' % self.BeaconType
+      print 'Invalid BeaconType %s, using WPA2' % self.BeaconType
       auth = 'WPA2'
       encryption = self.IEEE11iEncryptionModes
 
@@ -396,7 +429,7 @@ class WlanConfiguration(CATA98WIFI):
     elif 'TKIP' in encryption:
       crypto = '_PSK_TKIP'
     else:
-      print 'Invalid EncryptionMode %s, using AES' % crypto
+      print 'Invalid EncryptionMode %s, using AES' % encryption
       crypto = '_PSK_AES'
 
     return auth + crypto
@@ -418,10 +451,10 @@ class WlanConfiguration(CATA98WIFI):
     autotype = self.new_config.AutoChannelType
     if autotype:
       cmd += ['-a', autotype]
-    # TODO(jnewlin): Need a way to pick between 40 or 80Mhz channel for ac.
-    if self._band == '5':
-      cmd += ['-w', '40']
-    for psk in self.PreSharedKeyList.values():
+    if self._channelwidth:
+      cmd += ['-w', str(self._channelwidth)]
+    sl = sorted(self.PreSharedKeyList.iteritems(), key=lambda x: int(x[0]))
+    for (_, psk) in sl:
       key = psk.GetKey()
       if key:
         env['WIFI_PSK'] = key
@@ -430,11 +463,17 @@ class WlanConfiguration(CATA98WIFI):
 
   @tr.mainloop.WaitUntilIdle
   def UpdateBinWifi(self):
+    """Apply config to device by running /bin/wifi."""
     if self.Enable and self.RadioEnabled:
       (cmd, env) = self._MakeBinWifiCommand()
     else:
       cmd = BINWIFI + ['off', '-P', '-b', self._band]
       env = None
+
+    if cmd == self.last_bin_wifi and env == self.last_env:
+      print 'No change in wifi configuration, not executing.'
+      return
+
     try:
       print 'Running %s' % str(cmd)
       child = subprocess.Popen(cmd, env=env, close_fds=True, shell=False)
@@ -442,6 +481,9 @@ class WlanConfiguration(CATA98WIFI):
     except (IOError, OSError, subprocess.CalledProcessError):
       print 'Unable to configure Wifi.'
       traceback.print_exc()
+
+    self.last_bin_wifi = cmd
+    self.last_env = env
 
 
 class PreSharedKey(BASE98WIFI.PreSharedKey):
@@ -476,7 +518,7 @@ class PreSharedKey(BASE98WIFI.PreSharedKey):
 class WEPKey(BASE98WIFI.WEPKey):
   """InternetGatewayDevice.WLANConfiguration.{i}.WEPKey.{i}."""
 
-  WEPKey = tr.types.TriggerString('')
+  WEPKey = tr.cwmptypes.TriggerString('')
 
   def __init__(self, parent):
     super(WEPKey, self).__init__()
@@ -498,15 +540,15 @@ class WlanConfigurationStats(netdev.NetdevStatsLinux26, BASE98WIFI.Stats):
 class AssociatedDevice(CATA98WIFI.AssociatedDevice):
   """InternetGatewayDevice.LANDevice.WLANConfiguration.AssociatedDevice."""
 
-  AssociatedDeviceAuthenticationState = tr.types.ReadOnlyBool(True)
-  AssociatedDeviceMACAddress = tr.types.ReadOnlyMacAddr()
+  AssociatedDeviceAuthenticationState = tr.cwmptypes.ReadOnlyBool(True)
+  AssociatedDeviceMACAddress = tr.cwmptypes.ReadOnlyMacAddr()
   # tr-098-1-6 defines LastDataTransmitRate as a string(4). Bizarre.
-  LastDataTransmitRate = tr.types.ReadOnlyString()
-  X_CATAWAMPUS_ORG_Active = tr.types.ReadOnlyBool(False)
-  X_CATAWAMPUS_ORG_LastDataDownlinkRate = tr.types.ReadOnlyUnsigned()
-  X_CATAWAMPUS_ORG_LastDataUplinkRate = tr.types.ReadOnlyUnsigned()
-  X_CATAWAMPUS_ORG_SignalStrength = tr.types.ReadOnlyInt()
-  X_CATAWAMPUS_ORG_SignalStrengthAverage = tr.types.ReadOnlyInt()
+  LastDataTransmitRate = tr.cwmptypes.ReadOnlyString()
+  X_CATAWAMPUS_ORG_Active = tr.cwmptypes.ReadOnlyBool(False)
+  X_CATAWAMPUS_ORG_LastDataDownlinkRate = tr.cwmptypes.ReadOnlyUnsigned()
+  X_CATAWAMPUS_ORG_LastDataUplinkRate = tr.cwmptypes.ReadOnlyUnsigned()
+  X_CATAWAMPUS_ORG_SignalStrength = tr.cwmptypes.ReadOnlyInt()
+  X_CATAWAMPUS_ORG_SignalStrengthAverage = tr.cwmptypes.ReadOnlyInt()
 
   def __init__(self, device):
     super(AssociatedDevice, self).__init__()

@@ -30,30 +30,6 @@ import nat
 import tr.mainloop
 
 
-EXPECTED_CONFIG = ['CWMP_1_COMMENT=IDX_2:', 'CWMP_1_PROTOCOL=UDP',
-'CWMP_1_SOURCE=2.2.2.2', 'CWMP_1_GATEWAY=9.9.9.9', 'CWMP_1_DEST=3.3.3.3',
-'CWMP_1_SPORT=1:9', 'CWMP_1_DPORT=90', 'CWMP_1_ENABLE=1',
-'CWMP_2_COMMENT=IDX_1:4465736372697074696f6e',
-'CWMP_2_PROTOCOL=TCP', 'CWMP_2_SOURCE=0/0', 'CWMP_2_GATEWAY=0/0',
-'CWMP_2_DEST=1.1.1.1', 'CWMP_2_SPORT=0', 'CWMP_2_DPORT=80',
-'CWMP_2_ENABLE=1']
-
-EXPECTED_CONFIG6 = ['CWMP_1_COMMENT=IDX_1:', 'CWMP_1_PROTOCOL=TCP',
-'CWMP_1_SOURCE=::/0', 'CWMP_1_GATEWAY=::/0',
-'CWMP_1_DEST=fe80::fa8f:caff:fe11:1111',
-'CWMP_1_SPORT=0', 'CWMP_1_DPORT=80', 'CWMP_1_ENABLE=1']
-
-EXPECTED_CONFIG_RANGE4 = [
-'CWMP_1_COMMENT=IDX_1:', 'CWMP_1_PROTOCOL=UDP', 'CWMP_1_SOURCE=5.5.5.5',
-'CWMP_1_GATEWAY=9.9.9.9', 'CWMP_1_DEST=4.4.4.4',
-'CWMP_1_SPORT=1:100', 'CWMP_1_DPORT=90:189', 'CWMP_1_ENABLE=1']
-
-EXPECTED_CONFIG_RANGE6 = [
-'CWMP_2_COMMENT=IDX_2:', 'CWMP_2_PROTOCOL=TCP', 'CWMP_2_SOURCE=::/0',
-'CWMP_2_GATEWAY=1000::0001', 'CWMP_2_DEST=fe80::fa8f:caff:fe11:1111',
-'CWMP_2_SPORT=10:60', 'CWMP_2_DPORT=91:141', 'CWMP_2_ENABLE=1']
-
-
 class NatTest(unittest.TestCase):
   def setUp(self):
     super(NatTest, self).setUp()
@@ -62,9 +38,15 @@ class NatTest(unittest.TestCase):
     self.old_OUTPUTFILE4 = nat.OUTPUTFILE4
     self.old_OUTPUTFILE6 = nat.OUTPUTFILE6
     self.old_RESTARTCMD = nat.RESTARTCMD
+    self.old_DMZFILE4 = nat.DMZFILE4
+    self.old_DMZFILE6 = nat.DMZFILE6
     self.restartfile = os.path.join(self.tmpdir, 'restarted')
     self.outputfile4 = os.path.join(self.tmpdir, 'config4')
     self.outputfile6 = os.path.join(self.tmpdir, 'config6')
+    self.dmzfile4 = os.path.join(self.tmpdir, 'dmz4')
+    self.dmzfile6 = os.path.join(self.tmpdir, 'dmz6')
+    nat.DMZFILE4 = self.dmzfile4
+    nat.DMZFILE6 = self.dmzfile6
     nat.OUTPUTFILE4 = self.outputfile4
     nat.OUTPUTFILE6 = self.outputfile6
     nat.RESTARTCMD = ['testdata/nat/restart', self.restartfile]
@@ -72,6 +54,8 @@ class NatTest(unittest.TestCase):
   def tearDown(self):
     super(NatTest, self).tearDown()
     shutil.rmtree(self.tmpdir)
+    nat.DMZFILE4 = self.old_DMZFILE4
+    nat.DMZFILE6 = self.old_DMZFILE6
     nat.OUTPUTFILE4 = self.old_OUTPUTFILE4
     nat.OUTPUTFILE6 = self.old_OUTPUTFILE6
     nat.RESTARTCMD = self.old_RESTARTCMD
@@ -96,13 +80,13 @@ class NatTest(unittest.TestCase):
     self.assertEqual(p.Status, 'Disabled')
     p.Enable = True
     self.assertEqual(p.Status, 'Error_Misconfigured')
-    p.InternalClient = '1.1.1.1'
+    p.Protocol = 'TCP'
     self.assertEqual(p.Status, 'Error_Misconfigured')
     p.InternalPort = 80
     self.assertEqual(p.Status, 'Error_Misconfigured')
     p.Interface = 'Device.IP.Interface.1'
     self.assertEqual(p.Status, 'Error_Misconfigured')
-    p.Protocol = 'TCP'
+    p.InternalClient = '1.1.1.1'
     self.assertEqual(p.Status, 'Enabled')
 
   def testInterface(self):
@@ -160,7 +144,14 @@ class NatTest(unittest.TestCase):
 
     self.loop.RunOnce(timeout=1)
     config4 = open(self.outputfile4).read()
-    expected = EXPECTED_CONFIG
+    expected = ['CWMP_1_COMMENT=IDX_2:', 'CWMP_1_PROTOCOL=UDP',
+                'CWMP_1_SOURCE=2.2.2.2', 'CWMP_1_GATEWAY=9.9.9.9',
+                'CWMP_1_DEST=3.3.3.3', 'CWMP_1_SPORT=1:9', 'CWMP_1_DPORT=90',
+                'CWMP_1_ENABLE=1',
+                'CWMP_2_COMMENT=IDX_1:4465736372697074696f6e',
+                'CWMP_2_PROTOCOL=TCP', 'CWMP_2_SOURCE=0/0',
+                'CWMP_2_GATEWAY=0/0', 'CWMP_2_DEST=1.1.1.1', 'CWMP_2_SPORT=0',
+                'CWMP_2_DPORT=80', 'CWMP_2_ENABLE=1']
     for line in config4.splitlines():
       line = line.strip()
       if line and not line.startswith('#'):
@@ -185,7 +176,10 @@ class NatTest(unittest.TestCase):
     config4 = open(self.outputfile4).read()
     self.assertEqual(config4, '')
     config6 = open(self.outputfile6).read()
-    expected = EXPECTED_CONFIG6
+    expected = ['CWMP_1_COMMENT=IDX_1:', 'CWMP_1_PROTOCOL=TCP',
+                'CWMP_1_SOURCE=::/0', 'CWMP_1_GATEWAY=::/0',
+                'CWMP_1_DEST=fe80::fa8f:caff:fe11:1111',
+                'CWMP_1_SPORT=0', 'CWMP_1_DPORT=80', 'CWMP_1_ENABLE=1']
     for line in config6.splitlines():
       line = line.strip()
       if line and not line.startswith('#'):
@@ -225,7 +219,7 @@ class NatTest(unittest.TestCase):
     p = n.PortMapping()
     p.Enable = True
     p.ExternalPort = 1
-    p.X_CATAWAMPUS_ORG_PortRangeSize = 99
+    p.X_CATAWAMPUS_ORG_PortRangeSize = 100
     p.InternalClient = '4.4.4.4'
     p.InternalPort = 90
     p.Interface = 'Device.IP.Interface.1'
@@ -236,7 +230,7 @@ class NatTest(unittest.TestCase):
     p = n.PortMapping()
     p.Enable = True
     p.ExternalPort = 10
-    p.X_CATAWAMPUS_ORG_PortRangeSize = 50
+    p.X_CATAWAMPUS_ORG_PortRangeSize = 51
     p.InternalClient = 'fe80::fa8f:caff:fe11:1111'
     p.InternalPort = 91
     p.Interface = 'Device.IP.Interface.1'
@@ -245,7 +239,10 @@ class NatTest(unittest.TestCase):
 
     self.loop.RunOnce(timeout=1)
     config4 = open(self.outputfile4).read()
-    expected = EXPECTED_CONFIG_RANGE4
+    expected = ['CWMP_1_COMMENT=IDX_1:', 'CWMP_1_PROTOCOL=UDP',
+                'CWMP_1_SOURCE=5.5.5.5', 'CWMP_1_GATEWAY=9.9.9.9',
+                'CWMP_1_DEST=4.4.4.4', 'CWMP_1_SPORT=1:100',
+                'CWMP_1_DPORT=90:189', 'CWMP_1_ENABLE=1']
     for line in config4.splitlines():
       line = line.strip()
       if line and not line.startswith('#'):
@@ -254,7 +251,10 @@ class NatTest(unittest.TestCase):
     self.assertEqual(len(expected), 0)
 
     config6 = open(self.outputfile6).read()
-    expected = EXPECTED_CONFIG_RANGE6
+    expected = ['CWMP_2_COMMENT=IDX_2:', 'CWMP_2_PROTOCOL=TCP',
+                'CWMP_2_SOURCE=::/0', 'CWMP_2_GATEWAY=1000::0001',
+                'CWMP_2_DEST=fe80::fa8f:caff:fe11:1111',
+                'CWMP_2_SPORT=10:60', 'CWMP_2_DPORT=91:141', 'CWMP_2_ENABLE=1']
     for line in config6.splitlines():
       line = line.strip()
       if line and not line.startswith('#'):
@@ -262,6 +262,67 @@ class NatTest(unittest.TestCase):
         expected.remove(line)
     self.assertEqual(len(expected), 0)
     self.assertTrue(os.path.exists(self.restartfile))
+
+  def testConfigDeleteObject(self):
+    n = nat.NAT(dmroot=DeviceModelRoot())
+    p = n.PortMapping()
+    p.AllInterfaces = True
+    p.Enable = True
+    p.InternalClient = '1.1.1.1'
+    p.InternalPort = 80
+    p.Protocol = 'TCP'
+    n.PortMappingList['1'] = p
+    self.loop.RunOnce(timeout=1)
+    n.DeleteExportObject('PortMapping', '1')
+    self.loop.RunOnce(timeout=1)
+
+    config = open(self.outputfile4).read()
+    self.assertFalse(config)
+
+  def testRestartFails(self):
+    print 'The following tracebacks are normal, they are part of the test.'
+    nat.RESTARTCMD = ['testdata/nat/restart_fails']
+    n = nat.NAT(dmroot=DeviceModelRoot())
+    p = n.PortMapping()
+    p.InternalClient = '1.1.1.1'
+    p.Enable = True
+    n.PortMappingList['1'] = p
+    self.loop.RunOnce(timeout=1)
+    self.assertTrue(os.path.exists(self.outputfile4))
+
+  def testDmz4(self):
+    n = nat.NAT(dmroot=DeviceModelRoot())
+    p = n.PortMapping()
+    n.PortMappingList['1'] = p
+    p.InternalClient = '1.1.1.1'
+    p.Enable = True
+    self.assertFalse(os.path.exists(self.dmzfile4))
+    self.loop.RunOnce(timeout=1)
+    self.assertTrue(os.path.exists(self.dmzfile4))
+    self.assertFalse(os.path.exists(self.dmzfile6))
+    self.assertTrue(os.path.exists(self.outputfile4))
+    config4 = open(self.outputfile4).read()
+    self.assertFalse(config4)
+    p.Enable = False
+    self.loop.RunOnce(timeout=1)
+    self.assertFalse(os.path.exists(self.dmzfile4))
+
+  def testDmz6(self):
+    n = nat.NAT(dmroot=DeviceModelRoot())
+    p = n.PortMapping()
+    n.PortMappingList['1'] = p
+    p.InternalClient = 'fe80::fa8f:caff:fe11:1111'
+    p.Enable = True
+    self.assertFalse(os.path.exists(self.dmzfile6))
+    self.loop.RunOnce(timeout=1)
+    self.assertFalse(os.path.exists(self.dmzfile4))
+    self.assertTrue(os.path.exists(self.dmzfile6))
+    self.assertTrue(os.path.exists(self.outputfile6))
+    config4 = open(self.outputfile4).read()
+    self.assertFalse(config4)
+    p.Enable = False
+    self.loop.RunOnce(timeout=1)
+    self.assertFalse(os.path.exists(self.dmzfile6))
 
 
 class DeviceModelRoot(tr.core.Exporter):

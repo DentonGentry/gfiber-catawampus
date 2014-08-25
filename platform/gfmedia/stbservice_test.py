@@ -25,6 +25,7 @@ import struct
 import unittest
 
 import google3
+import tr.session
 import stbservice
 
 
@@ -104,6 +105,7 @@ class STBServiceTest(unittest.TestCase):
     self.assertEqual(igmp.ClientGroupList[4].GroupAddress, '225.0.1.5')
     self.assertEqual(igmp.ClientGroupList[5].GroupAddress, '225.0.1.6')
     stbservice.PROCNETIGMP = 'testdata/stbservice/igmp_stable2'
+    tr.session.cache.flush()
     self.assertEqual(len(igmp.ClientGroupList), 5)
     # instances retain stable numbering when possible
     self.assertEqual(igmp.ClientGroupList[1].GroupAddress, '224.0.0.1')
@@ -112,6 +114,7 @@ class STBServiceTest(unittest.TestCase):
     self.assertEqual(igmp.ClientGroupList[4].GroupAddress, '225.0.1.7')
     self.assertEqual(igmp.ClientGroupList[5].GroupAddress, '225.0.1.6')
     stbservice.PROCNETIGMP = 'testdata/stbservice/igmp_stable3'
+    tr.session.cache.flush()
     self.assertEqual(len(igmp.ClientGroupList), 6)
     # instances retain stable numbering when possible
     self.assertEqual(igmp.ClientGroupList[1].GroupAddress, '224.0.0.1')
@@ -181,6 +184,7 @@ class STBServiceTest(unittest.TestCase):
     self.assertEqual(ml[7].Total.MPEG2TSStats.TSPacketsReceived, 0)
     self.assertEqual(ml[8].Total.MPEG2TSStats.TSPacketsReceived, 50)
     stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_full%d.json']
+    tr.session.cache.flush()
     self.assertEqual(ml[1].Total.MPEG2TSStats.TSPacketsReceived, 800)
     self.assertEqual(ml[2].Total.MPEG2TSStats.TSPacketsReceived, 700)
     self.assertEqual(ml[3].Total.MPEG2TSStats.TSPacketsReceived, 600)
@@ -589,11 +593,13 @@ class STBServiceTest(unittest.TestCase):
     self.assertEqual(stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmTime,
                      '0001-01-01T00:00:00Z')
     stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_full%d.json']
+    tr.session.cache.flush()
     self.assertEqual(stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmTime,
                      '2013-01-11T10:00:00Z')
     self.assertTrue(ioloop.callback is not None)
     # Alarm should stay asserted even when stalltime drops below threshold.
     stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_small%d.json']
+    tr.session.cache.flush()
     self.assertEqual(stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmTime,
                      '2013-01-11T10:00:00Z')
     # Explicitly clear
@@ -611,6 +617,7 @@ class STBServiceTest(unittest.TestCase):
     self.assertTrue(ioloop.callback is not None)
     # Stalltime drops back below threshold
     stbservice.CONT_MONITOR_FILES = ['testdata/stbservice/stats_small%d.json']
+    tr.session.cache.flush()
     # Simulate timeout callback
     ioloop.callback()
     self.assertEqual(stb.ServiceMonitoring.X_CATAWAMPUS_ORG_StallAlarmTime,

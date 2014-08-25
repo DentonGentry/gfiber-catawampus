@@ -31,6 +31,7 @@ import google3
 import bup.options
 import diagui.main
 import dm_root
+import factory
 import tr.acs_config
 import tr.api
 import tr.core
@@ -61,6 +62,8 @@ client-key=   SSL client private key to use
 restrict-acs-hosts= Domain names allowed for ACS URL.  Default=unrestricted.  Example: 'google.com gfsvc.com'
 diagui        Listen for diagui requests on diagui-port
 diagui-port=  Port to listen on (0=random) [80]
+factory       Listen for factory requests on factory-port
+factory-port= Port to listen on (0=random) [8883]
 """
 
 
@@ -144,6 +147,10 @@ def main():
   if opt.diagui:
     inst = diagui.main.DiaguiSettings(root, cpe_machine)
     inst.listen(opt.diagui_port)
+  if opt.factory:
+    inst = factory.FactoryFactory()
+    inst.listen(opt.factory_port)
+
   loop.Start()
 
 

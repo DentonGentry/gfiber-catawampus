@@ -28,7 +28,7 @@ import google3
 import i2c
 
 import tr.tr181_v2_6
-import tr.types
+import tr.cwmptypes
 
 BASE181OPTICAL = tr.tr181_v2_6.Device_v2_6.Device.Optical
 I2C_BUS = None
@@ -43,9 +43,9 @@ RX_OPTICAL_INPUT_POWER = 104
 class Ds6923OpticalInterface(BASE181OPTICAL.Interface):
   """TR181 Optical implementation for DS6923 optical module."""
 
-  Enable = tr.types.ReadOnlyBool(True)
-  Upstream = tr.types.ReadOnlyBool(True)
-  LowerLayers = tr.types.ReadOnlyString('')
+  Enable = tr.cwmptypes.ReadOnlyBool(True)
+  Upstream = tr.cwmptypes.ReadOnlyBool(True)
+  LowerLayers = tr.cwmptypes.ReadOnlyString('')
 
   def __init__(self, i2c_addr):
     super(Ds6923OpticalInterface, self).__init__()

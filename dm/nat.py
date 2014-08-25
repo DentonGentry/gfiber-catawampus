@@ -27,14 +27,17 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import binascii
 import socket
 import subprocess
+import traceback
 import tr.helpers
 import tr.mainloop
 import tr.tr181_v2_6
-import tr.types
+import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 
 BASENAT = tr.tr181_v2_6.Device_v2_6.Device.NAT
 CATANAT = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device.NAT
+DMZFILE4 = '/tmp/acs/dmzhostv4'
+DMZFILE6 = '/tmp/acs/dmzhostv6'
 OUTPUTFILE4 = '/tmp/cwmp_iptables'
 OUTPUTFILE6 = '/tmp/cwmp_ip6tables'
 RESTARTCMD = ['update-acs-iptables']
@@ -42,8 +45,8 @@ RESTARTCMD = ['update-acs-iptables']
 
 class NAT(BASENAT):
   """tr181 Device.NAT."""
-  InterfaceSettingNumberOfEntries = tr.types.NumberOf('InterfaceSettingList')
-  PortMappingNumberOfEntries = tr.types.NumberOf('PortMappingList')
+  InterfaceSettingNumberOfEntries = tr.cwmptypes.NumberOf('InterfaceSettingList')
+  PortMappingNumberOfEntries = tr.cwmptypes.NumberOf('PortMappingList')
 
   def __init__(self, dmroot):
     super(NAT, self).__init__()
@@ -91,10 +94,16 @@ class NAT(BASENAT):
     for i in range(1, 5):
       ip4configs[i] = []
       ip6configs[i] = []
+      dmz4 = ''
+      dmz6 = ''
     for (idx, mapping) in self.PortMappingList.iteritems():
       precedence = mapping.Precedence()
       ip4configs[precedence].append(mapping.ConfigLinesIP4(idx=idx))
       ip6configs[precedence].append(mapping.ConfigLinesIP6(idx=idx))
+      if mapping.DmzIP4():
+        dmz4 = mapping.DmzIP4()
+      if mapping.DmzIP6():
+        dmz6 = mapping.DmzIP6()
     outidx = 1
     try:
       with tr.helpers.AtomicFile(OUTPUTFILE4) as f:
@@ -109,6 +118,16 @@ class NAT(BASENAT):
             if lines:
               f.write(self._PrefixLines(lines=lines, outidx=outidx))
               outidx += 1
+      if dmz4:
+        with tr.helpers.AtomicFile(DMZFILE4) as f:
+          f.write(dmz4)
+      else:
+        tr.helpers.Unlink(DMZFILE4)
+      if dmz6:
+        with tr.helpers.AtomicFile(DMZFILE6) as f:
+          f.write(dmz6)
+      else:
+        tr.helpers.Unlink(DMZFILE6)
       subprocess.check_call(RESTARTCMD)
     except (IOError, OSError, subprocess.CalledProcessError):
       print 'Unable to update NAT\n'
@@ -117,17 +136,17 @@ class NAT(BASENAT):
 
 class PortMapping(CATANAT.PortMapping):
   """tr181 Device.NAT.Portmapping."""
-  AllInterfaces = tr.types.TriggerBool(False)
-  Description = tr.types.String('')
-  Enable = tr.types.TriggerBool(False)
-  ExternalPort = tr.types.TriggerUnsigned(0)
-  ExternalPortEndRange = tr.types.TriggerUnsigned(0)
-  InternalClient = tr.types.TriggerString()
-  InternalPort = tr.types.TriggerUnsigned(0)
-  LeaseDuration = tr.types.TriggerUnsigned(0)
-  Protocol = tr.types.TriggerString()
-  RemoteHost = tr.types.TriggerIP4Addr()
-  X_CATAWAMPUS_ORG_PortRangeSize = tr.types.TriggerUnsigned(0)
+  AllInterfaces = tr.cwmptypes.TriggerBool(False)
+  Description = tr.cwmptypes.TriggerString('')
+  Enable = tr.cwmptypes.TriggerBool(False)
+  ExternalPort = tr.cwmptypes.TriggerUnsigned(0)
+  ExternalPortEndRange = tr.cwmptypes.TriggerUnsigned(0)
+  InternalClient = tr.cwmptypes.TriggerString()
+  InternalPort = tr.cwmptypes.TriggerUnsigned(0)
+  LeaseDuration = tr.cwmptypes.TriggerUnsigned(0)
+  Protocol = tr.cwmptypes.TriggerString()
+  RemoteHost = tr.cwmptypes.TriggerIP4Addr()
+  X_CATAWAMPUS_ORG_PortRangeSize = tr.cwmptypes.TriggerUnsigned(0)
 
   def __init__(self, parent):
     super(PortMapping, self).__init__()
@@ -169,7 +188,11 @@ class PortMapping(CATANAT.PortMapping):
       raise ValueError('Dynamic PortMapping is not supported.')
     return int(value)
 
-  def _IsComplete(self):
+  def _IsDmzComplete(self):
+    """Returns true if object is fully configured for DMZ operation."""
+    return self.InternalClient and self.InternalPort == 0 and self.ExternalPort == 0
+
+  def _IsNatComplete(self):
     """Returns True if object is fully configured for Linux iptables."""
     if not self.InternalPort or not self.InternalClient or not self.Protocol:
       return False
@@ -208,9 +231,13 @@ class PortMapping(CATANAT.PortMapping):
   def Status(self):
     if not self.Enable:
       return 'Disabled'
-    if not self._IsComplete():
+    if not self._IsNatComplete() and not self._IsDmzComplete():
       return 'Error_Misconfigured'
     return 'Enabled'
+
+  def Close(self):
+    """Called by core.py:DeleteExportObjects()."""
+    self.Triggered()
 
   def Triggered(self):
     self.parent.WriteConfigs()
@@ -224,7 +251,7 @@ class PortMapping(CATANAT.PortMapping):
     lines.append('DEST=' + self.InternalClient)
     # TODO(dgentry) ExternalPort=0 should become a dmzhost instead
     if self.X_CATAWAMPUS_ORG_PortRangeSize:
-      end = self.ExternalPort + self.X_CATAWAMPUS_ORG_PortRangeSize
+      end = self.ExternalPort + self.X_CATAWAMPUS_ORG_PortRangeSize - 1
       sport = '%d:%d' % (self.ExternalPort, end)
     elif self.ExternalPortEndRange:
       sport = '%d:%d' % (self.ExternalPort, self.ExternalPortEndRange)
@@ -232,7 +259,7 @@ class PortMapping(CATANAT.PortMapping):
       sport = '%d' % self.ExternalPort
     lines.append('SPORT=' + sport)
     if self.X_CATAWAMPUS_ORG_PortRangeSize:
-      end = self.InternalPort + self.X_CATAWAMPUS_ORG_PortRangeSize
+      end = self.InternalPort + self.X_CATAWAMPUS_ORG_PortRangeSize - 1
       dport = '%d:%d' % (self.InternalPort, end)
     else:
       dport = '%d' % self.InternalPort
@@ -251,7 +278,7 @@ class PortMapping(CATANAT.PortMapping):
       a list of text lines for update-acs-iptables
     """
 
-    if not self._IsComplete() or not self.Enable:
+    if not self._IsNatComplete() or not self.Enable:
       return []
     if self.InternalClient and tr.helpers.IsIP6Addr(self.InternalClient):
       return []
@@ -282,7 +309,7 @@ class PortMapping(CATANAT.PortMapping):
       a list of text lines for update-acs-iptables
     """
 
-    if not self._IsComplete() or not self.Enable:
+    if not self._IsNatComplete() or not self.Enable:
       return []
     if self.InternalClient and tr.helpers.IsIP4Addr(self.InternalClient):
       return []
@@ -302,3 +329,17 @@ class PortMapping(CATANAT.PortMapping):
       gw = ip.IPv6AddressList[key].IPAddress
     lines.append('GATEWAY=%s' % gw)
     return lines
+
+  def DmzIP4(self):
+    if not self._IsDmzComplete() or not self.Enable:
+      return None
+    if self.InternalClient and tr.helpers.IsIP6Addr(self.InternalClient):
+      return None
+    return self.InternalClient
+
+  def DmzIP6(self):
+    if not self._IsDmzComplete() or not self.Enable:
+      return None
+    if self.InternalClient and tr.helpers.IsIP4Addr(self.InternalClient):
+      return None
+    return self.InternalClient

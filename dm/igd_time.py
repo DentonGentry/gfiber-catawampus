@@ -30,7 +30,7 @@ import tr.core
 import tr.cwmpdate
 import tr.helpers
 import tr.tr098_v1_4
-import tr.types
+import tr.cwmptypes
 
 
 BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
@@ -52,7 +52,7 @@ class TimeTZ(BASE98IGD.Time):
   pointing to /tmp/TZ and /tmp/localtime.
   """
 
-  Enable = tr.types.ReadOnlyBool(True)
+  Enable = tr.cwmptypes.ReadOnlyBool(True)
 
   def __init__(self):
     super(TimeTZ, self).__init__()

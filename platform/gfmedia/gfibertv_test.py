@@ -22,6 +22,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import os
 import os.path
+import shutil
 import SimpleXMLRPCServer
 import tempfile
 import threading
@@ -97,41 +98,46 @@ class GfiberTvTests(unittest.TestCase):
 
     self.loop = tr.mainloop.MainLoop()
 
-    self.DISK_SPACE_FILE = gfibertv.DISK_SPACE_FILE
+    self.old_DISK_SPACE_FILE = gfibertv.DISK_SPACE_FILE
     gfibertv.DISK_SPACE_FILE = ['testdata/gfibertv/dvr_space']
+    self.old_HNVRAM = gfibertv.HNVRAM
 
     self.tmpdir = tempfile.mkdtemp()
-    self.used_files = []
-
-    self.nick_file_name = self.addFile(gfibertv.NICKFILE, False)
-    self.my_nick_file_name = self.addFile(gfibertv.MYNICKFILE, False)
-    self.btdevices_fname = self.addFile(gfibertv.BTDEVICES, False)
-    self.bthhdevices_fname = self.addFile(gfibertv.BTHHDEVICES, False)
-    self.btconfig_fname = self.addFile(gfibertv.BTCONFIG, False)
-    self.btnopair_fname = self.addFile(gfibertv.BTNOPAIRING, True)
-    self.easfips_fname = self.addFile(gfibertv.EASFIPSFILE, True)
-    self.easaddr_fname = self.addFile(gfibertv.EASADDRFILE, True)
-    self.easport_fname = self.addFile(gfibertv.EASPORTFILE, True)
-    self.tcpalgorithm_fname = self.addFile(gfibertv.TCPALGORITHM, True)
-    self.uicontrol_fname = self.addFile(gfibertv.UICONTROLURLFILE, True)
-    self.tvbufferadddress_fname = self.addFile(gfibertv.TVBUFFERADDRESS, True)
-    self.tvbufferkey_fname = self.addFile(gfibertv.TVBUFFERKEY, True)
-
-  def addFile(self, file_name_out, unlink):
-    (handle, file_name) = tempfile.mkstemp(dir=self.tmpdir)
-    os.close(handle)
-    if unlink:
-      os.unlink(file_name)
-    file_name_out[0] = file_name
-    self.used_files.append(file_name)
-    return file_name
+    self.nick_file_name = os.path.join(self.tmpdir, 'NICKFILE')
+    gfibertv.NICKFILE[0] = self.nick_file_name
+    self.my_nick_file_name = os.path.join(self.tmpdir, 'MYNICKFILE')
+    gfibertv.MYNICKFILE[0] = self.my_nick_file_name
+    self.btdevices_fname = os.path.join(self.tmpdir, 'BTDEVICES')
+    gfibertv.BTDEVICES[0] = self.btdevices_fname
+    self.bthhdevices_fname = os.path.join(self.tmpdir, 'BTHHDEVICES')
+    gfibertv.BTHHDEVICES[0] = self.bthhdevices_fname
+    self.btconfig_fname = os.path.join(self.tmpdir, 'BTCONFIG')
+    gfibertv.BTCONFIG[0] = self.btconfig_fname
+    self.btnopair_fname = os.path.join(self.tmpdir, 'BTNOPAIRING')
+    gfibertv.BTNOPAIRING[0] = self.btnopair_fname
+    self.easfips_fname = os.path.join(self.tmpdir, 'EASFIPSFILE')
+    gfibertv.EASFIPSFILE[0] = self.easfips_fname
+    self.easaddr_fname = os.path.join(self.tmpdir, 'EASADDRFILE')
+    gfibertv.EASADDRFILE[0] = self.easaddr_fname
+    self.easport_fname = os.path.join(self.tmpdir, 'EASPORTFILE')
+    gfibertv.EASPORTFILE[0] = self.easport_fname
+    self.tcpalgorithm_fname = os.path.join(self.tmpdir, 'TCPALGORITHM')
+    gfibertv.TCPALGORITHM[0] = self.tcpalgorithm_fname
+    self.uicontrol_fname = os.path.join(self.tmpdir, 'UICONTROLURLFILE')
+    gfibertv.UICONTROLURLFILE[0] = self.uicontrol_fname
+    self.uitype_fname = os.path.join(self.tmpdir, 'UITYPEFILE')
+    gfibertv.UITYPEFILE[0] = self.uitype_fname
+    self.tvbufferadddress_fname = os.path.join(self.tmpdir, 'TVBUFFERADDRESS')
+    gfibertv.TVBUFFERADDRESS[0] = self.tvbufferadddress_fname
+    self.tvbufferkey_fname = os.path.join(self.tmpdir, 'TVBUFFERKEY')
+    gfibertv.TVBUFFERKEY[0] = self.tvbufferkey_fname
 
   def tearDown(self):
     xmlrpclib.ServerProxy('http://localhost:%d' % srv_port).Quit()
     self.server_thread.join()
-    for file in self.used_files:
-      tr.helpers.Unlink(file)
-    os.rmdir(self.tmpdir)
+    shutil.rmtree(self.tmpdir)
+    gfibertv.DISK_SPACE_FILE = self.old_DISK_SPACE_FILE
+    gfibertv.HNVRAM = self.old_HNVRAM
 
   def testValidate(self):
     tv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
@@ -259,6 +265,10 @@ class GfiberTvTests(unittest.TestCase):
     gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
     self.loop.RunOnce()
 
+    open(self.btdevices_fname, 'w').write('')
+    open(self.bthhdevices_fname, 'w').write('')
+    open(self.btconfig_fname, 'w').write('')
+
     self.assertEqual('', gftv.BtDevices)
     self.assertEqual('', gftv.BtHHDevices)
     self.assertEqual('', gftv.BtConfig)
@@ -384,6 +394,25 @@ class GfiberTvTests(unittest.TestCase):
     self.loop.RunOnce()
     self.assertEqual(open(self.tvbufferadddress_fname).read(), '4.3.2.1:6666\n')
     self.assertEqual(open(self.tvbufferkey_fname).read(), 'monkeysaurus rex\n')
+
+  def testHnvram(self):
+    gfibertv.HNVRAM[0] = 'testdata/gfibertv/hnvram_read'
+    gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
+    self.assertEqual('ThisIsTheUiType', gftv.UiType)
+    path = os.path.join(self.tmpdir, 'hnvram')
+    gfibertv.HNVRAM = ['testdata/gfibertv/hnvram_write', path]
+    self.assertFalse(os.path.exists(self.uitype_fname))
+    gftv.UiType = 'SomeRandomUI'
+    self.loop.RunOnce()
+    self.assertEqual('SomeRandomUI', open(self.uitype_fname).read())
+    self.assertEqual('-w UITYPE=SomeRandomUI', open(path).read())
+
+  def testHnvramFails(self):
+    gfibertv.HNVRAM[0] = '/nosuchfile'
+    gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
+    self.assertRaises(OSError, lambda: setattr(gftv, 'UiType', 'foo'))
+    gfibertv.HNVRAM[0] = 'testdata/gfibertv/hnvram_error'
+    self.assertRaises(OSError, lambda: setattr(gftv, 'UiType', 'foo'))
 
 
 if __name__ == '__main__':
