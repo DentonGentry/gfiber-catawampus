@@ -73,7 +73,7 @@ class WlanConfiguration(CATA98WIFI):
   Name = tr.cwmptypes.ReadOnlyString()
   RadioEnabled = tr.cwmptypes.TriggerBool(False)
   SSIDAdvertisementEnabled = tr.cwmptypes.TriggerBool(True)
-  Standard = tr.cwmptypes.ReadOnlyString()
+  Standard = tr.cwmptypes.TriggerString()
   SupportedFrequencyBands = tr.cwmptypes.ReadOnlyString('2.4GHz,5GHz')
   TransmitPowerSupported = tr.cwmptypes.ReadOnlyString('0,20,40,60,80,100')
   UAPSDSupported = tr.cwmptypes.ReadOnlyBool(False)
@@ -93,8 +93,7 @@ class WlanConfiguration(CATA98WIFI):
     type(self).Name.Set(self, ifname)
     self._band = band if band else '5'
     self._fixed_band = band
-    # TODO(dgentry): can /bin/wifi tell us the capability of the chipset?
-    type(self).Standard.Set(self, standard)
+    self.Standard = standard
     self._channelwidth = width
     self._autochan = autochan
     self.new_config = None
@@ -453,6 +452,16 @@ class WlanConfiguration(CATA98WIFI):
       cmd += ['-a', autotype]
     if self._channelwidth:
       cmd += ['-w', str(self._channelwidth)]
+
+    if self.Standard == 'ac':
+      cmd += ['-p', 'a/b/g/n/ac']
+    elif self.Standard == 'n':
+      cmd += ['-p', 'a/b/g/n']
+    elif self.Standard == 'g':
+      cmd += ['-p', 'a/b/g']
+    elif self.Standard == 'a' or self.Standard == 'b':
+      cmd += ['-p', 'a/b']
+
     sl = sorted(self.PreSharedKeyList.iteritems(), key=lambda x: int(x[0]))
     for (_, psk) in sl:
       key = psk.GetKey()
