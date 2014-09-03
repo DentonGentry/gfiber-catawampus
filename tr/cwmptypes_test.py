@@ -452,6 +452,27 @@ class TypesTest(unittest.TestCase):
     self.assertEqual(obj2.TestListNumberOfEntries, 0)
     self.assertEqual(obj.TestListNumberOfEntries, 5)
 
+  def testEvilUnicode(self):
+    t = TestObject()
+    # This test just looks for exceptions
+    t.s = 5
+    t.s = u'this is a test'
+    t.s = '\xf1'
+    t.s = '\xfe'
+    t.s = '\xff'
+    # selected http://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-test.txt
+    t.s = '\xed\x9f\xbf'
+    t.s = '\xee\x80\x80'
+    t.s = '\x80'
+    t.s = '\xbf'
+    t.s = '\xc0\xaf'
+    t.s = '\xe0\x80\xaf'
+    t.s = '\xed\xa0\x80'
+    t.s = '\xed\xa0\x80\xed\xb0\x80'
+    t.s = '\xef\xbf\xbe'
+    t.s = 'ma\xf1ana'  # ISO8859
+    self.assertEqual(u'ma\ufffdana', t.s)
+
 
 if __name__ == '__main__':
   unittest.main()

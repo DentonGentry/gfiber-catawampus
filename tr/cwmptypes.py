@@ -236,11 +236,24 @@ class Float(Attr):
 class String(Attr):
   """An attribute that is always a string or None."""
 
+  def _encode(self, value):
+    """Find a suitable representation."""
+    try:
+      return unicode(value)
+    except UnicodeDecodeError:
+      print 'string is not unicode: %r' % value
+
+    try:
+      return unicode(value, 'utf-8', 'replace')
+    except UnicodeDecodeError:
+      pass
+
+    return value.decode('iso-8859-1')
+
   def validate(self, obj, value):
     if value is None:
       return None
-    else:
-      return unicode(value)
+    return self._encode(value)
 
 
 class Enum(Attr):
