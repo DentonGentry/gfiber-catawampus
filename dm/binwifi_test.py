@@ -117,7 +117,7 @@ class BinWifiTest(unittest.TestCase):
     self.assertEqual(buf.strip().splitlines(), exp)
 
   def test5GhzConfigCommit(self):
-    bw = binwifi.WlanConfiguration('wifi0', band='5', width=80)
+    bw = binwifi.WlanConfiguration('wifi0', band='5', width_5g=80)
     bw.StartTransaction()
     bw.RadioEnabled = True
     bw.Enable = True
@@ -327,7 +327,7 @@ class BinWifiTest(unittest.TestCase):
     self.assertTrue('WPA12_PSK_AES' in buf)
 
   def testStandard(self):
-    bw = binwifi.WlanConfiguration('wifi0', band='5', width=80)
+    bw = binwifi.WlanConfiguration('wifi0', band='5', width_5g=80)
     bw.StartTransaction()
     bw.RadioEnabled = True
     bw.Enable = True
@@ -366,6 +366,47 @@ class BinWifiTest(unittest.TestCase):
     buf = open(self.wifioutfile).read()
     # We set 'a/b' and expect OperatingFrequencyBand to determine the band.
     self.assertTrue('"-p" "a/b"' in buf)
+
+  def testWidth(self):
+    bw = binwifi.WlanConfiguration('wifi0', band='5', width_5g=80)
+    bw.StartTransaction()
+    bw.RadioEnabled = True
+    bw.Enable = True
+    bw.AutoChannelEnable = True
+    bw.SSID = 'Test SSID 1'
+    self.loop.RunOnce(timeout=1)
+    buf = open(self.wifioutfile).read()
+    self.assertTrue('"-w" "80"' in buf)
+
+    bw = binwifi.WlanConfiguration('wifi0', band='5', width_2_4g=80)
+    bw.StartTransaction()
+    bw.RadioEnabled = True
+    bw.Enable = True
+    bw.AutoChannelEnable = True
+    bw.SSID = 'Test SSID 1'
+    self.loop.RunOnce(timeout=1)
+    buf = open(self.wifioutfile).read()
+    self.assertFalse('"-w" "80"' in buf)
+
+    bw = binwifi.WlanConfiguration('wifi0', band='2.4', width_2_4g=80)
+    bw.StartTransaction()
+    bw.RadioEnabled = True
+    bw.Enable = True
+    bw.AutoChannelEnable = True
+    bw.SSID = 'Test SSID 1'
+    self.loop.RunOnce(timeout=1)
+    buf = open(self.wifioutfile).read()
+    self.assertTrue('"-w" "80"' in buf)
+
+    bw = binwifi.WlanConfiguration('wifi0', band='2.4', width_5g=80)
+    bw.StartTransaction()
+    bw.RadioEnabled = True
+    bw.Enable = True
+    bw.AutoChannelEnable = True
+    bw.SSID = 'Test SSID 1'
+    self.loop.RunOnce(timeout=1)
+    buf = open(self.wifioutfile).read()
+    self.assertFalse('"-w" "80"' in buf)
 
 
 if __name__ == '__main__':

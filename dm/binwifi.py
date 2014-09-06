@@ -85,8 +85,8 @@ class WlanConfiguration(CATA98WIFI):
   WPAEncryptionModes = tr.cwmptypes.TriggerEnum(
       encryption_modes, init='AESEncryption')
 
-  def __init__(self, ifname, band=None, standard='n', width=0,
-               autochan=None):
+  def __init__(self, ifname, band=None, standard='n',
+               width_2_4g=0, width_5g=0, autochan=None):
     super(WlanConfiguration, self).__init__()
     self._initialized = False
     self._ifname = ifname
@@ -94,7 +94,8 @@ class WlanConfiguration(CATA98WIFI):
     self._band = band if band else '5'
     self._fixed_band = band
     self.Standard = standard
-    self._channelwidth = width
+    self._channelwidth_2_4g = width_2_4g
+    self._channelwidth_5g = width_5g
     self._autochan = autochan
     self.new_config = None
     self.last_bin_wifi = None
@@ -450,8 +451,11 @@ class WlanConfiguration(CATA98WIFI):
     autotype = self.new_config.AutoChannelType
     if autotype:
       cmd += ['-a', autotype]
-    if self._channelwidth:
-      cmd += ['-w', str(self._channelwidth)]
+
+    if self._band == '2.4' and self._channelwidth_2_4g:
+      cmd += ['-w', str(self._channelwidth_2_4g)]
+    elif self._band == '5' and self._channelwidth_5g:
+      cmd += ['-w', str(self._channelwidth_5g)]
 
     if self.Standard == 'ac':
       cmd += ['-p', 'a/b/g/n/ac']

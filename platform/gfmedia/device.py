@@ -647,11 +647,11 @@ class LANDevice(BASE98IGD.LANDevice):
       wifi = dm.binwifi.WlanConfiguration('wlan0', band='2.4')
       self.WLANConfigurationList['1'] = wifi
       wifi = dm.binwifi.WlanConfiguration('wlan1', band='5', standard='ac',
-                                          width=80, autochan='HIGH')
+                                          width_5g=80, autochan='HIGH')
       self.WLANConfigurationList['2'] = wifi
     elif _DoesInterfaceExist('wlan0'):
       # One radio, allow switching bands
-      wifi = dm.binwifi.WlanConfiguration('wlan0', width=40, autochan='LOW')
+      wifi = dm.binwifi.WlanConfiguration('wlan0', width_5g=40, autochan='LOW')
       self.WLANConfigurationList['1'] = wifi
 
 
