@@ -325,7 +325,14 @@ class IOLoop(object):
             while self._events:
                 fd, events = self._events.popitem()
                 try:
-                    self._handlers[fd](fd, events)
+                    handler = self._handlers[fd]
+                except KeyError:
+                    logging.error("Handler for fd %s no longer exists, closing",
+                                  fd, exc_info=True)
+                    self.remove_handler(fd)
+                    continue
+                try:
+                    handler(fd, events)
                 except (OSError, IOError), e:
                     if e.args[0] == errno.EPIPE:
                         # Happens when the client closes the connection
@@ -333,10 +340,6 @@ class IOLoop(object):
                     else:
                         logging.error("Exception in I/O handler for fd %s",
                                       fd, exc_info=True)
-                except KeyError:
-                    logging.error("Handler for fd %s no longer exists, closing",
-                                  fd, exc_info=True)
-                    self._impl.unregister(fd)
                 except Exception:
                     logging.error("Exception in I/O handler for fd %s",
                                   fd, exc_info=True)

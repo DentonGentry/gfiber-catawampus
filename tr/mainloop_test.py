@@ -17,6 +17,8 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import select
+import socket
 import unittest
 import weakref
 
@@ -109,6 +111,31 @@ class MainLoopTest(unittest.TestCase):
     i2.ClassIdleFunc()
     loop.RunOnce()
     self.assertEquals(idler, [1, 2])
+
+  def testReentrance(self):
+    print
+    print 'testReentrance'
+    loop = mainloop.MainLoop()
+    loop.RunOnce()
+    s1, s2 = socket.socketpair()
+    s2.send('x')
+    select.select([s1], [], [])
+    # Now the 'x' has reached s1
+
+    def Handler(fd, events):
+      loop.ioloop.remove_handler(fd)
+      # NOTE(apenwarr): This simulates a case where epoll (or something)
+      #   somehow returns an event to tornado even after the handler has
+      #   been unregistered for that fd.  I don't see how that can possibly
+      #   happen, but apparently it does in the field.  I can't find a way
+      #   to reproduce it normally, so we fake it by just adding the current
+      #   event back in.
+      loop.ioloop._events[fd] = events
+    loop.ioloop.add_handler(s1.fileno(), Handler, loop.ioloop.READ)
+    loop.RunOnce()
+    loop.RunOnce()
+
+    self.assertEquals(s1.recv(1), 'x')
 
 if __name__ == '__main__':
   unittest.main()
