@@ -79,7 +79,7 @@ class Device(BASEUPNP.Device):
     enable = self.Enable and self.UPnPIGD
     if previous != enable:
       self._UpdateFile(enable)
-      subprocess.call(RESTARTCMD)
+      subprocess.call(RESTARTCMD, close_fds=True)
 
 
 class DeviceCapabilities(BASEUPNP.Device.Capabilities):
@@ -114,7 +114,7 @@ def GetSsdpClientInfo():
   """
 
   try:
-    ssdp = subprocess.Popen(POLL_CMD, stdout=subprocess.PIPE)
+    ssdp = subprocess.Popen(POLL_CMD, stdout=subprocess.PIPE, close_fds=True)
     out, _ = ssdp.communicate(None)
   except (IOError, OSError, subprocess.CalledProcessError):
     # SSDP not running, or not present on this platform.

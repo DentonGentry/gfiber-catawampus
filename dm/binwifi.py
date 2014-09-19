@@ -206,7 +206,7 @@ class WlanConfiguration(CATA98WIFI):
     """Cache the output of /bin/wifi show."""
     cmd = BINWIFI + ['show', '-b', self._band]
     try:
-      w = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+      w = subprocess.Popen(cmd, stdout=subprocess.PIPE, close_fds=True)
       out, _ = w.communicate(None)
     except (IOError, OSError, subprocess.CalledProcessError):
       print 'Unable to run ' + ' '.join(cmd)

@@ -150,7 +150,7 @@ class TraceRoute(BASE_TRACEROUTE):
     argv += [self.Host, str(max(MIN_PACKET_SIZE, int(self.DataBlockSize)))]
     print '  %r' % argv
     self.subproc = subprocess.Popen(argv,
-                                    stdout=subprocess.PIPE)
+                                    stdout=subprocess.PIPE, close_fds=True)
     self.ioloop.add_handler(self.subproc.stdout.fileno(),
                             self._GotData,
                             self.ioloop.READ)
