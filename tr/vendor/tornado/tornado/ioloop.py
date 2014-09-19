@@ -327,8 +327,8 @@ class IOLoop(object):
                 try:
                     handler = self._handlers[fd]
                 except KeyError:
-                    logging.error("Handler for fd %s no longer exists, closing",
-                                  fd, exc_info=True)
+                    logging.error("Handler for fd %s (ev=0x%x) no longer exists, closing",
+                                  fd, events, exc_info=True)
                     self.remove_handler(fd)
                     continue
                 try:
@@ -341,8 +341,8 @@ class IOLoop(object):
                         logging.error("Exception in I/O handler for fd %s",
                                       fd, exc_info=True)
                 except Exception:
-                    logging.error("Exception in I/O handler for fd %s",
-                                  fd, exc_info=True)
+                    logging.error("Exception in I/O handler for fd %s (ev=0x%x)",
+                                  fd, events, exc_info=True)
         # reset the stopped flag so another start/stop pair can be issued
         self._stopped = False
         if self._blocking_signal_threshold is not None:
@@ -672,7 +672,7 @@ class _Select(object):
 
 # Choose a poll implementation. Use epoll if it is available, fall back to
 # select() for non-Linux platforms
-if hasattr(select, "epoll"):
+if False and hasattr(select, "epoll"):
     # Python 2.6+ on Linux
     _poll = select.epoll
 elif hasattr(select, "kqueue"):

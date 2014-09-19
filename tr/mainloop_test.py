@@ -17,6 +17,7 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import os
 import select
 import socket
 import unittest
@@ -136,6 +137,48 @@ class MainLoopTest(unittest.TestCase):
     loop.RunOnce()
 
     self.assertEquals(s1.recv(1), 'x')
+
+  def testFdReplacement(self):
+    print
+    print 'testFdReplacement'
+    loop = mainloop.MainLoop()
+    loop.RunOnce()
+    s1, s2 = socket.socketpair()
+    s3, s4 = socket.socketpair()
+    fd = os.dup(s1.fileno())
+    print 'fds are: %d %d %d' % (s1.fileno(), s2.fileno(), fd)
+    count = [0]
+    def Handler(fd, events):
+      count[0] += 1
+      print 'handler: %r %r count=%d' % (fd, events, count[0])
+    loop.ioloop.add_handler(s1.fileno(), Handler, loop.ioloop.READ)
+    loop.RunOnce()
+    self.assertEquals(count[0], 0)
+    s2.close()
+    loop.RunOnce()
+    self.assertEquals(count[0], 1)
+    loop.RunOnce()
+    self.assertEquals(count[0], 2)
+    # so far so good.  Now replace s1's fd with a totally different
+    # (and not active) socket.  s1's endpoint still exists as a copy at
+    # 'fd', but s1's original fd, which is the one we're waiting on,
+    # is no longer producing events.
+    # epoll() and select() diverge in behaviour here; epoll weirdly
+    # keeps returning events related to s1 but which report the original fd
+    # (now owned by the non-eventful copy of s3).  select() will return
+    # nothing if you select on the original fd, because it sees s3, not s1.
+    # Phew.
+    # Unfortunately libcurl sometimes produces this behaviour (generally,
+    # when it closes its http socket and immediately replaces it), so we
+    # need to validate that weird things won't happen in that case.
+    s1fn = s1.fileno()
+    s1.close()
+    os.dup2(s3.fileno(), s1fn)
+    loop.ioloop.remove_handler(s1fn)
+    loop.ioloop.add_handler(s1fn, Handler, loop.ioloop.READ)
+    loop.RunOnce()
+    self.assertEquals(count[0], 2)
+
 
 if __name__ == '__main__':
   unittest.main()
