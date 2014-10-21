@@ -63,6 +63,8 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
     status_fcn: function to be called in Status method. If it
       returns a string, use it for Status instead of the builtin
       handling.
+    maxbitrate: For interfaces where the bitrate can't be queried
+      the value for MaxBitRate can be supplied.
   """
 
   Enable = tr.cwmptypes.ReadOnlyBool(True)
@@ -72,7 +74,7 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
 
   def __init__(self, ifname, upstream=False,
                qfiles=None, numq=0, hipriq=0,
-               status_fcn=None):
+               status_fcn=None, maxbitrate=0):
     super(EthernetInterfaceLinux26, self).__init__()
     self._pynet = PYNETIFCONF(ifname)
     self._ifname = ifname
@@ -80,6 +82,7 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
     self._numq = numq
     self._hipriq = hipriq
     self._status_fcn = status_fcn
+    self._maxbitrate = maxbitrate
     self.Unexport(['Alias'])
     type(self).Name.Set(self, ifname)
     type(self).Upstream.Set(self, upstream)
@@ -115,6 +118,8 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
 
   @property
   def MaxBitRate(self):
+    if self._maxbitrate:
+      return self._maxbitrate
     (speed, _, _, _) = self._GetLinkInfo()
     return speed or 0  # follow the same convention as get_link_info(),
                        # in which 0 stands for "unknown".
