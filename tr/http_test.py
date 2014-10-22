@@ -172,7 +172,10 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase):
     return self.requestlog.pop(0)
 
   def advanceTime(self):
-    return 420000.0 + self.advance_time
+    # Ensure time marches forward some small amount with each call
+    # or the network code in tornado sometimes fails to work.
+    self.advance_time += 0.01
+    return self.advance_time
 
   def getCpe(self):
     dm_root.PLATFORMDIR = '../platform'
