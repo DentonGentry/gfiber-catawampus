@@ -132,7 +132,7 @@ def UpdateDnsmasqConfig():
       f.write('# saved by catawampus %s\n' % str(datetime.datetime.utcnow()))
       for line in lines:
         f.write(line)
-    subprocess.check_call(RESTARTCMD)
+    subprocess.check_call(RESTARTCMD, close_fds=True)
   except (IOError, OSError, subprocess.CalledProcessError):
     print 'Unable to restart dnsmasq\n'
     traceback.print_exc()

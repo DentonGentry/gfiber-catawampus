@@ -55,7 +55,7 @@ RX_POWER_RE = re.compile(r'^rx_power\s*:\s*(-?\d+[.]?\d*)\s+dBm')
 SNR_RE = re.compile(r'^avg_snr\s*:\s*(\d+[.]?\d*)')
 NBAS_RE = re.compile(r'^nbas\s*:\s*(\d+)')
 RATE_RE = re.compile(r'^phy_rate\s*:\s*(\d+)\s+Mbps')
-BITL_RE = re.compile(r'^\d+\s+-\s+\d+\s*:\s+([0-9a-fA-F]+)')
+BITL_RE = re.compile(r'^\s*\d+\s+-\s+\d+\s*:\s+([0-9a-fA-F]+)')
 
 
 def IsMoca2_0():
@@ -92,8 +92,8 @@ def _CombineBitloading(bitlines):
 
   Args:
     bitlines: a list of lines with ranges:
-    ['000 - 031:  000099aaaaaaaaaaaaaaaaaaaaaaaaaa',
-     '032 - 063:  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    ['  0 -  31:  000099aaaaaaaaaaaaaaaaaaaaaaaaaa',
+     ' 32 -  63:  aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     ...
      '480 - 511:  aaaaaaaaaaaaaaaaaaaaaaaaaaa99000']
 

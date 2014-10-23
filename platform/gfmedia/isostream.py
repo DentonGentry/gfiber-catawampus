@@ -102,7 +102,7 @@ class Isostream(ISOSTREAM):
         self.serverproc = None
       if self.ServerEnable:
         argv = ['run-isostream-server']
-        self.serverproc = subprocess.Popen(argv)
+        self.serverproc = subprocess.Popen(argv, close_fds=True)
         if self.ServerTimeLimit:
           def _DisableServer():
             self.ServerEnable = False
@@ -126,7 +126,7 @@ class Isostream(ISOSTREAM):
         else:
           argv += ['--use-storage-box']
         argv += ['-b', str(self.ClientMbps)]
-        self.clientproc = subprocess.Popen(argv, env=env)
+        self.clientproc = subprocess.Popen(argv, env=env, close_fds=True)
         if self.ClientTimeLimit:
           def _DisableClient():
             self.ClientEnable = False

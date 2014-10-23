@@ -73,7 +73,7 @@ class WlanConfiguration(CATA98WIFI):
   Name = tr.cwmptypes.ReadOnlyString()
   RadioEnabled = tr.cwmptypes.TriggerBool(False)
   SSIDAdvertisementEnabled = tr.cwmptypes.TriggerBool(True)
-  Standard = tr.cwmptypes.ReadOnlyString()
+  Standard = tr.cwmptypes.TriggerString()
   SupportedFrequencyBands = tr.cwmptypes.ReadOnlyString('2.4GHz,5GHz')
   TransmitPowerSupported = tr.cwmptypes.ReadOnlyString('0,20,40,60,80,100')
   UAPSDSupported = tr.cwmptypes.ReadOnlyBool(False)
@@ -85,17 +85,17 @@ class WlanConfiguration(CATA98WIFI):
   WPAEncryptionModes = tr.cwmptypes.TriggerEnum(
       encryption_modes, init='AESEncryption')
 
-  def __init__(self, ifname, band=None, standard='n', width=0,
-               autochan=None):
+  def __init__(self, ifname, band=None, standard='n',
+               width_2_4g=0, width_5g=0, autochan=None):
     super(WlanConfiguration, self).__init__()
     self._initialized = False
     self._ifname = ifname
     type(self).Name.Set(self, ifname)
     self._band = band if band else '5'
     self._fixed_band = band
-    # TODO(dgentry): can /bin/wifi tell us the capability of the chipset?
-    type(self).Standard.Set(self, standard)
-    self._channelwidth = width
+    self.Standard = standard
+    self._channelwidth_2_4g = width_2_4g
+    self._channelwidth_5g = width_5g
     self._autochan = autochan
     self.new_config = None
     self.last_bin_wifi = None
@@ -206,7 +206,7 @@ class WlanConfiguration(CATA98WIFI):
     """Cache the output of /bin/wifi show."""
     cmd = BINWIFI + ['show', '-b', self._band]
     try:
-      w = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+      w = subprocess.Popen(cmd, stdout=subprocess.PIPE, close_fds=True)
       out, _ = w.communicate(None)
     except (IOError, OSError, subprocess.CalledProcessError):
       print 'Unable to run ' + ' '.join(cmd)
@@ -451,8 +451,21 @@ class WlanConfiguration(CATA98WIFI):
     autotype = self.new_config.AutoChannelType
     if autotype:
       cmd += ['-a', autotype]
-    if self._channelwidth:
-      cmd += ['-w', str(self._channelwidth)]
+
+    if self._band == '2.4' and self._channelwidth_2_4g:
+      cmd += ['-w', str(self._channelwidth_2_4g)]
+    elif self._band == '5' and self._channelwidth_5g:
+      cmd += ['-w', str(self._channelwidth_5g)]
+
+    if self.Standard == 'ac':
+      cmd += ['-p', 'a/b/g/n/ac']
+    elif self.Standard == 'n':
+      cmd += ['-p', 'a/b/g/n']
+    elif self.Standard == 'g':
+      cmd += ['-p', 'a/b/g']
+    elif self.Standard == 'a' or self.Standard == 'b':
+      cmd += ['-p', 'a/b']
+
     sl = sorted(self.PreSharedKeyList.iteritems(), key=lambda x: int(x[0]))
     for (_, psk) in sl:
       key = psk.GetKey()

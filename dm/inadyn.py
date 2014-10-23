@@ -60,7 +60,7 @@ class Inadyn(CATA181DDNS):
     try:
       for (idx, service) in self.ServiceList.iteritems():
         service.WriteConfig(idx=idx)
-      subprocess.check_call(RESTARTCMD)
+      subprocess.check_call(RESTARTCMD, close_fds=True)
     except (IOError, OSError, subprocess.CalledProcessError):
       print 'Unable to update inadyn\n'
       traceback.print_exc()

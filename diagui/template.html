@@ -102,23 +102,23 @@
   <div id="main">
     <a href="https://fiber.google.com/myfiber"><img src = "static/logo.png" id= "title"></a>
     <div id="connstatusinfo">
-      <img src = "static/standingbunny.png" id="img">
       <div id="d2">
-        If you'd like to speak to an agent, you may call 1-800-GO-FIBER.
+	To change your Wi-Fi password or manage your network settings, go to <a href="https://fiber.google.com/myfiber" nowrap>My Fiber › Network</a><br><br>
+	Need help? Contact Google Fiber customer support: (866) 777-7550.
       </div>
     </div>
     <div id="diaginfo">
-      <input type = "button" value="Download diagnostic information" id="downloadbutton">
       <form action='/restart' method='post'>
             {% module xsrf_form_html() %}
-            <input type = "submit" value="Restart" id="restartbutton">
+	    <input type="submit" value="Restart Network Box" id="restartbutton">
       </form>
+      <input type="button" value="Save diagnostic info…" id="downloadbutton">
       <div id="d4">
         <p>
          <div id="acs"><span class="name">ACS inform: </span><ul class="value"></ul></div>
         </p>
         <p>
-         <div id="softversion"><span class="name">Software Version:</span><ul class="value"></ul></div>
+         <div id="softversion"><span class="name">Software version:</span><ul class="value"></ul></div>
          <div id="uptime"><span class="name">Uptime:</span><ul class="value"></ul></div>
          <div id="temperature"><span class="name">Temperature:</span><ul class="value"></ul></div>
         </p>
@@ -128,7 +128,7 @@
         </p>
         <p>
          <div id="lanip"><span class="name">LAN IP:</span><ul class="value"></ul></div>
-         <div id="subnetmask"><span class="name">Subnet Mask:</span><ul class="value"></ul></div>
+         <div id="subnetmask"><span class="name">Subnet mask:</span><ul class="value"></ul></div>
         </p>
         <p>
          <div id="lanmac"><span class="name">Wired LAN MAC:</span><ul class="value"></ul></div>
@@ -151,17 +151,17 @@
          <div id="dmzdevice"><span class="name">DMZ device:</span><ul class="value"></ul></div>
         </p>
         <p>
-         <div id="dyndns"><span class="name">Dynamic DNS Service:</span><ul class="value"></ul></div>
+         <div id="dyndns"><span class="name">Dynamic DNS service:</span><ul class="value"></ul></div>
          <div id="username"><span class="name">Username:</span><ul class="value"></ul></div>
          <div id="domain"><span class="name">Domain/hostname:</span><ul class="value"></ul></div>
         </p>
         <p>
-         <div id="fiberjack""><span>Fiberjack:</span></div>
-           <div id="onu_serial" class="onu"><span class="name">Serial:</span><ul class="value"></ul></div>
-           <div id="onu_wan_connected" class="onu"><span class="name">Connected:</span><ul class="value"></ul></div>
-           <div id="onu_acs_contacted" class="onu"><span class="name">ACS Contacted:</span><ul class="value"></ul></div>
-           <div id="onu_acs_contact_time" class="onu"><span class="name">ACS Contact Time:</span><ul class="value"></ul></div>
-           <div id="onu_uptime" class="onu"><span class="name">Uptime:</span><ul class="value"></ul></div>
+         <div id="fiberjack"><span>Fiber Jack:</span></div>
+           <div id="onu_serial"><span class="nameonu">Serial:</span><ul class="value"></ul></div>
+           <div id="onu_wan_connected"><span class="nameonu">Connected:</span><ul class="value"></ul></div>
+           <div id="onu_acs_contacted"><span class="nameonu">ACS contacted:</span><ul class="value"></ul></div>
+           <div id="onu_acs_contact_time"><span class="nameonu">ACS contact time:</span><ul class="value"></ul></div>
+           <div id="onu_uptime"><span class="nameonu">Uptime:</span><ul class="value"></ul></div>
          </div>
         </p>
       </div>

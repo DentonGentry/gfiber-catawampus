@@ -243,8 +243,9 @@ class EthernetInterfaceOnu(dm.ethernet.EthernetInterfaceLinux26):
   slightly different.
   """
 
-  def __init__(self, ifname, stat_dir):
-    super(EthernetInterfaceOnu, self).__init__(ifname=ifname)
+  def __init__(self, ifname, stat_dir, maxbitrate=0):
+    super(EthernetInterfaceOnu, self).__init__(ifname=ifname,
+                                               maxbitrate=maxbitrate)
     self.stat_dir = stat_dir
 
   @property
@@ -259,7 +260,7 @@ class Ethernet(tr181.Device_v2_4.Device.Ethernet):
     tr181.Device_v2_4.Device.Ethernet.__init__(self)
     self.InterfaceList = {
         '1': EthernetInterfaceOnu('eth0', ETH_STATS_DIR),
-        '2': EthernetInterfaceOnu('pon0', PON_STATS_DIR),
+        '2': EthernetInterfaceOnu('pon0', PON_STATS_DIR, maxbitrate=1000),
         '3': dm.ethernet.EthernetInterfaceLinux26(ifname='man'),
         }
     self.VLANTerminationList = {}

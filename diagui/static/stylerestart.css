@@ -1,2 +1,12 @@
+@font-face {
+  font-family: 'Open Sans';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Open Sans'), local('OpenSans'), url(OpenSansNormal400Latin.ttf) format('truetype');
+}
+body {
+	font: 400 14px/21px 'Open Sans', Arial, sans-serif;
+	color: #222;
+}
 #title {margin-top: 25px; margin-left: 20px; height: 35px; width: 152px;  }
 #wait {margin-top: 40px; margin-left: 30px; font-size: 22px; }

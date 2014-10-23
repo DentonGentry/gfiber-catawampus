@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import google3
+import mimetypes
 import tornado.ioloop
 import tornado.web
 import tr.pyinotify
@@ -86,6 +87,7 @@ class DiaguiSettings(tornado.web.Application):
         (r'/content.json', JsonHandler),
         (r'/restart', RestartHandler),
     ], **self.settings)
+    mimetypes.add_type('font/ttf', '.ttf')
 
     self.ioloop = tornado.ioloop.IOLoop.instance()
     self.wm = tr.pyinotify.WatchManager()
@@ -123,7 +125,7 @@ class DiaguiSettings(tornado.web.Application):
     if self.cpemach and self.cpemach.last_success_response:
       self.data['acs'] = 'OK (%s)' % self.cpemach.last_success_response
     else:
-      self.data['acs'] = 'Never Contacted'
+      self.data['acs'] = 'Never contacted'
     self.data['softversion'] = deviceinfo.SoftwareVersion
     self.data['uptime'] = deviceinfo.UpTime
     self.data['username'] = self.root.Device.ManagementServer.Username
@@ -184,21 +186,21 @@ class DiaguiSettings(tornado.web.Application):
         if ch in range(1, 12):
           self.data['ssid24'] = wlconf.SSID
           if wlconf.WPAAuthenticationMode == 'PSKAuthentication':
-            wpa['2.4 GHz'] = '(configured)'
+            wpa['2.4 GHz'] = '(Configured)'
           wlan[wlconf.BSSID] = '(2.4 GHz) (%s)' % wlconf.Status
           for unused_k, assoc in wlconf.AssociatedDeviceList.iteritems():
             devices[assoc.AssociatedDeviceMACAddress] = (
-                '(2.4 GHz) (Authentication State: %s)'
+                '(2.4 GHz) (Authentication state: %s)'
                 % assoc.AssociatedDeviceAuthenticationState)
 
         else:
           self.data['ssid5'] = wlconf.SSID
           if wlconf.WPAAuthenticationMode == 'PSKAuthentication':
-            wpa['5 GHz'] = '(configured)'
+            wpa['5 GHz'] = '(Configured)'
           wlan[wlconf.BSSID] = '(5 GHz) (%s)' % wlconf.Status
           for unused_k, assoc in wlconf.AssociatedDeviceList.iteritems():
             devices[assoc.AssociatedDeviceMACAddress] = (
-                '(5 GHz) (Authentication State: %s)'
+                '(5 GHz) (Authentication state: %s)'
                 % assoc.AssociatedDeviceAuthenticationState)
 
     self.data['wirelesslan'] = wlan
