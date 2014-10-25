@@ -21,6 +21,7 @@ class DiagnosticsHandler(tornado.web.RequestHandler):
   """If no connectivity, display local diagnostics UI."""
 
   def get(self):    # pylint: disable=g-bad-name
+    print 'diagui GET diagnostics HTML page'
     self.render('template.html')
 
 
@@ -29,6 +30,7 @@ class JsonHandler(tornado.web.RequestHandler):
 
   @tornado.web.asynchronous
   def get(self):    # pylint: disable=g-bad-name
+    print 'diagui GET JSON data for diagnostics page'
     self.application.UpdateLatestDict()
     if (self.get_argument('checksum') !=
         self.application.data.get('checksum', None)):
@@ -56,9 +58,11 @@ class RestartHandler(tornado.web.RequestHandler):
   """Restart the network box."""
 
   def get(self):    # pylint: disable=g-bad-name
+    print 'diagui displaying restart interstitial screen'
     self.render('restarting.html')
 
   def post(self):    # pylint: disable=g-bad-name
+    print 'diagui user requested restart'
     self.redirect('/restart')
     os.system('(sleep 5; reboot) &')
 

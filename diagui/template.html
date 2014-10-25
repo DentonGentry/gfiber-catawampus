@@ -1,171 +1,90 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Google Fiber Network Box Diagnostics</title>
-    <link rel="stylesheet" type="text/css" href="static/style.css">
-    <link rel="icon" href="static/favicon.ico">
-    <script src="static/jquery-1.10.2.js"></script>
-    <script>
-      var obj1 = {"checksum": 0};
-      function populatefield(element, val) {
-        if (val == '' || val == undefined || val == null) {
-          populatefield(element, 'n/a');
-        }
-        else {
-          $(element + " .value").append('<li></li>');
-          $(element + " .value li").text(val);
-        }
-      }
-
-      function multivaluefield(element, val) {
-        if (jQuery.isEmptyObject(val)){
-          populatefield(element, 'n/a');
-          return;
-        }
-
-        var i = 0;
-        for (key in val) {
-          $(element + ' .value').append('<li id=' + i + '></li>');
-          $(element + ' .value #' + i).text(key + ' ' + val[key]);
-          i++;
-        }
-      }
-
-      function populateOnuFields(data) {
-        f = function(field) {
-          return (field in data) ? String(data[field]) : "n/a";
-        };
-
-        populatefield('#onu_serial', f('onu_serial'));
-        populatefield('#onu_wan_connected', f('onu_wan_connected'));
-        populatefield('#onu_acs_contacted', f('onu_acs_contacted'));
-        populatefield('#onu_uptime', f('onu_uptime'));
-
-        var contact_time = 'n/a';
-        if ('onu_acs_contact_time' in data) {
-          contact_time = String(new Date(data.onu_acs_contact_time * 1000));
-        }
-        populatefield('#onu_acs_contact_time', contact_time);
-      }
-
-      function getContent() {
-          $.getJSON('content.json', obj1 , function(data) {
-            $('.value').empty();
-            populatefield('#acs', data.acs);
-            populatefield('#softversion', data.softversion);
-            populatefield('#uptime', data.uptime);
-            multivaluefield('#temperature', data.temperature);
-            multivaluefield('#wanmac', data.wanmac);
-            multivaluefield('#wanip', data.wanip);
-            multivaluefield('#lanip', data.lanip);
-            populatefield('#subnetmask', data.subnetmask);
-            multivaluefield('#lanmac', data.lanmac);
-            multivaluefield('#wireddevices', data.wireddevices);
-            populatefield('#ssid24', data.ssid24);
-            populatefield('#ssid5', data.ssid5);
-            multivaluefield('#wpa2', data.wpa2);
-            multivaluefield('#wirelesslan', data.wirelesslan);
-            multivaluefield('#wirelessdevices', data.wirelessdevices);
-            populatefield('#upnp', data.upnp);
-            populatefield('#portforwarding', data.portforwarding);
-            populatefield('#dmzdevice', data.dmzdevice);
-            populatefield('#dyndns', data.dyndns);
-            populatefield('#username', data.username);
-            populatefield('#domain', data.domain);
-            populateOnuFields(data)
-
-            obj1.checksum = data.checksum
-          });
-        }
-      $(document).ready(function() {
-        $.ajaxSetup({ cache: false });
-        $("#downloadbutton").click(function() {
-          newwindow = window.open('', '');
-          var toprint = $('#main').html();
-          var csslink = newwindow.document.createElement('link');
-          csslink.setAttribute('rel', 'stylesheet');
-          csslink.setAttribute('type', 'text/css');
-          csslink.setAttribute('href', 'static/style.css');
-          newwindow.document.writeln(toprint);
-          newwindow.document.head.appendChild(csslink);
-          newwindow.document.close();
-          newwindow.focus();
-          newwindow.print();
-          newwindow.close();
-        });
-        getContent();
-        setInterval(getContent, 30000);  // refresh data periodically.
-      });
-    </script>
-  </head>
-  <body>
-  <div id="main">
-    <a href="https://fiber.google.com/myfiber"><img src = "static/logo.png" id= "title"></a>
-    <div id="connstatusinfo">
-      <div id="d2">
-	To change your Wi-Fi password or manage your network settings, go to <a href="https://fiber.google.com/myfiber" nowrap>My Fiber › Network</a><br><br>
-	Need help? Contact Google Fiber customer support: (866) 777-7550.
+<!doctype html>
+<html class=init>
+<meta charset=utf-8>
+<meta name=viewport content="initial-scale=1, minimum-scale=1, width=device-width">
+<title>Google Fiber Network Box Diagnostics</title>
+<link rel=icon href=static/favicon.ico>
+<link rel=stylesheet href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700&amp;lang=en">
+<link rel=stylesheet href=static/default.css>
+<header>
+  <section>
+    <h1><a href=https://fiber.google.com/myfiber/><img src=static/logo.png alt="Google Fiber"></a></h1>
+    <nav>
+      <ul><li class=active>Network Box</ul>
+    </nav>
+    <a id=help href=tel:+18667777550 aria-label="Call Google Fiber Customer Support on (866) 777-7550">(866) 777-7550</a>
+  </section>
+</header>
+<div id=main role=main>
+  <h2 id=ssid>Network Box</h2>
+  <div id=status data-connected="Network Box connected" data-disconnected="Network Box not connected">
+    Loading diagnostic info…
+  </div>
+  <section id=manage>
+    <p>To change your Wi-Fi password or manage network settings, go to <a href=https://fiber.google.com/myfiber/ target=_blank>My Fiber › Network</a>
+  </section>
+  <form action=/restart method=post>
+    {% module xsrf_form_html() %}
+    <section id=restart>
+      <p>Restarting the network box can solve most common issues.
+      <div><button class="button restart">Restart Network Box…</button></div>
+      <p><small>If restarting does not resolve the problem, contact <a href=https://fiber.google.com/support/ target=_blank>Google Fiber Customer Support</a></small>
+    </section>
+    <div id=dialog class=overlay role=alertdialog aria-labelledby=dialog-label>
+      <div>
+        <h2 id=dialog-label>Restart Network Box</h2>
+        <p>The Network Box will be restarted. This may take a few minutes.
+        <div>
+          <button class="button restart">Restart</button>
+          <button type=button class="button cancel">Cancel</button>
+        </div>
       </div>
     </div>
-    <div id="diaginfo">
-      <form action='/restart' method='post'>
-            {% module xsrf_form_html() %}
-	    <input type="submit" value="Restart Network Box" id="restartbutton">
-      </form>
-      <input type="button" value="Save diagnostic info…" id="downloadbutton">
-      <div id="d4">
-        <p>
-         <div id="acs"><span class="name">ACS inform: </span><ul class="value"></ul></div>
-        </p>
-        <p>
-         <div id="softversion"><span class="name">Software version:</span><ul class="value"></ul></div>
-         <div id="uptime"><span class="name">Uptime:</span><ul class="value"></ul></div>
-         <div id="temperature"><span class="name">Temperature:</span><ul class="value"></ul></div>
-        </p>
-        <p>
-         <div id="wanmac"><span class="name">WAN MAC:</span><ul class="value"></ul></div>
-         <div id="wanip"><span class="name">WAN IP (last):</span><ul class="value"></ul></div>
-        </p>
-        <p>
-         <div id="lanip"><span class="name">LAN IP:</span><ul class="value"></ul></div>
-         <div id="subnetmask"><span class="name">Subnet mask:</span><ul class="value"></ul></div>
-        </p>
-        <p>
-         <div id="lanmac"><span class="name">Wired LAN MAC:</span><ul class="value"></ul></div>
-         <div id="wireddevices"><span class="name">Wired devices:</span><ul class="value"></ul></div>
-        </p>
-        <p>
-         <div id="ssid24"><span class="name">2.4 GHz SSID:</span><ul class="value"></ul></div>
-         <div id="ssid5"><span class="name">5 GHz SSID:</span><ul class="value"></ul></div>
-         <div id="wpa2"><span class="name">WPA2-PSK:</span><ul class="value"></ul></div>
-        </p>
-        <p>
-         <div id="wirelesslan"><span class="name">Wireless LAN MAC:</span><ul class="value"></ul></div>
-         <div id="wirelessdevices"><span class="name">Wireless devices:</span><ul class="value"></ul></div>
-        </p>
-        <p>
-         <div id="upnp"><span class="name">UPnP:</span><ul class="value"></ul></div>
-         <div id="portforwarding"><span class="name">Port forwarding:</span><ul class="value"></ul></div>
-        </p>
-        <p>
-         <div id="dmzdevice"><span class="name">DMZ device:</span><ul class="value"></ul></div>
-        </p>
-        <p>
-         <div id="dyndns"><span class="name">Dynamic DNS service:</span><ul class="value"></ul></div>
-         <div id="username"><span class="name">Username:</span><ul class="value"></ul></div>
-         <div id="domain"><span class="name">Domain/hostname:</span><ul class="value"></ul></div>
-        </p>
-        <p>
-         <div id="fiberjack"><span>Fiber Jack:</span></div>
-           <div id="onu_serial"><span class="nameonu">Serial:</span><ul class="value"></ul></div>
-           <div id="onu_wan_connected"><span class="nameonu">Connected:</span><ul class="value"></ul></div>
-           <div id="onu_acs_contacted"><span class="nameonu">ACS contacted:</span><ul class="value"></ul></div>
-           <div id="onu_acs_contact_time"><span class="nameonu">ACS contact time:</span><ul class="value"></ul></div>
-           <div id="onu_uptime"><span class="nameonu">Uptime:</span><ul class="value"></ul></div>
-         </div>
-        </p>
-      </div>
+  </form>
+  <section id=advanced class=collapsed>
+    <button class=toggle aria-label="Expand or collapse advanced diagnostic info"></button>
+    <h3>Advanced</h3>
+    <div id=save>
+      <a href=# class=button role=button target=_blank>Save diagnostic info…</a>
+      <p><small>Saves your current diagnostic info as a text file. Google Fiber support may request this file to help troubleshoot issues.</small>
+    </div>
+    <table>
+      <tr><th scope=row>ACS inform<td id=acs>
+      <tr><th scope=row>Software Version<td id=softversion>
+      <tr><th scope=row>Uptime<td id=uptime>
+      <tr><th scope=row>Temperature<td id=temperature>
+      <tr><th scope=row>WAN MAC<td id=wanmac>
+      <tr><th scope=row>WAN IP (last)<td id=wanip>
+      <tr><th scope=row>LAN IP<td id=lanip>
+      <tr><th scope=row>Subnet Mask<td id=subnetmask>
+      <tr><th scope=row>Wired LAN MAC<td id=lanmac>
+      <tr><th scope=row>Wired devices<td id=wireddevices>
+      <tr><th scope=row>2.4 GHz SSID<td id=ssid24>
+      <tr><th scope=row>5 GHz SSID<td id=ssid5>
+      <tr><th scope=row>WPA2-PSK<td id=wpa2>
+      <tr><th scope=row>Wireless LAN MAC<td id=wirelesslan>
+      <tr><th scope=row>Wireless devices<td id=wirelessdevices>
+      <tr><th scope=row>UPnP<td id=upnp>
+      <tr><th scope=row>Username<td id=username>
+      <tr><th scope=row>Fiberjack<td>
+      <tr class=onu><th scope=row>Serial<td id=onu_serial>
+      <tr class=onu><th scope=row>Connected<td id=onu_wan_connected>
+      <tr class=onu><th scope=row>ACS Contacted<td id=onu_acs_contacted>
+      <tr class=onu><th scope=row>ACS Contact Time<td id=onu_acs_contact_time>
+      <tr class=onu><th scope=row>Uptime<td id=onu_uptime>
+    </table>
+  </section>
+  <div id=error class=overlay role=alertdialog aria-labelledby=error-label>
+    <div>
+      <h2 id=error-label>Lost contact with the network box</h2>
+      <p>Call Google Fiber Customer Support on (866) 777-7550
     </div>
   </div>
-  </body>
-</html>
+  <div id=loading class=overlay role=alertdialog aria-label=Loading></div>
+</div>
+<footer>
+  <ul>
+    <li><a href=https://fiber.google.com/legal/>Privacy &amp; Terms</a>
+  </ul>
+</footer>
+<script src=static/default.js></script>
