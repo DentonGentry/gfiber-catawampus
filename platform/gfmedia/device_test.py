@@ -188,7 +188,8 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
     self.assertTrue(self.install_cb_faultstring)
 
   def testValidateExports(self):
-    device.LANDevice().ValidateExports()
+    device.LANDevice('', 'br0').ValidateExports()
+    device.LANDevice('portal', '').ValidateExports()
     device.IP().ValidateExports()
     device.Ethernet().ValidateExports()
 
