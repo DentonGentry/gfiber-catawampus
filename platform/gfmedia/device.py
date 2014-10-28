@@ -523,6 +523,13 @@ class IP(tr181.Device_v2_6.Device.IP):
     if _DoesInterfaceExist('eth2'):
       self.InterfaceList[8] = dm.ipinterface.IPInterfaceLinux26(
           ifname='eth2', lowerlayers='')
+    if _DoesInterfaceExist('wlan0_portal'):
+      self.InterfaceList[9] = dm.ipinterface.IPInterfaceLinux26(
+          ifname='wlan0_portal', lowerlayers='')
+    if _DoesInterfaceExist('wlan1_portal'):
+      self.InterfaceList[10] = dm.ipinterface.IPInterfaceLinux26(
+          ifname='wlan1_portal', lowerlayers='')
+
 
     self.ActivePortList = {}
     self.Diagnostics = IPDiagnostics()
