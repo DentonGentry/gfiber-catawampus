@@ -23,7 +23,6 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import re
 import subprocess
 import pynetlinux
-import tr.core
 import tr.session
 import tr.tr181_v2_2
 import tr.cwmpbool

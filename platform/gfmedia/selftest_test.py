@@ -24,6 +24,7 @@ import datetime
 import signal
 import google3
 import selftest
+import tr.handle
 import tr.mainloop
 from tr.wvtest import unittest
 
@@ -42,7 +43,7 @@ class SelfTestTest(unittest.TestCase):
   def testSelfTest(self):
     st = selftest.SelfTest()
     loop = tr.mainloop.MainLoop()
-    st.ValidateExports()
+    tr.handle.ValidateExports(st)
 
     selftest.STRESSTEST_BIN = 'echo hi $DONT_ABORT $SERVER_IP $MAX_BANDWIDTH'
     self.assertEqual(st.Log, '')
@@ -84,7 +85,7 @@ class SelfTestTest(unittest.TestCase):
   def testIPerf(self):
     st = selftest.SelfTest()
     loop = tr.mainloop.MainLoop()
-    st.ValidateExports()
+    tr.handle.ValidateExports(st)
     selftest.IPERF_BIN = 'echo hi $IPERF_CLIENT $IPERF_SERVER $IPERF_TIME'
 
     self.assertEqual(st.Log, '')

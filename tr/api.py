@@ -29,6 +29,7 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 import datetime
 
 import tornado.ioloop
+import tr.core
 import tr.cwmpbool
 import tr.cwmptypes
 import tr.monohelper
@@ -397,9 +398,9 @@ class CPE(TR069Service):
 
     # phase 1: grab existing values.
     oldvals = []
-    for key, (obj, param) in zip(keys, lookup):
+    for key, (h, param) in zip(keys, lookup):
       oldvals.append(self._Apply(error_list, key, ParameterNameError,
-                                 getattr, obj, param))
+                                 getattr, h.obj, param))
     if error_list:
       # don't need to _ConcludeTransaction since we didn't change anything yet
       raise SetParameterErrors(error_list=error_list,
@@ -410,9 +411,9 @@ class CPE(TR069Service):
     #  possible errors, but the more objects that support validators, the
     #  fewer transactions we'll have to rollback in the future.
     assert not error_list
-    for key, (obj, param), value in zip(keys, lookup, values):
+    for key, (h, param), value in zip(keys, lookup, values):
       self._Apply(error_list, key, ParameterNotWritableError,
-                  tr.cwmptypes.tryattr, obj, param, value)
+                  tr.cwmptypes.tryattr, h.obj, param, value)
     if error_list:
       # don't need to _ConcludeTransaction since we didn't change anything yet
       raise SetParameterErrors(error_list=error_list,
@@ -421,20 +422,20 @@ class CPE(TR069Service):
     # phase 3: try setting new values.
     assert not error_list
     dirty = set()
-    for key, (obj, param), value in zip(keys, lookup, values):
+    for key, (h, param), value in zip(keys, lookup, values):
       self._Apply(error_list, key, ParameterNotWritableError,
-                  obj.SetExportParam, param, value)
-      dirty.add(obj)
+                  h.SetExportParam, param, value)
+      dirty.add(h.obj)
+    print 'error_list was: %r' % (error_list,)
     if error_list:
       # if there were *any* errors, need to undo *all* changes.
       # First reset all values to their recorded values.  (Some of them might
       # fail, but we can't do anything about that, so throw away the error
       # list.)
-      for key, (obj, param), value, oldval in zip(keys, lookup,
-                                                  values, oldvals):
+      for key, (h, param), value, oldval in zip(keys, lookup, values, oldvals):
         if oldval != value:
           self._Apply([], key, ParameterNotWritableError,
-                      setattr, obj, param, oldval)
+                      setattr, h.obj, param, oldval)
       # Now tell the objects themselves to undo the transactions, if they
       # support it.
       # TODO(apenwarr): Deprecate per-object transaction support.

@@ -25,6 +25,7 @@ import bz2
 import google3
 import gmoca
 from tr.wvtest import unittest
+import tr.handle
 
 
 class GMoCATest(unittest.TestCase):
@@ -33,7 +34,7 @@ class GMoCATest(unittest.TestCase):
   def testValidateExports(self):
     gmoca.MOCACTL = 'testdata/device/mocactl'
     gm = gmoca.GMoCA()
-    gm.ValidateExports()
+    tr.handle.ValidateExports(gm)
 
   def testDebugOutput(self):
     gmoca.MOCACTL = 'testdata/device/mocactl'

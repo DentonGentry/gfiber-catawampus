@@ -24,6 +24,8 @@ import google3
 from tr.wvtest import unittest
 import miniupnp
 import platform.fakecpe.device
+import tr.core
+import tr.handle
 import tr.tr098_v1_4
 import host
 
@@ -79,9 +81,9 @@ class HostTest(unittest.TestCase):
 
   def testValidateExports(self):
     hosts = host.Hosts()
-    hosts.ValidateExports()
+    tr.handle.ValidateExports(hosts)
     h = host.Host()
-    h.ValidateExports()
+    tr.handle.ValidateExports(h)
 
   def testHostFields(self):
     h = host.Host(Active=True, PhysAddress='00:00:00:00:00:00',
@@ -93,7 +95,7 @@ class HostTest(unittest.TestCase):
                   HostName='hostname', LeaseTimeRemaining=1000,
                   VendorClassID='vendor_class_id',
                   ClientID='client_id', UserClassID='user_class_id')
-    h.ValidateExports()
+    tr.handle.ValidateExports(h)
     self.assertEqual(True, h.Active)
     self.assertEqual('associated_device', h.AssociatedDevice)
     self.assertEqual('client_id', h.ClientID)
@@ -112,24 +114,24 @@ class HostTest(unittest.TestCase):
     self.assertEqual('ip4_1', h.IPv4AddressList['1'].IPAddress)
     self.assertEqual('ip4_2', h.IPv4AddressList['2'].IPAddress)
     self.assertEqual('ip4_3', h.IPv4AddressList['3'].IPAddress)
-    h.IPv4AddressList['1'].ValidateExports()
-    h.IPv4AddressList['2'].ValidateExports()
-    h.IPv4AddressList['3'].ValidateExports()
+    tr.handle.ValidateExports(h.IPv4AddressList['1'])
+    tr.handle.ValidateExports(h.IPv4AddressList['2'])
+    tr.handle.ValidateExports(h.IPv4AddressList['3'])
     self.assertEqual(4, len(h.IPv6AddressList))
     self.assertEqual('ip6_1', h.IPv6AddressList['1'].IPAddress)
     self.assertEqual('ip6_2', h.IPv6AddressList['2'].IPAddress)
     self.assertEqual('ip6_3', h.IPv6AddressList['3'].IPAddress)
     self.assertEqual('ip6_4', h.IPv6AddressList['4'].IPAddress)
-    h.IPv6AddressList['1'].ValidateExports()
-    h.IPv6AddressList['2'].ValidateExports()
-    h.IPv6AddressList['3'].ValidateExports()
-    h.IPv6AddressList['4'].ValidateExports()
+    tr.handle.ValidateExports(h.IPv6AddressList['1'])
+    tr.handle.ValidateExports(h.IPv6AddressList['2'])
+    tr.handle.ValidateExports(h.IPv6AddressList['3'])
+    tr.handle.ValidateExports(h.IPv6AddressList['4'])
 
   def testHostsFromBridge(self):
     iflookup = {'eth0': 'Ethernet', 'eth1.0': 'MoCA'}
     h = host.Hosts(iflookup, bridgename='br0')
     self.assertEqual(10, len(h.HostList))
-    h.ValidateExports()
+    tr.handle.ValidateExports(h)
     # brforward file taken from a real system in the lab
     expected = {
         'e8:39:35:b8:66:c8': 'Ethernet',
@@ -148,7 +150,7 @@ class HostTest(unittest.TestCase):
       self.assertEqual(expected[entry.PhysAddress], entry.Layer1Interface)
       self.assertTrue(entry.Active)
       del expected[entry.PhysAddress]
-      entry.ValidateExports()
+      tr.handle.ValidateExports(entry)
     self.assertEqual(0, len(expected))
 
   def testMissingFdbFile(self):
@@ -351,7 +353,7 @@ class HostTest(unittest.TestCase):
           device_id=device_id)
     if tr181:
       device = platform.fakecpe.device.DeviceFakeCPE(device_id=device_id)
-    return TestDeviceModelRoot(tr98=igd, tr181=device)
+    return tr.handle.Handle(TestDeviceModelRoot(tr98=igd, tr181=device))
 
   def testTr98(self):
     dmroot = self._GetFakeCPE(tr98=True, tr181=False)

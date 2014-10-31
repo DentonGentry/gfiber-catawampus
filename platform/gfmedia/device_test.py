@@ -25,6 +25,7 @@ import google3
 import device
 import tornado.ioloop
 import tornado.testing
+import tr.handle
 import tr.session
 from tr.wvtest import unittest
 
@@ -139,7 +140,7 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
   def testFanSpeed(self):
     fan = device.FanReadGpio(speed_filename='testdata/fanspeed',
                              percent_filename='testdata/fanpercent')
-    fan.ValidateExports()
+    tr.handle.ValidateExports(fan)
     self.assertEqual(fan.RPM, 1800)
     self.assertEqual(fan.DesiredPercentage, 50)
     fan = device.FanReadGpio(speed_filename='foo',
@@ -188,10 +189,10 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
     self.assertTrue(self.install_cb_faultstring)
 
   def testValidateExports(self):
-    device.LANDevice('', 'br0').ValidateExports()
-    device.LANDevice('portal', '').ValidateExports()
-    device.IP().ValidateExports()
-    device.Ethernet().ValidateExports()
+    tr.handle.ValidateExports(device.LANDevice('', 'br0'))
+    tr.handle.ValidateExports(device.LANDevice('portal', ''))
+    tr.handle.ValidateExports(device.IP())
+    tr.handle.ValidateExports(device.Ethernet())
 
   def testActiveWan(self):
     device.ACTIVEWAN = 'testdata/device/activewan'

@@ -22,6 +22,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
 from tr.wvtest import unittest
+import tr.handle
 import wifi
 
 
@@ -36,7 +37,7 @@ class WifiTest(unittest.TestCase):
 
   def testPreSharedKeyValidate(self):
     psk = wifi.PreSharedKey98()
-    psk.ValidateExports()
+    tr.handle.ValidateExports(psk)
 
   def testPBKDF2(self):
     psk = wifi.PreSharedKey98()
@@ -48,7 +49,7 @@ class WifiTest(unittest.TestCase):
 
   def testWEPKeyValidate(self):
     wk = wifi.WEPKey98()
-    wk.ValidateExports()
+    tr.handle.ValidateExports(wk)
 
 
 if __name__ == '__main__':

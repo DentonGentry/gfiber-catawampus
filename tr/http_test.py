@@ -46,6 +46,7 @@ import tornado.web
 
 import api
 import cwmpdate
+import handle
 import http
 import session
 
@@ -187,7 +188,7 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
   def getCpe(self):
     dm_root.PLATFORMDIR = '../platform'
     root = dm_root.DeviceModelRoot(self.io_loop, 'fakecpe', ext_dir=None)
-    cpe = api.CPE(root)
+    cpe = api.CPE(handle.Handle(root))
     dldir = tempfile.mkdtemp()
     self.removedirs.append(dldir)
     cfdir = tempfile.mkdtemp()

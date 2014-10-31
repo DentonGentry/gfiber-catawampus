@@ -51,6 +51,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import google3
 from tr.wvtest import unittest
 import tr.core
+import tr.handle
 import brcmmoca2
 import brcmwifi
 import dnsmasq
@@ -63,7 +64,7 @@ class TestDeviceModelRoot(tr.core.Exporter):
 
   def __init__(self):
     super(TestDeviceModelRoot, self).__init__()
-    self.Device = Device(dmroot=self)
+    self.Device = Device(dmroot=tr.handle.Handle(self))
     self.InternetGatewayDevice = InternetGatewayDevice()
     self.Export(['Device', 'InternetGatewayDevice'])
 
@@ -160,6 +161,7 @@ class HostIntegrationTest(unittest.TestCase):
     self.old_WL_EXE = brcmwifi.WL_EXE
     brcmwifi.WL_EXE = 'testdata/host_integration/wl'
     self.dmroot = TestDeviceModelRoot()
+    self.dmh = tr.handle.Handle(self.dmroot)
 
   def tearDown(self):
     host.IP6NEIGH[0] = self.old_IP6NEIGH
@@ -172,6 +174,7 @@ class HostIntegrationTest(unittest.TestCase):
 
   def testHosts(self):
     hl = self.dmroot.Device.Hosts.HostList
+    print [h.PhysAddress for h in hl.values()]
     self.assertEqual(len(hl), 4)
     found = 0
     for h in hl.values():

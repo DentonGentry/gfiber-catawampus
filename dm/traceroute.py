@@ -31,7 +31,7 @@ import subprocess
 import sys
 import google3
 import tornado.ioloop
-import tr.core
+import tr.handle
 import tr.mainloop
 import tr.tr181_v2_6
 import tr.cwmptypes
@@ -186,4 +186,4 @@ class TraceRoute(BASE_TRACEROUTE):
       self._AddHop(hop, None, '*', icmp_error=0, rttimes=[])
 
 if __name__ == '__main__':
-  print tr.core.DumpSchema(TraceRoute(None))
+  print tr.handle.DumpSchema(TraceRoute(None))

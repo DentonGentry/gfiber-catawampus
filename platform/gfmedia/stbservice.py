@@ -29,6 +29,7 @@ import struct
 import time
 
 import tornado.ioloop
+import tr.core
 import tr.cwmpdate
 import tr.cwmptypes
 import tr.session

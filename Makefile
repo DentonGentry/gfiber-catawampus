@@ -12,13 +12,13 @@ PYTHONPATH:=$(shell /bin/pwd):$(PYTHONPATH)
 all: tr/all
 
 SUBTESTS= \
-  tr/test \
-  dm/test \
-  diagui/test \
-  platform/fakecpe/test \
-  platform/gfmedia/test \
-  platform/gfonu/test \
-  platform/tomato/test
+    tr/test \
+    dm/test \
+    diagui/test \
+    platform/fakecpe/test \
+    platform/gfmedia/test \
+    platform/gfonu/test \
+    platform/tomato/test
 $(SUBTESTS): all
 
 test: test_only lint
@@ -52,9 +52,9 @@ LINT_TASKS?=12
 # the runtime.  For added fun, gpylint has bugs if you specify files from
 # more than one directory at once, so break it out by directory.
 lint: \
-  cwmp.lint \
-  cwmpd.lint \
-  $(patsubst %,%.dirlint,$(LINT_DIRS))
+    cwmp.lint \
+    cwmpd.lint \
+    $(patsubst %,%.dirlint,$(LINT_DIRS))
 
 %.dirlint: all
 	@find $* -maxdepth 1 -size +1c -name '*.py' -type f \

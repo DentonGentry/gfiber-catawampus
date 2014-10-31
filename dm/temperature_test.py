@@ -23,6 +23,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import datetime
 import google3
 from tr.wvtest import unittest
+import tr.handle
 import temperature
 
 
@@ -107,9 +108,9 @@ class TemperatureTest(unittest.TestCase):
 
   def testValidateExports(self):
     t = temperature.TemperatureSensor(name='TestTemp', sensor=MockSensor())
-    t.ValidateExports()
+    tr.handle.ValidateExports(t)
     fan = temperature.FanReadFileRPS('Fan1', 'testdata/temperature/file1')
-    fan.ValidateExports()
+    tr.handle.ValidateExports(fan)
 
   def testDefaults(self):
     sensor = MockSensor()
@@ -250,7 +251,7 @@ class TemperatureTest(unittest.TestCase):
     ts = temperature.TemperatureStatus()
     ts.AddSensor(name='Test1', sensor=MockSensor())
     ts.AddSensor(name='Test2', sensor=MockSensor())
-    ts.ValidateExports()
+    tr.handle.ValidateExports(ts)
     self.assertEqual(ts.TemperatureSensorNumberOfEntries, 2)
     self.assertEqual(ts.TemperatureSensorList[1].Name, 'Test1')
     self.assertEqual(ts.TemperatureSensorList[2].Name, 'Test2')

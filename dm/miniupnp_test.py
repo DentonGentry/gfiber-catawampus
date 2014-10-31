@@ -26,6 +26,7 @@ import tempfile
 import google3
 from tr.wvtest import unittest
 import miniupnp
+import tr.handle
 import tr.helpers
 import tr.mainloop
 
@@ -53,7 +54,7 @@ class MiniUPnPTest(unittest.TestCase):
 
   def testValidateExports(self):
     upnp = miniupnp.UPnP()
-    upnp.ValidateExports()
+    tr.handle.ValidateExports(upnp)
 
   def testEnable(self):
     upnp = miniupnp.UPnP()

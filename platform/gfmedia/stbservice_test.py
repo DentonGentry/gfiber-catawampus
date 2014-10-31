@@ -25,6 +25,7 @@ import socket
 import struct
 import google3
 import stbservice
+import tr.handle
 import tr.session
 from tr.wvtest import unittest
 
@@ -79,7 +80,7 @@ class STBServiceTest(unittest.TestCase):
 
   def testValidateExports(self):
     stb = stbservice.STBService()
-    stb.ValidateExports()
+    tr.handle.ValidateExports(stb)
 
   def testClientGroups(self):
     stb = stbservice.STBService()
@@ -552,7 +553,7 @@ class STBServiceTest(unittest.TestCase):
     """Test whether EPG stats are deserialized properly when not file backed."""
     stbservice.EPG_STATS_FILES = self.STATS_FILES_NOEXST
     stb = stbservice.STBService()
-    stb.X_CATAWAMPUS_ORG_ProgramMetadata.ValidateExports()
+    tr.handle.ValidateExports(stb.X_CATAWAMPUS_ORG_ProgramMetadata)
     epgStats = stb.X_CATAWAMPUS_ORG_ProgramMetadata.EPG
     self.assertEqual(epgStats.MulticastPackets, 0)
     self.assertEqual(epgStats.EPGErrors, 0)
@@ -563,7 +564,7 @@ class STBServiceTest(unittest.TestCase):
     """Test whether EPG stats are handled properly for a bad file."""
     stbservice.EPG_STATS_FILES = [stbservice.PROCNETIGMP]
     stb = stbservice.STBService()
-    stb.X_CATAWAMPUS_ORG_ProgramMetadata.ValidateExports()
+    tr.handle.ValidateExports(stb.X_CATAWAMPUS_ORG_ProgramMetadata)
     epgStats = stb.X_CATAWAMPUS_ORG_ProgramMetadata.EPG
     self.assertEqual(epgStats.MulticastPackets, 0)
     self.assertEqual(epgStats.EPGErrors, 0)
@@ -575,7 +576,7 @@ class STBServiceTest(unittest.TestCase):
   def testEPGStatsAll(self):
     """Test whether EPG stats are deserialized properly."""
     stb = stbservice.STBService()
-    stb.X_CATAWAMPUS_ORG_ProgramMetadata.ValidateExports()
+    tr.handle.ValidateExports(stb.X_CATAWAMPUS_ORG_ProgramMetadata)
     epgStats = stb.X_CATAWAMPUS_ORG_ProgramMetadata.EPG
     self.assertEqual(epgStats.MulticastPackets, 1002)
     self.assertEqual(epgStats.EPGErrors, 2)

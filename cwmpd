@@ -33,7 +33,7 @@ import dm_root
 import factory
 import tr.acs_config
 import tr.api
-import tr.core
+import tr.handle
 import tr.http
 import tr.mainloop
 import tr.rcommand
@@ -89,12 +89,13 @@ def main():
 
   loop = tr.mainloop.MainLoop()
   root = dm_root.DeviceModelRoot(loop, opt.platform, opt.ext_dir)
+  handle = tr.handle.Handle(root)
   if opt.rcmd_port:
     loop.ListenInet((opt.listenip, opt.rcmd_port),
-                    tr.rcommand.MakeRemoteCommandStreamer(root))
+                    tr.rcommand.MakeRemoteCommandStreamer(handle))
   if opt.unix_path:
     loop.ListenUnix(opt.unix_path,
-                    tr.rcommand.MakeRemoteCommandStreamer(root))
+                    tr.rcommand.MakeRemoteCommandStreamer(handle))
 
   if opt.port:
     acs = cpe = None
@@ -103,7 +104,7 @@ def main():
       if not opt.acs_url:
         opt.acs_url = 'http://localhost:%d/acs' % opt.port
     if opt.cpe:
-      cpe = tr.api.CPE(root)
+      cpe = tr.api.CPE(handle)
       if not opt.cpe_listener:
         print 'CPE API is client mode only.'
 

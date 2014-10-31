@@ -440,8 +440,8 @@ def main():
   devid = DeviceId()
   device = Device(devid, periodic_stats)
   igd = InternetGatewayDevice(devid, periodic_stats)
-  tr.core.Dump(device)
-  tr.core.Dump(igd)
+  tr.handle.Dump(device)
+  tr.handle.Dump(igd)
   device.ValidateExports()
   igd.ValidateExports()
   print 'done'

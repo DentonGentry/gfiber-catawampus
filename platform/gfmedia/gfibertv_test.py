@@ -30,6 +30,7 @@ import xmlrpclib
 import google3
 import gfibertv
 import tr.cwmpdate
+import tr.handle
 import tr.helpers
 import tr.mainloop
 from tr.wvtest import unittest
@@ -146,7 +147,7 @@ class GfiberTvTests(unittest.TestCase):
     tv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
     tv.Mailbox.Node = 'Node1'
     tv.Mailbox.Name = 'Prop1'
-    tv.ValidateExports()
+    tr.handle.ValidateExports(tv)
 
   def testGetProperties(self):
     tvrpc = gfibertv.Mailbox('http://localhost:%d' % srv_port)
@@ -200,18 +201,19 @@ class GfiberTvTests(unittest.TestCase):
 
   def testListManipulation(self):
     gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
+    h = tr.handle.Handle(gftv)
     self.assertEqual(0, gftv.DevicePropertiesNumberOfEntries)
-    idx, newobj = gftv.AddExportObject('DeviceProperties', None)
+    idx, newobj = h.AddExportObject('DeviceProperties', None)
     idx = int(idx)
     self.assertEqual(1, gftv.DevicePropertiesNumberOfEntries)
     self.assertEqual(newobj, gftv.DevicePropertiesList[idx])
     self.assertEqual(None, gftv.DevicePropertiesList[idx].NickName)
 
-    idx2, newobj = gftv.AddExportObject('DeviceProperties', None)
+    idx2, newobj = h.AddExportObject('DeviceProperties', None)
     idx2 = int(idx2)
-    idx3, newobj = gftv.AddExportObject('DeviceProperties', None)
+    idx3, newobj = h.AddExportObject('DeviceProperties', None)
     idx3 = int(idx3)
-    idx4, newobj = gftv.AddExportObject('DeviceProperties', None)
+    idx4, newobj = h.AddExportObject('DeviceProperties', None)
     idx4 = int(idx4)
 
     gftv.DevicePropertiesList[idx].NickName = 'testroom'
@@ -250,7 +252,8 @@ class GfiberTvTests(unittest.TestCase):
     mailbox_url = 'http://localhost:%d' % srv_port
     my_serial = '12345'
     gftv = gfibertv.GFiberTv(mailbox_url=mailbox_url, my_serial=my_serial)
-    idx, newobj = gftv.AddExportObject('DeviceProperties', None)
+    h = tr.handle.Handle(gftv)
+    idx, newobj = h.AddExportObject('DeviceProperties', None)
     idx = int(idx)
     self.assertEqual(newobj, gftv.DevicePropertiesList[idx])
     self.assertEqual(None, gftv.DevicePropertiesList[idx].NickName)

@@ -29,7 +29,6 @@ import datetime
 import re
 import subprocess
 import tornado.ioloop
-import tr.core
 import tr.cwmpbool
 import tr.cwmpdate
 import tr.tr181_v2_2

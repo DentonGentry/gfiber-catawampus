@@ -23,6 +23,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import collections
 import google3
 from tr.wvtest import unittest
+import tr.handle
 import tr.session
 import storage
 
@@ -92,11 +93,11 @@ class StorageTest(unittest.TestCase):
     storage.PROC_MOUNTS = 'testdata/storage/proc.mounts'
     storage.SYS_BLOCK = 'testdata/storage/sys/block'
     service = storage.StorageServiceLinux26()
-    service.ValidateExports()
+    tr.handle.ValidateExports(service)
     stor = storage.LogicalVolumeLinux26('/fakepath', 'fstype')
-    stor.ValidateExports()
+    tr.handle.ValidateExports(stor)
     pm = storage.PhysicalMediumDiskLinux26('sda')
-    pm.ValidateExports()
+    tr.handle.ValidateExports(pm)
 
   def testLogicalVolumeCapacity(self):
     stor = storage.LogicalVolumeLinux26('/fakepath', 'fstype')
@@ -143,7 +144,7 @@ class StorageTest(unittest.TestCase):
   def testCapabilitiesNone(self):
     storage.PROC_FILESYSTEMS = 'testdata/storage/proc.filesystems'
     cap = storage.CapabilitiesNoneLinux26()
-    cap.ValidateExports()
+    tr.handle.ValidateExports(cap)
     self.assertFalse(cap.FTPCapable)
     self.assertFalse(cap.HTTPCapable)
     self.assertFalse(cap.HTTPSCapable)
@@ -224,7 +225,7 @@ class StorageTest(unittest.TestCase):
 
   def testFlashMedium(self):
     fm = storage.FlashMediumUbiLinux26('ubi2')
-    fm.ValidateExports()
+    tr.handle.ValidateExports(fm)
     self.assertEqual(fm.BadEraseBlocks, 4)
     self.assertEqual(fm.CorrectedErrors, 10)
     self.assertEqual(fm.EraseBlockSize, 1040384)
@@ -237,19 +238,19 @@ class StorageTest(unittest.TestCase):
 
   def testFlashSubVolume(self):
     sv = storage.FlashSubVolUbiLinux26('ubi2_0')
-    sv.ValidateExports()
+    tr.handle.ValidateExports(sv)
     self.assertEqual(sv.DataMBytes, 370)
     self.assertEqual(sv.Name, 'subvol0')
     self.assertEqual(sv.Status, 'OK')
     sv = storage.FlashSubVolUbiLinux26('ubi2_1')
-    sv.ValidateExports()
+    tr.handle.ValidateExports(sv)
     self.assertEqual(sv.DataMBytes, 56)
     self.assertEqual(sv.Name, 'subvol1')
     self.assertEqual(sv.Status, 'Corrupted')
 
   def testAttributes(self):
     attr = storage.SmartAttributes('sda')
-    attr.ValidateExports()
+    tr.handle.ValidateExports(attr)
     self.assertEqual(attr.RawReadErrorRate, 10)
     self.assertEqual(attr.ThroughputPerformance, 20)
     self.assertEqual(attr.SpinUpTime, 35)
@@ -287,7 +288,7 @@ class StorageTest(unittest.TestCase):
 
   def testDrivePerformance(self):
     perf = storage.DrivePerformance(dev='sda')
-    perf.ValidateExports()
+    tr.handle.ValidateExports(perf)
     self.assertEqual(perf.ReadsCompleted, 1)
     self.assertEqual(perf.ReadsMerged, 2)
     self.assertEqual(perf.ReadSectors, 3)
@@ -302,7 +303,7 @@ class StorageTest(unittest.TestCase):
 
   def testSataPhy(self):
     sata = storage.SataPHY(dev='sda')
-    sata.ValidateExports()
+    tr.handle.ValidateExports(sata)
     self.assertEqual(sata.CmdFailedICRC, 10)
     self.assertEqual(sata.RErrDataFis, 20)
     self.assertEqual(sata.RErrDeviceToHostDataFis, 30)

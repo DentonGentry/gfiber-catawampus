@@ -259,8 +259,8 @@ def main():
   devid = DeviceIdFakeCPE()
   device = DeviceFakeCPE(devid, periodic_stats)
   igd = InternetGatewayDeviceFakeCPE(devid, periodic_stats)
-  tr.core.Dump(device)
-  tr.core.Dump(igd)
+  tr.handle.Dump(device)
+  tr.handle.Dump(igd)
   device.ValidateExports()
   igd.ValidateExports()
   print 'done'

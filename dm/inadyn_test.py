@@ -26,6 +26,7 @@ import tempfile
 import google3
 from tr.wvtest import unittest
 import inadyn
+import tr.handle
 import tr.mainloop
 
 
@@ -49,13 +50,14 @@ class InadynTest(unittest.TestCase):
 
   def testValidateExports(self):
     n = inadyn.Inadyn()
-    n.ValidateExports()
+    tr.handle.ValidateExports(n)
     s = n.Service()
-    s.ValidateExports()
+    tr.handle.ValidateExports(s)
 
   def testWriteConfigSimple(self):
     n = inadyn.Inadyn()
-    (idx, s) = n.AddExportObject('Service', '1')
+    h = tr.handle.Handle(n)
+    (idx, s) = h.AddExportObject('Service', '1')
     s.Domain = 'mydomain.com'
     s.Username = 'username'
     s.Password = 'password'
@@ -80,7 +82,8 @@ class InadynTest(unittest.TestCase):
 
   def testStatus(self):
     n = inadyn.Inadyn()
-    (_, s) = n.AddExportObject('Service', '1')
+    h = tr.handle.Handle(n)
+    (_, s) = h.AddExportObject('Service', '1')
     self.assertEqual(s.Status, 'Disabled')
     s.Enable = True
     self.assertTrue('Misconfigured' in s.Status)

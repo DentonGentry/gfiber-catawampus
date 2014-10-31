@@ -26,6 +26,7 @@ import tempfile
 
 import google3
 from tr.wvtest import unittest
+import tr.handle
 import tr.session
 import binwifi
 import netdev
@@ -63,7 +64,7 @@ class BinWifiTest(unittest.TestCase):
 
   def testValidateExports(self):
     bw = binwifi.WlanConfiguration('wifi0', '', 'br0')
-    bw.ValidateExports()
+    tr.handle.ValidateExports(bw)
 
   def testWEPKeyIndex(self):
     bw = binwifi.WlanConfiguration('wifi0', '', 'br0')

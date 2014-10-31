@@ -57,6 +57,7 @@ import dm.traceroute
 import platform_config
 import tr.core
 import tr.download
+import tr.handle
 import tr.session
 import tr.tr098_v1_2
 import tr.tr181_v2_6 as tr181
@@ -626,7 +627,7 @@ class Device(tr181.Device_v2_6.Device):
         'moca0.0': 'Device.MoCA.Interface.1',
     }
     self.Hosts = dm.host.Hosts(
-        iflookup=iflookup, bridgename='br0', dmroot=dmroot)
+        iflookup=iflookup, bridgename='br0', dmroot=tr.handle.Handle(dmroot))
 
 
 class LANDevice(BASE98IGD.LANDevice):

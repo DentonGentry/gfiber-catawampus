@@ -36,6 +36,7 @@ import subprocess
 import time
 import tr.core
 import tr.cwmpbool
+import tr.handle
 import tr.helpers
 import tr.session
 import tr.tr098_v1_4
@@ -1026,7 +1027,7 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
     """Get an AssociatedDevice object for the given STA."""
     ad = BrcmWlanAssociatedDevice(self.wl.GetAssociatedDevice(mac))
     if ad:
-      ad.ValidateExports()
+      tr.handle.ValidateExports(ad)
     return ad
 
   def IterAssociations(self):

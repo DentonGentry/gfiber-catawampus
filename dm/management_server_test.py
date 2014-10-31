@@ -23,6 +23,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import copy
 import google3
 from tr.wvtest import unittest
+import tr.handle
 import management_server
 
 
@@ -73,7 +74,7 @@ class ManagementServerTest(unittest.TestCase):
     self.assertTrue(mgmt181.UpgradesManaged)
     self.assertFalse(mgmt181.STUNEnable)
     self.assertEqual(mgmt181.ManageableDeviceNumberOfEntries, 0)
-    mgmt181.ValidateExports()
+    tr.handle.ValidateExports(mgmt181)
 
   def testGetMgmt98(self):
     mgmt = MockCpeManagementServer()
@@ -82,7 +83,7 @@ class ManagementServerTest(unittest.TestCase):
     self.assertEqual(mgmt98.EnableCWMP, mgmt.EnableCWMP)
     self.assertTrue(mgmt98.UpgradesManaged)
     self.assertFalse(mgmt98.STUNEnable)
-    mgmt98.ValidateExports()
+    tr.handle.ValidateExports(mgmt98)
 
   def testSetMgmt181(self):
     mgmt = MockCpeManagementServer()

@@ -25,6 +25,7 @@ import shutil
 import tempfile
 import google3
 from tr.wvtest import unittest
+import tr.handle
 import tr.mainloop
 import tr.session
 import dnsmasq
@@ -63,9 +64,9 @@ class DnsmasqTest(unittest.TestCase):
 
   def testValidateExports(self):
     dh4 = dnsmasq.DHCPv4()
-    dh4.ValidateExports()
+    tr.handle.ValidateExports(dh4)
     dh4p = dnsmasq.Dhcp4ServerPool()
-    dh4p.ValidateExports()
+    tr.handle.ValidateExports(dh4p)
 
   def testAtomicWrite(self):
     dh4p = self.dh4p
@@ -197,23 +198,24 @@ class DnsmasqTest(unittest.TestCase):
     dh4p.X_CATAWAMPUS_ORG_NTPServers = '5.5.5.5,6.6.6.6'
     dh4p.IPRouters = '9.9.9.9'
     dh4p.DNSServers = '8.8.8.8,8.8.4.4'
-    (_, opt) = dh4p.AddExportObject('Option')
+    h = tr.handle.Handle(dh4p)
+    (_, opt) = h.AddExportObject('Option')
     opt.Enable = True
     opt.Tag = 40
     opt.Value = '77756262617775626261'  # 'wubbawubba'
-    (_, opt) = dh4p.AddExportObject('Option')
+    (_, opt) = h.AddExportObject('Option')
     opt.Enable = False
     opt.Tag = 41
     opt.Value = '776f636b61776f636b61'  # 'wockawocka'
-    (_, ip) = dh4p.AddExportObject('StaticAddress')
+    (_, ip) = h.AddExportObject('StaticAddress')
     ip.Enable = True
     ip.Chaddr = '11:22:33:44:55:66'
     ip.Yiaddr = '1.2.3.4'
-    (_, ip) = dh4p.AddExportObject('StaticAddress')
+    (_, ip) = h.AddExportObject('StaticAddress')
     ip.Enable = False
     ip.Chaddr = '22:33:44:55:66:77'
     ip.Yiaddr = '2.3.4.5'
-    (_, ip) = dh4p.AddExportObject('StaticAddress')
+    (_, ip) = h.AddExportObject('StaticAddress')
     ip.Enable = True
     ip.X_CATAWAMPUS_ORG_ClientID = 'client_id'
     ip.Yiaddr = '3.4.5.6'

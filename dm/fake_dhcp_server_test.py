@@ -22,6 +22,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
 from tr.wvtest import unittest
+import tr.handle
 import fake_dhcp_server
 
 
@@ -35,9 +36,9 @@ class FakeDhcpTest(unittest.TestCase):
 
   def testValidateExports(self):
     dh4 = fake_dhcp_server.Dhcp4Server()
-    dh4.ValidateExports()
+    tr.handle.ValidateExports(dh4)
     dh4p = fake_dhcp_server.Dhcp4ServerPool()
-    dh4p.ValidateExports()
+    tr.handle.ValidateExports(dh4p)
 
   def testStatus(self):
     dh4p = self.dh4p

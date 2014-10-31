@@ -61,8 +61,10 @@ class DeviceModelRootTest(unittest.TestCase):
     self.assertFalse(isinstance(root.Device.ManagementServer,
                                 BASE181.ManagementServer))
     root.add_management_server(mgmt)  # should do nothing.
+    print type(root.InternetGatewayDevice.ManagementServer)
     self.assertTrue(isinstance(root.InternetGatewayDevice.ManagementServer,
                                BASE98.ManagementServer))
+    print type(root.Device.ManagementServer)
     self.assertTrue(isinstance(root.Device.ManagementServer,
                                BASE181.ManagementServer))
     self.assertEqual(root.TestBaseExt, True)

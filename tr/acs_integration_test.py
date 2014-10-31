@@ -28,6 +28,7 @@ import xml.etree.ElementTree as ET
 import google3
 import api
 import core
+import handle
 import http
 from wvtest import unittest
 
@@ -229,7 +230,7 @@ class FakeAcsConfig(object):
 
 def getCpeAndModel(simpleroot=False):
   root = TestDeviceModelRootSimple() if simpleroot else TestDeviceModelRoot()
-  cpe = api.CPE(root)
+  cpe = api.CPE(handle.Handle(root))
   cpe.download_manager = MockDownloadManager()
   cpe_machine = http.Listen(ip=None, port=0,
                             ping_path='/ping/acs_integration_test',
@@ -818,7 +819,7 @@ class GetParamsRpcTest(unittest.TestCase):
     self.assertEqual(len(objidx_list), 2)
     self.assertEqual(len(objidx_list[0].findall('InstanceNumber')), 2)
     self.assertEqual(len(objidx_list[1].findall('InstanceNumber')), 3)
-    self.assertEqual(len(list(model.ListExports('Item'))), 2)
+    self.assertEqual(len(list(handle.Handle(model).ListExports('Item'))), 2)
 
   def testAddObjectsFailure(self):
     cpe, model = getCpeAndModel()
@@ -842,7 +843,7 @@ class GetParamsRpcTest(unittest.TestCase):
     self.assertTrue(aof.find('FaultCode').text, '9005')
     # there should be no error for the AddObjects on Item., but it should
     # still have been reversed.
-    self.assertEqual(len(list(model.ListExports('Item'))), 0)
+    self.assertEqual(len(list(handle.Handle(model).ListExports('Item'))), 0)
 
   def testNoSuchMethod(self):
     cpe = getCpe()
@@ -883,9 +884,9 @@ class GetParamsRpcTest(unittest.TestCase):
     self.assertTrue(resp)
     status = resp.find('Status')
     self.assertEqual(status.text, '0')
-    self.assertTrue(cpe.cpe.root.start_transaction_called)
-    self.assertTrue(cpe.cpe.root.commit_transaction_called)
-    self.assertFalse(cpe.cpe.root.abandon_transaction_called)
+    self.assertTrue(cpe.cpe.root.obj.start_transaction_called)
+    self.assertTrue(cpe.cpe.root.obj.commit_transaction_called)
+    self.assertFalse(cpe.cpe.root.obj.abandon_transaction_called)
 
   def _testSetParameterFault(self, soapxml, expect_faults):
     cpe = getCpe()

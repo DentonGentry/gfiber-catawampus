@@ -25,7 +25,6 @@ in http://www.broadband-forum.org/cwmp/tr-181-2-2-0.html
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import sys
-import tr.core
 import tr.tr181_v2_6
 import tr.cwmptypes
 

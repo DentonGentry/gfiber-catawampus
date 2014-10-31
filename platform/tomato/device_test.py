@@ -26,6 +26,7 @@ import dm.periodic_statistics
 import tornado.ioloop
 import tornado.testing
 from tr.wvtest import unittest
+import tr.handle
 import device
 
 
@@ -63,7 +64,7 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
     did = device.DeviceId()
     periodic_stats = dm.periodic_statistics.PeriodicStatistics()
     dev = device.Device(did, periodic_stats)
-    dev.ValidateExports()
+    tr.handle.ValidateExports(dev)
 
   def testGetManufacturer(self):
     did = device.DeviceId()

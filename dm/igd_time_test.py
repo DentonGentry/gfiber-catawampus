@@ -26,6 +26,7 @@ import tempfile
 import google3
 from tr.wvtest import unittest
 import igd_time
+import tr.handle
 import tr.mainloop
 
 
@@ -62,7 +63,7 @@ class IgdTimeTest(unittest.TestCase):
 
   def testValidateExports(self):
     t = igd_time.TimeTZ()
-    t.ValidateExports()
+    tr.handle.ValidateExports(t)
 
   def testCurrentLocalTime(self):
     t = igd_time.TimeTZ()

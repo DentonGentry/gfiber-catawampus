@@ -22,6 +22,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
 from tr.wvtest import unittest
+import tr.handle
 import fakewifi
 
 
@@ -29,7 +30,7 @@ class BrcmWifiTest(unittest.TestCase):
 
   def testValidateExports(self):
     wifi = fakewifi.FakeWifiWlanConfiguration()
-    wifi.ValidateExports()
+    tr.handle.ValidateExports(wifi)
 
   def testChannel(self):
     wifi = fakewifi.FakeWifiWlanConfiguration()

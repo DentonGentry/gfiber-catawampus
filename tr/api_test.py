@@ -24,6 +24,7 @@ import google3
 import tr.cwmptypes
 import api
 import core
+import handle
 from wvtest import unittest
 
 
@@ -91,12 +92,13 @@ class ApiTest(unittest.TestCase):
     root = core.Exporter()
     root.Export(objects=['Test'])
     root.Test = TestObject()
-    root.ValidateExports()
-    cpe = api.CPE(root)
+    h = handle.Handle(root)
+    h.ValidateExports()
+    cpe = api.CPE(h)
     (idx, unused_status) = cpe.AddObject('Test.Thingy.', 0)
     name = 'Test.Thingy.%d' % int(idx)
     cpe.SetParameterValues([('%s.word' % name, 'word1')], 0)
-    self.assertEqual(root.GetExport(name).word, 'word1')
+    self.assertEqual(h.GetExport(name).word, 'word1')
     self.assertRaises(KeyError, cpe._SetParameterValue,
                       '%s.not_exist' % name, 'word1')
     result = cpe.GetParameterValues(['%s.word' % name])
@@ -150,7 +152,7 @@ class ApiTest(unittest.TestCase):
                      [None] * 7)
 
   def testGetParameterValuesEmpty(self):
-    cpe = api.CPE(TestSimpleRoot())
+    cpe = api.CPE(handle.Handle(TestSimpleRoot()))
     result = cpe.GetParameterValues([''])
     self.assertTrue(result)
     self.assertEqual(result[0], ('SomeParam', 'SomeParamValue'))
@@ -186,7 +188,7 @@ class ParameterAttrsTest(unittest.TestCase):
 
   def testSetAttr(self):
     root = TestSimpleRoot()
-    cpe = api.CPE(root)
+    cpe = api.CPE(handle.Handle(root))
     f = FakeAttrs()
     f.Name = 'SomeParam'
     f.Notification = 2
@@ -219,8 +221,8 @@ class ParameterAttrsTest(unittest.TestCase):
 
   def testDeleteParam(self):
     root = TestObject()
-    cpe = api.CPE(root)
-    (unused_idx, unused_obj) = root.AddExportObject('Thingy', '1')
+    cpe = api.CPE(handle.Handle(root))
+    (unused_idx, unused_obj) = cpe.AddObject('Thingy.', '1')
     f = FakeAttrs()
     f.Name = 'Thingy.1'
     f.Notification = 2
@@ -231,7 +233,7 @@ class ParameterAttrsTest(unittest.TestCase):
 
   def testNonexistent(self):
     root = TestObject()
-    cpe = api.CPE(root)
+    cpe = api.CPE(handle.Handle(root))
 
     cpe.parameter_attrs.set_notification_parameters_cb = SetNotification
     cpe.parameter_attrs.new_value_change_session_cb = NewSession

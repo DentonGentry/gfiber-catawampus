@@ -22,6 +22,7 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import google3
 from tr.wvtest import unittest
+import tr.handle
 import tr.mainloop
 import traceroute
 
@@ -43,7 +44,7 @@ class TraceRouteTest(unittest.TestCase):
 
   def testValidateExports(self):
     trace = traceroute.TraceRoute(self.loop.ioloop)
-    trace.ValidateExports()
+    tr.handle.ValidateExports(trace)
 
   def testTraceRouteLocalhost(self):
     trace = traceroute.TraceRoute(self.loop.ioloop)

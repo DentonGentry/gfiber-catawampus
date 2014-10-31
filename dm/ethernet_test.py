@@ -22,6 +22,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
 from tr.wvtest import unittest
+import tr.handle
 import tr.tr181_v2_2 as tr181
 import ethernet
 import netdev
@@ -46,7 +47,7 @@ class EthernetTest(unittest.TestCase):
 
   def testInterfaceStatsGood(self):
     eth = ethernet.EthernetInterfaceStatsLinux26('foo0')
-    eth.ValidateExports()
+    tr.handle.ValidateExports(eth)
     # only a sanity check. Extensive tests in netdev_test.py
     self.assertEqual(eth.PacketsSent, 10)
 
@@ -70,7 +71,7 @@ class EthernetTest(unittest.TestCase):
 
   def testValidateExports(self):
     eth = ethernet.EthernetInterfaceLinux26('foo0')
-    eth.ValidateExports()
+    tr.handle.ValidateExports(eth)
 
   def testInterfaceGood(self):
     upstream = False
@@ -110,13 +111,13 @@ class EthernetTest(unittest.TestCase):
     d1 = 'X_CATAWAMPUS-ORG_DiscardFrameCnts'
     d2 = 'X_CATAWAMPUS-ORG_DiscardPacketsReceivedHipri'
     eth = ethernet.EthernetInterfaceLinux26('foo0', qfiles=None)
-    self.assertFalse(eth.Stats.IsValidExport(d1))
-    self.assertFalse(eth.Stats.IsValidExport(d2))
+    self.assertFalse(tr.handle.Handle.IsValidExport(eth.Stats, d1))
+    self.assertFalse(tr.handle.Handle.IsValidExport(eth.Stats, d2))
 
     qfiles = 'testdata/sysfs/eth0/bcmgenet_discard_cnt_q%d'
     eth = ethernet.EthernetInterfaceLinux26('foo0', qfiles=qfiles, numq=2)
-    self.assertTrue(eth.Stats.IsValidExport(d1))
-    self.assertTrue(eth.Stats.IsValidExport(d2))
+    self.assertTrue(tr.handle.Handle.IsValidExport(eth.Stats, d1))
+    self.assertTrue(tr.handle.Handle.IsValidExport(eth.Stats, d2))
 
   def testStatus(self):
     eth = ethernet.EthernetInterfaceLinux26('foo0')

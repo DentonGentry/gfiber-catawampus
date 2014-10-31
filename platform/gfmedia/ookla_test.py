@@ -25,6 +25,7 @@ import os
 import shutil
 import google3
 import ookla
+import tr.handle
 import tr.mainloop
 from tr.wvtest import unittest
 
@@ -54,7 +55,7 @@ class OoklaTest(unittest.TestCase):
 
   def testValidateExports(self):
     ooklatest = ookla.Speedtest(self.loop.ioloop)
-    ooklatest.ValidateExports()
+    tr.handle.ValidateExports(ooklatest)
 
   def testSpeedtest(self):
     ooklatest = ookla.Speedtest(self.loop.ioloop)

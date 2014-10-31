@@ -22,6 +22,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
 from tr.wvtest import unittest
+import tr.handle
 import qca83xx_ethernet
 
 
@@ -44,7 +45,7 @@ class QcaEthernetTest(unittest.TestCase):
     qca83xx_ethernet.QCAPORT = MockPortStats
     eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac,
                                                     ifname='foo0')
-    eth.ValidateExports()
+    tr.handle.ValidateExports(eth)
 
   def testStats(self):
     qca83xx_ethernet.QCAPORT = MockPortStats

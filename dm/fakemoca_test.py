@@ -22,6 +22,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
 from tr.wvtest import unittest
+import tr.handle
 import fakemoca
 
 
@@ -29,7 +30,7 @@ class FakeMocaTest(unittest.TestCase):
 
   def testValidateExports(self):
     moca = fakemoca.FakeMoca()
-    moca.ValidateExports()
+    tr.handle.ValidateExports(moca)
 
 
 if __name__ == '__main__':

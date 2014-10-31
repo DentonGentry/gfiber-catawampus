@@ -28,8 +28,8 @@ import signal
 import subprocess
 import google3
 import tornado.ioloop
-import tr.core
 import tr.cwmptypes
+import tr.handle
 import tr.mainloop
 import tr.x_selftest_1_0
 
@@ -159,4 +159,4 @@ class SelfTest(BASE.X_GOOGLE_COM_GFIBERTV.SelfTest):
 
 
 if __name__ == '__main__':
-  print tr.core.DumpSchema(SelfTest)
+  print tr.handle.DumpSchema(SelfTest)

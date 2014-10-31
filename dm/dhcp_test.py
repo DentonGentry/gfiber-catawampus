@@ -23,6 +23,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import google3
 from tr.wvtest import unittest
 import tr.cwmpdate
+import tr.handle
 import dhcp
 
 
@@ -53,7 +54,7 @@ class DhcpTest(unittest.TestCase):
     self.assertEqual(client.OptionList['3'].Value, 'userclassid_1')
     self.assertEqual(client.OptionList['4'].Tag, dhcp.VC)
     self.assertEqual(client.OptionList['4'].Value, 'vendorclassid_1')
-    client.ValidateExports()
+    tr.handle.ValidateExports(client)
 
 
 if __name__ == '__main__':

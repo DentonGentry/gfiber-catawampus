@@ -25,6 +25,7 @@ import shutil
 import tempfile
 import google3
 from tr.wvtest import unittest
+import tr.handle
 import tr.session
 import brcmmoca2
 import netdev
@@ -64,13 +65,13 @@ class MocaTest(unittest.TestCase):
 
   def testMocaInterfaceStatsGood(self):
     moca = brcmmoca2.BrcmMocaInterfaceStatsLinux26('foo0')
-    moca.ValidateExports()
+    tr.handle.ValidateExports(moca)
     # complete tests are in netdev_test.py, this is just quick validation.
     self.assertEqual(moca.UnicastPacketsSent, 10)
 
   def testMocaInterface(self):
     moca = brcmmoca2.BrcmMocaInterface(ifname='foo0', upstream=False)
-    moca.ValidateExports()
+    tr.handle.ValidateExports(moca)
     self.assertEqual(moca.Name, 'foo0')
     self.assertEqual(moca.LowerLayers, '')
     self.assertFalse(moca.Upstream)
@@ -133,20 +134,20 @@ class MocaTest(unittest.TestCase):
     d1 = 'X_CATAWAMPUS-ORG_DiscardFrameCnts'
     d2 = 'X_CATAWAMPUS-ORG_DiscardPacketsReceivedHipri'
     moca = brcmmoca2.BrcmMocaInterface('foo0', qfiles=None)
-    self.assertFalse(moca.Stats.IsValidExport(d1))
-    self.assertFalse(moca.Stats.IsValidExport(d2))
+    self.assertFalse(tr.handle.Handle.IsValidExport(moca.Stats, d1))
+    self.assertFalse(tr.handle.Handle.IsValidExport(moca.Stats, d2))
 
     qfiles = 'testdata/sysfs/eth0/bcmgenet_discard_cnt_q%d'
     moca = brcmmoca2.BrcmMocaInterface('foo0', qfiles=qfiles, numq=2)
-    self.assertTrue(moca.Stats.IsValidExport(d1))
-    self.assertTrue(moca.Stats.IsValidExport(d2))
+    self.assertTrue(tr.handle.Handle.IsValidExport(moca.Stats, d1))
+    self.assertTrue(tr.handle.Handle.IsValidExport(moca.Stats, d2))
 
   def testAssociatedDevice(self):
     moca = brcmmoca2.BrcmMocaInterface(ifname='foo0', upstream=False)
     self.assertEqual(2, moca.AssociatedDeviceNumberOfEntries)
 
     ad = moca.AssociatedDeviceList['1']
-    ad.ValidateExports()
+    tr.handle.ValidateExports(ad)
     self.assertTrue(ad.Active)
     self.assertEqual(ad.MACAddress, '00:01:00:11:23:33')
     self.assertEqual(ad.NodeID, 1)
@@ -202,7 +203,7 @@ class MocaTest(unittest.TestCase):
         '00000000000000000000000000001111')
 
     ad = moca.AssociatedDeviceList['2']
-    ad.ValidateExports()
+    tr.handle.ValidateExports(ad)
     self.assertTrue(ad.Active)
     self.assertEqual(ad.MACAddress, '00:01:00:11:23:44')
     self.assertEqual(ad.NodeID, 4)

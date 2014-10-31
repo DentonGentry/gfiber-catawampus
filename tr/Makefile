@@ -3,11 +3,11 @@ default: all
 all: stamp.parsed
 
 SCHEMA_IN = \
-	$(wildcard schema/tr-*.xml) \
-	$(wildcard schema/x-*.xml) \
-	$(wildcard ../platform/*/schema/x-*.xml) \
-	$(wildcard $(CWMPD_EXT_DIR)/x-*.xml) \
-	$(wildcard $(CWMPD_EXT_DIR)/*/x-*.xml)
+    $(wildcard schema/tr-*.xml) \
+    $(wildcard schema/x-*.xml) \
+    $(wildcard ../platform/*/schema/x-*.xml) \
+    $(wildcard $(CWMPD_EXT_DIR)/x-*.xml) \
+    $(wildcard $(CWMPD_EXT_DIR)/*/x-*.xml)
 stamp.parsed: parse-schema.py ${SCHEMA_IN}
 	@echo "CWMPD_EXT_DIR is '$(CWMPD_EXT_DIR)'"
 	rm -f $@ $@.new tr???_*.py* ../platform/*/schema/x_*.py*
@@ -25,7 +25,12 @@ stamp.validated: stamp.parsed *.py
 	python $@.new
 	mv $@.new $@
 
-runtests: all stamp.validated core_test.py api_test.py $(wildcard *_test.py)
+runtests: all stamp.validated \
+    core_test.py \
+    api_test.py \
+    api_soap_test.py \
+    http_test.py \
+    $(wildcard *_test.py)
 	set -e; \
 	for d in $(filter %_test.py,$^); do \
 		echo; \

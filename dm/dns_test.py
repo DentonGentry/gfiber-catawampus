@@ -25,6 +25,7 @@ import tempfile
 import google3
 from tr.wvtest import unittest
 import dns
+import tr.handle
 import tr.helpers
 
 
@@ -47,7 +48,7 @@ class DnsTest(unittest.TestCase):
 
   def testValidateExports(self):
     d = dns.DNS()
-    d.ValidateExports()
+    tr.handle.ValidateExports(d)
 
   def testDnsckFile(self):
     open(self.dnsck_fname, 'w').write('dnsck')

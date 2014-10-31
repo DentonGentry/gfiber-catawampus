@@ -26,6 +26,7 @@ import tempfile
 import google3
 import hat
 import tr.cwmpdate
+import tr.handle
 import tr.helpers
 import tr.mainloop
 from tr.wvtest import unittest
@@ -51,7 +52,7 @@ class HatTests(unittest.TestCase):
 
   def testValidateExports(self):
     hat_handler = hat.Hat()
-    hat_handler.ValidateExports()
+    tr.handle.ValidateExports(hat_handler)
 
   def testSetPartial(self):
     hat_handler = hat.Hat()

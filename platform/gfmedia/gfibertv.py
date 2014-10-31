@@ -35,6 +35,7 @@ import tr.core
 import tr.cwmpbool
 import tr.cwmpdate
 import tr.cwmptypes
+import tr.handle
 import tr.helpers
 import tr.mainloop
 import tr.session
@@ -424,4 +425,4 @@ def _ExportTree(obj):
 
 
 if __name__ == '__main__':
-  print tr.core.DumpSchema(GFiberTv('http://localhost/'))
+  print tr.handle.DumpSchema(GFiberTv('http://localhost/'))

@@ -26,6 +26,7 @@ import shutil
 import tempfile
 import google3
 import gvsb
+import tr.handle
 import tr.helpers
 import tr.mainloop
 from tr.wvtest import unittest
@@ -91,7 +92,7 @@ class GvsbTest(unittest.TestCase):
   def testValidateExports(self):
     gv = gvsb.Gvsb()
     self.loop.RunOnce()
-    gv.ValidateExports()
+    tr.handle.ValidateExports(gv)
 
   def _GetFileContent(self, filenamelist):
     filename = filenamelist[0]

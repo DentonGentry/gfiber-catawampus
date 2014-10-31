@@ -22,7 +22,6 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import dm.wifi
-import tr.core
 import tr.cwmpbool
 import tr.session
 import tr.tr098_v1_4

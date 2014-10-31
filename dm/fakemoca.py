@@ -23,7 +23,6 @@ Useful for uinit tests and for platform/fakecpe.
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import tr.core
 import tr.tr181_v2_2
 import tr.cwmptypes
 

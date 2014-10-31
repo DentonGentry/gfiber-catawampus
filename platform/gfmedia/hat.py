@@ -22,6 +22,7 @@ __author__ = 'irinams@google.com (Irina Stanescu)'
 
 import google3
 import tr.cwmptypes
+import tr.handle
 import tr.helpers
 import tr.mainloop
 import tr.x_gfibertv_1_0
@@ -105,4 +106,4 @@ class Hat(BASETV):
       self.printIfSetString(f, self.GFASUrl, 'gfas_url')
 
 if __name__ == '__main__':
-  print tr.core.DumpSchema(Hat())
+  print tr.handle.DumpSchema(Hat())

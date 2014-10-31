@@ -28,6 +28,7 @@ import google3
 from tr.wvtest import unittest
 import ipinterface
 import netdev
+import tr.handle
 import tr.mainloop
 import tr.session
 
@@ -53,11 +54,11 @@ class IpInterfaceTest(unittest.TestCase):
 
   def testValidateExports(self):
     ip = ipinterface.IPInterfaceLinux26('foo0')
-    ip.ValidateExports()
+    tr.handle.ValidateExports(ip)
 
   def testInterfaceStatsGood(self):
     ip = ipinterface.IPInterfaceStatsLinux26('foo0')
-    ip.ValidateExports()
+    tr.handle.ValidateExports(ip)
     # only a sanity check. Extensive tests in netdev_test.py
     self.assertEqual(ip.PacketsSent, 10)
 

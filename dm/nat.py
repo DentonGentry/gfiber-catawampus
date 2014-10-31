@@ -27,6 +27,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import binascii
 import subprocess
 import traceback
+import tr.handle
 import tr.helpers
 import tr.mainloop
 import tr.tr181_v2_6
@@ -59,8 +60,9 @@ class NAT(BASENAT):
 
   def GetIPInterface(self, ipif):
     """Return the Device.IP.Interface.{i} object in dmroot for ipif."""
+    f = tr.handle.Handle(self.dmroot).GetExport
     try:
-      return self.dmroot.GetExport(ipif)
+      return f(ipif)
     except (AttributeError, KeyError):
       return None
 
@@ -178,7 +180,7 @@ class PortMapping(CATANAT.PortMapping):
 
   def SetInterface(self, value):
     if self.parent.GetIPInterface(value) is None:
-      raise ValueError('No such Device.IP.Interface')
+      raise ValueError('No such Device.IP.Interface %r' % (value,))
     self.interface = value
     self.Triggered()
 

@@ -26,6 +26,7 @@ import time
 import tr.api_soap
 import tr.cwmpbool
 import tr.cwmptypes
+import tr.handle
 import tr.monohelper
 import tr.session
 import tr.tr157_v1_3
@@ -284,7 +285,8 @@ class PeriodicStatistics(BASE157PS):
       if not self._root:
         return None
       if not self._canonicalname:
-        self._canonicalname = self._root.GetCanonicalName(self)
+        self._canonicalname = tr.handle.Handle.GetCanonicalName(
+            self._root.obj, self)
       return self._canonicalname
 
     def CollectSample(self):
@@ -485,14 +487,17 @@ class PeriodicStatistics(BASE157PS):
         start = tr.monohelper.monotime()
         if not self.Enable:
           return
+        f = self._root.GetExport
         try:
-          # TODO(jnewlin): Update _suspect_data.
-          current_value = self._root.GetExport(self.Reference)
-          (_, soapstring) = tr.api_soap.Soapify(current_value)
-          self._values.append(soapstring)
-          self._sample_times.append((start_time, current_time))
-        except (KeyError, AttributeError, IndexError):
-          pass
+          try:
+            # TODO(jnewlin): Update _suspect_data.
+            current_value = f(self.Reference)
+          except (KeyError, AttributeError, IndexError), e:
+            print 'CollectSample error: %r' % e
+          else:
+            (_, soapstring) = tr.api_soap.Soapify(current_value)
+            self._values.append(soapstring)
+            self._sample_times.append((start_time, current_time))
         finally:
           # This will keep just the last ReportSamples worth of samples.
           self.TrimSamples(self._parent.ReportSamples)

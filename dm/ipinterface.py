@@ -30,7 +30,6 @@ import socket
 import struct
 import subprocess
 import traceback
-import tr.core
 import tr.cwmpdate
 import tr.mainloop
 import tr.session

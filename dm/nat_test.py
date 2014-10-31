@@ -26,6 +26,8 @@ import tempfile
 import google3
 from tr.wvtest import unittest
 import nat
+import tr.core
+import tr.handle
 import tr.mainloop
 
 
@@ -63,9 +65,9 @@ class NatTest(unittest.TestCase):
 
   def testValidateExports(self):
     n = nat.NAT(dmroot=DeviceModelRoot())
-    n.ValidateExports()
+    tr.handle.ValidateExports(n)
     p = n.PortMapping()
-    p.ValidateExports()
+    tr.handle.ValidateExports(p)
 
   def testLeaseDuration(self):
     """A non-zero LeaseDuration is not supported."""
@@ -266,6 +268,7 @@ class NatTest(unittest.TestCase):
 
   def testConfigDeleteObject(self):
     n = nat.NAT(dmroot=DeviceModelRoot())
+    h = tr.handle.Handle(n)
     p = n.PortMapping()
     p.AllInterfaces = True
     p.Enable = True
@@ -274,7 +277,7 @@ class NatTest(unittest.TestCase):
     p.Protocol = 'TCP'
     n.PortMappingList['1'] = p
     self.loop.RunOnce(timeout=1)
-    n.DeleteExportObject('PortMapping', '1')
+    h.DeleteExportObject('PortMapping', '1')
     self.loop.RunOnce(timeout=1)
 
     config = open(self.outputfile4).read()

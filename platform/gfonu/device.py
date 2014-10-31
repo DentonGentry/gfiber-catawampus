@@ -41,6 +41,7 @@ import tornado.ioloop
 import tr.acs_config
 import tr.core
 import tr.download
+import tr.handle
 import tr.tr181_v2_4 as tr181
 
 
@@ -375,7 +376,7 @@ def main():
   periodic_stats = dm.periodic_statistics.PeriodicStatistics()
   root = Device(dev_id, periodic_stats)
   root.ValidateExports()
-  tr.core.Dump(root)
+  tr.handle.Dump(root)
 
 if __name__ == '__main__':
   main()

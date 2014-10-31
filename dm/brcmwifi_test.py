@@ -26,6 +26,7 @@ import tempfile
 
 import google3
 from tr.wvtest import unittest
+import tr.handle
 import tr.session
 import brcmwifi
 import netdev
@@ -104,9 +105,9 @@ class BrcmWifiTest(unittest.TestCase):
 
   def testValidateExports(self):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
-    bw.ValidateExports()
+    tr.handle.ValidateExports(bw)
     stats = brcmwifi.BrcmWlanConfigurationStats('wifi0')
-    stats.ValidateExports()
+    tr.handle.ValidateExports(stats)
 
   def testCounters(self):
     wl = brcmwifi.Wl('foo0')
@@ -663,7 +664,7 @@ class BrcmWifiTest(unittest.TestCase):
   def testStats(self):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     stats = bw.Stats
-    stats.ValidateExports()
+    tr.handle.ValidateExports(stats)
     self.assertEqual(stats.UnicastPacketsSent, 10)
 
   def testWifiStats(self):
@@ -693,7 +694,7 @@ class BrcmWifiTest(unittest.TestCase):
               'a0:b0:c0:00:00:03': False}
     seen = set()
     for ad in bw.AssociatedDeviceList.values():
-      ad.ValidateExports()
+      tr.handle.ValidateExports(ad)
       mac = ad.AssociatedDeviceMACAddress.lower()
       self.assertEqual(ad.LastDataTransmitRate, speeds[mac])
       self.assertEqual(ad.AssociatedDeviceAuthenticationState, auth[mac])

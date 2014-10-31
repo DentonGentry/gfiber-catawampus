@@ -24,7 +24,7 @@ import os
 import google3
 from tr.wvtest import unittest
 import tornado.testing
-import tr.core
+import tr.handle
 import device_info
 
 
@@ -113,11 +113,11 @@ class DeviceInfoTest(tornado.testing.AsyncTestCase, unittest.TestCase):
 
   def testValidate181(self):
     di = device_info.DeviceInfo181Linux26(TestDeviceId())
-    di.ValidateExports()
+    tr.handle.ValidateExports(di)
 
   def testValidate98(self):
     di = device_info.DeviceInfo98Linux26(TestDeviceId())
-    di.ValidateExports()
+    tr.handle.ValidateExports(di)
 
   def testDeviceInfo181Fields(self):
     device_info.PROC_UPTIME = 'testdata/device_info/uptime'
@@ -221,7 +221,7 @@ class DeviceInfoTest(tornado.testing.AsyncTestCase, unittest.TestCase):
     self.assertEqual(len(processes), 6)
     for p in processes.values():
       fake_p = fake_processes[p.PID]
-      self.assertEqual(tr.core.Dump(fake_p), tr.core.Dump(p))
+      self.assertEqual(tr.handle.Dump(fake_p), tr.handle.Dump(p))
 
   def testProcessExited(self):
     device_info.SLASH_PROC = 'testdata/device_info/processes'
@@ -237,7 +237,7 @@ class DeviceInfoTest(tornado.testing.AsyncTestCase, unittest.TestCase):
   def testLedStatus(self):
     led = device_info.LedStatusReadFromFile(
         'LED', 'testdata/device_info/ledstatus')
-    led.ValidateExports()
+    tr.handle.ValidateExports(led)
     self.assertEqual(led.Name, 'LED')
     self.assertEqual(led.Status, 'LED_ON')
 

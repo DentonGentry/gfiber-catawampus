@@ -28,8 +28,8 @@ import sys
 import google3
 import dm.periodic_statistics
 import tr.api
-import tr.core
 import tr.cwmptypes
+import tr.handle
 import tr.x_catawampus_1_0
 
 BASEDM = tr.x_catawampus_1_0.X_CATAWAMPUS_ORG_CATAWAMPUS_v1_0
@@ -107,4 +107,4 @@ class ExpensiveStuff(BASEDM.X_CATAWAMPUS_ORG_CATAWAMPUS.ExpensiveStuff):
 if __name__ == '__main__':
   sys.path.append('../')
   cm = CatawampusDm()
-  print tr.core.Dump(cm)
+  print tr.handle.Dump(cm)

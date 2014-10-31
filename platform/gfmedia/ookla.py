@@ -30,8 +30,8 @@ import shutil
 import subprocess
 import google3
 import tornado.ioloop
-import tr.core
 import tr.cwmptypes
+import tr.handle
 import tr.mainloop
 import tr.x_catawampus_tr181_2_0
 
@@ -134,4 +134,4 @@ class Speedtest(CATA181SPEED):
       self.buffer += data
 
 if __name__ == '__main__':
-  print tr.core.DumpSchema(Speedtest(None))
+  print tr.handle.DumpSchema(Speedtest(None))

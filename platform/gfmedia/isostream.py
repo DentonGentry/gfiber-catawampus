@@ -28,8 +28,8 @@ import subprocess
 import time
 import google3
 import tornado.ioloop
-import tr.core
 import tr.cwmptypes
+import tr.handle
 import tr.mainloop
 import tr.x_catawampus_tr181_2_0
 
@@ -136,5 +136,5 @@ class Isostream(ISOSTREAM):
 
 if __name__ == '__main__':
   isos = Isostream()
-  print tr.core.DumpSchema(isos)
+  print tr.handle.DumpSchema(isos)
   isos.ValidateExports()

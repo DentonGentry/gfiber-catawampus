@@ -301,8 +301,10 @@ class Hosts(BASE181HOSTS):
 
   def _GetTr98WifiObjects(self):
     """Yield tr-98 WLANConfiguration objects, if any."""
+    if not self.dmroot: return
+    f = self.dmroot.GetExport
     try:
-      lan = self.dmroot.GetExport('InternetGatewayDevice.LANDevice.1')
+      lan = f('InternetGatewayDevice.LANDevice.1')
     except (AttributeError, KeyError):
       return
     for (idx, wifi) in lan.WLANConfigurationList.iteritems():
@@ -329,8 +331,10 @@ class Hosts(BASE181HOSTS):
 
   def _GetTr181MocaObjects(self):
     """Yield tr-181 Device.MoCA. objects, if any."""
+    if not self.dmroot: return
+    f = self.dmroot.GetExport
     try:
-      moca = self.dmroot.GetExport('Device.MoCA')
+      moca = f('Device.MoCA')
     except (AttributeError, KeyError):
       return
     for (idx, interface) in moca.InterfaceList.iteritems():
@@ -357,8 +361,10 @@ class Hosts(BASE181HOSTS):
 
   def _GetTr181Dhcp4ServerPools(self):
     """Yield tr-181 Device.DHCPv4.Server.Pool objects, if any."""
+    if not self.dmroot: return
+    f = self.dmroot.GetExport
     try:
-      dhcp4 = self.dmroot.GetExport('Device.DHCPv4.Server')
+      dhcp4 = f('Device.DHCPv4.Server')
     except (AttributeError, KeyError):
       return
     for (idx, pool) in dhcp4.PoolList.iteritems():
@@ -420,8 +426,10 @@ class Hosts(BASE181HOSTS):
 
   def _GetTr181EthernetObjects(self):
     """Yield tr-181 Device.Ethernet.Interface objects, if any."""
+    if not self.dmroot: return
+    f = self.dmroot.GetExport
     try:
-      eth = self.dmroot.GetExport('Device.Ethernet')
+      eth = f('Device.Ethernet')
     except (AttributeError, KeyError):
       return
     for (idx, iface) in eth.InterfaceList.iteritems():
@@ -459,7 +467,8 @@ class Hosts(BASE181HOSTS):
           host = hosts.get(mac, None)
           if host:
             host['DhcpFingerprint'] = fingerprint.strip()
-    except IOError:
+    except IOError as e:
+      print 'Populate DHCP fingerprints: %s' % e
       return
 
   def _PopulateSsdpServers(self, hosts):
@@ -485,22 +494,23 @@ class Hosts(BASE181HOSTS):
     Returns:
       A dict of {'1.2.3.4': 'hostname'} mappings.
     """
-    hostnames = {}
     try:
-      with codecs.open(filename, 'r', 'utf-8') as f:
-        for line in f:
-          try:
-            (ip, name) = line.split('|', 1)
-            ip = tr.helpers.NormalizeIPAddr(str(ip))
-            name = name.strip()
-            hostnames[ip] = name
-          except ValueError:
-            # line was malformed, no '|' is present
-            print 'Malformed line in %s: %s' % (filename, line)
-            continue
+      f = codecs.open(filename, 'r', 'utf-8')
     except IOError:
       # Nonexistent file means no hosts responded. Skip it.
-      pass
+      return {}
+    hostnames = {}
+    with f:
+      for line in f:
+        try:
+          (ip, name) = line.split('|', 1)
+          ip = tr.helpers.NormalizeIPAddr(str(ip))
+          name = name.strip()
+          hostnames[ip] = name
+        except ValueError:
+          # line was malformed, no '|' is present
+          print 'Malformed line in %s: %s' % (filename, line)
+          continue
     return hostnames
 
   def _PopulateDiscoveredHostnames(self, hosts):

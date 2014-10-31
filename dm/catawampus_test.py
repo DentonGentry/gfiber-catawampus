@@ -22,6 +22,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
 from tr.wvtest import unittest
+import tr.handle
 import catawampus
 
 
@@ -30,7 +31,7 @@ class CatawampusTest(unittest.TestCase):
 
   def testValidateExports(self):
     c = catawampus.CatawampusDm()
-    c.ValidateExports()
+    tr.handle.ValidateExports(c)
 
   def testRuntimeEnv(self):
     c = catawampus.CatawampusDm()

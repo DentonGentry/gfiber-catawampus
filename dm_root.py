@@ -27,6 +27,7 @@ import google3
 import dm.catawampus
 import dm.management_server
 import tr.core
+import tr.handle
 
 
 def _RecursiveImport(name):
@@ -71,36 +72,34 @@ class DeviceModelRoot(tr.core.Exporter):
     return self.device.PlatformConfig(ioloop=ioloop)
 
   def add_management_server(self, mgmt):
-    # tr-181 Device.ManagementServer
     try:
-      ms181 = self.GetExport('Device')
+      ms181 = self.Device
+    except AttributeError:
+      pass  # no tr-181 is available for this platform
+    else:
       ms181.ManagementServer = dm.management_server.ManagementServer181(mgmt)
-    except (AttributeError, KeyError):
-      pass  # no tr-181 for this platform
 
-    # tr-98 InternetGatewayDevice.ManagementServer
     try:
-      ms98 = self.GetExport('InternetGatewayDevice')
+      ms98 = self.InternetGatewayDevice
+    except AttributeError:
+      pass  # no tr-098 is available for this platform
+    else:
       ms98.ManagementServer = dm.management_server.ManagementServer98(mgmt)
-    except (AttributeError, KeyError):
-      pass  # no tr-98 for this platform
 
   def configure_tr157(self, cpe):
     """Adds the cpe and root objects to the tr157 periodic stat object."""
-    BASE157PS_IGD = 'InternetGatewayDevice.PeriodicStatistics'
-    tr157_object = None
     try:
-      tr157_object = self.GetExport(BASE157PS_IGD)
-      tr157_object.SetCpe(cpe)
-      tr157_object.SetRoot(self)
-    except (AttributeError, KeyError):
+      tr157_object = self.InternetGatewayDevice.PeriodicStatistics
+    except AttributeError:
       pass  # no tr-157 object on the InternetGatewayDevice.
-
-    # Check on the Device object.
-    BASE157PS_DEV = 'Device.PeriodicStatistics'
-    try:
-      tr157_object = self.GetExport(BASE157PS_DEV)
+    else:
       tr157_object.SetCpe(cpe)
-      tr157_object.SetRoot(self)
-    except (AttributeError, KeyError):
-      pass  # no tr-157 object found on the Device object.
+      tr157_object.SetRoot(tr.handle.Handle(self))
+
+    try:
+      tr157_object = self.Device.PeriodicStatistics
+    except AttributeError:
+      pass  # no tr-157 object found on the Device object
+    else:
+      tr157_object.SetCpe(cpe)
+      tr157_object.SetRoot(tr.handle.Handle(self))

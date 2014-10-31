@@ -22,6 +22,7 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 from wvtest import unittest
 import core
+import handle
 import tr098_v1_2 as tr098
 
 
@@ -52,8 +53,8 @@ class StdTest(unittest.TestCase):
 
   def testStd(self):
     o = MyModel()
-    o.ValidateExports()
-    print core.Dump(o)
+    handle.Handle(o).ValidateExports()
+    print handle.Dump(o)
 
 
 if __name__ == '__main__':

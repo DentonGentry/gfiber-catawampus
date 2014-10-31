@@ -22,6 +22,7 @@ import os
 import time
 import google3
 import isostream
+import tr.handle
 import tr.helpers
 import tr.mainloop
 from tr.wvtest import unittest
@@ -59,6 +60,9 @@ class IsostreamTest(unittest.TestCase):
     self._WaitReady()
     self.assertEqual(open(self.logfile).read(), expect)
     tr.helpers.Unlink(self.logfile)
+
+  def testValidate(self):
+    tr.handle.ValidateExports(isostream.Isostream())
 
   def testServer(self):
     isos = isostream.Isostream()

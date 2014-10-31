@@ -26,7 +26,6 @@ import datetime
 import os
 import re
 import struct
-import tr.core
 import tr.cwmpdate
 import tr.helpers
 import tr.tr098_v1_4

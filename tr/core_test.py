@@ -23,6 +23,7 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import weakref
 import core
+import handle
 from wvtest import unittest
 
 
@@ -83,28 +84,29 @@ class CoreTest(unittest.TestCase):
 
   def testCore(self):
     o = TestObject()
+    h = handle.Handle(o)
     self.assertTrue(o)
-    o.ValidateExports()
-    o.AddExportObject('Counter')
-    o.AddExportObject('Counter')
-    o.AddExportObject('Counter')
-    print o.ListExports(recursive=False)
-    print o.ListExports(recursive=True)
-    self.assertEqual(list(o.ListExports()),
+    h.ValidateExports()
+    h.AddExportObject('Counter')
+    h.AddExportObject('Counter')
+    h.AddExportObject('Counter')
+    print h.ListExports(recursive=False)
+    print h.ListExports(recursive=True)
+    self.assertEqual(list(h.ListExports()),
                      ['Counter.', 'SubObj.', 'TestParam'])
-    self.assertEqual(list(o.ListExports(recursive=True)),
+    self.assertEqual(list(h.ListExports(recursive=True)),
                      ['Counter.',
                       'Counter.1.', 'Counter.1.Count',
                       'Counter.2.', 'Counter.2.Count',
                       'Counter.3.', 'Counter.3.Count',
                       'SubObj.', 'SubObj.Count', 'TestParam'])
 
-    ds1 = core.DumpSchema(TestObject)
-    ds2 = core.DumpSchema(o)
+    ds1 = handle.DumpSchema(TestObject)
+    ds2 = handle.DumpSchema(o)
     self.assertEqual(ds1, ds2)
 
-    o.DeleteExportObject('Counter', 2)
-    self.assertEqual(list(o.ListExports(recursive=True)),
+    h.DeleteExportObject('Counter', 2)
+    self.assertEqual(list(h.ListExports(recursive=True)),
                      ['Counter.',
                       'Counter.1.', 'Counter.1.Count',
                       'Counter.3.', 'Counter.3.Count',
@@ -113,25 +115,26 @@ class CoreTest(unittest.TestCase):
                      [(1, 2), (3, 4)])
     # NOTE(jnewlin): Note that is actually outside the spec, the spec says that
     # the index is an integer, but I guess it's neat that we can do this.
-    idx, eo = o.AddExportObject('Counter', 'fred')
+    idx, eo = h.AddExportObject('Counter', 'fred')
     eo.Count = 99
-    print o.ListExports(recursive=True)
+    print h.ListExports(recursive=True)
     self.assertEqual([(idx, i.Count) for idx, i in o.CounterList.items()],
                      [(1, 2), (3, 4), ('fred', 99)])
-    print core.Dump(o)
-    o.ValidateExports()
+    print handle.Dump(o)
+    h.ValidateExports()
 
   def testCanonicalName(self):
     o = TestObject()
+    h = handle.Handle(o)
     self.assertTrue(o)
-    o.ValidateExports()
-    name = o.GetCanonicalName(o.SubObj)
+    h.ValidateExports()
+    name = handle.Handle.GetCanonicalName(o, o.SubObj)
     self.assertEqual('SubObj', name)
 
-    (unused_idx1, unused_obj1) = o.AddExportObject('Counter')
-    (unused_idx2, unused_obj2) = o.AddExportObject('Counter')
-    (unused_idx3, obj3) = o.AddExportObject('Counter')
-    name = o.GetCanonicalName(obj3)
+    (unused_idx1, unused_obj1) = h.AddExportObject('Counter')
+    (unused_idx2, unused_obj2) = h.AddExportObject('Counter')
+    (unused_idx3, obj3) = h.AddExportObject('Counter')
+    name = handle.Handle.GetCanonicalName(o, obj3)
     self.assertEqual('Counter.3', name)
 
   def testLifecycle(self):
@@ -145,6 +148,7 @@ class CoreTest(unittest.TestCase):
     # creates a child, and we can use that to confirm that the code doesn't
     # do unnecessary tree traversals without caching intermediate objects.
     root = AutoObject()
+    h = handle.Handle(root)
     s0 = root.SubList[0]
     self.assertEqual(s0.Count, 1)
     self.assertEqual(s0.Count, 1)
@@ -154,27 +158,27 @@ class CoreTest(unittest.TestCase):
     self.assertEqual(s0, w())
     del s0
     self.assertEqual(w(), None)  # all remaining refs are definitely gone
-    self.assertEqual(root.SubList[0].GetExport('Count'), 3)
+    self.assertEqual(handle.Handle(root.SubList[0]).GetExport('Count'), 3)
 
     # FindExport of Sub.0 shouldn't actually instantiate the .0
-    self.assertEqual(root.FindExport('Sub.0'), (root.SubList, '0'))
+    self.assertEqual(h.FindExport('Sub.0'), (root.SubList, '0'))
     self.assertEqual(root.SubList[0].Count, 4)
 
     # FindExport of Sub.0.Count should instantiate Sub.0 exactly once
-    s0, name = root.FindExport('Sub.0.Count')
+    s0, name = h.FindExport('Sub.0.Count')
     self.assertEqual(name, 'Count')
     self.assertEqual(s0.Count, 5)
     self.assertEqual(s0.Count, 5)
 
-    self.assertEqual(root.SubList[0].GetExport('Count'), 6)
-    self.assertEqual(root.GetExport('Sub.0.Count'), 7)
-    self.assertEqual(root.GetExport('Sub.576.Count'), 8)
+    self.assertEqual(handle.Handle(root.SubList[0]).GetExport('Count'), 6)
+    self.assertEqual(h.GetExport('Sub.0.Count'), 7)
+    self.assertEqual(h.GetExport('Sub.576.Count'), 8)
 
-    self.assertEqual(list(root.ListExports(recursive=False)),
+    self.assertEqual(list(h.ListExports(recursive=False)),
                      ['Sub.'])
     self.assertEqual(root.SubList[0].Count, 9)
 
-    self.assertEqual(list(root.ListExports(recursive=True)),
+    self.assertEqual(list(h.ListExports(recursive=True)),
                      ['Sub.',
                       'Sub.0.',
                       'Sub.0.Count',
@@ -187,32 +191,33 @@ class CoreTest(unittest.TestCase):
     # LookupExports gives us a list of useful object pointers that
     # should only generate each requested object once.
     print 'lookup test'
-    out = list(root.LookupExports(['Sub.0.Count',
-                                   'Sub.1.Count',
-                                   'Sub.0.Count',
-                                   'Sub.1.',
-                                   'Sub.',
-                                   '.']))
-    s0 = out[0][0]
-    s1 = out[1][0]
-    self.assertEqual(out, [(s0, 'Count'),
-                           (s1, 'Count'),
-                           (s0, 'Count'),
-                           (s1, ''),
-                           (root.SubList, ''),
-                           (root, '')])
-    vals = [getattr(o, param) for o, param in out[0:3]]
+    out = list(h.LookupExports(['Sub.0.Count',
+                                'Sub.1.Count',
+                                'Sub.0.Count',
+                                'Sub.1.',
+                                'Sub.',
+                                '.']))
+    s0 = out[0][0].obj
+    s1 = out[1][0].obj
+    self.assertEqual([(io.obj, iname) for (io, iname) in out],
+                     [(s0, 'Count'),
+                      (s1, 'Count'),
+                      (s0, 'Count'),
+                      (s1, ''),
+                      (root.SubList, ''),
+                      (root, '')])
+    vals = [getattr(o.obj, param) for o, param in out[0:3]]
     self.assertEqual(vals, [14, 15, 14])
-    vals = [getattr(o, param) for o, param in out[0:3]]
+    vals = [getattr(o.obj, param) for o, param in out[0:3]]
     self.assertEqual(vals, [14, 15, 14])
 
-    out = list(root.LookupExports(['Sub.1.Count',
-                                   'Sub.0.Count',
-                                   'Sub.1.Count']))
+    out = list(h.LookupExports(['Sub.1.Count',
+                                'Sub.0.Count',
+                                'Sub.1.Count']))
     self.assertNotEqual(out[1][0], s0)
     self.assertNotEqual(out[0][0], s1)
-    s0 = out[1][0]
-    s1 = out[0][0]
+    s0 = out[1][0].obj
+    s1 = out[0][0].obj
     self.assertEqual([s0.Count, s1.Count], [17, 16])
     for i, (o, param) in enumerate(out):
       setattr(o, param, i * 1000)

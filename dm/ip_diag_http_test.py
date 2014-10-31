@@ -22,6 +22,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
 from tr.wvtest import unittest
+import tr.handle
 import tr.mainloop
 import ip_diag_http
 
@@ -41,7 +42,7 @@ class HttpDownloadDiagTest(unittest.TestCase):
 
   def testValidateExports(self):
     http = ip_diag_http.DiagHttpDownload()
-    http.ValidateExports()
+    tr.handle.ValidateExports(http)
 
   def _WaitUntilCompleted(self, http):
     http.DiagnosticsState = 'Requested'
