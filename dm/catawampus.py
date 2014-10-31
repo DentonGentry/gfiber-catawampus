@@ -29,6 +29,7 @@ import google3
 import dm.periodic_statistics
 import tr.api
 import tr.cwmptypes
+import tr.experiment
 import tr.handle
 import tr.x_catawampus_tr181_2_0
 
@@ -39,10 +40,13 @@ CATABASE = BASE.Device.X_CATAWAMPUS_ORG.Catawampus
 class CatawampusDm(CATABASE):
   """Implementation of catawampus extension. See tr/schema/x-cata181.xml."""
 
-  def __init__(self):
+  def __init__(self, roothandle):
     super(CatawampusDm, self).__init__()
+    self.roothandle = roothandle
     self.Profiler = Profiler()
     self.ExpensiveStuff = ExpensiveStuff()
+    self.Experiments = tr.experiment.Experiments(roothandle)
+    self.Export(objects=['Experiments'])
 
   @property
   def RuntimeEnvInfo(self):
@@ -107,5 +111,5 @@ class ExpensiveStuff(CATABASE.ExpensiveStuff):
 
 if __name__ == '__main__':
   sys.path.append('../')
-  cm = CatawampusDm()
+  cm = CatawampusDm(None)
   print tr.handle.Dump(cm)

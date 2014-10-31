@@ -50,6 +50,7 @@ class DeviceModelRoot(tr.core.Exporter):
 
   def __init__(self, loop, platform, ext_dir):
     tr.core.Exporter.__init__(self)
+    self.handle = tr.handle.Handle(self)
     if platform:
       self.device = _RecursiveImport('platform.%s.device' % platform)
       (params, objects) = self.device.PlatformInit(name=platform,
@@ -87,8 +88,9 @@ class DeviceModelRoot(tr.core.Exporter):
       return  # no tr-181 is available for this platform
     dev.Export(objects=['X_CATAWAMPUS-ORG'])
     cata = dev.X_CATAWAMPUS_ORG = BASE.Device.X_CATAWAMPUS_ORG()
-    cata.Catawampus = dm.catawampus.CatawampusDm()
+    cata.Catawampus = dm.catawampus.CatawampusDm(self.handle)
     cata.DynamicDNS = dm.inadyn.Inadyn()
+    cata.Experiments = tr.experiment.Experiments(self.handle)
     cata.GFiberTV = dm.gfibertv.GFiberTv(
         mailbox_url='http://localhost:51834/xmlrpc',
         my_serial=self.device.DeviceId().SerialNumber)

@@ -30,15 +30,15 @@ class CatawampusTest(unittest.TestCase):
   """Tests for catawampus.py."""
 
   def testValidateExports(self):
-    c = catawampus.CatawampusDm()
+    c = catawampus.CatawampusDm(None)
     tr.handle.ValidateExports(c)
 
   def testRuntimeEnv(self):
-    c = catawampus.CatawampusDm()
+    c = catawampus.CatawampusDm(None)
     self.assertTrue(c.RuntimeEnvInfo)
 
   def testProfiler(self):
-    c = catawampus.CatawampusDm()
+    c = catawampus.CatawampusDm(None)
     c.Profiler.Enable = True
     # Profiler is running. Need something to profile.
     unused_j = 0

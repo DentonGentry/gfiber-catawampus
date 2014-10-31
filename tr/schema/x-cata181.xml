@@ -409,6 +409,33 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
       </parameter>
     </object>
 
+    <object name="Device.X_CATAWAMPUS-ORG.Experiments." access="readOnly" minEntries="1" maxEntries="1">
+      <parameter name="Available" access="readOnly">
+        <description>Comma-separated list of available experiments.</description>
+        <syntax>
+          <string>
+            <size maxLength="4096"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="Requested" access="readWrite">
+        <description>Comma-separated list of desired experiments.  It is not an error to request an experiment that is not in Available, although that will have no effect.</description>
+        <syntax>
+          <string>
+            <size maxLength="4096"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="Active" access="readOnly">
+        <description>Comma-separated list of currently-active experiments. Generally is the intersection between Available and Requested.</description>
+        <syntax>
+          <string>
+            <size maxLength="4096"/>
+          </string>
+        </syntax>
+      </parameter>
+    </object>
+
     <object name="Device.X_CATAWAMPUS-ORG.GFiberTV." access="readOnly" minEntries="1" maxEntries="1">
       <description>Container for parameters supporting the Google Fiber TV system.</description>
       <parameter name="DevicePropertiesNumberOfEntries" access="readOnly">
