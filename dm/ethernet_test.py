@@ -20,8 +20,8 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import unittest
 import google3
+from tr.wvtest import unittest
 import tr.tr181_v2_2 as tr181
 import ethernet
 import netdev

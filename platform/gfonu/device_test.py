@@ -26,9 +26,9 @@ __author__ = 'zixia@google.com (Ted Huang)'
 import os
 import shutil
 import tempfile
-import unittest
 
 import google3
+from tr.wvtest import unittest
 import tornado.ioloop
 import tornado.testing
 import device
@@ -44,7 +44,7 @@ class MockIoloop(object):
     self.callback = callback
 
 
-class DeviceTest(tornado.testing.AsyncTestCase):
+class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
   """Tests for device.py."""
 
   def setUp(self):

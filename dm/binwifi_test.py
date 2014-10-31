@@ -24,9 +24,9 @@ import os
 import shutil
 import stat
 import tempfile
-import unittest
 
 import google3
+from tr.wvtest import unittest
 import tr.session
 import binwifi
 import netdev

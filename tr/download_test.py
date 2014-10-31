@@ -24,7 +24,7 @@ import datetime
 import shutil
 import tempfile
 import time
-import unittest
+from wvtest import unittest
 
 import google3
 import core

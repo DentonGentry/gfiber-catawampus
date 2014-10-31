@@ -23,10 +23,9 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import os
 import shutil
 import tempfile
-import unittest
-
 import google3
 import gvsb
+from tr.wvtest import unittest
 import tr.helpers
 import tr.mainloop
 

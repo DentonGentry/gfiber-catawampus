@@ -23,9 +23,8 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import base64
 import bz2
 import tempfile
-import unittest
-
 import google3
+from tr.wvtest import unittest
 import gmoca
 
 

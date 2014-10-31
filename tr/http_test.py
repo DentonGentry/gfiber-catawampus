@@ -30,7 +30,7 @@ import shutil
 import sys
 import tempfile
 import time
-import unittest
+from wvtest import unittest
 import xml.etree.ElementTree as ET
 
 import google3
@@ -128,7 +128,7 @@ class LinearHttpHandler(tornado.web.RequestHandler):
     return self._handle()
 
 
-class HttpTest(tornado.testing.AsyncHTTPTestCase):
+class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
   def setUp(self):
     self.old_HTTPCLIENT = session.HTTPCLIENT
     self.old_GETWANPORT = http.GETWANPORT
@@ -438,7 +438,7 @@ class TestManagementServer(object):
   ConnectionRequestPassword = 'password'
 
 
-class PingTest(tornado.testing.AsyncHTTPTestCase):
+class PingTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
   def ping_callback(self):
     self.ping_calledback = True
 

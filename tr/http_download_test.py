@@ -23,7 +23,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 from collections import namedtuple  # pylint: disable-msg=C6202
 import shutil
 import tempfile
-import unittest
+from wvtest import unittest
 
 import google3
 from curtain import digest
@@ -117,7 +117,7 @@ class SimpleHandler(tornado.web.RequestHandler):
     return self.set_status(200)
 
 
-class HttpDownloadTest(tornado.testing.AsyncHTTPTestCase):
+class HttpDownloadTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
   """tests for http_download.py HttpDownload."""
 
   def get_app(self):

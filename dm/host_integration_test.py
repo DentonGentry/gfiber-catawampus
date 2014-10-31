@@ -47,9 +47,8 @@ QCA8337: lan0, Device.Ethernet.Interface.2
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import unittest
-
 import google3
+from tr.wvtest import unittest
 import tr.core
 import brcmmoca2
 import brcmwifi

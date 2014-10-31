@@ -15,8 +15,10 @@ test: all \
   platform/fakecpe/test \
   platform/gfmedia/test \
   platform/gfonu/test \
-  platform/tomato/test \
-  *_test.py
+  platform/tomato/test
+	tr/vendor/wvtest/wvtestrun $(MAKE) runtests
+
+runtests: all *_test.py
 	set -e; \
 	for d in $(filter %_test.py,$^); do \
 		echo; \

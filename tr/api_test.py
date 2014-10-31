@@ -20,7 +20,7 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import unittest
+from wvtest import unittest
 
 import google3
 import tr.cwmptypes

@@ -25,14 +25,14 @@ __author__ = 'jnewlin@google.com (John Newlin)'
 import os
 import shutil
 import tempfile
-import unittest
+from wvtest import unittest
 
 import google3
 import tornado.testing
 import acs_config
 
 
-class AcsConfigTest(tornado.testing.AsyncTestCase):
+class AcsConfigTest(tornado.testing.AsyncTestCase, unittest.TestCase):
   """Tests for acs_config.py."""
 
   def setUp(self):

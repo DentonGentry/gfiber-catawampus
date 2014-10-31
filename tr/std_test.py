@@ -20,7 +20,7 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import unittest
+from wvtest import unittest
 import core
 import tr098_v1_2 as tr098
 

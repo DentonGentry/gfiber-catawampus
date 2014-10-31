@@ -23,8 +23,8 @@ import os
 import os.path
 import shutil
 import tempfile
-import unittest
 import google3
+from tr.wvtest import unittest
 import tr.cwmpdate
 import tr.helpers
 import tr.mainloop

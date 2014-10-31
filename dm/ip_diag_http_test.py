@@ -20,9 +20,8 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import unittest
 import google3
-import tornado.testing
+from tr.wvtest import unittest
 import tr.mainloop
 import ip_diag_http
 

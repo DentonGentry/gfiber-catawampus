@@ -20,9 +20,8 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import unittest
-
 import google3
+from tr.wvtest import unittest
 import miniupnp
 import platform.fakecpe.device
 import tr.tr098_v1_4

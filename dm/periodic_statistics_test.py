@@ -11,10 +11,9 @@ __author__ = 'jnewlin@google.com (John Newlin)'
 
 import datetime
 import time
-import unittest
 import weakref
-
 import google3
+from tr.wvtest import unittest
 import mox
 import tornado.ioloop
 import tr.core

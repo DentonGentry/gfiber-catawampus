@@ -21,9 +21,8 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import os
-import unittest
-
 import google3
+from tr.wvtest import unittest
 import tornado.testing
 import tr.core
 import device_info
@@ -87,7 +86,7 @@ def FakeLedStatus():
   return 'LEDSTATUS'
 
 
-class DeviceInfoTest(tornado.testing.AsyncTestCase):
+class DeviceInfoTest(tornado.testing.AsyncTestCase, unittest.TestCase):
   """Tests for device_info.py."""
 
   def setUp(self):

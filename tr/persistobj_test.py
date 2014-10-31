@@ -23,7 +23,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import os
 import shutil
 import tempfile
-import unittest
+from wvtest import unittest
 
 import google3
 import persistobj

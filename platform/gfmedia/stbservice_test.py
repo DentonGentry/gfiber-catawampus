@@ -22,9 +22,8 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import socket
 import struct
-import unittest
-
 import google3
+from tr.wvtest import unittest
 import tr.session
 import stbservice
 

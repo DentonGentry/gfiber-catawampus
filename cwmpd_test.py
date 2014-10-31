@@ -24,8 +24,8 @@ import errno
 import os
 import select
 import subprocess
-import unittest
 import google3
+from tr.wvtest import unittest
 import tr.helpers
 
 

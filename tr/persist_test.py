@@ -22,7 +22,7 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import os
 import tempfile
-import unittest
+from wvtest import unittest
 
 import google3
 import core
