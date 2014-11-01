@@ -686,6 +686,4 @@ else:
     except Exception:
         # All other systems
         import sys
-        if "linux" in sys.platform:
-            logging.warning("epoll module not found; using select()")
         _poll = _Select
