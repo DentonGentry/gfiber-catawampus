@@ -22,8 +22,8 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import os
 import tempfile
-import unittest
 import google3
+from tr.wvtest import unittest
 import dns
 import tr.helpers
 

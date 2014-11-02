@@ -13,7 +13,10 @@ install:
 	$(INSTALL) -D -m 0644 Testdata/testdata $(DSTDIR)/diagui/Testdata
 	$(INSTALL) -D -m 0644 *.py $(DSTDIR)/diagui
 
-test: all $(wildcard *_test.py)
+test: all
+	../tr/vendor/wvtest/wvtestrun $(MAKE) runtests
+
+runtests: all $(wildcard *_test.py)
 	set -e; \
 	for d in $(filter %_test.py,$^); do \
 		echo; \

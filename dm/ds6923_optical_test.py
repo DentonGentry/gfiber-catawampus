@@ -20,11 +20,9 @@
 
 __author__ = 'jnewlin@google.com (John Newlin)'
 
-import unittest
-
 import google3
+from tr.wvtest import unittest
 import mox
-
 import ds6923_optical
 
 

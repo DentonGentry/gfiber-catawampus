@@ -20,9 +20,9 @@
 
 import os
 import time
-import unittest
 import google3
 import isostream
+from tr.wvtest import unittest
 import tr.helpers
 import tr.mainloop
 

@@ -22,7 +22,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import calendar
 import datetime
-import unittest
+from wvtest import unittest
 
 import google3
 import cwmpdate

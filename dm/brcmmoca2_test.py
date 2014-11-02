@@ -23,8 +23,8 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import os
 import shutil
 import tempfile
-import unittest
 import google3
+from tr.wvtest import unittest
 import tr.session
 import brcmmoca2
 import netdev

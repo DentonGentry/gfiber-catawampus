@@ -20,8 +20,8 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import unittest
 import google3
+from tr.wvtest import unittest
 import tr.mainloop
 import traceroute
 

@@ -4,8 +4,8 @@ __author__ = 'anandkhare@google.com (Anand Khare)'
 
 import ast
 import json
-import unittest
 import google3
+from tr.wvtest import unittest
 import diagui.main
 import tornado.httpclient
 import tr.mainloop

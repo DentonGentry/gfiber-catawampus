@@ -23,7 +23,7 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 import datetime
 import os.path
 import time
-import unittest
+from wvtest import unittest
 import google3
 import mainloop
 import tr.cwmptypes

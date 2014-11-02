@@ -24,8 +24,8 @@ import os
 import shutil
 import socket
 import tempfile
-import unittest
 import google3
+from tr.wvtest import unittest
 import ipinterface
 import netdev
 import tr.mainloop

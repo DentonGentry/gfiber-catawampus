@@ -21,7 +21,7 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import os
-import unittest
+from wvtest import unittest
 
 import google3
 import cwmplog

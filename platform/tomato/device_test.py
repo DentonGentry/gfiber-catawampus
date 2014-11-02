@@ -20,10 +20,8 @@
 
 __author__ = 'zve@google.com (Alexei Zverovitch)'
 
-import unittest
-
 import google3
-
+from tr.wvtest import unittest
 import dm.periodic_statistics
 import tornado.ioloop
 import tornado.testing
@@ -41,7 +39,7 @@ class MockIoloop(object):
     self.callback = callback
 
 
-class DeviceTest(tornado.testing.AsyncTestCase):
+class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
   """Tests for device.py."""
 
   def setUp(self):

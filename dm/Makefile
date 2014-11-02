@@ -1,8 +1,11 @@
 default: all
 
-all: test
+all:
 
-test: all $(wildcard *_test.py)
+test: all
+	../tr/vendor/wvtest/wvtestrun $(MAKE) runtests
+
+runtests: all $(wildcard *_test.py)
 	set -e; \
 	for d in $(filter %_test.py,$^); do \
 		echo; \

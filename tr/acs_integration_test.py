@@ -22,7 +22,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import collections
 import datetime
-import unittest
+from wvtest import unittest
 import xml.etree.ElementTree as ET
 
 import google3

@@ -25,13 +25,16 @@ stamp.validated: stamp.parsed *.py
 	python $@.new
 	mv $@.new $@
 
-test: all stamp.validated core_test.py api_test.py $(wildcard *_test.py)
+runtests: all stamp.validated core_test.py api_test.py $(wildcard *_test.py)
 	set -e; \
 	for d in $(filter %_test.py,$^); do \
 		echo; \
 		echo "Testing $$d"; \
 		python $$d; \
 	done
+
+test:
+	vendor/wvtest/wvtestrun $(MAKE) runtests
 
 clean:
 	rm -f *~ .*~ *.pyc *.stamp tr???_*.py* x_*.py* stamp.*

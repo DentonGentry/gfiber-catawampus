@@ -21,7 +21,7 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
-import unittest
+from tr.wvtest import unittest
 import tr.cwmpdate
 import dhcp
 

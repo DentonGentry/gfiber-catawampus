@@ -23,8 +23,8 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import os.path
 import shutil
 import tempfile
-import unittest
 import google3
+from tr.wvtest import unittest
 import tr.mainloop
 import tr.session
 import dnsmasq

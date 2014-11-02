@@ -26,9 +26,9 @@ import shutil
 import SimpleXMLRPCServer
 import tempfile
 import threading
-import unittest
 import xmlrpclib
 import google3
+from tr.wvtest import unittest
 import tr.cwmpdate
 import tr.helpers
 import tr.mainloop

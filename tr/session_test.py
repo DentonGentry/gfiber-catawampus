@@ -21,7 +21,7 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import time
-import unittest
+from wvtest import unittest
 
 import google3
 import session
