@@ -125,7 +125,7 @@ class PersistentObjectTest(unittest.TestCase):
           dir=self.tmpdir, prefix='tr69_dnld', delete=False) as f:
         f.write(obj)
     actual = persistobj.GetPersistentObjects(self.tmpdir)
-    self.assertEqual(len(actual), len(expected)-1)
+    self.assertEqual(len(actual), len(expected) - 1)
     found = [False, False, False]
     for entry in actual:
       if entry.foo == 'bar1' and entry.baz == 4:

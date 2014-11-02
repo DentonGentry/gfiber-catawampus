@@ -46,6 +46,7 @@ def Soapify(value):
 
 
 class Encode(object):
+
   def __init__(self):
     self.request_id = 'catawampus.{0!r}'.format(time.time())
     self.hold_requests = None
@@ -164,6 +165,7 @@ class Encode(object):
 
 
 class SoapHandler(object):
+
   def __init__(self, impl):
     self.impl = impl
 
@@ -247,6 +249,7 @@ class SoapHandler(object):
 
 
 class ACS(SoapHandler):
+
   def __init__(self, acs):
     SoapHandler.__init__(self, impl=acs)
 
@@ -259,6 +262,7 @@ class ACS(SoapHandler):
 
 
 class CPE(SoapHandler):
+
   def __init__(self, cpe):
     SoapHandler.__init__(self, impl=cpe)
 

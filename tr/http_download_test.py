@@ -36,6 +36,7 @@ mock_http_clients = []
 
 
 class MockHttpClient(object):
+
   def __init__(self, io_loop=None):
     self.did_fetch = False
     self.request = None
@@ -49,6 +50,7 @@ class MockHttpClient(object):
 
 
 class MockHttpResponse(object):
+
   def __init__(self, errorcode):
     self.error = namedtuple('error', 'code')
     self.error.code = errorcode
@@ -56,6 +58,7 @@ class MockHttpResponse(object):
 
 
 class MockIoloop(object):
+
   def __init__(self):
     self.time = None
     self.callback = None
@@ -74,6 +77,7 @@ class MockIoloop(object):
 
 
 class MockTempFileIOError(object):
+
   def __init__(self, delete, dir):  # pylint:disable=redefined-builtin
     self.delete = delete
     self.dir = dir
@@ -98,6 +102,7 @@ class MockTempFileIOError(object):
 
 
 class DigestAuthHandler(digest.DigestAuthMixin, tornado.web.RequestHandler):
+
   def getcredentials(self, username):
     credentials = {'auth_username': 'user', 'auth_password': 'pass'}
     if username == credentials['auth_username']:
@@ -112,6 +117,7 @@ class DigestAuthHandler(digest.DigestAuthMixin, tornado.web.RequestHandler):
 
 
 class SimpleHandler(tornado.web.RequestHandler):
+
   def get(self):
     self.write('SimpleHandler')
     return self.set_status(200)

@@ -78,13 +78,13 @@ class Isostream(ISOSTREAM):
   @ServerTimeLimit.validator
   def ServerTimeLimit(self, value):
     if value <= 0:
-      raise ValueError('ServerTimeLimit must be > 0');
+      raise ValueError('ServerTimeLimit must be > 0')
     return value
 
   @ClientTimeLimit.validator
   def ClientTimeLimit(self, value):
     if value <= 0:
-      raise ValueError('ClientTimeLimit must be > 0');
+      raise ValueError('ClientTimeLimit must be > 0')
     return value
 
   @tr.mainloop.WaitUntilIdle

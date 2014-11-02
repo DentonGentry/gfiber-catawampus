@@ -27,11 +27,13 @@ import management_server
 
 
 class MockConfig(object):
+
   def __init__(self):
     pass
 
 
 class MockCpeManagementServer(object):
+
   def __init__(self):
     self.CWMPRetryIntervalMultiplier = 1
     self.CWMPRetryMinimumWaitInterval = 2

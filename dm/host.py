@@ -178,7 +178,7 @@ class Hosts(BASE181HOSTS):
       while offset < len(fdb):
         (m1, m2, m3, m4, m5, m6, port_lo, unused_local, unused_age_timer,
          port_hi, unused_pad1, unused_pad2) = struct.unpack(
-             'BBBBBBBBIBBH', fdb[offset:offset+16])
+             'BBBBBBBBIBBH', fdb[offset:offset + 16])
         mac = '%02x:%02x:%02x:%02x:%02x:%02x' % (m1, m2, m3, m4, m5, m6)
         port = (port_hi << 8) | port_lo
         iface = interfaces.get(port, 'unknown')

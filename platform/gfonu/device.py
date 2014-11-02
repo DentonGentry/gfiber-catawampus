@@ -200,7 +200,7 @@ class Installer(tr.download.Installer):
 
     # TODO(jnewlin): Remove the --skiploadersig once the new version of ginstall
     # is integrated down from the cpe2.0 branch.
-    cmd = [GINSTALL, '--tar={0}'.format(self.filename), '--partition=other', 
+    cmd = [GINSTALL, '--tar={0}'.format(self.filename), '--partition=other',
            '--skiploadersig']
     try:
       self._ginstall = subprocess.Popen(cmd, stdout=subprocess.PIPE)
@@ -262,7 +262,7 @@ class Ethernet(tr181.Device_v2_4.Device.Ethernet):
         '1': EthernetInterfaceOnu('eth0', ETH_STATS_DIR),
         '2': EthernetInterfaceOnu('pon0', PON_STATS_DIR, maxbitrate=1000),
         '3': dm.ethernet.EthernetInterfaceLinux26(ifname='man'),
-        }
+    }
     self.VLANTerminationList = {}
     self.LinkList = {}
     self.RMONStatsList = {}

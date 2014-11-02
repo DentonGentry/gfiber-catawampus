@@ -132,7 +132,8 @@ class DeviceId(dm.device_info.DeviceIdMeta):
 
   AdditionalHardwareVersion = tr.cwmptypes.ReadOnlyString('')
   AdditionalSoftwareVersion = tr.cwmptypes.ReadOnlyString('')
-  Description = tr.cwmptypes.ReadOnlyString('Set top box for Google Fiber network')
+  Description = tr.cwmptypes.ReadOnlyString(
+      'Set top box for Google Fiber network')
   HardwareVersion = tr.cwmptypes.ReadOnlyString('')
   Manufacturer = tr.cwmptypes.ReadOnlyString('Google Fiber')
   ManufacturerOUI = tr.cwmptypes.ReadOnlyString('F88FCA')
@@ -414,7 +415,8 @@ class Moca(tr181.Device_v2_6.Device.MoCA):
     super(Moca, self).__init__()
     ifname = 'moca0' if _DoesInterfaceExist('moca0') else 'eth1'
     if os.path.exists('/sys/kernel/debug/bcmgenet'):
-      qfiles = '/sys/kernel/debug/bcmgenet/%s/bcmgenet_discard_cnt_q%%d' % ifname
+      qfiles = (
+          '/sys/kernel/debug/bcmgenet/%s/bcmgenet_discard_cnt_q%%d' % ifname)
       numq = 17
       hipriq = 1
     else:
@@ -558,7 +560,8 @@ class Device(tr181.Device_v2_6.Device):
     super(Device, self).__init__()
     self._UnexportStuff()
     # TODO(dgentry): figure out why these are not being exported automatically.
-    self.Export(objects=['DeviceInfo', 'NAT', 'X_CATAWAMPUS-ORG_DynamicDNS', 'UPnP'])
+    self.Export(
+        objects=['DeviceInfo', 'NAT', 'X_CATAWAMPUS-ORG_DynamicDNS', 'UPnP'])
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
     led = dm.device_info.LedStatusReadFromFile('LED', LEDSTATUS)
     self.DeviceInfo.AddLedStatus(led)
@@ -619,7 +622,8 @@ class Device(tr181.Device_v2_6.Device):
         'eth1.0': 'Device.MoCA.Interface.1',
         'moca0.0': 'Device.MoCA.Interface.1',
     }
-    self.Hosts = dm.host.Hosts(iflookup=iflookup, bridgename='br0', dmroot=dmroot)
+    self.Hosts = dm.host.Hosts(
+        iflookup=iflookup, bridgename='br0', dmroot=dmroot)
 
 
 class LANDevice(BASE98IGD.LANDevice):

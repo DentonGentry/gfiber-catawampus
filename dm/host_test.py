@@ -33,6 +33,7 @@ def TimeNow():
 
 
 class TestDeviceModelRoot(tr.core.Exporter):
+
   def __init__(self, tr98=None, tr181=None):
     super(TestDeviceModelRoot, self).__init__()
     if tr98:
@@ -44,6 +45,7 @@ class TestDeviceModelRoot(tr.core.Exporter):
 
 
 class HostTest(unittest.TestCase):
+
   def setUp(self):
     self.old_ASUS_HOSTNAMES = host.ASUS_HOSTNAMES
     self.old_DHCP_FINGERPRINTS = host.DHCP_FINGERPRINTS
@@ -124,7 +126,7 @@ class HostTest(unittest.TestCase):
     h.IPv6AddressList['4'].ValidateExports()
 
   def testHostsFromBridge(self):
-    iflookup = {'eth0': 'Ethernet', 'eth1.0': 'MoCA',}
+    iflookup = {'eth0': 'Ethernet', 'eth1.0': 'MoCA'}
     h = host.Hosts(iflookup, bridgename='br0')
     self.assertEqual(10, len(h.HostList))
     h.ValidateExports()
@@ -150,7 +152,7 @@ class HostTest(unittest.TestCase):
     self.assertEqual(0, len(expected))
 
   def testMissingFdbFile(self):
-    iflookup = {'eth0': 'Ethernet', 'eth1.0': 'MoCA',}
+    iflookup = {'eth0': 'Ethernet', 'eth1.0': 'MoCA'}
     h = host.Hosts(iflookup, bridgename='nonexistent0')
     self.assertEqual(0, len(h.HostList))
 

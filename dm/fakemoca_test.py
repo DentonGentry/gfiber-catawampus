@@ -26,6 +26,7 @@ import fakemoca
 
 
 class FakeMocaTest(unittest.TestCase):
+
   def testValidateExports(self):
     moca = fakemoca.FakeMoca()
     moca.ValidateExports()

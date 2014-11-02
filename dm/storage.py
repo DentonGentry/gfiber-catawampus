@@ -88,6 +88,7 @@ SYS_UBI = '/sys/class/ubi/'
 
 
 class ErrorStatVfs(object):
+
   def __init__(self):
     self.f_bsize = 0
     self.f_frsize = 0

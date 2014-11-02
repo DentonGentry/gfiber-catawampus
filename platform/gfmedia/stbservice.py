@@ -51,7 +51,7 @@ CONT_MONITOR_FILES = [
     '/tmp/cwmp/monitoring/dejittering/tr_135_total_djstats%d.json',
     '/tmp/cwmp/monitoring/dejittering/tr_135_total_decoderstats%d.json',
     '/tmp/cwmp/monitoring/tcp/tr_135_total_tcpstats%d.json',
-    ]
+]
 
 EPG_STATS_FILES = ['/tmp/cwmp/monitoring/epg/tr_135_epg_stats*.json']
 HDMI_STATS_FILE = '/tmp/cwmp/monitoring/hdmi/tr_135_hdmi_stats*.json'

@@ -66,6 +66,7 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
   """PlatformConfig for GFMedia devices."""
 
   # pylint:disable=unused-argument
+
   def __init__(self, ioloop=None):
     super(PlatformConfig, self).__init__()
 
@@ -237,6 +238,7 @@ class DeviceId(dm.device_info.DeviceIdMeta):
 
 
 class Services(tr181.Device_v2_2.Device.Services):
+
   def __init__(self):
     tr181.Device_v2_2.Device.Services.__init__(self)
     self.Export(objects=['StorageServices'])

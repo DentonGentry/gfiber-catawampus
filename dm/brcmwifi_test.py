@@ -32,6 +32,7 @@ import netdev
 
 
 class BrcmWifiTest(unittest.TestCase):
+
   def setUp(self):
     self.old_WL_EXE = brcmwifi.WL_EXE
     brcmwifi.WL_EXE = 'testdata/brcmwifi/wl'

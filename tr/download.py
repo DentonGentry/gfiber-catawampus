@@ -183,7 +183,7 @@ class Download(object):
       when = now
 
     self.wait_handle = self.ioloop.add_timeout(
-        datetime.timedelta(seconds=when-now),
+        datetime.timedelta(seconds=when - now),
         self.TimerCallback)
 
   def _NewDownloadObject(self, stateobj):

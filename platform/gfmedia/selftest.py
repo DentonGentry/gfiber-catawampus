@@ -58,7 +58,7 @@ class SelfTest(BASE.X_GOOGLE_COM_GFIBERTV.SelfTest):
     self.proc = None
 
   Mode = tr.cwmptypes.TriggerEnum(['None', 'Success', 'Error',
-                               'StressTest', 'Throughput'])
+                                   'StressTest', 'Throughput'])
   ServerIP = tr.cwmptypes.TriggerString()
   AutoRestartEnable = tr.cwmptypes.TriggerBool()
   MaxBitRate = tr.cwmptypes.TriggerFloat()

@@ -35,6 +35,7 @@ def FakeChown(filename, uid, gid):
 
 
 class FakeDbThingy(object):
+
   def __init__(self):
     self.pw_uid = 0
     self.gr_gid = 0
@@ -75,7 +76,7 @@ class GvsbTest(unittest.TestCase):
     self.tmpdir = tmpdir
 
   def tearDown(self):
-    #shutil.rmtree(self.tmpdir)
+    # shutil.rmtree(self.tmpdir)
     gvsb.EPGPRIMARYFILE = self.EPGPRIMARYFILE
     gvsb.EPGSECONDARYFILE = self.EPGSECONDARYFILE
     gvsb.EPGURLFILE = self.EPGURLFILE
@@ -101,7 +102,8 @@ class GvsbTest(unittest.TestCase):
     gv.EpgPrimary = 'EpgPrimaryFoo'
     self.loop.RunOnce()
     self.assertEqual(gv.EpgPrimary, 'EpgPrimaryFoo')
-    self.assertEqual(self._GetFileContent(gvsb.EPGPRIMARYFILE), 'EpgPrimaryFoo\n')
+    self.assertEqual(
+        self._GetFileContent(gvsb.EPGPRIMARYFILE), 'EpgPrimaryFoo\n')
 
   def testEpgSecondary(self):
     gv = gvsb.Gvsb()

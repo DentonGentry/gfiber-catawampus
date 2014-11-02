@@ -70,6 +70,7 @@ class AcsFault(object):
 
 
 class _Enterable(object):
+
   def __init__(self, iterable):
     self.iter = iterable
 
@@ -162,6 +163,7 @@ def _StripNamespace(tagname):
 
 
 class NodeWrapper(object):
+
   def __init__(self, name, attrib, items):
     self.name = name
     self.attrib = attrib

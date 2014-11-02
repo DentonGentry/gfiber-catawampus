@@ -31,11 +31,13 @@ SYSTEMPROPS = ['/rw/sagesrv/sagesrv.properties']
 USERPROPS = ['/rw/sagesrv/sagesrv_user.properties']
 CONTRACTS = ['/var/media/ads/contracts/ad_contracts.csv']
 
+
 class TargetAttr(tr.cwmptypes.Attr):
   """An attribute that has the string representation of targeting.
 
   You can set it to the strings 'targeting=1' or 'targeting=0'.
   """
+
   def validate(self, obj, value):
     if value is None:
       return value
@@ -45,6 +47,7 @@ class TargetAttr(tr.cwmptypes.Attr):
     if s == 'targeting=1':
       return True
     return None
+
 
 class Hat(BASETV):
   """Implementation of x-hat.xml."""
@@ -62,7 +65,8 @@ class Hat(BASETV):
   GFTSUrl = tr.cwmptypes.TriggerString()
   GFASUrl = tr.cwmptypes.TriggerString()
 
-  Target = tr.cwmptypes.ReadOnly(tr.cwmptypes.FileBacked(USERPROPS, TargetAttr()))
+  Target = tr.cwmptypes.ReadOnly(
+      tr.cwmptypes.FileBacked(USERPROPS, TargetAttr()))
   HATContracts = tr.cwmptypes.FileBacked(CONTRACTS, tr.cwmptypes.String())
 
   def __init__(self):

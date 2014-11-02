@@ -29,11 +29,13 @@ import selftest
 
 
 class TimeNow(object):
+
   def timetuple(self):
     return (2013, 1, 2, 3, 4, 5)
 
 
 class SelfTestTest(unittest.TestCase):
+
   def setUp(self):
     selftest.TIMENOW = TimeNow
 

@@ -80,11 +80,10 @@ class NetdevStatsMrvl88601(ETHERNET.Interface.Stats):
         self, tx_good_pkts - tx_broadcast_pkts - tx_multicast_pkts)
 
     type(self).ErrorsReceived.Set(self,
-        self._ReadStatFile('rx_bad_fc') + self._ReadStatFile('rx_undersized') +
-        self._ReadStatFile('rx_fragments') + self._ReadStatFile('rx_oversized') +
-        self._ReadStatFile('rx_jabber') + self._ReadStatFile('rx_mac_error') +
-        self._ReadStatFile('rx_crc_error') + self._ReadStatFile('rx_bad_packets'))
-
+                                  self._ReadStatFile('rx_bad_fc') + self._ReadStatFile('rx_undersized') +
+                                  self._ReadStatFile('rx_fragments') + self._ReadStatFile('rx_oversized') +
+                                  self._ReadStatFile('rx_jabber') + self._ReadStatFile('rx_mac_error') +
+                                  self._ReadStatFile('rx_crc_error') + self._ReadStatFile('rx_bad_packets'))
 
   def _ReadStatFile(self, stat_file):
     """Read a single network statistic."""

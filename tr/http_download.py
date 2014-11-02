@@ -42,7 +42,7 @@ DOWNLOAD_FAILED = 9010
 def _uri_path(url):
   pos = url.find('://')
   if pos >= 0:
-    url = url[pos+3:]
+    url = url[pos + 3:]
   pos = url.find('/')
   if pos >= 0:
     url = url[pos:]
@@ -53,6 +53,7 @@ def calc_http_digest(method, uripath, qop, nonce, cnonce, nc,
                      username, realm, password):
   def H(s):
     return hashlib.md5(s).hexdigest()
+
   def KD(secret, data):
     return H(secret + ':' + data)
   A1 = username + ':' + realm + ':' + password
@@ -62,6 +63,7 @@ def calc_http_digest(method, uripath, qop, nonce, cnonce, nc,
 
 
 class HttpDownload(object):
+
   def __init__(self, url, username=None, password=None,
                download_complete_cb=None, ioloop=None, download_dir=None):
     self.url = url

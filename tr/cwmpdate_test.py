@@ -29,6 +29,7 @@ import cwmpdate
 
 
 class UTC(datetime.tzinfo):
+
   def utcoffset(self, dt):
     return datetime.timedelta(0)
 
@@ -40,6 +41,7 @@ class UTC(datetime.tzinfo):
 
 
 class OTH(datetime.tzinfo):
+
   def utcoffset(self, dt):
     return datetime.timedelta(0, 3600)
 

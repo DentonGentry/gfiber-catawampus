@@ -33,6 +33,7 @@ def MockTime():
 
 
 class MockIoloop(object):
+
   def __init__(self):
     self.timeout = None
     self.callback = None
@@ -43,6 +44,7 @@ class MockIoloop(object):
 
 
 class STBServiceTest(unittest.TestCase):
+
   def setUp(self):
     self.STATS_FILES_NOEXST = ['testdata/stbservice/notexist%d.json']
     self.old_CONT_MONITOR_FILES = stbservice.CONT_MONITOR_FILES

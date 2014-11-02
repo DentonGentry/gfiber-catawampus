@@ -169,7 +169,7 @@ class PeriodicStatistics(BASE157PS):
         del self._parameter_list[key]
 
     def DelParameterByVal(self, val):
-      for k,v in self._parameter_list.iteritems():
+      for k, v in self._parameter_list.iteritems():
         if v == val:
           del self._parameter_list[k]
           break
@@ -255,7 +255,7 @@ class PeriodicStatistics(BASE157PS):
       self.RemoveTimeout()
       self._sample_start_time = current_time
       time_to_sample = self.CalcTimeToNextSample(current_time)
-      delta = datetime.timedelta(0, microseconds=(time_to_sample+0.1)*1e6)
+      delta = datetime.timedelta(0, microseconds=(time_to_sample + 0.1) * 1e6)
       self._pending_timeout = self._cpe.ioloop.add_timeout(
           delta, self.CollectSample)
 

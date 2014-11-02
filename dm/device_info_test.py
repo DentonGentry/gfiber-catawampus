@@ -29,6 +29,7 @@ import device_info
 
 
 class TestDeviceId(device_info.DeviceIdMeta):
+
   def Manufacturer(self):
     return 'Manufacturer'
 
@@ -67,6 +68,7 @@ fake_periodics = []
 
 
 class FakePeriodicCallback(object):
+
   def __init__(self, callback, callback_time, io_loop=None):
     self.callback = callback
     self.callback_time = callback_time
@@ -212,7 +214,7 @@ class DeviceInfoTest(tornado.testing.AsyncTestCase, unittest.TestCase):
         770: Process(PID=770, Command='automount', Size=6081,
                      Priority=20, CPUTime=5515790,
                      State='Uninterruptible')
-        }
+    }
     device_info.SLASH_PROC = 'testdata/device_info/processes'
     ps = device_info.ProcessStatusLinux26(self.io_loop)
     processes = ps.ProcessList

@@ -17,6 +17,7 @@ def FakeChown(filename, uid, gid):
 
 
 class FakeDbThingy(object):
+
   def __init__(self):
     self.pw_uid = 1001
     self.gr_gid = 1002
@@ -106,8 +107,12 @@ class HelpersTest(unittest.TestCase):
     self.assertEqual('192.168.1.1', helpers.NormalizeIPAddr('192.168.1.1'))
     normal = helpers.NormalizeIPAddr('0000:0000:0000:0000:0000:0000:0000:0001')
     self.assertEqual('::1', normal)
-    self.assertEqual('fe80::21d:9ff:fe11:f55f', helpers.NormalizeIPAddr('fe80::21d:9ff:fe11:f55f'))
-    self.assertEqual('fe80::21d:9ff:fe11:f55f', helpers.NormalizeIPAddr('FE80::21D:9FF:FE11:F55F'))
+    self.assertEqual(
+        'fe80::21d:9ff:fe11:f55f',
+        helpers.NormalizeIPAddr('fe80::21d:9ff:fe11:f55f'))
+    self.assertEqual(
+        'fe80::21d:9ff:fe11:f55f',
+        helpers.NormalizeIPAddr('FE80::21D:9FF:FE11:F55F'))
     self.assertEqual('boo!', helpers.NormalizeIPAddr('boo!'))
 
 

@@ -179,8 +179,7 @@ def MockIfaddresses(iface):
                           'addr': '1.1.1.3'},
                          {'broadcast': '2.2.2.255',
                           'netmask': '255.255.254.0',
-                          'addr': '2.2.2.3'}
-                         ],
+                          'addr': '2.2.2.3'}],
         socket.AF_INET6: [{'netmask': 'ffff:ffff:ffff:ffff::',
                            'addr': '1000:1000:1000:1000:0011:22ff:fe33:4455'},
                           {'netmask': 'ffff:ffff:ffff:ffff::',
@@ -191,7 +190,6 @@ def MockIfaddresses(iface):
         socket.AF_PACKET: [{'broadcast': 'ff:ff:ff:ff:ff:ff',
                             'addr': '00:11:22:33:44:66'}]
     }
-
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 from distutils.core import setup
 
-LONGDESC="""I2C Module Base Utilities.
+LONGDESC = """I2C Module Base Utilities.
 
 Provides a wrapper around the i2c-tools driver.
 """
@@ -11,7 +11,6 @@ setup(name='i2c',
       license='Apache',
       author='Ke Dong',
       author_email='kedong@google.com',
-      py_modules=["i2c"],
+      py_modules=['i2c'],
       long_description=LONGDESC,
-      keywords="i2c",
-      )
+      keywords='i2c',)

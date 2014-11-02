@@ -985,9 +985,9 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
     for idx, wep in self.WEPKeyList.items():
       key = wep.WEPKey
       if key:
-        self.wl.SetWepKey(idx-1, key)
+        self.wl.SetWepKey(idx - 1, key)
       else:
-        self.wl.ClrWepKey(idx-1)
+        self.wl.ClrWepKey(idx - 1)
     self.wl.SetWepKeyIndex(self.config.p_wepkeyindex)
 
   @tr.session.cache

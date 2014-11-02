@@ -105,8 +105,7 @@ class WlanConfiguration(CATA98WIFI):
     # Need to be implemented, but not done yet.
     self.Unexport(['BasicDataTransmitRates', 'AutoRateFallBackEnabled',
                    'OperationalDataTransmitRates',
-                   'PossibleChannels', 'TransmitPower',
-                  ])
+                   'PossibleChannels', 'TransmitPower'])
 
     # Unimplemented, but not yet evaluated
     self.Unexport(['Alias', 'ChannelsInUse', 'MaxBitRate',

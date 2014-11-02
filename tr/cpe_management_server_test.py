@@ -33,6 +33,7 @@ periodic_callbacks = []
 
 
 class MockIoloop(object):
+
   def __init__(self):
     self.timeout_time = None
     self.timeout_callback = None
@@ -49,6 +50,7 @@ class MockIoloop(object):
 
 
 class MockPeriodicCallback(object):
+
   def __init__(self, callback, callback_time, io_loop=None):
     self.callback = callback
     self.callback_time = callback_time
@@ -66,6 +68,7 @@ class MockPeriodicCallback(object):
 
 
 class MockAcsConfig(object):
+
   def __init__(self):
     self.set_acs_raise = True
     self.set_acs_url_called = False
@@ -87,6 +90,7 @@ class MockAcsConfig(object):
 
 
 class FakeAcsConfig(object):
+
   def GetAcsUrl(self):
     return None
 

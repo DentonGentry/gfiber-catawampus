@@ -49,18 +49,21 @@ class TestObject(object):
   ip6 = tr.cwmptypes.IP6Addr()
   file = tr.cwmptypes.FileBacked([TEST_FILE], tr.cwmptypes.Bool())
   file2 = tr.cwmptypes.FileBacked([TEST_FILE], tr.cwmptypes.Bool(),
-                              delete_if_empty=False)
+                                  delete_if_empty=False)
   file3 = tr.cwmptypes.FileBacked([TEST3_FILE], tr.cwmptypes.String())
 
   v = tr.cwmptypes.Unsigned()
+
   @v.validator
   def v(self, value):
     return value * self.f
 
   vv = tr.cwmptypes.Int()
+
   @vv.validator
   def vv(self, value):
     return -value
+
   @vv.validator
   def vv(self, value):
     return value + 1
@@ -70,11 +73,13 @@ class NotifierTestObject(object):
   a = tr.cwmptypes.Int(0)
   b = tr.cwmptypes.Int(5)
 
+
 def ChangeValues(obj):
   obj.b = obj.a
 
 
 class TriggerObject(object):
+
   def __init__(self):
     self.xval = 7
     self.triggers = 0
@@ -99,11 +104,13 @@ class TriggerObject(object):
   ip6 = tr.cwmptypes.TriggerIP6Addr('1111:2222::3333:4444')
 
   v = tr.cwmptypes.TriggerFloat()
+
   @v.validator
   def v(self, value):
     return value + 1
 
   vv = tr.cwmptypes.Float()
+
   @vv.validator
   def vv(self, value):
     return 2 * value
@@ -132,6 +139,7 @@ class NumberOfObject(object):
 
 
 class TypesTest(unittest.TestCase):
+
   def testTypes(self):
     obj = TestObject()
     self.assertEquals(obj.a, None)

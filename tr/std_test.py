@@ -26,6 +26,7 @@ import tr098_v1_2 as tr098
 
 
 class MyModel(tr098.InternetGatewayDevice_v1_4):
+
   def __init__(self):
     tr098.InternetGatewayDevice_v1_4.__init__(self)
     self.InternetGatewayDevice = core.TODO()
@@ -48,6 +49,7 @@ class MyModel(tr098.InternetGatewayDevice_v1_4):
 
 
 class StdTest(unittest.TestCase):
+
   def testStd(self):
     o = MyModel()
     o.ValidateExports()

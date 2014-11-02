@@ -30,6 +30,7 @@ import ookla
 
 
 class TimeNow(object):
+
   def timetuple(self):
     return (2013, 1, 2, 3, 4, 5)
 

@@ -39,6 +39,7 @@ mock_downloads = []
 
 
 class MockHttpClient(object):
+
   def __init__(self, io_loop=None):
     self.did_fetch = False
     self.request = None
@@ -52,6 +53,7 @@ class MockHttpClient(object):
 
 
 class MockIoloop(object):
+
   def __init__(self):
     self.timeout = None
     self.callback = None
@@ -62,6 +64,7 @@ class MockIoloop(object):
 
 
 class MockHttpDownload(object):
+
   def __init__(self, url, username=None, password=None,
                download_complete_cb=None, download_dir=None, ioloop=None):
     self.url = url
@@ -78,6 +81,7 @@ class MockHttpDownload(object):
 
 
 class MockInstaller(object):
+
   def __init__(self, filename):
     self.filename = filename
     self.did_install = False
@@ -99,6 +103,7 @@ class MockInstaller(object):
 
 
 class MockTransferComplete(object):
+
   def __init__(self):
     self.transfer_complete_called = False
     self.dl = None
@@ -121,6 +126,7 @@ class MockTransferComplete(object):
 
 
 class MockFile(object):
+
   def __init__(self, name):
     self.name = name
 
@@ -130,6 +136,7 @@ def _Delta(t):
 
 
 class DownloadTest(unittest.TestCase):
+
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp()
     download.INSTALLER = MockInstaller
@@ -394,6 +401,7 @@ class DownloadTest(unittest.TestCase):
 
 
 class MockDownloadObj(object):
+
   def __init__(self, stateobj, transfer_complete_cb, done_cb=None,
                download_dir=None, ioloop=None):
     self.stateobj = stateobj
@@ -424,6 +432,7 @@ class MockDownloadObj(object):
 
 
 class DownloadManagerTest(unittest.TestCase):
+
   def setUp(self):
     self.old_DOWNLOADOBJ = download.DOWNLOADOBJ
     download.DOWNLOADOBJ = MockDownloadObj

@@ -85,13 +85,16 @@ class GFiberTv(BASETV):
       return True
 
   EASFipsCode = tr.cwmptypes.FileBacked(EASFIPSFILE, tr.cwmptypes.String())
-  EASServiceAddress = tr.cwmptypes.FileBacked(EASADDRFILE, tr.cwmptypes.String())
+  EASServiceAddress = tr.cwmptypes.FileBacked(
+      EASADDRFILE, tr.cwmptypes.String())
   EASServicePort = tr.cwmptypes.FileBacked(EASPORTFILE, tr.cwmptypes.String())
   f = tr.cwmptypes.FileBacked(EASHEARTBEATFILE, tr.cwmptypes.Date())
   EASHeartbeatTimestamp = tr.cwmptypes.ReadOnly(f)
   TcpAlgorithm = tr.cwmptypes.FileBacked(TCPALGORITHM, tr.cwmptypes.String())
-  UiControlUrl = tr.cwmptypes.FileBacked(UICONTROLURLFILE, tr.cwmptypes.String())
-  TvBufferAddress = tr.cwmptypes.FileBacked(TVBUFFERADDRESS, tr.cwmptypes.String())
+  UiControlUrl = tr.cwmptypes.FileBacked(
+      UICONTROLURLFILE, tr.cwmptypes.String())
+  TvBufferAddress = tr.cwmptypes.FileBacked(
+      TVBUFFERADDRESS, tr.cwmptypes.String())
   TvBufferKey = tr.cwmptypes.FileBacked(TVBUFFERKEY, tr.cwmptypes.String())
 
   def __init__(self, mailbox_url, my_serial=None):

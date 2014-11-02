@@ -73,8 +73,9 @@ class FakeWifiWlanConfiguration(BASE98WIFI):
   BasicDataTransmitRates = tr.cwmptypes.ReadOnlyString(
       '1,2,5.5,6,9,11,12,18,24,36,48,54')
   BasicEncryptionModes = tr.cwmptypes.Enum(['None', 'WEPEncryption'])
-  BeaconType = tr.cwmptypes.Enum(['None', 'Basic', 'WPA', '11i', 'BasicandWPA',
-                              'Basicand11i', 'WPAand11i', 'BasicandWPAand11i'])
+  BeaconType = tr.cwmptypes.Enum(
+      ['None', 'Basic', 'WPA', '11i', 'BasicandWPA', 'Basicand11i',
+       'WPAand11i', 'BasicandWPAand11i'])
   BSSID = tr.cwmptypes.String('00:1a:11:00:00:01')
   DeviceOperationMode = tr.cwmptypes.ReadOnlyString('InfrastructureAccessPoint')
   Enable = tr.cwmptypes.Bool(False)

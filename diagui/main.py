@@ -76,7 +76,7 @@ class DiaguiSettings(tornado.web.Application):
     self.cpemach = cpemach
     if self.root:
       tr.cwmptypes.AddNotifier(type(self.root.Device.Ethernet),
-                           'InterfaceNumberOfEntries', self.AlertNotifiers)
+                               'InterfaceNumberOfEntries', self.AlertNotifiers)
       # TODO(anandkhare): Add notifiers on more parameters using the same format
       # as above, as and when they are implemented using types.py.
     self.pathname = os.path.dirname(__file__)

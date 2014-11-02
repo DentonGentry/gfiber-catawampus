@@ -117,6 +117,7 @@ class DeviceIdFakeCPE(dm.device_info.DeviceIdMeta):
 
 
 class ServicesFakeCPE(tr181.Device_v2_2.Device.Services):
+
   def __init__(self):
     tr181.Device_v2_2.Device.Services.__init__(self)
     self.Export(objects=['StorageServices'])

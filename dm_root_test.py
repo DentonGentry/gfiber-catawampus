@@ -40,11 +40,13 @@ class MockTr98(BASE98):
 
 
 class MockManagement(object):
+
   def __init__(self):
     self.EnableCWMP = False
 
 
 class DeviceModelRootTest(unittest.TestCase):
+
   def testAddManagementServer(self):
     root = dm_root.DeviceModelRoot(loop=None, platform=None,
                                    ext_dir='ext_test')

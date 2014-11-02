@@ -32,6 +32,7 @@ TR181_BAD_TEMPERATURE = -274
 
 
 class MockSensor(object):
+
   def __init__(self):
     self.temperature = 0.0
 
@@ -48,7 +49,10 @@ class MockTime(object):
 
 
 fake_periodics = []
+
+
 class FakePeriodicCallback(object):
+
   def __init__(self, callback, callback_time, io_loop=None):
     self.callback = callback
     self.callback_time = callback_time / 1000

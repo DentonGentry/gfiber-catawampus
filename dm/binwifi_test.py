@@ -33,6 +33,7 @@ import netdev
 
 
 class BinWifiTest(unittest.TestCase):
+
   def setUp(self):
     self.old_BINWIFI = binwifi.BINWIFI
     self.tmpdir = tempfile.mkdtemp()
@@ -90,7 +91,7 @@ class BinWifiTest(unittest.TestCase):
         '"set" "-P" "-b" "2.4" "-e" "WPA_PSK_AES" "-c" "auto" "-s" '
         '"Test SSID 1" "-a" "HIGH" "-p" "a/b/g/n"',
         'PSK=testpassword'
-        ]
+    ]
     self.assertEqual(buf.strip().splitlines(), exp)
 
   def testAnotherConfigCommit(self):
@@ -113,7 +114,7 @@ class BinWifiTest(unittest.TestCase):
         '"set" "-P" "-b" "2.4" "-e" "WPA2_PSK_AES" "-H" "-c" "10" '
         '"-s" "Test SSID 1" "-a" "HIGH" "-p" "a/b/g/n"',
         'PSK=testpassword'
-        ]
+    ]
     self.assertEqual(buf.strip().splitlines(), exp)
 
   def test5GhzConfigCommit(self):
@@ -136,7 +137,7 @@ class BinWifiTest(unittest.TestCase):
         '"set" "-P" "-b" "5" "-e" "WPA2_PSK_AES" "-H" "-c" "44" '
         '"-s" "Test SSID 1" "-a" "HIGH" "-w" "80" "-p" "a/b/g/n"',
         'PSK=testpassword'
-        ]
+    ]
     self.assertEqual(buf.strip().splitlines(), exp)
 
   def testRadioDisabled(self):
@@ -168,7 +169,7 @@ class BinWifiTest(unittest.TestCase):
           '"set" "-P" "-b" "2.4" "-e" "WPA12_PSK_AES" '
           '"-c" "auto" "-s" "Test SSID 1" "-p" "a/b/g/n"',
           'PSK=testpassword'
-          ]
+      ]
       self.assertEqual(buf.strip().splitlines(), exp)
       os.remove(self.wifioutfile)
 
@@ -209,7 +210,7 @@ class BinWifiTest(unittest.TestCase):
         '"set" "-P" "-b" "2.4" "-e" "WEP" '
         '"-c" "auto" "-s" "Test SSID" "-p" "a/b/g/n"',
         'PSK='
-        ]
+    ]
     self.assertEqual(buf.strip().splitlines(), exp)
 
   def testSSID(self):

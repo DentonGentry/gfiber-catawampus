@@ -39,6 +39,7 @@ class FakeI2cBus(object):
 
 
 class Ds6923OpticalTest(unittest.TestCase):
+
   def setUp(self):
     self.save_bus = ds6923_optical.I2C_BUS
     self.fake_bus = FakeI2cBus()
@@ -59,7 +60,7 @@ class Ds6923OpticalTest(unittest.TestCase):
     self.ds6923.i2c.Read(mox.IsA(int), 100, 2).AndReturn([1, 2])
     self.ds6923.i2c.Read(mox.IsA(int), 100, 2).AndReturn([0xff, 0xff])
     m.ReplayAll()
-    self.assertEqual(1<<8 | 2, self.ds6923.ReadWord(100))
+    self.assertEqual(1 << 8 | 2, self.ds6923.ReadWord(100))
     self.assertEqual(0xffff, self.ds6923.ReadWord(100))
     m.UnsetStubs()
     m.VerifyAll()
@@ -81,7 +82,6 @@ class Ds6923OpticalTest(unittest.TestCase):
     self.assertEqual(7094, self.ds6923.LowerOpticalThreshold)
     m.UnsetStubs()
     m.VerifyAll()
-
 
   def testUpperOpticalThreshold(self):
     m = mox.Mox()

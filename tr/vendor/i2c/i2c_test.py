@@ -58,7 +58,7 @@ class I2cUtilUnitTest(unittest.TestCase):
     self.assertEquals(buf, data)
 
   def testReadOneBlock(self):
-    buf = [3]*32
+    buf = [3] * 32
     bus = self.smbus_mocker.CreateMock(SMBus)
     bus.read_i2c_block_data(self.i2c_addr, 0, 1).AndReturn([0])
     bus.read_i2c_block_data(self.i2c_addr, 20, 32).AndReturn(buf)
@@ -69,8 +69,8 @@ class I2cUtilUnitTest(unittest.TestCase):
     self.assertEquals(buf, data)
 
   def testReadThreeBlocks(self):
-    buf = [3]*96
-    result = [3]*32
+    buf = [3] * 96
+    result = [3] * 32
     bus = self.smbus_mocker.CreateMock(SMBus)
     bus.read_i2c_block_data(self.i2c_addr, 0, 1).AndReturn([0])
     bus.read_i2c_block_data(self.i2c_addr, 10, 32).AndReturn(result)
@@ -83,14 +83,14 @@ class I2cUtilUnitTest(unittest.TestCase):
     self.assertEquals(buf, data)
 
   def testReadThreeBlocksMore(self):
-    buf = [3]*100
-    result = [3]*32
+    buf = [3] * 100
+    result = [3] * 32
     bus = self.smbus_mocker.CreateMock(SMBus)
     bus.read_i2c_block_data(self.i2c_addr, 0, 1).AndReturn([0])
     bus.read_i2c_block_data(self.i2c_addr, 10, 32).AndReturn(result)
     bus.read_i2c_block_data(self.i2c_addr, 42, 32).AndReturn(result)
     bus.read_i2c_block_data(self.i2c_addr, 74, 32).AndReturn(result)
-    result = [3]*4
+    result = [3] * 4
     bus.read_i2c_block_data(self.i2c_addr, 106, 4).AndReturn(result)
     self.smbus_mocker.ReplayAll()
     helper = i2c.Util(bus)
@@ -126,7 +126,7 @@ class I2cUtilUnitTest(unittest.TestCase):
     self.smbus_mocker.VerifyAll()
 
   def testWriteOneBlock(self):
-    buf = [3]*32
+    buf = [3] * 32
     i2c_buf = []
     i2c_buf.extend(buf)
     bus = self.smbus_mocker.CreateMock(SMBus)
@@ -137,9 +137,9 @@ class I2cUtilUnitTest(unittest.TestCase):
     self.smbus_mocker.VerifyAll()
 
   def testWriteThreeBlocks(self):
-    buf = [3]*96
+    buf = [3] * 96
     i2c_buf = []
-    i2c_buf.extend([3]*32)
+    i2c_buf.extend([3] * 32)
     bus = self.smbus_mocker.CreateMock(SMBus)
     bus.write_i2c_block_data(self.i2c_addr, 10, i2c_buf).AndReturn(None)
     bus.write_i2c_block_data(self.i2c_addr, 42, i2c_buf).AndReturn(None)
@@ -150,15 +150,15 @@ class I2cUtilUnitTest(unittest.TestCase):
     self.smbus_mocker.VerifyAll()
 
   def testWriteThreeBlocksMore(self):
-    buf = [3]*100
+    buf = [3] * 100
     i2c_buf = []
-    i2c_buf.extend([3]*32)
+    i2c_buf.extend([3] * 32)
     bus = self.smbus_mocker.CreateMock(SMBus)
     bus.write_i2c_block_data(self.i2c_addr, 10, i2c_buf).AndReturn(None)
     bus.write_i2c_block_data(self.i2c_addr, 42, i2c_buf).AndReturn(None)
     bus.write_i2c_block_data(self.i2c_addr, 74, i2c_buf).AndReturn(None)
     i2c_buf = []
-    i2c_buf.extend([3]*4)
+    i2c_buf.extend([3] * 4)
     bus.write_i2c_block_data(self.i2c_addr, 106, i2c_buf).AndReturn(None)
     self.smbus_mocker.ReplayAll()
     helper = i2c.Util(bus)

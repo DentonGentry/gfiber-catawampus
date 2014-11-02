@@ -33,6 +33,7 @@ import tr.session
 
 
 class MockIoloop(object):
+
   def __init__(self):
     self.timeout = None
     self.callback = None
@@ -140,12 +141,12 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
 
   def testFanSpeed(self):
     fan = device.FanReadGpio(speed_filename='testdata/fanspeed',
-                    percent_filename='testdata/fanpercent')
+                             percent_filename='testdata/fanpercent')
     fan.ValidateExports()
     self.assertEqual(fan.RPM, 1800)
     self.assertEqual(fan.DesiredPercentage, 50)
     fan = device.FanReadGpio(speed_filename='foo',
-                    percent_filename='bar')
+                             percent_filename='bar')
     self.assertEqual(fan.RPM, -1)
     self.assertEqual(fan.DesiredPercentage, -1)
 
@@ -207,6 +208,7 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
 
 
 class MockPynetInterface(object):
+
   def __init__(self, ifname):
     self.ifname = ifname
 

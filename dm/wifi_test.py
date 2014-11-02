@@ -26,6 +26,7 @@ import wifi
 
 
 class WifiTest(unittest.TestCase):
+
   def testContiguousRanges(self):
     self.assertEqual(wifi.ContiguousRanges([1, 2, 3, 4, 5]), '1-5')
     self.assertEqual(wifi.ContiguousRanges([1, 2, 3, 5]), '1-3,5')

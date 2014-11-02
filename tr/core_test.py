@@ -26,6 +26,7 @@ import core
 
 
 class TestObject(core.Exporter):
+
   def __init__(self):
     core.Exporter.__init__(self)
     self.Export(params=['TestParam'],
@@ -48,6 +49,7 @@ class TestObject(core.Exporter):
 
 
 class AutoObject(core.Exporter):
+
   def __init__(self):
     core.Exporter.__init__(self)
     self.SubList = core.AutoDict('SubList',
@@ -73,6 +75,7 @@ class AutoObject(core.Exporter):
 
 
 class CoreTest(unittest.TestCase):
+
   def setUp(self):
     # Reset the global gcount
     TestObject.SubObj.gcount = [0]
@@ -165,7 +168,6 @@ class CoreTest(unittest.TestCase):
     self.assertEqual(root.SubList[0].GetExport('Count'), 6)
     self.assertEqual(root.GetExport('Sub.0.Count'), 7)
     self.assertEqual(root.GetExport('Sub.576.Count'), 8)
-
 
     self.assertEqual(list(root.ListExports(recursive=False)),
                      ['Sub.'])

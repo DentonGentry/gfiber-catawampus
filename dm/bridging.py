@@ -32,11 +32,13 @@ BASEBRIDGE = tr.tr181_v2_2.Device_v2_2.Device.Bridging
 
 
 class BridgingState(object):
+
   def __init__(self, brname):
     self.brname = brname
 
 
 class Bridging(BASEBRIDGE):
+
   def __init__(self):
     BASEBRIDGE.__init__(self)
     self._Bridges = {}

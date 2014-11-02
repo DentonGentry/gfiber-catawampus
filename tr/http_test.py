@@ -77,12 +77,14 @@ def StubOutMonotime(moxinstance):
 
 
 class WrapHttpClient(object):
+
   def __init__(self, oldclient, stopfunc, **kwargs):
     self.stopfunc = stopfunc
     self.realclient = oldclient(**kwargs)
 
   def fetch(self, req, callback):
     print '%s: fetching: %s %s' % (self, req, callback)
+
     def mycallback(httpresponse):
       print 'WrapHTTP request: finished request for %r' % req.url
       callback(httpresponse)
@@ -97,6 +99,7 @@ class WrapHttpClient(object):
 
 
 class MockAcsConfig(object):
+
   def __init__(self, port):
     self.port = port
 
@@ -111,6 +114,7 @@ class MockAcsConfig(object):
 
 
 class LinearHttpHandler(tornado.web.RequestHandler):
+
   def initialize(self, callback):
     self.callback = callback
 
@@ -129,9 +133,11 @@ class LinearHttpHandler(tornado.web.RequestHandler):
 
 
 class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
+
   def setUp(self):
     self.old_HTTPCLIENT = session.HTTPCLIENT
     self.old_GETWANPORT = http.GETWANPORT
+
     def _WrapWrapper(**kwargs):
       return WrapHttpClient(self.old_HTTPCLIENT, self.stop, **kwargs)
     session.HTTPCLIENT = _WrapWrapper
@@ -264,7 +270,14 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
     h = self.NextHandler()
     self.assertTrue(h.request.method, 'POST')
 
-    msg = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">cwmpID</cwmp:ID><cwmp:HoldRequests soapenv:mustUnderstand="1">1</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:InformResponse><MaxEnvelopes>1</MaxEnvelopes></cwmp:InformResponse></soapenv:Body></soapenv:Envelope>'  # pylint:disable=g-line-too-long
+    msg = ('<soapenv:Envelope '
+           'xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" '
+           'xmlns:cwmp="urn:dslforum-org:cwmp-1-2" '
+           'xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" '
+           'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
+           'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID'
+           ' soapenv:mustUnderstand="1">cwmpID</cwmp:ID><cwmp:HoldRequests '
+           'soapenv:mustUnderstand="1">1</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:InformResponse><MaxEnvelopes>1</MaxEnvelopes></cwmp:InformResponse></soapenv:Body></soapenv:Envelope>')  # pylint:disable=g-line-too-long
 
     h.set_cookie('CWMPSID', '0123456789abcdef')
     h.set_cookie('AnotherCookie', '987654321', domain='.example.com',
@@ -439,6 +452,7 @@ class TestManagementServer(object):
 
 
 class PingTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
+
   def ping_callback(self):
     self.ping_calledback = True
 
