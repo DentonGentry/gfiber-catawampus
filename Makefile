@@ -5,10 +5,9 @@ GPYLINT=gpylint --disable=W0403,W0613 \
 	  --init-hook='sys.path.append("."); import tr.fix_path'
 PYTHONPATH:=$(shell /bin/pwd):$(PYTHONPATH)
 
-
 all: tr/all
 
-test: all \
+SUBTESTS= \
   tr/test \
   dm/test \
   diagui/test \
@@ -16,6 +15,9 @@ test: all \
   platform/gfmedia/test \
   platform/gfonu/test \
   platform/tomato/test
+$(SUBTESTS): all
+
+test: all $(SUBTESTS)
 	tr/vendor/wvtest/wvtestrun $(MAKE) runtests
 
 runtests: all *_test.py
