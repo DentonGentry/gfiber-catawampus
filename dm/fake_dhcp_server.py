@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # unittest requires method names starting in 'test'
-# pylint: disable-msg=C6409
+# pylint:disable=invalid-name
 
 """TR-181 Device.DHCPv[46] implementation for FakeCPE.
 

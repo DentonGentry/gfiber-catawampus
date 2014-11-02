@@ -293,7 +293,7 @@ class CPE(TR069Service):
   # There's some magic here, functions that start with a capital letter
   # are assumed to be ACS invokable, for example 'SetParameterAttributes'
   # so this helper starts with a lower case letter.
-  # pylint: disable-msg=g-bad-name
+  # pylint:disable=g-bad-name
   def setCallbacks(self, send_transfer_complete,
                    transfer_complete_received,
                    inform_response_received,
@@ -598,7 +598,7 @@ class CPE(TR069Service):
 
   def Download(self, command_key, file_type, url, username, password,
                file_size, target_filename, delay_seconds,
-               success_url, failure_url):  # pylint: disable-msg=W0613
+               success_url, failure_url):  # pylint:disable=unused-argument
     """Initiate a download immediately or after a delay."""
     return self.download_manager.NewDownload(
         command_key=command_key,

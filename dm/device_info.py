@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409
+# pylint:disable=invalid-name
 
 """Implementation of tr-181 Device.DeviceInfo object.
 
@@ -112,7 +112,6 @@ def _GetUptime():
   return int(uptime)
 
 
-#pylint: disable-msg=W0231
 class DeviceInfo181Linux26(CATA181DEVICEINFO):
   """Implements tr-181 DeviceInfo for Linux 2.6 and similar systems."""
 

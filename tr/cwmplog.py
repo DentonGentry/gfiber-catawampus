@@ -14,8 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-# pylint: disable-msg=C6409
-# pylint: disable-msg=W0404
+# pylint:disable=invalid-name
 #
 """Implement logging for cwmpd."""
 
@@ -160,6 +159,6 @@ class Logger(object):
   def LogTerse(self, xml):
     try:
       return _LogSoapETree(ET.fromstring(xml))
-    except:  # Never, ever kill catawampus for this. pylint: disable-msg=W0702
+    except:  # Never, ever kill catawampus for this. pylint:disable=bare-except
       print 'Unable to parse XML for logging.'
       return str(xml)

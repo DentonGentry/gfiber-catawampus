@@ -3,7 +3,7 @@
 # Copyright 2012 Google Inc. All Rights Reserved.
 #
 # unittest requires method names starting in 'test'
-# pylint: disable-msg=C6409
+# pylint:disable=invalid-name
 
 """Unit tests for periodic_statistics.py."""
 

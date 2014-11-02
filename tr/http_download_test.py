@@ -14,13 +14,13 @@
 # limitations under the License.
 
 # unittest requires method names starting in 'test'
-# pylint: disable-msg=C6409
+# pylint:disable=invalid-name
 
 """Unit tests for http_download.py."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-from collections import namedtuple  # pylint: disable-msg=C6202
+from collections import namedtuple  # pylint:disable=g-importing-member
 import shutil
 import tempfile
 from wvtest import unittest
@@ -74,7 +74,7 @@ class MockIoloop(object):
 
 
 class MockTempFileIOError(object):
-  def __init__(self, delete, dir):  # pylint: disable-msg=W0622
+  def __init__(self, delete, dir):  # pylint:disable=redefined-builtin
     self.delete = delete
     self.dir = dir
     self.name = 'MockTempFileIOError'

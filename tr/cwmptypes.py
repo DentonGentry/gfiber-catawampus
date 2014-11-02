@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-# pylint: disable=C6409,W0212
+# pylint: disable=invalid-name,W0212
 #
 """Type descriptors for common TR-069 data types."""
 

@@ -56,7 +56,7 @@ def parse(arg):
 
 
 def valid(arg):
-  # pylint: disable-msg=W0702
+  # pylint:disable=bare-except
   try:
     parse(arg)
   except:

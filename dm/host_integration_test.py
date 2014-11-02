@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # unittest requires method names starting in 'test'
-#pylint: disable-msg=C6409
+# pylint:disable=invalid-name
 
 """Integration test for host.py implementation.
 

@@ -14,8 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-# pylint: disable-msg=C6409
-# pylint: disable-msg=W0404
+# pylint:disable=invalid-name
 #
 """Implement the TR-069 style request/response protocol over HTTP."""
 
@@ -163,11 +162,11 @@ class CPEStateMachine(object):
                ioloop=None, restrict_acs_hosts=None):
     tornado.httpclient.AsyncHTTPClient.configure(
         'tornado.curl_httpclient.CurlAsyncHTTPClient')
-    # pylint: disable-msg=protected-access
+    # pylint:disable=protected-access
     oldcreate = tornado.curl_httpclient._curl_create
     tornado.curl_httpclient._curl_create = (
         lambda *args, **kwargs: CurlCreator(oldcreate, *args, **kwargs))
-    # pylint: enable-msg=protected-access
+    # pylint:enable=protected-access
     self.cpe = cpe
     self.cpe_soap = api_soap.CPE(self.cpe)
     self.encode = api_soap.Encode()

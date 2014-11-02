@@ -22,7 +22,7 @@ import i2c
 
 
 # The smbus is not installed on the host machine.
-# pylint: disable-msg=C6409
+# pylint:disable=invalid-name
 class SMBus(object):
 
   def read_i2c_block_data(self, addr, offset, length):
@@ -36,7 +36,7 @@ class SMBus(object):
 
   def write_byte(self, addr, cmd):
     pass
-# pylint: enable-msg=C6409
+# pylint:enable=invalid-name
 
 
 class I2cUtilUnitTest(unittest.TestCase):

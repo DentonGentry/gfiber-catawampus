@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-# pylint: disable-msg=C6409
+# pylint:disable=invalid-name
 #
 """A simple command protocol that lets us manipulate a TR-069 tree."""
 
@@ -118,8 +118,7 @@ class RemoteCommandStreamer(quotedblock.QuotedBlockStreamer):
 
   def CmdAdd(self, name, idx=None):
     """Add a sub-object to the given list with the given (optional) index."""
-    # pylint: disable-msg=W0612
-    idx, obj = self.root.AddExportObject(name, idx)
+    idx, unused_obj = self.root.AddExportObject(name, idx)
     return [[idx]]
 
   def CmdDel(self, name, *idxlist):

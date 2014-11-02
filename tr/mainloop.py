@@ -33,7 +33,7 @@ import sys
 import traceback
 import google3
 import tornado.ioloop
-import tornado.iostream  # pylint: disable-msg=W0404
+import tornado.iostream
 import helpers
 
 
@@ -102,14 +102,14 @@ class ListenSocket(object):
       self.sock.close()
       helpers.Unlink(self.address)
 
-  def _Accept(self, fd, events):  # pylint: disable-msg=W0613
+  def _Accept(self, fd, events):  # pylint:disable=unused-argument
     try:
       sock, address = self.sock.accept()
     except socket.error, e:
       if e.args[0] in (errno.EWOULDBLOCK, errno.EAGAIN):
         return
       raise
-    sock.setblocking(0)  # pylint: disable-msg=E1101
+    sock.setblocking(0)
     print 'got a connection from %r' % (address,)
     self.onaccept_func(sock, address)
 
@@ -166,7 +166,7 @@ class LineReader(object):
 
   def OnClose(self):
     print 'closing %r' % (self.address,)
-    self.stream._read_callback = None  # pylint: disable-msg=protected-access
+    self.stream._read_callback = None  # pylint:disable=protected-access
     self.stream.set_close_callback(None)
 
 
@@ -211,7 +211,7 @@ class MainLoop(object):
     # can get their refcounts down to zero, so their destructors can be
     # called
     if self.ioloop:
-      # gpylint: disable-msg=W0212
+      # gpylint:disable=protected-access
       for fd in self.ioloop._handlers.keys():
         self.ioloop.remove_handler(fd)
       self.ioloop._handlers.clear()
@@ -315,7 +315,7 @@ class _WaitUntilIdle(object):
     for tmo in timeouts:
       try:
         tornado.ioloop.IOLoop.instance().remove_timeout(tmo)
-      except:  # pylint: disable-msg=bare-except
+      except:  # pylint:disable=bare-except
         pass   # must catch all exceptions in a destructor
 
   def _Call(self, *args, **kwargs):
@@ -375,10 +375,9 @@ def _TestGotLine(line):
 
 def main():
   loop = MainLoop()
-  # pylint: disable-msg=C6402
-  loop.ListenInet(('', 12999),
-                  lambda sock, address: LineReader(sock, address,
-                                                   _TestGotLine))
+  loop.ListenInet(
+      ('', 12999),
+      lambda sock, address: LineReader(sock, address, _TestGotLine))
   loop.Start()
 
 

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# pylint: disable-msg=g-bad-name
+# pylint:disable=g-bad-name
 
 """Simple helper function to wrap time.monotime() if it doesn't exist."""
 

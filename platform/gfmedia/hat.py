@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-# pylint: disable-msg=C0103
+# pylint:disable=invalid-name
 
 """Implement handling for the X_GOOGLE_COM_HAT vendor data model."""
 

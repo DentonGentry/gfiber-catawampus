@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-# pylint: disable-msg=C6409
+# pylint:disable=invalid-name
 
 """tr-181 Device implementations for supported platforms."""
 
@@ -686,7 +686,7 @@ class InternetGatewayDevice(BASE98IGD):
     return 0
 
 
-# pylint: disable-msg=unused-argument
+# pylint:disable=unused-argument
 def PlatformInit(name, device_model_root):
   """Create platform-specific device models and initialize platform."""
   tr.download.INSTALLER = Installer

@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-# pylint: disable-msg=C6409
+# pylint:disable=invalid-name
 #
 """Base classes for TR-069 model objects.
 
@@ -67,19 +67,19 @@ class AutoDict(object):
 
   def _Bad(self, funcname):
 
-    # pylint: disable-msg=W0613
+    # pylint:disable=unused-argument
     def Fn(*args, **kwargs):
       raise NotImplementedError('%r must override %s'
                                 % (self.__name, funcname))
     return Fn
 
   def _GetItemFromIterItems(self, key):
-    for (k, v) in self.iteritems():  # pylint: disable-msg=W0612
+    for (k, v) in self.iteritems():
       if k == key:
         return v
     raise KeyError(key)
 
-  def iteritems(self):  # pylint: disable-msg=C6409
+  def iteritems(self):
     return self.__iteritems()
 
   def __getitem__(self, key):
@@ -98,12 +98,12 @@ class AutoDict(object):
       return False
     return True
 
-  def iterkeys(self):  # pylint: disable-msg=C6409
-    for (k, v) in self.iteritems():  # pylint: disable-msg=W0612
+  def iterkeys(self):
+    for (k, _) in self.iteritems():
       yield k
 
-  def itervalues(self):  # pylint: disable-msg=C6409
-    for (k, v) in self.iteritems():  # pylint: disable-msg=W0612
+  def itervalues(self):
+    for (_, v) in self.iteritems():
       yield v
 
   def __iter__(self):
@@ -111,17 +111,17 @@ class AutoDict(object):
 
   def __len__(self):
     count = 0
-    for i in self:  # pylint: disable-msg=W0612
+    for _ in self:
       count += 1
     return count
 
-  def keys(self):  # pylint: disable-msg=C6409
+  def keys(self):
     return list(self.iterkeys())
 
-  def values(self):  # pylint: disable-msg=C6409
+  def values(self):
     return list(self.itervalues())
 
-  def items(self):  # pylint: disable-msg=C6409
+  def items(self):
     return list(self.iteritems())
 
 
@@ -295,7 +295,7 @@ class Exporter(object):
         pass
 
       try:
-        for (iname, obj) in l.iteritems():  # pylint: disable-msg=W0612
+        for (unused_iname, unused_obj) in l.iteritems():
           pass
       except AttributeError:
         raise Exc(name + 'List', 'is an objlist but failed to iteritems')
@@ -396,7 +396,7 @@ class Exporter(object):
     """
     parent, subname = self.FindExport(name)
     try:
-      return self._GetExport(parent, subname)  # pylint: disable-msg=W0212
+      return self._GetExport(parent, subname)
     except KeyError:
       # re-raise the KeyError with the full name, not just the subname.
       raise KeyError(name)
@@ -514,7 +514,7 @@ class Exporter(object):
       KeyError: if 'name' is not an exported sub-object type.
     """
     parent, subname = self.FindExport(name)
-    # pylint: disable-msg=W0212
+    # pylint:disable=protected-access
     return parent._AddExportObject(subname, idx)
 
   def DeleteExportObject(self, name, idx):
@@ -548,7 +548,7 @@ class Exporter(object):
       if obj is not None:
         yield '%s.' % (idx,)
         if recursive:
-          for i in obj._ListExports(recursive):  # pylint: disable-msg=W0212
+          for i in obj._ListExports(recursive):  # pylint:disable=protected-access
             yield '%s.%s' % (idx, i)
 
   def _ListExports(self, recursive):
@@ -561,7 +561,7 @@ class Exporter(object):
         yield name + '.'
         if recursive:
           obj = self._GetExport(self, name)
-          # pylint: disable-msg=W0212
+          # pylint:disable=protected-access
           for i in obj._ListExports(recursive):
             yield name + '.' + i
       if name in self.export_object_lists:
@@ -584,7 +584,7 @@ class Exporter(object):
     if name:
       obj = self.GetExport(name)
     if hasattr(obj, '_ListExports'):
-      # pylint: disable-msg=W0212
+      # pylint:disable=protected-access
       return obj._ListExports(recursive=recursive)
     else:
       return self._ListExportsFromDict(obj, recursive=recursive)
