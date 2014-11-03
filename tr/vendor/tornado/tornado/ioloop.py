@@ -675,7 +675,7 @@ class _Select(object):
 if False and hasattr(select, "epoll"):
     # Python 2.6+ on Linux
     _poll = select.epoll
-elif hasattr(select, "kqueue"):
+elif False and hasattr(select, "kqueue"):
     # Python 2.6+ on BSD or Mac
     _poll = _KQueue
 else:
