@@ -12,7 +12,7 @@
                                  urn:broadband-forum-org:cwmp:datamodel-report-0-1 cwmp-datamodel-report.xsd"
              spec="urn:catawampus-org:x-catawampus-1-0">
   <model name="X_CATAWAMPUS-ORG_CATAWAMPUS:1.0" isService="true">
-    <parameter name="RuntimeEnvInfo" access="readOnly">
+    <parameter name="X_CATAWAMPUS-ORG_CATAWAMPUS.RuntimeEnvInfo" access="readOnly">
       <description>Information about the runtime environment, useful for debugging.</description>
       <syntax>
         <string>
