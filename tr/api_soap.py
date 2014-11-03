@@ -249,9 +249,9 @@ class SoapHandler(object):
         traceback.print_exc()
 
     if result is not None:
-      return xml
+      return xml   # the encoded XML response (pass or fail)
     else:
-      return None
+      return None  # no response generated
 
   def _GetResponder(self, method):
     try:
@@ -385,11 +385,9 @@ class CPE(SoapHandler):
     return xml
 
   def Download(self, xml, req):
-    try:
-      username = req.Username
-      password = req.Password
-    except:
-      username = password = None
+    """Start a Download request (returns before download is done)."""
+    username = getattr(req, 'Username', None)
+    password = getattr(req, 'Password', None)
 
     try:
       (code, starttime, endtime) = self.impl.Download(

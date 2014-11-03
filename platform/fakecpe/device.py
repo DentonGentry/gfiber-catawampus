@@ -213,7 +213,6 @@ class InternetGatewayDeviceFakeCPE(BASE98IGD):
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
 
     self.DeviceInfo = dm.device_info.DeviceInfo98Linux26(device_id)
-    tzfile = '/tmp/catawampus.%s/TZ' % FakeCPEInstance()
     self.Time = dm.igd_time.TimeTZ()
     self.Export(objects=['PeriodicStatistics'])
     if periodic_stats:

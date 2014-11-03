@@ -479,9 +479,7 @@ class CPE(TR069Service):
   def GetParameterNames(self, parameter_path, next_level_only):
     """Get the names of parameters or objects (possibly recursively)."""
     orig_path = parameter_path
-    full_path = True
     if parameter_path.endswith('.'):
-      full_path = False
       parameter_path = parameter_path[:-1]
     # First look up and find the parameter, if it doesn't exist we
     # need to raise an exception.  Spec: If the fault is caused by an
@@ -494,7 +492,7 @@ class CPE(TR069Service):
     # is an Internet Gateway Device)
     if parameter_path:
       try:
-        obj = self.root.GetExport(parameter_path)
+        self.root.GetExport(parameter_path)
       except KeyError:
         # ParameterNameError will get changed into the proper tr-69 fault
         # 9005.

@@ -270,7 +270,7 @@ class PortMapping(CATANAT.PortMapping):
     else:
       dport = '%d' % self.InternalPort
     lines.append('DPORT=' + dport)
-    lines.append('ENABLE=%d' % (self.Enable == True))
+    lines.append('ENABLE=%d' % (1 if self.Enable else 0))
 
     return lines
 

@@ -243,8 +243,8 @@ class HttpDownloadTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
     username = 'user'
     password = 'pass'
     # This won't actually fetch www.google.com, httpclient is mocked.
-    http_download.main_dl_start(url=url, username=username,
-                                password=password, ioloop=ioloop)
+    http_download._main_dl_start(url=url, username=username,
+                                 password=password, ioloop=ioloop)
     self.assertTrue(ioloop.started)
     self.assertFalse(ioloop.stopped)
 

@@ -40,9 +40,9 @@ class CatawampusTest(unittest.TestCase):
     c = catawampus.CatawampusDm()
     c.Profiler.Enable = True
     # Profiler is running. Need something to profile.
-    j = 0
+    unused_j = 0
     for i in range(1000):
-      j += i
+      unused_j += i
     c.Profiler.Enable = False
     # We don't check the content (too fragile for a test), just that it
     # generated *something*

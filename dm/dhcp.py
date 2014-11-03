@@ -59,6 +59,7 @@ class Client(DHCP4SERVERPOOL.Client):
     """tr-181 Device.DHCPv4.Server.{i}.Client.{i}.
 
     Args:
+      chaddr: a MAC address.
       ipaddr: a dotted-quad IP address.
       expiry: an integer number of seconds since the epoch UTC
         when the lease will expire, OR a string timestamp, OR

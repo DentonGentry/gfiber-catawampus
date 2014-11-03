@@ -233,7 +233,7 @@ class Installer(tr.download.Installer):
     if self._install_cb:
       self._install_cb(faultcode, faultstring, must_reboot=True)
 
-  def install(self, file_type, target_filename, callback):
+  def Install(self, file_type, target_filename, callback):
     """Install self.filename to disk, then call callback."""
     print 'Installing: %r %r' % (file_type, target_filename)
     ftype = file_type.split()
@@ -260,7 +260,7 @@ class Installer(tr.download.Installer):
     self._ioloop.add_handler(fd, self.on_stdout, self._ioloop.READ)
     return True
 
-  def reboot(self):
+  def Reboot(self):
     cmd = [REBOOT]
     subprocess.call(cmd)
 
@@ -712,14 +712,3 @@ def PlatformInit(name, device_model_root):
   objects.append('X_GOOGLE-COM_GFIBERTV')
   objects.append('X_GOOGLE-COM_HAT')
   return (params, objects)
-
-
-def main():
-  dev_id = DeviceId()
-  periodic_stats = dm.periodic_statistics.PeriodicStatistics()
-  root = Device(dev_id, periodic_stats)
-  root.ValidateExports()
-  tr.core.Dump(root)
-
-if __name__ == '__main__':
-  main()

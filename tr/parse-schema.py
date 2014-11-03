@@ -328,7 +328,6 @@ def RenderComponent(model, prefix, spec, xmlelement):
       RenderObject(model, prefix, spec, i)
     elif i.tag == 'component':
       refspec, unused_refname, ref = chunks[spec, 'component', i.attrib['ref']]
-      refpath = ref.attrib.get('path', ref.attrib.get('name', '<?>'))
       RenderComponent(model, prefix, refspec, ref)
     elif i.tag in ('profile', 'description'):
       pass

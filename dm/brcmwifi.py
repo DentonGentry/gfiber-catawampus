@@ -649,7 +649,7 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
     return self.config.p_basic_authentication_mode
 
   def SetBasicAuthenticationMode(self, value):
-    if not value in BASICAUTHMODES:
+    if value not in BASICAUTHMODES:
       raise ValueError('Unsupported BasicAuthenticationMode %s' % value)
     self.config.p_basic_authentication_mode = value
 
@@ -732,7 +732,7 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
       return 'PSKAuthentication'
 
   def SetIEEE11iAuthenticationMode(self, value):
-    if not value in WPAAUTHMODES:
+    if value not in WPAAUTHMODES:
       raise ValueError('Unsupported IEEE11iAuthenticationMode %s' % value)
     self.config.p_ieee11i_authentication_mode = value
 
@@ -872,7 +872,7 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
       return 'PSKAuthentication'
 
   def SetWPAAuthenticationMode(self, value):
-    if not value in WPAAUTHMODES:
+    if value not in WPAAUTHMODES:
       raise ValueError('Unsupported WPAAuthenticationMode %s' % value)
     self.config.p_wpa_authentication_mode = value
 

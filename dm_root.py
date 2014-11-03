@@ -48,8 +48,6 @@ class DeviceModelRoot(tr.core.Exporter):
     objects.append('X_CATAWAMPUS-ORG_CATAWAMPUS')
     self.Export(params=params, objects=objects)
     if ext_dir:
-      extlist = (glob.glob(os.path.join(ext_dir, 'ext.py')) +
-                 glob.glob(os.path.join(ext_dir, '*/ext.py')))
       sys.path.insert(0, os.path.abspath(ext_dir))
       try:
         extpath = os.path.join(ext_dir, 'ext.py')

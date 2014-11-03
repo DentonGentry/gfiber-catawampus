@@ -120,7 +120,7 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
   def testBadInstaller(self):
     device.GINSTALL = '/dev/null'
     inst = device.Installer('/dev/null', ioloop=self.io_loop)
-    inst.install(file_type='1 Firmware Upgrade Image',
+    inst.Install(file_type='1 Firmware Upgrade Image',
                  target_filename='',
                  callback=self.install_callback)
     self.assertTrue(self.install_cb_called)
@@ -130,7 +130,7 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
   def testInstallerStdout(self):
     device.GINSTALL = 'testdata/device/installer_128k_stdout'
     inst = device.Installer('testdata/device/imagefile', ioloop=self.io_loop)
-    inst.install(file_type='1 Firmware Upgrade Image',
+    inst.Install(file_type='1 Firmware Upgrade Image',
                  target_filename='',
                  callback=self.install_callback)
     self.wait()
@@ -142,7 +142,7 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
   def testInstallerFailed(self):
     device.GINSTALL = 'testdata/device/installer_fails'
     inst = device.Installer('testdata/device/imagefile', ioloop=self.io_loop)
-    inst.install(file_type='1 Firmware Upgrade Image',
+    inst.Install(file_type='1 Firmware Upgrade Image',
                  target_filename='',
                  callback=self.install_callback)
     self.wait()

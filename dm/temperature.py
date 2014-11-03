@@ -367,7 +367,7 @@ class FanReadFileRPS(CATA181DI.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
       rps = GetNumberFromFile(self._filename)
       return rps * 60
     except ValueError as e:
-      print 'FanReadFileRPS bad value %s' % self._filename
+      print 'FanReadFileRPS bad value %s: %s' % (self._filename, e)
       return -1
 
   @property

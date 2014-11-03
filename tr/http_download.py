@@ -20,6 +20,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import functools
 import hashlib
 import json
 import os
@@ -224,25 +225,23 @@ class HttpDownload(object):
         self.tempfile = None
       except (IOError, OSError):
         print 'download: ERROR cannot clean up failed download.'
-        pass
       self.download_complete_cb(DOWNLOAD_FAILED, error_message, None)
     else:
       self.download_complete_cb(0, '', self.tempfile)
-      print('download: success {0}'.format(self.tempfile.name))
+      print 'download: success {0}'.format(self.tempfile.name)
 
 
-def main_dl_complete(ioloop, _, msg, filename):
+def _main_dl_complete(ioloop, _, msg, filename):
   print msg
   ioloop = ioloop or tornado.ioloop.IOLoop.instance()
   ioloop.stop()
 
 
-def main_dl_start(url, username, password, ioloop=None):
+def _main_dl_start(url, username, password, ioloop=None):
   tornado.httpclient.AsyncHTTPClient.configure(
       'tornado.curl_httpclient.CurlAsyncHTTPClient')
-  import functools
   ioloop = ioloop or tornado.ioloop.IOLoop.instance()
-  cb = functools.partial(main_dl_complete, ioloop)
+  cb = functools.partial(_main_dl_complete, ioloop)
   print 'using URL: %s username: %s password: %s' % (url, username, password)
   dl = HttpDownload(url=url, username=username, password=password,
                     download_complete_cb=cb, ioloop=ioloop)
@@ -256,7 +255,7 @@ def main():
   if len(sys.argv) > 3:
     username = sys.argv[2]
     password = sys.argv[3]
-  main_dl_start(url, username, password)
+  _main_dl_start(url, username, password)
 
 if __name__ == '__main__':
   main()

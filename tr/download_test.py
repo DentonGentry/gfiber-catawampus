@@ -91,14 +91,14 @@ class MockInstaller(object):
     self.install_callback = None
     mock_installers.append(self)
 
-  def install(self, file_type, target_filename, callback):
+  def Install(self, file_type, target_filename, callback):
     self.did_install = True
     self.file_type = file_type
     self.target_filename = target_filename
     self.install_callback = callback
     return True
 
-  def reboot(self):
+  def Reboot(self):
     self.did_reboot = True
 
 

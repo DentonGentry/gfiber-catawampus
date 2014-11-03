@@ -103,7 +103,7 @@ class Client(object):
     self.connector = connector
     self.stream = None
     self.result = None
-    self._last_res = None
+    self._last_res = (None, None, None)
     self.cwd = '/'
     self.quotedblock = tr.quotedblock.QuotedBlockProtocol(
         HandleFatal(self.GotBlock))

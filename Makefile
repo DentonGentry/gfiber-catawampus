@@ -1,7 +1,7 @@
 default: all
 
 
-GPYLINT=gpylint
+GPYLINT=gpylint --disable=g-bad-import-order
 PYTHONPATH:=$(shell /bin/pwd):$(PYTHONPATH)
 
 all: tr/all
@@ -33,11 +33,11 @@ clean: tr/clean
 
 lint: all
 	set -e; \
-	find -name '*.py' -size +1c | \
+	(echo cwmp; echo cwmpd; find -name '*.py' -size +1c) | \
 	grep -v '/vendor/' | \
-	grep -v '/\.' | \
-	grep -v 'tr/tr..._.*\.py' | \
-	grep -v 'tr/x_.*\.py' | \
+	grep -v 'google3.py' | \
+	grep -v '__init__.py' | \
+	grep -v 'pyinotify.py' | \
 	xargs $(GPYLINT)
 
 %.lint: all

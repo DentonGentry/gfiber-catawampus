@@ -135,6 +135,6 @@ class Isostream(ISOSTREAM):
 
 
 if __name__ == '__main__':
-  isos = Isostream(None)
+  isos = Isostream()
   print tr.core.DumpSchema(isos)
   isos.ValidateExports()

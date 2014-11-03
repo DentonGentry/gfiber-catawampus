@@ -39,6 +39,7 @@ import session
 # Persistent object storage filename
 DNLDROOTNAME = 'tr69_dnld'
 BOOTROOTNAME = 'tr69_boot'
+INTERNAL_ERROR = 9002
 
 
 class Installer(object):
@@ -49,13 +50,12 @@ class Installer(object):
   tr.download.INSTALLER = their object.
   """
 
-  def install(self, file_type, target_filename, callback):
-    INTERNAL_ERROR = 9002
-    self.callback(faultcode=INTERNAL_ERROR,
-                  faultstring='No installer for this platform.',
-                  must_reboot=False)
+  def Install(self, file_type, target_filename, callback):
+    callback(faultcode=INTERNAL_ERROR,
+             faultstring='No installer for this platform.',
+             must_reboot=False)
 
-  def reboot(self):
+  def Reboot(self):
     return False
 
 # Class to be called after image is downloaded. Platform code is expected
@@ -232,7 +232,7 @@ class Download(object):
           self.stateobj.Update(dlstate=self.INSTALLING)
           file_type = getattr(self.stateobj, 'file_type', None)
           target_filename = getattr(self.stateobj, 'target_filename', None)
-          self.installer.install(file_type=file_type,
+          self.installer.Install(file_type=file_type,
                                  target_filename=target_filename,
                                  callback=self.InstallerCallback)
         else:
@@ -246,7 +246,7 @@ class Download(object):
         if faultcode == 0:
           if must_reboot:
             self.stateobj.Update(dlstate=self.REBOOTING)
-            self.installer.reboot()
+            self.installer.Reboot()
           else:
             end = time.time()
             self.stateobj.Update(dlstate=self.EXITING,
@@ -485,7 +485,7 @@ class DownloadManager(object):
   @session.RunAtEnd
   def _DelayedReboot(self):
     installer = INSTALLER('')
-    installer.reboot()
+    installer.Reboot()
 
   def RestoreReboots(self):
     """Read state of Reboot RPCs in from storage."""

@@ -177,7 +177,8 @@ class LogicalVolumeLinux26(BASESTORAGE.LogicalVolume):
   def _GetStatVfs(self):
     try:
       return STATVFS(self.rootpath)
-    except OSError, IOError:
+    except (OSError, IOError) as e:
+      print 'statvfs(%s): %s' % (self.rootpath, e)
       return ErrorStatVfs()
 
   @property
