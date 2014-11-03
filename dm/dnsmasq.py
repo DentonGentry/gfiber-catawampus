@@ -305,7 +305,15 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
       idx = 1
       with open(DNSMASQLEASES[0]) as f:
         for line in f:
-          (expiry, mac, ip, name, clientid) = line.strip().split()
+          try:
+            (expiry, mac, ip, name, clientid) = line.strip().split()
+          except ValueError:
+            # dnsmasq.leases contains a few other types of lines, like the
+            # DUID for IPv6: duid 00:01:00:01:02:03:04:05:06:07.
+            # Just skip these.
+            if 'duid' not in line:
+              print 'Unable to process dnsmasq lease line: %s' % line
+            continue
           mac = mac.lower()
           clientid = '' if clientid == '*' else binascii.hexlify(clientid)
           name = '' if name == '*' else name
@@ -313,9 +321,7 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
                           clientid=clientid, hostname=name)
           clients[str(idx)] = c
           idx += 1
-    except (OSError, ValueError):
-      print 'Unable to process dnsmasq lease : %s' % line
-    except IOError as e:
+    except (OSError, IOError) as e:
       if e.errno != errno.ENOENT:
         print 'Unable to process dnsmasq lease file : %s' % DNSMASQLEASES[0]
     return clients
