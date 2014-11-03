@@ -14,8 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-# pylint: disable=C6409
-# pylint: disable=W0404
+# pylint: disable=invalid-name
 #
 """Implement the TR-069 CWMP Sesion handling."""
 

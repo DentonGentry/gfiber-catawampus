@@ -30,4 +30,4 @@ mydir = os.path.dirname(__file__)
 sys.path += [
     os.path.join(mydir, '../..'),
 ]
-import tr.google3  #pylint: disable-msg=C6204,W0611
+import tr.google3  # pylint:disable=g-import-not-at-top,unused-import

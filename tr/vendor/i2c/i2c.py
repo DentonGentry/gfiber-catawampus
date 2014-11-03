@@ -64,18 +64,16 @@ class Util(object):
   # smbus is only imported on the platform that supports it. For host
   # machine environment, usually py-smbus is not installed and Util is not
   # used either. Therefore we hide importing of smbus in Util class.
-  # pylint: disable-msg=C6204
   def __init__(self, bus=None, busno=0):
     if bus:
       self.bus = bus
     else:
       try:
-        import smbus
+        import smbus  # pylint:disable=g-import-not-at-top
       except ImportError, e:
         print 'py-smbus is not included in the site package.'
         raise e
       self.bus = smbus.SMBus(busno)
-  # pylint: enable-msg=C6204
 
   def _GetReadMode(self, addr):
     if self.bus.read_i2c_block_data(addr, 0, 1) is not None:

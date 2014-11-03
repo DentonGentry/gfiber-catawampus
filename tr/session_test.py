@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # unittest requires method names starting in 'test'
-# pylint: disable=C6409
+# pylint: disable=invalid-name
 
 """Unit tests for session.py."""
 
@@ -197,7 +197,7 @@ class SimpleCacheObject(object):
 
   @session.cache
   def cache_function_with_args(
-      self, arg1, arg2, x=0, y=0):  # pylint: disable=W0613
+      self, arg1, arg2, x=0, y=0):  # pylint: disable=unused-argument
     self.cache_this_function_args_n += 1 + x + y
 
 

@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # unittest requires method names starting in 'test'
-# pylint: disable-msg=C6409
+# pylint:disable=invalid-name
 
 """Unit tests for cwmpboolean.py."""
 
@@ -121,7 +121,6 @@ class CwmpLogTest(unittest.TestCase):
     self.assertTrue('ThisIsTheOtherValue' in log)
 
 
-# pylint: disable-msg=C6310
 InformXML = """<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <soap:Header>
@@ -174,7 +173,6 @@ InformXML = """<?xml version="1.0" encoding="utf-8"?>
   </soap:Body>
 </soap:Envelope>"""
 
-# pylint: disable-msg=C6308
 InformLog = """ID: catawampus.1370208445.785391
 Inform:
   EventCode: 0 BOOTSTRAP

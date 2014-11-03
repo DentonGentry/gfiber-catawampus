@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# pylint: disable-msg=anomalous-backslash-in-string
+# pylint:disable=anomalous-backslash-in-string
 """Protocol helpers for multiline sh-style-quoted blocks.
 
 Blocks are formatted as lines, separated by newline characters, each
@@ -119,8 +119,7 @@ class QuotedBlockProtocol(object):
       # a new line in this block
       if _HasQuotes(line):
         parts = bup.shquote.quotesplit(line)
-        # pylint: disable-msg=W0612
-        self.lines.append([word for offset, word in parts])
+        self.lines.append([word for unused_offset, word in parts])
       else:
         self.lines.append(line.split())
     else:

@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-# pylint: disable-msg=C6409
+# pylint:disable=invalid-name
 #
 """Test app for TR-069 CPE/ACS interface library."""
 
@@ -89,10 +89,8 @@ class ApiTest(unittest.TestCase):
     root.Test = TestObject()
     root.ValidateExports()
     cpe = api.CPE(root)
-    # pylint: disable-msg=W0612
-    (idx, status) = cpe.AddObject('Test.Thingy.', 0)
+    (idx, unused_status) = cpe.AddObject('Test.Thingy.', 0)
     name = 'Test.Thingy.%d' % int(idx)
-    # pylint: disable-msg=E1103
     cpe.SetParameterValues([('%s.word' % name, 'word1')], 0)
     self.assertEqual(root.GetExport(name).word, 'word1')
     self.assertRaises(KeyError, cpe._SetParameterValue,

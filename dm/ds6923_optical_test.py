@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # unittest requires method names starting in 'test'
-# pylint: disable-msg=C6409
+# pylint:disable=invalid-name
 
 """Unit tests for ds6923_optical.py implementation."""
 

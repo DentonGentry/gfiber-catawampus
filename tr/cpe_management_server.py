@@ -14,8 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-#pylint: disable-msg=C6409
-#pylint: disable-msg=W0404
+# pylint:disable=invalid-name
 #
 """Implement the inner handling for tr-98/181 ManagementServer."""
 
@@ -224,7 +223,7 @@ class CpeManagementServer(object):
   URL = property(GetURL, SetURL, None, 'tr-98/181 ManagementServer.URL')
 
   def _isIp6Address(self, ip):
-    # pylint: disable-msg=W0702
+    # pylint:disable=bare-except
     try:
       socket.inet_pton(socket.AF_INET6, ip)
     except:

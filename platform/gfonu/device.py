@@ -15,7 +15,7 @@
 
 # TR-069 has mandatory attribute names that don't comply with policy
 # Modified based on Denton's device.py for Bruno Platform
-# pylint: disable-msg=C6409
+# pylint:disable=invalid-name
 
 """Data Model for GFiber ONU."""
 
@@ -355,7 +355,7 @@ class InternetGatewayDevice(BASE98IGD):
     self.PeriodicStatistics = periodic_stats
 
 
-# pylint: disable-msg=unused-argument
+# pylint:disable=unused-argument
 def PlatformInit(name, device_model_root):
   """Create platform-specific device models and initialize platform."""
   tr.download.INSTALLER = Installer

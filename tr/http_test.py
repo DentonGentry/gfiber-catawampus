@@ -14,15 +14,15 @@
 # limitations under the License.
 
 # unittest requires method names starting in 'test'
-# pylint: disable-msg=C6409
+# pylint:disable=invalid-name
 
 """Unit tests for http.py."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-# pylint: disable-msg=g-bad-import-order,unused-import
+# pylint:disable=g-bad-import-order,unused-import
 import epoll_fix  # this needs to be first, before any tornado imports
-# pylint: enable-msg=g-bad-import-order,unused-import
+# pylint:enable=g-bad-import-order,unused-import
 
 import datetime
 import os
@@ -264,7 +264,7 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
     h = self.NextHandler()
     self.assertTrue(h.request.method, 'POST')
 
-    msg = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">cwmpID</cwmp:ID><cwmp:HoldRequests soapenv:mustUnderstand="1">1</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:InformResponse><MaxEnvelopes>1</MaxEnvelopes></cwmp:InformResponse></soapenv:Body></soapenv:Envelope>'  # pylint: disable-msg=g-line-too-long
+    msg = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">cwmpID</cwmp:ID><cwmp:HoldRequests soapenv:mustUnderstand="1">1</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:InformResponse><MaxEnvelopes>1</MaxEnvelopes></cwmp:InformResponse></soapenv:Body></soapenv:Envelope>'  # pylint:disable=g-line-too-long
 
     h.set_cookie('CWMPSID', '0123456789abcdef')
     h.set_cookie('AnotherCookie', '987654321', domain='.example.com',

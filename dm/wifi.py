@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-# pylint: disable-msg=C6409
+# pylint:disable=invalid-name
 
 """Implementations of platform-independant tr-98/181 WLAN objects."""
 

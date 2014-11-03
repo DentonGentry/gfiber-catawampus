@@ -327,8 +327,7 @@ def RenderComponent(model, prefix, spec, xmlelement):
     elif i.tag == 'object':
       RenderObject(model, prefix, spec, i)
     elif i.tag == 'component':
-      #pylint: disable-msg=W0612
-      refspec, refname, ref = chunks[spec, 'component', i.attrib['ref']]
+      refspec, unused_refname, ref = chunks[spec, 'component', i.attrib['ref']]
       refpath = ref.attrib.get('path', ref.attrib.get('name', '<?>'))
       RenderComponent(model, prefix, refspec, ref)
     elif i.tag in ('profile', 'description'):
@@ -438,16 +437,15 @@ def main():
                '#\n'
                '# DO NOT EDIT!!\n'
                '#\n'
-               '#pylint: disable-msg=C6202\n'
-               '#pylint: disable-msg=C6409\n'
-               '#pylint: disable-msg=C6310\n'
-               '# These should not actually be necessary (bugs in gpylint?):\n'
-               '#pylint: disable-msg=E1101\n'
-               '#pylint: disable-msg=W0231\n'
+               '# pylint:disable=g-importing-member\n'
+               '# pylint:disable=invalid-name\n'
+               '# pylint:disable=line-too-long\n'
+               '# This should not actually be necessary (bug in gpylint?):\n'
+               '# pylint:disable=super-init-not-called\n'
                '#\n'
                '"""Auto-generated from spec: %s."""\n'
                '\n'
-               'import core\n'
+               'import core  # pylint:disable=unused-import\n'
                % specname)
     outf.write(str(spec))
 

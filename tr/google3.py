@@ -23,4 +23,4 @@ come before other non-python-standard imports.
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 
-import fix_path  #pylint: disable-msg=C6204,W0611
+import fix_path  # pylint:disable=g-import-not-at-top,unused-import

@@ -519,7 +519,7 @@ class DownloadManager(object):
 
 def main():
   # Generate diagram for Download state machine
-  import subprocess  # pylint: disable-msg=C6204
+  import subprocess  # pylint:disable=g-import-not-at-top
   cmd = ['dot', '-Tpdf', '-odownloadStateMachine.pdf']
   p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
   print p.communicate(input=graphviz)[0]

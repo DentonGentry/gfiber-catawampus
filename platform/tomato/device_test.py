@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # unittest requires method names starting in 'test'
-# pylint: disable-msg=C6409
+# pylint:disable=invalid-name
 
 """Unit tests for device.py."""
 
@@ -33,7 +33,7 @@ class MockIoloop(object):
     self.timeout = None
     self.callback = None
 
-  # pylint: disable-msg=unused-argument
+  # pylint:disable=unused-argument
   def add_timeout(self, timeout, callback, monotonic=None):
     self.timeout = timeout
     self.callback = callback

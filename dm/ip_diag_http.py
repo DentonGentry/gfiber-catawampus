@@ -14,8 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-# pylint: disable-msg=C6409
-# pylint: disable-msg=W0404
+# pylint:disable=invalid-name
 #
 """Device.IP.Diagnostics.X_CATAWAMPUS-ORG_HttpDownload.
 """
@@ -76,7 +75,6 @@ class DiagHttpDownload(HTTPDOWNLOAD):
     self.requested = True
     self._StartProc()
 
-  # pylint: disable-msg=W1001
   DiagnosticsState = property(_GetState, _SetState)
 
   @tr.mainloop.WaitUntilIdle
@@ -112,7 +110,7 @@ class DiagHttpDownload(HTTPDOWNLOAD):
     self.ioloop.add_handler(self.subproc.stdout.fileno(),
                             self._GotData, self.ioloop.READ)
 
-  # pylint: disable-msg=W0613
+  # pylint:disable=unused-argument
   def _GotData(self, fd, events):
     data = os.read(fd, 4096)
     print 'GotData: ' + data

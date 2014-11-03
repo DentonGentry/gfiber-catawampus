@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-# pylint: disable-msg=C6409
+# pylint:disable=invalid-name
 
 """Device Models for TomatoUSB."""
 
@@ -65,7 +65,7 @@ DOWNLOADDIR = '/mnt/share/download'
 class PlatformConfig(platform_config.PlatformConfigMeta):
   """PlatformConfig for GFMedia devices."""
 
-  # pylint: disable-msg=unused-argument
+  # pylint:disable=unused-argument
   def __init__(self, ioloop=None):
     super(PlatformConfig, self).__init__()
 
@@ -417,7 +417,7 @@ class IPDiagnostics(CATA181.Device.IP.Diagnostics):
     self.TraceRoute = dm.traceroute.TraceRoute()
 
 
-# pylint: disable-msg=unused-argument
+# pylint:disable=unused-argument
 def PlatformInit(name, device_model_root):
   """Create platform-specific device models and initialize platform."""
   tr.download.INSTALLER = Installer

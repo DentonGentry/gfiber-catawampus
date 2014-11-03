@@ -14,15 +14,14 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-# pylint: disable-msg=C6409,W0404
+# pylint:disable=invalid-name
 #
 """The main server process for our TR-069 CPE device."""
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-# pylint: disable-msg=g-bad-import-order
-import tr.epoll_fix  # this needs to be first, before any tornado imports
-# pylint: enable-msg=g-bad-import-order
+# this needs to be first, before any tornado imports
+import tr.epoll_fix  # pylint:disable=g-bad-import-order
 
 import errno
 import os.path
