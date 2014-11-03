@@ -2,4 +2,4 @@
 
 outfile=$1
 shift 1
-echo -n "$*" >$outfile
+printf "%s" "$*" >$outfile

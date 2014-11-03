@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ -n $TESTOUTPUT ]; then
+if [ -n "$TESTOUTPUT" ]; then
   echo $* >$TESTOUTPUT
 fi
 
@@ -8,6 +8,6 @@ case "$1-$2" in
   cwmp-foo) exit 0 ;;
   cwmp-clear) exit 0 ;;
   bless-*) exit 0 ;;
-  print-) echo -n 'bar'; exit 0 ;;
+  print-) printf %s 'bar'; exit 0 ;;
   *) exit 1 ;;
 esac
