@@ -114,6 +114,7 @@ class ClientOption(DHCP4SERVERPOOL.Client.Option):
 
   def __init__(self, tag, value):
     """tr-181 Device.DHCPv4.Server.{i}.Client.{i}.Option.{i}.
+
     Args:
       tag: numeric DHCP option tag
       value: string value

@@ -20,12 +20,11 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-from wvtest import unittest
-
 import google3
 import tr.cwmptypes
 import api
 import core
+from wvtest import unittest
 
 
 changes = 0
@@ -221,7 +220,7 @@ class ParameterAttrsTest(unittest.TestCase):
   def testDeleteParam(self):
     root = TestObject()
     cpe = api.CPE(root)
-    (unused_idx, obj) = root.AddExportObject('Thingy', '1')
+    (unused_idx, unused_obj) = root.AddExportObject('Thingy', '1')
     f = FakeAttrs()
     f.Name = 'Thingy.1'
     f.Notification = 2

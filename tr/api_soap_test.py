@@ -21,11 +21,10 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import datetime
-from wvtest import unittest
 import xml.etree.ElementTree as ET
-
 import google3
 import api_soap
+from wvtest import unittest
 
 
 expectedTransferComplete = """<?xml version="1.0" encoding="utf-8"?>

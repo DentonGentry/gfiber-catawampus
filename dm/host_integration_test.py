@@ -15,6 +15,7 @@
 
 # unittest requires method names starting in 'test'
 # pylint:disable=invalid-name
+# pylint:disable=unused-argument
 
 """Integration test for host.py implementation.
 

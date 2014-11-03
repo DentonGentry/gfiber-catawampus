@@ -31,8 +31,8 @@ import subprocess
 import google3
 import tornado.ioloop
 import tr.core
-import tr.mainloop
 import tr.cwmptypes
+import tr.mainloop
 import tr.x_catawampus_tr181_2_0
 
 

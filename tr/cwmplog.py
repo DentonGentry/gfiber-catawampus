@@ -20,7 +20,6 @@
 
 
 import os
-import soap
 import xml.etree.ElementTree as ET
 
 
@@ -65,6 +64,11 @@ def _StripNamespace(tag):
   ElementTree retains namespaces in the tag, like:
   {urn:dslforum-org:cwmp-1-2}GetParameterNames
   The namespace is not useful; suppress it.
+
+  Args:
+    tag: the tag name
+  Returns:
+    the tag with namespace removed, if there was one.
   """
   if tag[0] == '{':
     e = tag.find('}')

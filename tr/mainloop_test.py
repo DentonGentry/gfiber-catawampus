@@ -145,7 +145,7 @@ class MainLoopTest(unittest.TestCase):
     loop = mainloop.MainLoop()
     loop.RunOnce()
     s1, s2 = socket.socketpair()
-    s3, s4 = socket.socketpair()
+    s3, unused_s4 = socket.socketpair()
     fd = os.dup(s1.fileno())
     print 'fds are: %d %d %d' % (s1.fileno(), s2.fileno(), fd)
     count = [0]

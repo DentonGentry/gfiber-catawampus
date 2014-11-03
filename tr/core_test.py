@@ -15,14 +15,15 @@
 
 # TR-069 has mandatory attribute names that don't comply with policy
 # pylint:disable=invalid-name
+# pylint:disable=unused-argument
 #
 """Tests for core.py."""
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-from wvtest import unittest
 import weakref
 import core
+from wvtest import unittest
 
 
 class TestObject(core.Exporter):
@@ -127,9 +128,9 @@ class CoreTest(unittest.TestCase):
     name = o.GetCanonicalName(o.SubObj)
     self.assertEqual('SubObj', name)
 
-    (idx1, obj1) = o.AddExportObject('Counter')
-    (idx2, obj2) = o.AddExportObject('Counter')
-    (idx3, obj3) = o.AddExportObject('Counter')
+    (unused_idx1, unused_obj1) = o.AddExportObject('Counter')
+    (unused_idx2, unused_obj2) = o.AddExportObject('Counter')
+    (unused_idx3, obj3) = o.AddExportObject('Counter')
     name = o.GetCanonicalName(obj3)
     self.assertEqual('Counter.3', name)
 

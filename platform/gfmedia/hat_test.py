@@ -24,11 +24,11 @@ import os.path
 import shutil
 import tempfile
 import google3
-from tr.wvtest import unittest
+import hat
 import tr.cwmpdate
 import tr.helpers
 import tr.mainloop
-import hat
+from tr.wvtest import unittest
 
 
 class HatTests(unittest.TestCase):

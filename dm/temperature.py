@@ -53,8 +53,12 @@ def GetNumberFromFile(filename):
 
   The number can be an integer or float. If float, it will be rounded.
 
+  Args:
+    filename: the file to read.
   Returns:
     an integer.
+  Raises:
+    ValueError: if the file did not contain a number.
   """
   with open(filename, 'r') as f:
     result = NUMBER.search(f.readline())

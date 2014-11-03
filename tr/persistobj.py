@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# pylint:disable=invalid-name
 
 """Persistent objects; objects which store themselves to disk."""
 
@@ -42,7 +44,7 @@ class PersistentObject(object):
       ignore_errors: True if you want to ignore common errors (like read-only
         or nonexistent directories) when saving/loading state.
         Otherwise this object will raise exceptions in those cases.
-      kwargs parameters will be passed to self.Update
+      **kwargs: parameters will be passed to self.Update
     """
     self.objdir = objdir
     self.rootname = rootname
@@ -140,6 +142,7 @@ class PersistentObject(object):
 
 
 def GetPersistentObjects(objdir, rootname=''):
+  """Returns a list of persistent objects starting from rootname."""
   globstr = objdir + '/' + rootname + '*'
   objs = []
   for filename in glob.glob(globstr):

@@ -39,7 +39,7 @@ import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 
 try:
-  import netifaces
+  import netifaces  # pylint:disable=g-import-not-at-top
   IFADDRESSES = netifaces.ifaddresses
 except ImportError:
   print 'Skipping netifaces module for unit test'

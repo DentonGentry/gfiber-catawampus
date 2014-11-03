@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# pylint:disable=unused-argument
 
 """Handlers for tr-69 Download and Scheduled Download."""
 
@@ -171,6 +173,7 @@ class Download(object):
     return stateobj
 
   def _ScheduleTimer(self):
+    """Set up a timer to trigger the state machine at the right future time."""
     delay_seconds = getattr(self.stateobj, 'delay_seconds', 0)
     now = time.time()
     wait_start_time = self.stateobj.wait_start_time
@@ -426,8 +429,9 @@ class DownloadManager(object):
     self._downloads.remove(dl)
     self._pending_complete.append(dl)
     if self.send_transfer_complete:
-      self.send_transfer_complete(command_key, faultcode, faultstring,
-                                  starttime, endtime, event_code)
+      self.send_transfer_complete(  # pylint:disable=not-callable
+          command_key, faultcode, faultstring,
+          starttime, endtime, event_code)
 
   def RestoreDownloads(self):
     pobjs = persistobj.GetPersistentObjects(objdir=self.config_dir,

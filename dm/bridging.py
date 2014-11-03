@@ -38,6 +38,7 @@ class BridgingState(object):
 
 
 class Bridging(BASEBRIDGE):
+  """Implementation of the Bridging device model."""
 
   def __init__(self):
     BASEBRIDGE.__init__(self)

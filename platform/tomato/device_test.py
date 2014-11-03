@@ -15,16 +15,17 @@
 
 # unittest requires method names starting in 'test'
 # pylint:disable=invalid-name
+# pylint:disable=unused-argument
 
 """Unit tests for device.py."""
 
 __author__ = 'zve@google.com (Alexei Zverovitch)'
 
 import google3
-from tr.wvtest import unittest
 import dm.periodic_statistics
 import tornado.ioloop
 import tornado.testing
+from tr.wvtest import unittest
 import device
 
 

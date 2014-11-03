@@ -32,9 +32,9 @@ import socket
 import sys
 import traceback
 import google3
+import helpers
 import tornado.ioloop
 import tornado.iostream
-import helpers
 
 
 def _CloseOnExec(fd, enabled):
@@ -143,6 +143,7 @@ class LineReader(object):
     self.stream.read_until('\n', self.GotData)
 
   def GotData(self, line):
+    """Called for each line of data received."""
     try:
       result = self.gotline_func(line)
       if result:
@@ -211,7 +212,7 @@ class MainLoop(object):
     # can get their refcounts down to zero, so their destructors can be
     # called
     if self.ioloop:
-      # gpylint:disable=protected-access
+      # pylint:disable=protected-access
       for fd in self.ioloop._handlers.keys():
         self.ioloop.remove_handler(fd)
       self.ioloop._handlers.clear()

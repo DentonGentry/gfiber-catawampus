@@ -15,6 +15,7 @@
 
 # TR-069 has mandatory attribute names that don't comply with policy
 # pylint:disable=invalid-name
+# pylint:disable=unused-argument
 
 """Device Models for a simulated CPE."""
 
@@ -34,10 +35,10 @@ import platform_config
 import tornado.ioloop
 import tr.acs_config
 import tr.core
+import tr.cwmptypes
 import tr.download
 import tr.tr098_v1_4
 import tr.tr181_v2_2 as tr181
-import tr.cwmptypes
 
 
 FAKECPEINSTANCE = None

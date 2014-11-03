@@ -24,9 +24,9 @@ import datetime
 import os
 import shutil
 import google3
-from tr.wvtest import unittest
-import tr.mainloop
 import ookla
+import tr.mainloop
+from tr.wvtest import unittest
 
 
 class TimeNow(object):

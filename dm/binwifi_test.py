@@ -22,7 +22,6 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import os
 import shutil
-import stat
 import tempfile
 
 import google3

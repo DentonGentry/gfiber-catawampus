@@ -21,9 +21,9 @@
 __author__ = 'irinams@google.com (Irina Stanescu)'
 
 import google3
+import tr.cwmptypes
 import tr.helpers
 import tr.mainloop
-import tr.cwmptypes
 import tr.x_gfibertv_1_0
 BASETV = tr.x_gfibertv_1_0.X_GOOGLE_COM_HAT_v1_0.X_GOOGLE_COM_HAT
 

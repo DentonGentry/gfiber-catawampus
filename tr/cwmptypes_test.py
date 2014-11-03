@@ -23,10 +23,10 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 import datetime
 import os.path
 import time
-from wvtest import unittest
 import google3
-import mainloop
 import tr.cwmptypes
+import mainloop
+from wvtest import unittest
 
 
 TEST_FILE = 'testobject.tmp'

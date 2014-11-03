@@ -25,10 +25,14 @@ create datetime objects with no tzinfo, so we add one.
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+# TODO(apenwarr): move this code into tr.cwmptypes.Date.
+#  (tr.cwmptypes.Date currently calls these functions and so do other places;
+#   the other places should be removed eventually)
+
 import datetime
 
 
-def format(arg):
+def format(arg):  # pylint:disable=redefined-builtin
   """Print a datetime with 'Z' for the UTC timezone, as CWMP requires."""
   if not arg:
     return '0001-01-01T00:00:00Z'  # CWMP Unknown Time

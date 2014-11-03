@@ -24,13 +24,12 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import collections
 import datetime
-from wvtest import unittest
 import xml.etree.ElementTree as ET
-
 import google3
 import api
 import core
 import http
+from wvtest import unittest
 
 
 SOAPNS = '{http://schemas.xmlsoap.org/soap/envelope/}'
@@ -995,7 +994,7 @@ class GetParamsRpcTest(unittest.TestCase):
  </cwmp:SetParameterAttributes>
 </soapenv:Body>
 </soapenv:Envelope>"""
-    responseXml = cpe.cpe_soap.Handle(soapxml)
+    unused_responseXml = cpe.cpe_soap.Handle(soapxml)
     self.assertEqual(
         4,
         cpe.cpe.parameter_attrs.GetParameterAttribute(

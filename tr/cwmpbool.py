@@ -25,7 +25,10 @@ represent the logical value false.
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 
-def format(arg):
+# TODO(apenwarr): replace all remaining uses of this with tr.cwmptypes.Bool.
+
+
+def format(arg):  # pylint:disable=redefined-builtin
   """Print a CWMP boolean object."""
   return '1' if arg else '0'
 

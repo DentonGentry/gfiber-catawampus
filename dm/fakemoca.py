@@ -127,6 +127,7 @@ class FakeMocaInterface(BASE181MOCA.Interface):
 
 
 class FakeMocaAssociatedDevice(BASE181MOCA.Interface.AssociatedDevice):
+  """Placeholder object for a device connected by MoCA."""
   Active = tr.cwmptypes.Bool(True)
   HighestVersion = tr.cwmptypes.ReadOnlyString('2.0')
   MACAddress = tr.cwmptypes.ReadOnlyMacAddr('00:11:22:33:44:55')

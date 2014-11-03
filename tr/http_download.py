@@ -12,6 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# pylint:disable=invalid-name
+# pylint:disable=unused-argument
 
 """Handlers for tr-69 Download and Scheduled Download."""
 
@@ -23,7 +26,6 @@ import os
 import random
 import sys
 import tempfile
-
 import google3
 import tornado
 import tornado.httpclient
@@ -63,6 +65,7 @@ def calc_http_digest(method, uripath, qop, nonce, cnonce, nc,
 
 
 class HttpDownload(object):
+  """Holds the state for an in-progress download over HTTP."""
 
   def __init__(self, url, username=None, password=None,
                download_complete_cb=None, ioloop=None, download_dir=None):
@@ -80,6 +83,7 @@ class HttpDownload(object):
     return self._start_download()
 
   def _start_download(self):
+    """Starts downloading the given object."""
     print 'download: starting (auth_header=%r)' % self.auth_header
     self.content_length = 0
     self.downloaded_bytes = 0

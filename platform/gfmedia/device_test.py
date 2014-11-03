@@ -15,21 +15,18 @@
 
 # unittest requires method names starting in 'test'
 # pylint:disable=invalid-name
+# pylint:disable=unused-argument
 
 """Unit tests for device.py."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import os
-import shutil
-import tempfile
-
 import google3
-from tr.wvtest import unittest
+import device
 import tornado.ioloop
 import tornado.testing
-import device
 import tr.session
+from tr.wvtest import unittest
 
 
 class MockIoloop(object):

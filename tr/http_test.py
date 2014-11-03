@@ -15,14 +15,15 @@
 
 # unittest requires method names starting in 'test'
 # pylint:disable=invalid-name
+# pylint:disable=g-bad-import-order
+# pylint:disable=line-too-long
 
 """Unit tests for http.py."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-# pylint:disable=g-bad-import-order,unused-import
-import epoll_fix  # this needs to be first, before any tornado imports
-# pylint:enable=g-bad-import-order,unused-import
+# this needs to be first, before any tornado imports
+import epoll_fix  # pylint:disable=unused-import
 
 import datetime
 import os

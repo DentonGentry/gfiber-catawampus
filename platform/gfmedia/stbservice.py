@@ -30,9 +30,9 @@ import time
 
 import tornado.ioloop
 import tr.cwmpdate
+import tr.cwmptypes
 import tr.session
 import tr.tr135_v1_2
-import tr.cwmptypes
 import tr.x_catawampus_videomonitoring_1_0 as vmonitor
 
 

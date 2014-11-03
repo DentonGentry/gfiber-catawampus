@@ -6,13 +6,13 @@ __author__ = 'anandkhare@google.com (Anand Khare)'
 
 import hashlib
 import json
+import mimetypes
 import os
 import google3
-import mimetypes
 import tornado.ioloop
 import tornado.web
-import tr.pyinotify
 import tr.cwmptypes
+import tr.pyinotify
 
 ONU_STAT_FILE = '/tmp/cwmp/monitoring/onu/onustats.json'
 

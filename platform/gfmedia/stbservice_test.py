@@ -15,6 +15,7 @@
 
 # unittest requires method names starting in 'test'
 # pylint:disable=invalid-name
+# pylint:disable=unused-argument
 
 """Unit tests for stbservice.py implementation."""
 
@@ -23,9 +24,9 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import socket
 import struct
 import google3
-from tr.wvtest import unittest
-import tr.session
 import stbservice
+import tr.session
+from tr.wvtest import unittest
 
 
 def MockTime():

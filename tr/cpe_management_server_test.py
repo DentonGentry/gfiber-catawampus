@@ -15,6 +15,7 @@
 
 # unittest requires method names starting in 'test'
 # pylint:disable=invalid-name
+# pylint:disable=unused-argument
 
 """Unit tests for cpe_management_server.py."""
 
@@ -22,11 +23,10 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import copy
 import datetime
-from wvtest import unittest
-
 import google3
 import cpe_management_server as ms
 import cwmpdate
+from wvtest import unittest
 
 
 periodic_callbacks = []

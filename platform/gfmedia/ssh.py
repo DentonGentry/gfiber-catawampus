@@ -16,15 +16,17 @@
 # TR-069 has mandatory attribute names that don't comply with policy
 # pylint:disable=invalid-name
 #
+# TODO(apenwarr): Get rid of some of the protected member tricks.
+# pylint:disable=protected-access
+#
 """Implement the X_GOOGLE-COM_SSH vendor data model."""
 
 __author__ = 'sledbetter@google.com (Shawn Ledbetter)'
 
 import copy
-import google3
 import os
-import random
 import subprocess
+import google3
 import tr.x_ssh_1_0
 
 # Unit tests can override these.

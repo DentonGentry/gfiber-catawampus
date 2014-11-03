@@ -23,7 +23,6 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 import binascii
 import collections
 import datetime
-import os
 import random
 import socket
 import sys

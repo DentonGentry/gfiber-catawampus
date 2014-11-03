@@ -15,19 +15,19 @@
 
 # unittest requires method names starting in 'test'
 # pylint:disable=invalid-name
+# pylint:disable=unused-argument
 
 """Unit tests for gvsb.py."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import os
-import shutil
 import tempfile
 import google3
 import gvsb
-from tr.wvtest import unittest
 import tr.helpers
 import tr.mainloop
+from tr.wvtest import unittest
 
 
 def FakeChown(filename, uid, gid):
@@ -155,7 +155,9 @@ class GvsbTest(unittest.TestCase):
     return True if st and st.st_size == 0 else False
 
   def testInitEmptyFiles(self):
-    gv = gvsb.Gvsb()
+    # Need to assign the Gvsb() to a variable to keep it in scope
+    # during RunOnce, so it doesn't get garbage collected.
+    unused_gv = gvsb.Gvsb()
     self.loop.RunOnce()
     self.assertTrue(self._FileIsEmpty(gvsb.EPGPRIMARYFILE))
     self.assertTrue(self._FileIsEmpty(gvsb.EPGSECONDARYFILE))

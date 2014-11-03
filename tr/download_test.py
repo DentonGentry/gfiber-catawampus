@@ -15,6 +15,7 @@
 
 # unittest requires method names starting in 'test'
 # pylint:disable=invalid-name
+# pylint:disable=unused-argument
 
 """Unit tests for download.py."""
 
@@ -24,12 +25,11 @@ import datetime
 import shutil
 import tempfile
 import time
-from wvtest import unittest
-
 import google3
 import core
 import download
 import persistobj
+from wvtest import unittest
 
 
 mock_http_clients = []

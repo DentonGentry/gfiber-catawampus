@@ -28,11 +28,11 @@ import tempfile
 import threading
 import xmlrpclib
 import google3
-from tr.wvtest import unittest
+import gfibertv
 import tr.cwmpdate
 import tr.helpers
 import tr.mainloop
-import gfibertv
+from tr.wvtest import unittest
 
 
 TvProperties = {}

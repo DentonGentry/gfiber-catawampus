@@ -235,6 +235,7 @@ def DoCmd(client, words):
 
 
 def Interactive(client):
+  """Run an interactive command prompt on the given connection."""
   global _want_verbose
   _want_verbose = True
   if readline:

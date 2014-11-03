@@ -23,9 +23,9 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 import datetime
 import signal
 import google3
-from tr.wvtest import unittest
-import tr.mainloop
 import selftest
+import tr.mainloop
+from tr.wvtest import unittest
 
 
 class TimeNow(object):

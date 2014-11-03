@@ -308,7 +308,7 @@ class Wl(object):
 
   def SetChannel(self, value):
     try:
-      v = int(value)
+      int(value)
     except ValueError:
       # a string like '64l' is a chanspec
       self._SubprocessCall(['chanspec', str(value)])

@@ -27,10 +27,7 @@ __author__ = 'zixia@google.com (Ted Huang)'
 import fcntl
 import os
 import subprocess
-import traceback
-
 import google3
-
 import dm.device_info
 import dm.ds6923_optical
 import dm.ethernet

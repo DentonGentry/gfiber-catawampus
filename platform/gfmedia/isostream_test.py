@@ -22,9 +22,9 @@ import os
 import time
 import google3
 import isostream
-from tr.wvtest import unittest
 import tr.helpers
 import tr.mainloop
+from tr.wvtest import unittest
 
 
 class IsostreamTest(unittest.TestCase):
@@ -46,7 +46,7 @@ class IsostreamTest(unittest.TestCase):
     tr.helpers.Unlink(self.readyfile)
 
   def _WaitReady(self):
-    for i in range(1000):
+    for _ in xrange(1000):
       if os.path.exists(self.readyfile):
         return
       time.sleep(0.01)
