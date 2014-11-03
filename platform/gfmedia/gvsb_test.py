@@ -22,6 +22,7 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import os
+import shutil
 import tempfile
 import google3
 import gvsb
@@ -76,7 +77,7 @@ class GvsbTest(unittest.TestCase):
     self.tmpdir = tmpdir
 
   def tearDown(self):
-    # shutil.rmtree(self.tmpdir)
+    shutil.rmtree(self.tmpdir)
     gvsb.EPGPRIMARYFILE = self.EPGPRIMARYFILE
     gvsb.EPGSECONDARYFILE = self.EPGSECONDARYFILE
     gvsb.EPGURLFILE = self.EPGURLFILE
