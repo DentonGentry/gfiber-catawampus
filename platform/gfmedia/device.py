@@ -25,9 +25,16 @@ import glob
 import os
 import subprocess
 import traceback
-
 import google3
-
+import gfibertv
+import gvsb
+import hat
+import isostream
+import ookla
+import pynetlinux
+import ssh
+import stbservice
+import tornado.ioloop
 import dm.binwifi
 import dm.brcmmoca
 import dm.brcmmoca2
@@ -48,8 +55,6 @@ import dm.storage
 import dm.temperature
 import dm.traceroute
 import platform_config
-import pynetlinux
-import tornado.ioloop
 import tr.core
 import tr.download
 import tr.session
@@ -57,19 +62,11 @@ import tr.tr098_v1_2
 import tr.tr181_v2_6 as tr181
 import tr.x_catawampus_tr181_2_0
 
-import gfibertv
-import gvsb
-import hat
-import isostream
-import ookla
-import ssh
-import stbservice
-
 QCASWITCHPORT = None
 try:
-  import qca83xx
+  import qca83xx  # pylint:disable=g-import-not-at-top
   if qca83xx.IsQCA8337():
-    import dm.qca83xx_ethernet
+    import dm.qca83xx_ethernet  # pylint:disable=g-import-not-at-top
     QCASWITCHPORT = dm.qca83xx_ethernet.EthernetInterfaceQca83xx
 except ImportError:
   # Not an error, several platforms don't compile in qca83xx.
@@ -132,7 +129,8 @@ class DeviceId(dm.device_info.DeviceIdMeta):
 
   AdditionalHardwareVersion = tr.cwmptypes.ReadOnlyString('')
   AdditionalSoftwareVersion = tr.cwmptypes.ReadOnlyString('')
-  Description = tr.cwmptypes.ReadOnlyString('Set top box for Google Fiber network')
+  Description = tr.cwmptypes.ReadOnlyString(
+      'Set top box for Google Fiber network')
   HardwareVersion = tr.cwmptypes.ReadOnlyString('')
   Manufacturer = tr.cwmptypes.ReadOnlyString('Google Fiber')
   ManufacturerOUI = tr.cwmptypes.ReadOnlyString('F88FCA')
@@ -235,7 +233,7 @@ class Installer(tr.download.Installer):
     if self._install_cb:
       self._install_cb(faultcode, faultstring, must_reboot=True)
 
-  def install(self, file_type, target_filename, callback):
+  def Install(self, file_type, target_filename, callback):
     """Install self.filename to disk, then call callback."""
     print 'Installing: %r %r' % (file_type, target_filename)
     ftype = file_type.split()
@@ -262,7 +260,7 @@ class Installer(tr.download.Installer):
     self._ioloop.add_handler(fd, self.on_stdout, self._ioloop.READ)
     return True
 
-  def reboot(self):
+  def Reboot(self):
     cmd = [REBOOT]
     subprocess.call(cmd)
 
@@ -414,7 +412,8 @@ class Moca(tr181.Device_v2_6.Device.MoCA):
     super(Moca, self).__init__()
     ifname = 'moca0' if _DoesInterfaceExist('moca0') else 'eth1'
     if os.path.exists('/sys/kernel/debug/bcmgenet'):
-      qfiles = '/sys/kernel/debug/bcmgenet/%s/bcmgenet_discard_cnt_q%%d' % ifname
+      qfiles = (
+          '/sys/kernel/debug/bcmgenet/%s/bcmgenet_discard_cnt_q%%d' % ifname)
       numq = 17
       hipriq = 1
     else:
@@ -558,7 +557,8 @@ class Device(tr181.Device_v2_6.Device):
     super(Device, self).__init__()
     self._UnexportStuff()
     # TODO(dgentry): figure out why these are not being exported automatically.
-    self.Export(objects=['DeviceInfo', 'NAT', 'X_CATAWAMPUS-ORG_DynamicDNS', 'UPnP'])
+    self.Export(
+        objects=['DeviceInfo', 'NAT', 'X_CATAWAMPUS-ORG_DynamicDNS', 'UPnP'])
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
     led = dm.device_info.LedStatusReadFromFile('LED', LEDSTATUS)
     self.DeviceInfo.AddLedStatus(led)
@@ -619,7 +619,8 @@ class Device(tr181.Device_v2_6.Device):
         'eth1.0': 'Device.MoCA.Interface.1',
         'moca0.0': 'Device.MoCA.Interface.1',
     }
-    self.Hosts = dm.host.Hosts(iflookup=iflookup, bridgename='br0', dmroot=dmroot)
+    self.Hosts = dm.host.Hosts(
+        iflookup=iflookup, bridgename='br0', dmroot=dmroot)
 
 
 class LANDevice(BASE98IGD.LANDevice):
@@ -711,14 +712,3 @@ def PlatformInit(name, device_model_root):
   objects.append('X_GOOGLE-COM_GFIBERTV')
   objects.append('X_GOOGLE-COM_HAT')
   return (params, objects)
-
-
-def main():
-  dev_id = DeviceId()
-  periodic_stats = dm.periodic_statistics.PeriodicStatistics()
-  root = Device(dev_id, periodic_stats)
-  root.ValidateExports()
-  tr.core.Dump(root)
-
-if __name__ == '__main__':
-  main()

@@ -15,17 +15,19 @@
 
 # TR-069 has mandatory attribute names that don't comply with policy
 # pylint:disable=invalid-name
+# pylint:disable=unused-argument
 #
 """Tests for core.py."""
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-from wvtest import unittest
 import weakref
 import core
+from wvtest import unittest
 
 
 class TestObject(core.Exporter):
+
   def __init__(self):
     core.Exporter.__init__(self)
     self.Export(params=['TestParam'],
@@ -48,6 +50,7 @@ class TestObject(core.Exporter):
 
 
 class AutoObject(core.Exporter):
+
   def __init__(self):
     core.Exporter.__init__(self)
     self.SubList = core.AutoDict('SubList',
@@ -73,6 +76,7 @@ class AutoObject(core.Exporter):
 
 
 class CoreTest(unittest.TestCase):
+
   def setUp(self):
     # Reset the global gcount
     TestObject.SubObj.gcount = [0]
@@ -124,9 +128,9 @@ class CoreTest(unittest.TestCase):
     name = o.GetCanonicalName(o.SubObj)
     self.assertEqual('SubObj', name)
 
-    (idx1, obj1) = o.AddExportObject('Counter')
-    (idx2, obj2) = o.AddExportObject('Counter')
-    (idx3, obj3) = o.AddExportObject('Counter')
+    (unused_idx1, unused_obj1) = o.AddExportObject('Counter')
+    (unused_idx2, unused_obj2) = o.AddExportObject('Counter')
+    (unused_idx3, obj3) = o.AddExportObject('Counter')
     name = o.GetCanonicalName(obj3)
     self.assertEqual('Counter.3', name)
 
@@ -165,7 +169,6 @@ class CoreTest(unittest.TestCase):
     self.assertEqual(root.SubList[0].GetExport('Count'), 6)
     self.assertEqual(root.GetExport('Sub.0.Count'), 7)
     self.assertEqual(root.GetExport('Sub.576.Count'), 8)
-
 
     self.assertEqual(list(root.ListExports(recursive=False)),
                      ['Sub.'])

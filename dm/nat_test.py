@@ -30,6 +30,7 @@ import tr.mainloop
 
 
 class NatTest(unittest.TestCase):
+
   def setUp(self):
     super(NatTest, self).setUp()
     self.tmpdir = tempfile.mkdtemp()
@@ -325,6 +326,7 @@ class NatTest(unittest.TestCase):
 
 
 class DeviceModelRoot(tr.core.Exporter):
+
   def __init__(self):
     super(DeviceModelRoot, self).__init__()
     self.Device = Device()
@@ -332,6 +334,7 @@ class DeviceModelRoot(tr.core.Exporter):
 
 
 class Device(tr.core.Exporter):
+
   def __init__(self):
     super(Device, self).__init__()
     self.IP = IP()
@@ -339,6 +342,7 @@ class Device(tr.core.Exporter):
 
 
 class IP(tr.core.Exporter):
+
   def __init__(self):
     super(IP, self).__init__()
     o = IPInterface()
@@ -347,6 +351,7 @@ class IP(tr.core.Exporter):
 
 
 class IPInterface(tr.core.Exporter):
+
   def __init__(self):
     super(IPInterface, self).__init__()
     self.IPv4AddressList = {'1': IPv4Address()}
@@ -354,12 +359,14 @@ class IPInterface(tr.core.Exporter):
 
 
 class IPv4Address(tr.core.Exporter):
+
   def __init__(self):
     super(IPv4Address, self).__init__()
     self.IPAddress = '9.9.9.9'
 
 
 class IPv6Address(tr.core.Exporter):
+
   def __init__(self):
     super(IPv6Address, self).__init__()
     self.IPAddress = '1000::0001'

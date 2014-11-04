@@ -35,7 +35,8 @@ CURL = ['curl']
 
 class DiagHttpDownload(HTTPDOWNLOAD):
   """Implementation of the HttpDownload vendor extension for TR-181."""
-  IPVersion = tr.cwmptypes.Enum(['Unspecified', 'IPv4', 'IPv6'], init='Unspecified')
+  IPVersion = tr.cwmptypes.Enum(
+      ['Unspecified', 'IPv4', 'IPv6'], init='Unspecified')
   LimitMbps = tr.cwmptypes.Unsigned(0)
   Result = tr.cwmptypes.String('')
   Timeout = tr.cwmptypes.Unsigned(60)
@@ -58,7 +59,7 @@ class DiagHttpDownload(HTTPDOWNLOAD):
   @Timeout.validator
   def Timeout(self, value):
     if value <= 0:
-      raise ValueError('Timeout  must be > 0');
+      raise ValueError('Timeout  must be > 0')
     return value
 
   def _GetState(self):

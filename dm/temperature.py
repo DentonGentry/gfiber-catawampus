@@ -53,8 +53,12 @@ def GetNumberFromFile(filename):
 
   The number can be an integer or float. If float, it will be rounded.
 
+  Args:
+    filename: the file to read.
   Returns:
     an integer.
+  Raises:
+    ValueError: if the file did not contain a number.
   """
   with open(filename, 'r') as f:
     result = NUMBER.search(f.readline())
@@ -257,8 +261,11 @@ class TemperatureSensor(BASE181TEMPERATURE.TemperatureSensor):
       self.scheduler.stop()
       self.scheduler = None
     if self.config.p_enable:
-      self.scheduler = PERIODICCALL(self.SampleTemperature,
-              self.config.p_polling_interval * 1000, io_loop=self.ioloop)
+      self.scheduler = (
+          PERIODICCALL(
+              self.SampleTemperature,
+              self.config.p_polling_interval * 1000,
+              io_loop=self.ioloop))
       self.scheduler.start()
     # Let new alarm thresholds take effect
     self.SampleTemperature()
@@ -360,7 +367,7 @@ class FanReadFileRPS(CATA181DI.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
       rps = GetNumberFromFile(self._filename)
       return rps * 60
     except ValueError as e:
-      print 'FanReadFileRPS bad value %s' % self._filename
+      print 'FanReadFileRPS bad value %s: %s' % (self._filename, e)
       return -1
 
   @property

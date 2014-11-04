@@ -121,7 +121,7 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
     c = dhcp.Client(
         chaddr='00:11:22:33:44:11', ipaddr='192.168.133.7',
         expiry=now + 86400, clientid='client_id1')
-    c.AddIP(ipaddr='192.168.1.1', expiry = now + 86400)
+    c.AddIP(ipaddr='192.168.1.1', expiry=now + 86400)
     self.ClientList['1'] = c
     self.ClientList['2'] = dhcp.Client(
         chaddr='00:11:22:33:44:33', ipaddr='192.168.133.8',

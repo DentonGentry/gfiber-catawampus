@@ -45,8 +45,8 @@ class NetStatsTest(unittest.TestCase):
     self.assertEqual(eth.MulticastPacketsSent, 104)
     self.assertEqual(eth.PacketsReceived, 500)
     self.assertEqual(eth.PacketsSent, 501)
-    self.assertEqual(eth.UnicastPacketsReceived, 500-100-103)
-    self.assertEqual(eth.UnicastPacketsSent, 501-101-104)
+    self.assertEqual(eth.UnicastPacketsReceived, 500 - 100 - 103)
+    self.assertEqual(eth.UnicastPacketsSent, 501 - 101 - 104)
     self.assertEqual(eth.UnknownProtoPacketsReceived, 0)
 
     # pon stats.
@@ -64,8 +64,8 @@ class NetStatsTest(unittest.TestCase):
     self.assertEqual(pon.MulticastPacketsSent, 204)
     self.assertEqual(pon.PacketsReceived, 500)
     self.assertEqual(pon.PacketsSent, 500)
-    self.assertEqual(pon.UnicastPacketsReceived, 500-200-203)
-    self.assertEqual(pon.UnicastPacketsSent, 500-201-204)
+    self.assertEqual(pon.UnicastPacketsReceived, 500 - 200 - 203)
+    self.assertEqual(pon.UnicastPacketsSent, 500 - 201 - 204)
     self.assertEqual(eth.UnknownProtoPacketsReceived, 0)
 
 if __name__ == '__main__':

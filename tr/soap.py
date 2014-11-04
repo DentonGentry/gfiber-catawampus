@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# pylint:disable=redefined-outer-name
 
 """Encodings for the SOAP-based protocol used by TR-069."""
 
@@ -70,6 +72,8 @@ class AcsFault(object):
 
 
 class _Enterable(object):
+  """Support class for Enterable() function."""
+
   def __init__(self, iterable):
     self.iter = iterable
 
@@ -162,6 +166,8 @@ def _StripNamespace(tagname):
 
 
 class NodeWrapper(object):
+  """Wrap an XML node to make it easier to access its members."""
+
   def __init__(self, name, attrib, items):
     self.name = name
     self.attrib = attrib
@@ -185,7 +191,7 @@ class NodeWrapper(object):
         return self._list[idx][1]
       raise e
 
-  def get(self, key, defval=None):
+  def get(self, key, defval=None):  # pylint:disable=invalid-name
     try:
       return self._Get(key)
     except KeyError:
@@ -197,7 +203,7 @@ class NodeWrapper(object):
   def __getitem__(self, key):
     return self._Get(key)
 
-  def iteritems(self):
+  def iteritems(self):  # pylint:disable=invalid-name
     return self._list
 
   def __str__(self):

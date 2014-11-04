@@ -24,11 +24,11 @@ import os.path
 import shutil
 import tempfile
 import google3
-from tr.wvtest import unittest
+import hat
 import tr.cwmpdate
 import tr.helpers
 import tr.mainloop
-import hat
+from tr.wvtest import unittest
 
 
 class HatTests(unittest.TestCase):
@@ -120,16 +120,16 @@ class HatTests(unittest.TestCase):
     hat_handler = hat.Hat()
     hat.USERPROPS[0] = 'testdata/hat/userprops_true'
 
-    self.assertEqual(hat_handler.Target, True);
+    self.assertEqual(hat_handler.Target, True)
 
     hat.USERPROPS[0] = 'testdata/hat/userprops_false'
-    self.assertEqual(hat_handler.Target, False);
+    self.assertEqual(hat_handler.Target, False)
 
     hat.USERPROPS[0] = '/blabla/nonexistant'
-    self.assertEqual(hat_handler.Target, None);
+    self.assertEqual(hat_handler.Target, None)
 
     hat.USERPROPS[0] = 'testdata/hat/userprops_bad'
-    self.assertEqual(hat_handler.Target, None);
+    self.assertEqual(hat_handler.Target, None)
 
   def testContracts(self):
     hat_handler = hat.Hat()
@@ -139,11 +139,13 @@ class HatTests(unittest.TestCase):
     contracts_file_content = 'testcontent'
     hat_handler.HATContracts = contracts_file_content
     self.loop.RunOnce()
-    self.assertEqual(open(hat.CONTRACTS[0]).read(), contracts_file_content + '\n')
+    self.assertEqual(
+        open(hat.CONTRACTS[0]).read(), contracts_file_content + '\n')
     contracts_file_content = 'testcontent2'
     hat_handler.HATContracts = contracts_file_content
     self.loop.RunOnce()
-    self.assertEqual(open(hat.CONTRACTS[0]).read(), contracts_file_content + '\n')
+    self.assertEqual(
+        open(hat.CONTRACTS[0]).read(), contracts_file_content + '\n')
 
 if __name__ == '__main__':
   unittest.main()

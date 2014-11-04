@@ -61,7 +61,8 @@ class NetdevStatsLinux26(object):
   UnicastPacketsReceived = tr.cwmptypes.ReadOnlyUnsigned(0)
   UnicastPacketsSent = tr.cwmptypes.ReadOnlyUnsigned(0)
   UnknownProtoPacketsReceived = tr.cwmptypes.ReadOnlyUnsigned(0)
-  X_CATAWAMPUS_ORG_DiscardPacketsReceivedHipri = tr.cwmptypes.ReadOnlyUnsigned(0)
+  X_CATAWAMPUS_ORG_DiscardPacketsReceivedHipri = (
+      tr.cwmptypes.ReadOnlyUnsigned(0))
 
   def __init__(self, ifname, qfiles=None, numq=0, hipriq=0):
     """Parse fields from a /proc/net/dev line.

@@ -60,6 +60,7 @@ def GetMtdStats(mtdpath):
 
 
 class StorageTest(unittest.TestCase):
+
   def setUp(self):
     self.old_DISKSTAT = storage.DISKSTAT
     self.old_GETMTDSTATS = storage.GETMTDSTATS
@@ -155,9 +156,10 @@ class StorageTest(unittest.TestCase):
   def testCapabilitiesNoneFsTypes(self):
     storage.PROC_FILESYSTEMS = 'testdata/storage/proc.filesystems'
     cap = storage.CapabilitiesNoneLinux26()
-    self.assertEqual(cap.SupportedFileSystemTypes,
-                     'ext2,ext3,ext4,FAT32,X_CATAWAMPUS-ORG_iso9660,'
-                     'X_CATAWAMPUS-ORG_squashfs,X_CATAWAMPUS-ORG_tmpfs,X_CATAWAMPUS-ORG_udf')
+    self.assertEqual(
+        cap.SupportedFileSystemTypes,
+        'ext2,ext3,ext4,FAT32,X_CATAWAMPUS-ORG_iso9660,'
+        'X_CATAWAMPUS-ORG_squashfs,X_CATAWAMPUS-ORG_tmpfs,X_CATAWAMPUS-ORG_udf')
 
   def testPhysicalMediumName(self):
     pm = storage.PhysicalMediumDiskLinux26('sda')

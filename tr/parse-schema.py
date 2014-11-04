@@ -90,12 +90,12 @@ IMPORT_BUG_FIXES = {
     # seem to exist anywhere.
     ('urn:broadband-forum-org:tr-143-1-0', 'component',
      'DownloadDiagnostics_Device2'):
-        ('urn:broadband-forum-org:tr-143-1-0', 'component',
-         'DownloadDiagnostics'),
+         ('urn:broadband-forum-org:tr-143-1-0', 'component',
+          'DownloadDiagnostics'),
     ('urn:broadband-forum-org:tr-143-1-0', 'component',
      'UploadDiagnostics_Device2'):
-        ('urn:broadband-forum-org:tr-143-1-0', 'component',
-         'UploadDiagnostics'),
+         ('urn:broadband-forum-org:tr-143-1-0', 'component',
+          'UploadDiagnostics'),
 }
 
 
@@ -191,19 +191,19 @@ class Object(object):
       space = ',\n                '
       if self.params:
         quoted_param_list = ["'%s'" % param for param in self.params]
-        quoted_params = (space+'        ').join(quoted_param_list)
+        quoted_params = (space + '        ').join(quoted_param_list)
         bits.append('params=[%s]' % quoted_params)
       obj_list = [obj.name for obj in self.object_sequence
                   if not obj.is_sequence]
       if obj_list:
         quoted_obj_list = ["'%s'" % obj for obj in obj_list]
-        quoted_objs = (space+'         ').join(quoted_obj_list)
+        quoted_objs = (space + '         ').join(quoted_obj_list)
         bits.append('objects=[%s]' % quoted_objs)
       objlist_list = [obj.name for obj in self.object_sequence
                       if obj.is_sequence]
       if objlist_list:
         quoted_objlist_list = ["'%s'" % obj for obj in objlist_list]
-        quoted_objlists = (space+'       ').join(quoted_objlist_list)
+        quoted_objlists = (space + '       ').join(quoted_objlist_list)
         bits.append('lists=[%s]' % quoted_objlists)
       pre.append('    self.Export(%s)' % (space.join(bits)))
     for obj in self.object_sequence:
@@ -262,8 +262,8 @@ class Model(object):
   def ItemsMatchingPrefix(self, prefix):
     assert (not prefix) or (not prefix[-1])
     for i in sorted(self.items):
-      if i[:len(prefix)-1] == prefix[:-1] and i != prefix:
-        yield i[len(prefix)-1:]
+      if i[:len(prefix) - 1] == prefix[:-1] and i != prefix:
+        yield i[len(prefix) - 1:]
 
   def Objectify(self, name, prefix):
     """Using self.items, fill self.objects and self.object_sequence.
@@ -328,7 +328,6 @@ def RenderComponent(model, prefix, spec, xmlelement):
       RenderObject(model, prefix, spec, i)
     elif i.tag == 'component':
       refspec, unused_refname, ref = chunks[spec, 'component', i.attrib['ref']]
-      refpath = ref.attrib.get('path', ref.attrib.get('name', '<?>'))
       RenderComponent(model, prefix, refspec, ref)
     elif i.tag in ('profile', 'description'):
       pass
@@ -440,8 +439,9 @@ def main():
                '# pylint:disable=g-importing-member\n'
                '# pylint:disable=invalid-name\n'
                '# pylint:disable=line-too-long\n'
-               '# This should not actually be necessary (bug in gpylint?):\n'
+               '# These should not actually be necessary (bugs in gpylint?):\n'
                '# pylint:disable=super-init-not-called\n'
+               '# pylint:disable=non-parent-init-called\n'
                '#\n'
                '"""Auto-generated from spec: %s."""\n'
                '\n'

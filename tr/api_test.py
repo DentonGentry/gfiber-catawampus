@@ -20,18 +20,18 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-from wvtest import unittest
-
 import google3
 import tr.cwmptypes
 import api
 import core
+from wvtest import unittest
 
 
 changes = 0
 
 
 class Word(core.Exporter):
+
   def __init__(self):
     core.Exporter.__init__(self)
     self.Export(params=['word', 'readonlyword'])
@@ -52,6 +52,7 @@ class Word(core.Exporter):
     return 'cant-write-me!'
 
   validatedword = tr.cwmptypes.String()
+
   @validatedword.validator
   def validatedword(self, value):
     if value not in ['yes', 'no']:
@@ -60,6 +61,7 @@ class Word(core.Exporter):
 
 
 class TestObject(core.Exporter):
+
   def __init__(self):
     core.Exporter.__init__(self)
     self.Export(lists=['Thingy', 'AutoThingy'])
@@ -71,11 +73,12 @@ class TestObject(core.Exporter):
   def AutoThingyList(self):
     rc = {}
     for i in range(self.NumAutoThingies):
-      rc[str(i+1)] = Word()
+      rc[str(i + 1)] = Word()
     return rc
 
 
 class TestSimpleRoot(core.Exporter):
+
   def __init__(self):
     core.Exporter.__init__(self)
     self.Export(params=['SomeParam'])
@@ -83,6 +86,7 @@ class TestSimpleRoot(core.Exporter):
 
 
 class ApiTest(unittest.TestCase):
+
   def testObject(self):
     root = core.Exporter()
     root.Export(objects=['Test'])
@@ -154,6 +158,7 @@ class ApiTest(unittest.TestCase):
 
 class FakeAttrs(dict):
   """Helper class used for testing Attributes."""
+
   def __getattr__(self, item):
     return self[item]
 
@@ -164,14 +169,17 @@ class FakeAttrs(dict):
 set_notification_arg = [[]]
 new_session_called = [0]
 
+
 def SetNotification(arg):
   set_notification_arg[0] += arg
+
 
 def NewSession():
   new_session_called[0] += 1
 
 
 class ParameterAttrsTest(unittest.TestCase):
+
   def setUp(self):
     set_notification_arg[0] = []
     new_session_called[0] = 0
@@ -212,7 +220,7 @@ class ParameterAttrsTest(unittest.TestCase):
   def testDeleteParam(self):
     root = TestObject()
     cpe = api.CPE(root)
-    (unused_idx, obj) = root.AddExportObject('Thingy', '1')
+    (unused_idx, unused_obj) = root.AddExportObject('Thingy', '1')
     f = FakeAttrs()
     f.Name = 'Thingy.1'
     f.Notification = 2

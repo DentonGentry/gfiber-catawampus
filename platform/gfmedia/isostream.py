@@ -29,8 +29,8 @@ import time
 import google3
 import tornado.ioloop
 import tr.core
-import tr.mainloop
 import tr.cwmptypes
+import tr.mainloop
 import tr.x_catawampus_tr181_2_0
 
 
@@ -40,7 +40,7 @@ ISOSTREAM = CATA181DEVICE.IP.Diagnostics.X_CATAWAMPUS_ORG_Isostream
 
 def _KillWait(proc):
   proc.send_signal(signal.SIGTERM)
-  for i in range(30):
+  for _ in xrange(30):
     if proc.poll() is not None:
       return
     time.sleep(0.1)
@@ -78,13 +78,13 @@ class Isostream(ISOSTREAM):
   @ServerTimeLimit.validator
   def ServerTimeLimit(self, value):
     if value <= 0:
-      raise ValueError('ServerTimeLimit must be > 0');
+      raise ValueError('ServerTimeLimit must be > 0')
     return value
 
   @ClientTimeLimit.validator
   def ClientTimeLimit(self, value):
     if value <= 0:
-      raise ValueError('ClientTimeLimit must be > 0');
+      raise ValueError('ClientTimeLimit must be > 0')
     return value
 
   @tr.mainloop.WaitUntilIdle
@@ -135,6 +135,6 @@ class Isostream(ISOSTREAM):
 
 
 if __name__ == '__main__':
-  isos = Isostream(None)
+  isos = Isostream()
   print tr.core.DumpSchema(isos)
   isos.ValidateExports()

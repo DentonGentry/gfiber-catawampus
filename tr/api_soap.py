@@ -13,6 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# TR-069 has mandatory attribute names that don't comply with policy
+# pylint:disable=invalid-name
+# pylint:disable=unused-argument
+#
 """Mappings from api.ACS and api.CPE to SOAP encodings."""
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
@@ -20,7 +24,6 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 import datetime
 import time
 import traceback
-import xml.sax.saxutils
 
 import google3
 import api
@@ -46,6 +49,8 @@ def Soapify(value):
 
 
 class Encode(object):
+  """A class that returns the xml encoding for various RPCs."""
+
   def __init__(self):
     self.request_id = 'catawampus.{0!r}'.format(time.time())
     self.hold_requests = None
@@ -60,6 +65,7 @@ class Encode(object):
 
   def Inform(self, root, events=None, max_envelopes=1,
              current_time=None, retry_count=0, parameter_list=None):
+    """Encode an Inform request to the server."""
     if not events: events = []
     if not parameter_list: parameter_list = []
     with self._Envelope() as xml:
@@ -114,6 +120,7 @@ class Encode(object):
     return xml
 
   def SetParameterValues(self, parameter_list, parameter_key):
+    """Encode a SetParameterValues command."""
     with self._Envelope() as xml:
       with xml['cwmp:SetParameterValues']:
         soaptype = 'cwmp:ParameterValueStruct[{0}]'.format(len(parameter_list))
@@ -164,6 +171,8 @@ class Encode(object):
 
 
 class SoapHandler(object):
+  """A class for parsing and dispatching an XML request from the server."""
+
   def __init__(self, impl):
     self.impl = impl
 
@@ -173,6 +182,11 @@ class SoapHandler(object):
     Turn a list of api.Parameter{Type,Value}Exception objects returned
     from api.SetParameterValues into a list suitable for
     soap.SetParameterValuesFault.
+
+    Args:
+      errors: the list of api.*Exception objects.
+    Returns:
+      a corresponding list of soap.CpeFault enum values.
     """
     faults = []
     for error in errors:
@@ -190,6 +204,13 @@ class SoapHandler(object):
     return faults
 
   def Handle(self, body):
+    """Dispatch the given XML request to the implementation.
+
+    Args:
+      body: the xml string of the request.
+    Returns:
+      an xml string for the response, or None if no response is expected.
+    """
     body = str(body)
     obj = soap.Parse(body)
     request_id = obj.Header.get('ID', None)
@@ -228,9 +249,9 @@ class SoapHandler(object):
         traceback.print_exc()
 
     if result is not None:
-      return xml
+      return xml   # the encoded XML response (pass or fail)
     else:
-      return None
+      return None  # no response generated
 
   def _GetResponder(self, method):
     try:
@@ -247,6 +268,8 @@ class SoapHandler(object):
 
 
 class ACS(SoapHandler):
+  """A SoapHandler implementation for (part of) the ACS side of CWMP."""
+
   def __init__(self, acs):
     SoapHandler.__init__(self, impl=acs)
 
@@ -259,6 +282,8 @@ class ACS(SoapHandler):
 
 
 class CPE(SoapHandler):
+  """A SoapHandler implementation for the CPE side of CWMP."""
+
   def __init__(self, cpe):
     SoapHandler.__init__(self, impl=cpe)
 
@@ -267,6 +292,7 @@ class CPE(SoapHandler):
     return None
 
   def GetParameterNames(self, xml, req):
+    """Process a GetParameterNames request."""
     path = str(req.ParameterPath)
     nextlevel = cwmpbool.parse(req.NextLevel)
     # Spec: If NextLevel is true and ParameterPath is a Parameter name
@@ -289,6 +315,7 @@ class CPE(SoapHandler):
     return xml
 
   def GetParameterValues(self, xml, req):
+    """Process a GetParameterValues request."""
     names = [str(i) for i in req.ParameterNames]
     values = self.impl.GetParameterValues(names)
     soaptype = 'cwmp:ParameterValueStruct[{0}]'.format(len(values))
@@ -322,6 +349,7 @@ class CPE(SoapHandler):
     return xml
 
   def X_CATAWAMPUS_ORG_AddObjects(self, xml, req):
+    """Process an AddObjects request (a vendor extension for speed)."""
     objcount_list = []
     for key, obj in req.iteritems():
       if key == 'Object':
@@ -357,11 +385,9 @@ class CPE(SoapHandler):
     return xml
 
   def Download(self, xml, req):
-    try:
-      username = req.Username
-      password = req.Password
-    except:
-      username = password = None
+    """Start a Download request (returns before download is done)."""
+    username = getattr(req, 'Username', None)
+    password = getattr(req, 'Password', None)
 
     try:
       (code, starttime, endtime) = self.impl.Download(
@@ -396,6 +422,7 @@ class CPE(SoapHandler):
     return xml
 
   def GetAllQueuedTransfers(self, xml, req):
+    """Process a GetAllQueuedTransfers request."""
     transfers = self.impl.GetAllQueuedTransfers()
     with xml['cwmp:GetAllQueuedTransfersResponse']:
       for q in transfers:

@@ -109,6 +109,7 @@ class QcaEthernetTest(unittest.TestCase):
 
 
 class MockPortLinkDown(object):
+
   def __init__(self, port):
     self.port = port
 
@@ -139,6 +140,7 @@ class MockPortLinkDown(object):
 
 
 class MockPortLinkFault(object):
+
   def __init__(self, port):
     self.port = port
 
@@ -168,6 +170,7 @@ class MockPortLinkFault(object):
 
 
 class MockPortStats(object):
+
   def __init__(self, port):
     self.port = port
     self.stats_read = 0
@@ -242,8 +245,7 @@ class MockPortStats(object):
               'RxPauseFrames': 38,
               'RxMulticastPackets': 39,
               'RxFragments': 40,
-              'RxAlignmentErrors': 41,
-             }
+              'RxAlignmentErrors': 41}
 
 
 if __name__ == '__main__':

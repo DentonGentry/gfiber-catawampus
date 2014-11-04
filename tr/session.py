@@ -23,6 +23,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import collections
 import Cookie
 import functools
+import types
 import tornado.httpclient
 import tornado.ioloop
 
@@ -130,15 +131,6 @@ def _make_hashable(obj):
     return repr(obj)
 
 
-def _MakeGenerator():
-  yield
-
-
-# TODO(apenwarr): this is in the global 'types' module.
-#  But tr.types has the same name, so we can't get at it from here.  Oops.
-GeneratorType = type(_MakeGenerator())
-
-
 class cache(object):
   """A global cache of arbitrary data for the lifetime of one CWMP session.
 
@@ -174,7 +166,7 @@ class cache(object):
       return cache._thecache[key]
     except KeyError:
       val = self.func(*args, **kwargs)
-      if isinstance(val, GeneratorType):
+      if isinstance(val, types.GeneratorType):
         raise TypeError('cannot cache generators; use cache_as_list instead')
       cache._thecache[key] = val
       return val

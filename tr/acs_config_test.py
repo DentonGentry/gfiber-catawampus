@@ -25,11 +25,10 @@ __author__ = 'jnewlin@google.com (John Newlin)'
 import os
 import shutil
 import tempfile
-from wvtest import unittest
-
 import google3
 import tornado.testing
 import acs_config
+from wvtest import unittest
 
 
 class AcsConfigTest(tornado.testing.AsyncTestCase, unittest.TestCase):

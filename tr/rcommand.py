@@ -153,6 +153,7 @@ def main():
   loop = mainloop.MainLoop()
 
   class Sub(core.Exporter):
+
     def __init__(self):
       core.Exporter.__init__(self)
       self.Export(params=['Value'])

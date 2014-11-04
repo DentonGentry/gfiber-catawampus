@@ -20,13 +20,12 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
-import errno
 import os
 import select
 import subprocess
 import google3
-from tr.wvtest import unittest
 import tr.helpers
+from tr.wvtest import unittest
 
 
 class RunserverTest(unittest.TestCase):

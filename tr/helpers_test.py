@@ -1,3 +1,20 @@
+#!/usr/bin/python
+# Copyright 2012 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# pylint:disable=invalid-name
+
 """Tests for helpers."""
 
 import os
@@ -17,6 +34,7 @@ def FakeChown(filename, uid, gid):
 
 
 class FakeDbThingy(object):
+
   def __init__(self):
     self.pw_uid = 1001
     self.gr_gid = 1002
@@ -106,8 +124,12 @@ class HelpersTest(unittest.TestCase):
     self.assertEqual('192.168.1.1', helpers.NormalizeIPAddr('192.168.1.1'))
     normal = helpers.NormalizeIPAddr('0000:0000:0000:0000:0000:0000:0000:0001')
     self.assertEqual('::1', normal)
-    self.assertEqual('fe80::21d:9ff:fe11:f55f', helpers.NormalizeIPAddr('fe80::21d:9ff:fe11:f55f'))
-    self.assertEqual('fe80::21d:9ff:fe11:f55f', helpers.NormalizeIPAddr('FE80::21D:9FF:FE11:F55F'))
+    self.assertEqual(
+        'fe80::21d:9ff:fe11:f55f',
+        helpers.NormalizeIPAddr('fe80::21d:9ff:fe11:f55f'))
+    self.assertEqual(
+        'fe80::21d:9ff:fe11:f55f',
+        helpers.NormalizeIPAddr('FE80::21D:9FF:FE11:F55F'))
     self.assertEqual('boo!', helpers.NormalizeIPAddr('boo!'))
 
 

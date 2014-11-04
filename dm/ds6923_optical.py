@@ -39,6 +39,7 @@ RX_POWER_LOW_ALARM = 34
 TX_OPTICAL_OUTPUT_POWER = 102
 RX_OPTICAL_INPUT_POWER = 104
 
+
 class Ds6923OpticalInterface(BASE181OPTICAL.Interface):
   """TR181 Optical implementation for DS6923 optical module."""
 

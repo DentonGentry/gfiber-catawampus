@@ -1,7 +1,12 @@
 default: all
 
-
-GPYLINT=gpylint
+GPYLINT=$(shell \
+    if which gpylint >/dev/null; then \
+      echo gpylint --disable=g-bad-import-order; \
+    else \
+      echo 'echo "(gpylint-missing)" >&2'; \
+    fi \
+)
 PYTHONPATH:=$(shell /bin/pwd):$(PYTHONPATH)
 
 all: tr/all
@@ -16,7 +21,9 @@ SUBTESTS= \
   platform/tomato/test
 $(SUBTESTS): all
 
-test: all $(SUBTESTS)
+test: test_only lint_parallel
+
+test_only: all $(SUBTESTS)
 	tr/vendor/wvtest/wvtestrun $(MAKE) runtests
 
 runtests: all *_test.py
@@ -31,17 +38,26 @@ clean: tr/clean
 	rm -f *~ .*~ *.pyc
 	find . -name '*.pyc' -o -name '*~' | xargs rm -f
 
-lint: all
-	set -e; \
-	find -name '*.py' -size +1c | \
+LINT_FILES=$(shell \
+	(echo cwmp; echo cwmpd; find -name '*.py' -size +1c) | \
 	grep -v '/vendor/' | \
-	grep -v '/\.' | \
-	grep -v 'tr/tr..._.*\.py' | \
-	grep -v 'tr/x_.*\.py' | \
-	xargs $(GPYLINT)
+	grep -v 'google3.py' | \
+	grep -v '__init__.py' | \
+	grep -v 'pyinotify.py' \
+)
+
+# For maximum parallelism, we could just have a rule that depends on %.lint
+# for all $(LINT_FILES).  But gpylint takes a long time to start up, so
+# let's try to batch several files together into each instance to minimize
+# the runtime.
+lint_parallel:
+	@echo $(LINT_FILES) | xargs -P12 -n25 $(GPYLINT)
+
+lint: all
+	@$(GPYLINT) $(LINT_FILES)
 
 %.lint: all
-	$(GPYLINT) $*
+	@$(GPYLINT) $*
 
 
 DSTDIR?=/tmp/catawampus/

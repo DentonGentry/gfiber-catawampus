@@ -20,7 +20,6 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import copy
 import google3
 import tr.cwmptypes
 import tr.x_gvsb_1_0

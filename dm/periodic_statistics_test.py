@@ -22,6 +22,7 @@ import periodic_statistics
 
 
 class FakeWLAN(tr.core.Exporter):
+
   def __init__(self):
     tr.core.Exporter.__init__(self)
     self.Export(['TotalBytesSent'])
@@ -29,6 +30,7 @@ class FakeWLAN(tr.core.Exporter):
 
 
 class PeriodicStatisticsTest(unittest.TestCase):
+
   def setUp(self):
     self.save_time_func = periodic_statistics.TIMEFUNC
     self.ps = periodic_statistics.PeriodicStatistics()
@@ -220,8 +222,8 @@ class PeriodicStatisticsTest(unittest.TestCase):
                      sampled_param.Values.lower())
 
 
-
 class SampleSetTest(unittest.TestCase):
+
   def setUp(self):
     self.save_time_func = periodic_statistics.TIMEFUNC
     self.ps = periodic_statistics.PeriodicStatistics()
@@ -430,13 +432,14 @@ class SampleSetTest(unittest.TestCase):
     # year, month, hour, min, sec
     start_time = time.mktime((2000, 7, 7, 6, 0, 0, -1, -1, -1))
     self.assertEqual(60, sample_set.CalcTimeToNextSample(start_time))
-    self.assertEqual(50, sample_set.CalcTimeToNextSample(start_time+10))
-    self.assertEqual(10, sample_set.CalcTimeToNextSample(start_time+50))
-    self.assertEqual(10, sample_set.CalcTimeToNextSample(start_time+50+60*30))
+    self.assertEqual(50, sample_set.CalcTimeToNextSample(start_time + 10))
+    self.assertEqual(10, sample_set.CalcTimeToNextSample(start_time + 50))
+    self.assertEqual(
+        10, sample_set.CalcTimeToNextSample(start_time + 50 + 60 * 30))
     sample_set._sample_interval = 3600
     self.assertEqual(3600, sample_set.CalcTimeToNextSample(start_time))
-    self.assertEqual(3599, sample_set.CalcTimeToNextSample(start_time+1))
-    self.assertEqual(3599, sample_set.CalcTimeToNextSample(start_time+3601))
+    self.assertEqual(3599, sample_set.CalcTimeToNextSample(start_time + 1))
+    self.assertEqual(3599, sample_set.CalcTimeToNextSample(start_time + 3601))
 
     sample_set.TimeReference = '2012-06-1T1:00:00.0Z'
     sample_set._sample_interval = 15  # Every 15 seconds.

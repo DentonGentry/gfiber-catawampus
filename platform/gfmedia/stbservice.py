@@ -30,9 +30,9 @@ import time
 
 import tornado.ioloop
 import tr.cwmpdate
+import tr.cwmptypes
 import tr.session
 import tr.tr135_v1_2
-import tr.cwmptypes
 import tr.x_catawampus_videomonitoring_1_0 as vmonitor
 
 
@@ -51,7 +51,7 @@ CONT_MONITOR_FILES = [
     '/tmp/cwmp/monitoring/dejittering/tr_135_total_djstats%d.json',
     '/tmp/cwmp/monitoring/dejittering/tr_135_total_decoderstats%d.json',
     '/tmp/cwmp/monitoring/tcp/tr_135_total_tcpstats%d.json',
-    ]
+]
 
 EPG_STATS_FILES = ['/tmp/cwmp/monitoring/epg/tr_135_epg_stats*.json']
 HDMI_STATS_FILE = '/tmp/cwmp/monitoring/hdmi/tr_135_hdmi_stats*.json'

@@ -26,4 +26,4 @@ class FactoryHandler(tornado.web.RequestHandler):
 
 def FactoryFactory():
   """I'm sorry. I couldn't resist. I'm sorry. Sorry, sorry, sorry."""
-  return tornado.web.Application([(r'/factory', FactoryHandler),])
+  return tornado.web.Application([(r'/factory', FactoryHandler)])

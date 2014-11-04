@@ -21,10 +21,10 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
-from tr.wvtest import unittest
 import dm_root
 import tr.tr098_v1_4
 import tr.tr181_v2_2
+from tr.wvtest import unittest
 
 
 BASE181 = tr.tr181_v2_2.Device_v2_2.Device
@@ -40,11 +40,13 @@ class MockTr98(BASE98):
 
 
 class MockManagement(object):
+
   def __init__(self):
     self.EnableCWMP = False
 
 
 class DeviceModelRootTest(unittest.TestCase):
+
   def testAddManagementServer(self):
     root = dm_root.DeviceModelRoot(loop=None, platform=None,
                                    ext_dir='ext_test')

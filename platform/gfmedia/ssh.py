@@ -16,15 +16,17 @@
 # TR-069 has mandatory attribute names that don't comply with policy
 # pylint:disable=invalid-name
 #
+# TODO(apenwarr): Get rid of some of the protected member tricks.
+# pylint:disable=protected-access
+#
 """Implement the X_GOOGLE-COM_SSH vendor data model."""
 
 __author__ = 'sledbetter@google.com (Shawn Ledbetter)'
 
 import copy
-import google3
 import os
-import random
 import subprocess
+import google3
 import tr.x_ssh_1_0
 
 # Unit tests can override these.
@@ -55,12 +57,12 @@ class Ssh(tr.x_ssh_1_0.X_GOOGLE_COM_SSH_v1_1):
   def DefaultConfig(self):
     obj = SSHConfig()
     obj.enabled = False
-    obj.authorized_keys = ""
-    obj._tunnel_host = ""
+    obj.authorized_keys = ''
+    obj._tunnel_host = ''
     obj._tunnel_port = 0
-    obj._ca_data = ""
-    obj._key_data = ""
-    obj._cert_data = ""
+    obj._ca_data = ''
+    obj._key_data = ''
+    obj._cert_data = ''
     obj._proxy = None
     return obj
 
@@ -84,7 +86,7 @@ class Ssh(tr.x_ssh_1_0.X_GOOGLE_COM_SSH_v1_1):
     self.config.authorized_keys = value
 
   AuthorizedKeys = property(GetAuthorizedKeys, SetAuthorizedKeys, None,
-                        'X_SSH.AuthorizedKeys')
+                            'X_SSH.AuthorizedKeys')
 
   def GetEnabled(self):
     return self.config.enabled
@@ -93,7 +95,7 @@ class Ssh(tr.x_ssh_1_0.X_GOOGLE_COM_SSH_v1_1):
     self.config.enabled = value
 
   Enabled = property(GetEnabled, SetEnabled, None,
-                        'X_SSH.Enabled')
+                     'X_SSH.Enabled')
 
   def GetTunnelHost(self):
     return self.config._tunnel_host
@@ -120,7 +122,7 @@ class Ssh(tr.x_ssh_1_0.X_GOOGLE_COM_SSH_v1_1):
     self.config._ca_data = value
 
   TunnelCAData = property(GetTunnelCAData, SetTunnelCAData, None,
-                        'X_SSH.TunnelCAData')
+                          'X_SSH.TunnelCAData')
 
   def GetTunnelKeyData(self):
     return self.config._key_data
@@ -129,7 +131,7 @@ class Ssh(tr.x_ssh_1_0.X_GOOGLE_COM_SSH_v1_1):
     self.config._key_data = value
 
   TunnelKeyData = property(GetTunnelKeyData, SetTunnelKeyData, None,
-                        'X_SSH.TunnelKeyData')
+                           'X_SSH.TunnelKeyData')
 
   def GetTunnelCertData(self):
     return self.config._cert_data
@@ -138,7 +140,7 @@ class Ssh(tr.x_ssh_1_0.X_GOOGLE_COM_SSH_v1_1):
     self.config._cert_data = value
 
   TunnelCertData = property(GetTunnelCertData, SetTunnelCertData, None,
-                        'X_SSH.TunnelCertData')
+                            'X_SSH.TunnelCertData')
 
   def WriteFile(self, filename, content):
     try:
@@ -153,7 +155,7 @@ class Ssh(tr.x_ssh_1_0.X_GOOGLE_COM_SSH_v1_1):
       with open(filename, 'r') as f:
         return f.read()
     except IOError:
-      return ""
+      return ''
 
   def _ConfigureSsh(self):
     if self.config.authorized_keys != self.old_config.authorized_keys:
@@ -188,10 +190,10 @@ class Ssh(tr.x_ssh_1_0.X_GOOGLE_COM_SSH_v1_1):
               '/usr/bin/reverseproxy.py',
               self.config._tunnel_host,
               self.config._tunnel_port
-              ], stdout=subprocess.PIPE)
+          ], stdout=subprocess.PIPE)
           self.config._logger = subprocess.Popen([
               'logos', 'revproxy'
-              ], stdin=self.config._proxy.stdout)
+          ], stdin=self.config._proxy.stdout)
           self.config.enabled = True
         except subprocess.CalledProcessError:
           self.config.enabled = False

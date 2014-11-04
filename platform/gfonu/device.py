@@ -27,10 +27,7 @@ __author__ = 'zixia@google.com (Ted Huang)'
 import fcntl
 import os
 import subprocess
-import traceback
-
 import google3
-
 import dm.device_info
 import dm.ds6923_optical
 import dm.ethernet
@@ -183,7 +180,7 @@ class Installer(tr.download.Installer):
     if self._install_cb:
       self._install_cb(faultcode, faultstring, must_reboot=True)
 
-  def install(self, file_type, target_filename, callback):
+  def Install(self, file_type, target_filename, callback):
     """Install self.filename to disk, then call callback."""
     print 'Installing: %r %r' % (file_type, target_filename)
     ftype = file_type.split()
@@ -200,7 +197,7 @@ class Installer(tr.download.Installer):
 
     # TODO(jnewlin): Remove the --skiploadersig once the new version of ginstall
     # is integrated down from the cpe2.0 branch.
-    cmd = [GINSTALL, '--tar={0}'.format(self.filename), '--partition=other', 
+    cmd = [GINSTALL, '--tar={0}'.format(self.filename), '--partition=other',
            '--skiploadersig']
     try:
       self._ginstall = subprocess.Popen(cmd, stdout=subprocess.PIPE)
@@ -213,7 +210,7 @@ class Installer(tr.download.Installer):
     self._ioloop.add_handler(fd, self.on_stdout, self._ioloop.READ)
     return True
 
-  def reboot(self):
+  def Reboot(self):
     cmd = [REBOOT]
     subprocess.call(cmd)
 
@@ -262,7 +259,7 @@ class Ethernet(tr181.Device_v2_4.Device.Ethernet):
         '1': EthernetInterfaceOnu('eth0', ETH_STATS_DIR),
         '2': EthernetInterfaceOnu('pon0', PON_STATS_DIR, maxbitrate=1000),
         '3': dm.ethernet.EthernetInterfaceLinux26(ifname='man'),
-        }
+    }
     self.VLANTerminationList = {}
     self.LinkList = {}
     self.RMONStatsList = {}

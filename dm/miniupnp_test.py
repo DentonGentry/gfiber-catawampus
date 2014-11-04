@@ -31,6 +31,7 @@ import tr.mainloop
 
 
 class MiniUPnPTest(unittest.TestCase):
+
   def setUp(self):
     super(MiniUPnPTest, self).setUp()
     self.tmpdir = tempfile.mkdtemp()

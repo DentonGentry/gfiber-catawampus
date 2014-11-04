@@ -89,7 +89,7 @@ class TraceRoute(BASE_TRACEROUTE):
                                                   ErrorCode=icmp_error,
                                                   RTTimes=rttimes)
     if rttimes:
-      self.response_time = sum(rttimes)/len(rttimes)
+      self.response_time = sum(rttimes) / len(rttimes)
     if int(hop) >= int(self.MaxHopCount):
       self.error = State.ERROR_MAX_HOP_COUNT_EXCEEDED
 
@@ -142,7 +142,7 @@ class TraceRoute(BASE_TRACEROUTE):
       argv_base = [TRACEROUTE]
     argv = argv_base + ['-m', str(int(self.MaxHopCount)),
                         '-q', str(int(self.NumberOfTries)),
-                        '-w', str(int(self.Timeout)/1000)]
+                        '-w', str(int(self.Timeout) / 1000)]
     if self.DSCP:
       argv += ['-t', str(int(self.DSCP))]
     argv += [self.Host, str(max(MIN_PACKET_SIZE, int(self.DataBlockSize)))]
@@ -168,7 +168,10 @@ class TraceRoute(BASE_TRACEROUTE):
   def _GotLine(self, line):
     # TODO(apenwarr): find out how traceroute reports host-unreachable/etc
     print 'traceroute line: %r' % (line,)
-    g = re.match(r'^\s*(\d+)\s+(\S+) \(([\da-fA-F:.]+)\)((\s+[\d.]+ ms)+)', line)
+    g = (
+        re.match(
+            r'^\s*(\d+)\s+(\S+) \(([\da-fA-F:.]+)\)((\s+[\d.]+ ms)+)',
+            line))
     if g:
       hop = g.group(1)
       hostname = g.group(2)

@@ -15,6 +15,7 @@
 
 # TR-069 has mandatory attribute names that don't comply with policy
 # pylint:disable=invalid-name
+# pylint:disable=unused-argument
 
 """Device Models for a simulated CPE."""
 
@@ -34,10 +35,10 @@ import platform_config
 import tornado.ioloop
 import tr.acs_config
 import tr.core
+import tr.cwmptypes
 import tr.download
 import tr.tr098_v1_4
 import tr.tr181_v2_2 as tr181
-import tr.cwmptypes
 
 
 FAKECPEINSTANCE = None
@@ -117,6 +118,7 @@ class DeviceIdFakeCPE(dm.device_info.DeviceIdMeta):
 
 
 class ServicesFakeCPE(tr181.Device_v2_2.Device.Services):
+
   def __init__(self):
     tr181.Device_v2_2.Device.Services.__init__(self)
     self.Export(objects=['StorageServices'])
@@ -211,7 +213,6 @@ class InternetGatewayDeviceFakeCPE(BASE98IGD):
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
 
     self.DeviceInfo = dm.device_info.DeviceInfo98Linux26(device_id)
-    tzfile = '/tmp/catawampus.%s/TZ' % FakeCPEInstance()
     self.Time = dm.igd_time.TimeTZ()
     self.Export(objects=['PeriodicStatistics'])
     if periodic_stats:

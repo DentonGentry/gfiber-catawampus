@@ -28,16 +28,18 @@ import tempfile
 import threading
 import xmlrpclib
 import google3
-from tr.wvtest import unittest
+import gfibertv
 import tr.cwmpdate
 import tr.helpers
 import tr.mainloop
-import gfibertv
+from tr.wvtest import unittest
 
 
 TvProperties = {}
 
+
 class TvPropertyRpcs(object):
+
   def __init__(self):
     self.running = True
 
@@ -68,6 +70,7 @@ srv_cv = threading.Condition()
 
 
 class XmlRpcThread(threading.Thread):
+
   def run(self):
     self.tv = TvPropertyRpcs()
     xmlrpcsrv = TvXMLRPCServer(('localhost', 0))
@@ -221,7 +224,7 @@ class GfiberTvTests(unittest.TestCase):
     gftv.DevicePropertiesList[idx3].NickName = "Peter's Room"
     gftv.DevicePropertiesList[idx3].SerialNumber = '23456'
 
-    gftv.DevicePropertiesList[idx4].NickName = "War & Peace"
+    gftv.DevicePropertiesList[idx4].NickName = 'War & Peace'
     gftv.DevicePropertiesList[idx4].SerialNumber = '8675309'
 
     self.loop.RunOnce()
@@ -233,7 +236,7 @@ class GfiberTvTests(unittest.TestCase):
     self.assertTrue('12345/nickname=testroom\n' in lines)
     self.assertTrue('56789/nickname=\\u212ced_room__!\n' in lines)
     self.assertTrue("23456/nickname=Peter's Room\n" in lines)
-    self.assertTrue("8675309/nickname=War & Peace\n" in lines)
+    self.assertTrue('8675309/nickname=War & Peace\n' in lines)
     self.assertTrue(last_line.startswith('serials='))
     split1 = last_line.split('=')
     self.assertEqual(2, len(split1))

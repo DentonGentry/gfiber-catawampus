@@ -23,7 +23,6 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 import binascii
 import collections
 import datetime
-import os
 import random
 import socket
 import sys
@@ -46,7 +45,7 @@ import session
 
 PROC_IF_INET6 = '/proc/net/if_inet6'
 MAX_EVENT_QUEUE_SIZE = 64
-GETWANPORT='activewan'
+GETWANPORT = 'activewan'
 
 
 class LimitDeque(collections.deque):
@@ -122,6 +121,7 @@ class PingHandler(digest.DigestAuthMixin, tornado.web.RequestHandler):
 
 
 class Handler(tornado.web.RequestHandler):
+
   def initialize(self, soap_handler):
     self.soap_handler = soap_handler
 
@@ -137,6 +137,7 @@ class Handler(tornado.web.RequestHandler):
 
 REDIRECT_ON_301 = 1
 REDIRECT_ON_302 = 2
+
 
 def CurlCreator(oldcreator, *args, **kwargs):
   """Set some pycurl options that tornado doesn't otherwise use."""

@@ -20,17 +20,16 @@
 
 
 import os
-import soap
 import xml.etree.ElementTree as ET
 
 
 SUPPRESSLIST = frozenset(['ParameterNames', 'string', 'ParameterList',
                           'ParameterValueStruct', 'DeviceId', 'Event',
                           'EventStruct', 'detail', 'Header', 'Body',
-                          'SetParameterAttributesStruct', ])
+                          'SetParameterAttributesStruct'])
 PRUNELIST = frozenset(['MaxEnvelopes', 'ParameterKey', 'CommandKey',
                        'Manufacturer', 'OUI', 'ProductClass',
-                       'HoldRequests', ])
+                       'HoldRequests'])
 
 
 def _Shorten(s, prefixofs, suffixofs, maxlen):
@@ -65,10 +64,15 @@ def _StripNamespace(tag):
   ElementTree retains namespaces in the tag, like:
   {urn:dslforum-org:cwmp-1-2}GetParameterNames
   The namespace is not useful; suppress it.
+
+  Args:
+    tag: the tag name
+  Returns:
+    the tag with namespace removed, if there was one.
   """
   if tag[0] == '{':
     e = tag.find('}')
-    return tag[e+1:]
+    return tag[e + 1:]
   else:
     return tag
 

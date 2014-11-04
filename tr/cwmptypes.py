@@ -296,7 +296,7 @@ class MacAddr(Attr):
       return None
     pattern = re.compile(r"""(^([0-9A-F]{2}[-]){5}([0-9A-F]{2})$
                              |^([0-9A-F]{2}[:]){5}([0-9A-F]{2})$
-                             )""", re.VERBOSE|re.IGNORECASE)
+                             )""", re.VERBOSE | re.IGNORECASE)
     if not pattern.match(str(value)):
       raise ValueError('%r is not a MAC address' % value)
     return value

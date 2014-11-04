@@ -88,6 +88,7 @@ SYS_UBI = '/sys/class/ubi/'
 
 
 class ErrorStatVfs(object):
+
   def __init__(self):
     self.f_bsize = 0
     self.f_frsize = 0
@@ -176,7 +177,8 @@ class LogicalVolumeLinux26(BASESTORAGE.LogicalVolume):
   def _GetStatVfs(self):
     try:
       return STATVFS(self.rootpath)
-    except OSError, IOError:
+    except (OSError, IOError) as e:
+      print 'statvfs(%s): %s' % (self.rootpath, e)
       return ErrorStatVfs()
 
   @property

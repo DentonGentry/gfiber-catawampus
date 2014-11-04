@@ -196,15 +196,15 @@ class Exporter(object):
       lists: a list of object-list names (lists containing objects) to remove.
     """
     if params:
-      assert(not isinstance(params, basestring))
+      assert not isinstance(params, basestring)
       for p in params:
         self.export_params.remove(p)
     if objects:
-      assert(not isinstance(objects, basestring))
+      assert not isinstance(objects, basestring)
       for o in objects:
         self.export_objects.remove(o)
     if lists:
-      assert(not isinstance(lists, basestring))
+      assert not isinstance(lists, basestring)
       for l in lists:
         self.export_object_lists.remove(l)
 
@@ -351,6 +351,7 @@ class Exporter(object):
 
   @staticmethod
   def _GetExport(parent, name):
+    """Find an export called 'name' that is under object 'parent'."""
     if hasattr(parent, 'IsValidExport') and not parent.IsValidExport(name):
       raise KeyError(name)
     if hasattr(parent, '_GetExport'):
@@ -480,6 +481,7 @@ class Exporter(object):
     return True
 
   def _AddExportObject(self, name, idx):
+    """Same as AddExportObject, but 'name' must be a direct child (no dots)."""
     objlist = self._GetExport(self, name)
     if name not in self.export_object_lists:
       raise KeyError(name)
@@ -646,6 +648,7 @@ def Dump(root):
 
 
 def _DumpSchema(root, out, path):
+  """Helper function for DumpSchema()."""
   if isinstance(root, type):
     root = root()
   elif hasattr(root, '__call__') and not hasattr(root, 'export_params'):

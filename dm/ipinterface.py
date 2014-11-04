@@ -39,7 +39,7 @@ import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 
 try:
-  import netifaces
+  import netifaces  # pylint:disable=g-import-not-at-top
   IFADDRESSES = netifaces.ifaddresses
 except ImportError:
   print 'Skipping netifaces module for unit test'
@@ -53,7 +53,7 @@ PYNETIFCONF = pynetlinux.ifconfig.Interface
 
 def _ConvertMaskToCIDR(mask):
   """Convert a netmask like 255.255.255.0 to a CIDR length like /24."""
-  bits = int(struct.unpack('!I',socket.inet_aton(mask))[0])
+  bits = int(struct.unpack('!I', socket.inet_aton(mask))[0])
   found_one_bit = False
   maskbits = 0
   for i in range(32):

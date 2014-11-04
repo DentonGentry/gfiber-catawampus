@@ -99,7 +99,8 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
   def Status(self):
     if self._status_fcn:
       s = self._status_fcn()
-      if s: return s
+      if s:
+        return s
     if not self._pynet.is_up():
       return 'Down'
     (_, _, _, link_up) = self._GetLinkInfo()
@@ -122,7 +123,7 @@ class EthernetInterfaceLinux26(CATAETHERNET.Interface):
       return self._maxbitrate
     (speed, _, _, _) = self._GetLinkInfo()
     return speed or 0  # follow the same convention as get_link_info(),
-                       # in which 0 stands for "unknown".
+    # in which 0 stands for "unknown".
 
   @property
   def DuplexMode(self):

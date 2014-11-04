@@ -12,18 +12,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# pylint:disable=invalid-name
+# pylint:disable=unused-argument
 
 """Handlers for tr-69 Download and Scheduled Download."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import functools
 import hashlib
 import json
 import os
 import random
 import sys
 import tempfile
-
 import google3
 import tornado
 import tornado.httpclient
@@ -42,7 +45,7 @@ DOWNLOAD_FAILED = 9010
 def _uri_path(url):
   pos = url.find('://')
   if pos >= 0:
-    url = url[pos+3:]
+    url = url[pos + 3:]
   pos = url.find('/')
   if pos >= 0:
     url = url[pos:]
@@ -53,6 +56,7 @@ def calc_http_digest(method, uripath, qop, nonce, cnonce, nc,
                      username, realm, password):
   def H(s):
     return hashlib.md5(s).hexdigest()
+
   def KD(secret, data):
     return H(secret + ':' + data)
   A1 = username + ':' + realm + ':' + password
@@ -62,6 +66,8 @@ def calc_http_digest(method, uripath, qop, nonce, cnonce, nc,
 
 
 class HttpDownload(object):
+  """Holds the state for an in-progress download over HTTP."""
+
   def __init__(self, url, username=None, password=None,
                download_complete_cb=None, ioloop=None, download_dir=None):
     self.url = url
@@ -78,6 +84,7 @@ class HttpDownload(object):
     return self._start_download()
 
   def _start_download(self):
+    """Starts downloading the given object."""
     print 'download: starting (auth_header=%r)' % self.auth_header
     self.content_length = 0
     self.downloaded_bytes = 0
@@ -218,25 +225,23 @@ class HttpDownload(object):
         self.tempfile = None
       except (IOError, OSError):
         print 'download: ERROR cannot clean up failed download.'
-        pass
       self.download_complete_cb(DOWNLOAD_FAILED, error_message, None)
     else:
       self.download_complete_cb(0, '', self.tempfile)
-      print('download: success {0}'.format(self.tempfile.name))
+      print 'download: success {0}'.format(self.tempfile.name)
 
 
-def main_dl_complete(ioloop, _, msg, filename):
+def _main_dl_complete(ioloop, _, msg, filename):
   print msg
   ioloop = ioloop or tornado.ioloop.IOLoop.instance()
   ioloop.stop()
 
 
-def main_dl_start(url, username, password, ioloop=None):
+def _main_dl_start(url, username, password, ioloop=None):
   tornado.httpclient.AsyncHTTPClient.configure(
       'tornado.curl_httpclient.CurlAsyncHTTPClient')
-  import functools
   ioloop = ioloop or tornado.ioloop.IOLoop.instance()
-  cb = functools.partial(main_dl_complete, ioloop)
+  cb = functools.partial(_main_dl_complete, ioloop)
   print 'using URL: %s username: %s password: %s' % (url, username, password)
   dl = HttpDownload(url=url, username=username, password=password,
                     download_complete_cb=cb, ioloop=ioloop)
@@ -250,7 +255,7 @@ def main():
   if len(sys.argv) > 3:
     username = sys.argv[2]
     password = sys.argv[3]
-  main_dl_start(url, username, password)
+  _main_dl_start(url, username, password)
 
 if __name__ == '__main__':
   main()

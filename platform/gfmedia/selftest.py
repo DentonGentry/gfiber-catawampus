@@ -26,12 +26,11 @@ import os
 import select
 import signal
 import subprocess
-
 import google3
 import tornado.ioloop
 import tr.core
-import tr.mainloop
 import tr.cwmptypes
+import tr.mainloop
 import tr.x_selftest_1_0
 
 
@@ -58,7 +57,7 @@ class SelfTest(BASE.X_GOOGLE_COM_GFIBERTV.SelfTest):
     self.proc = None
 
   Mode = tr.cwmptypes.TriggerEnum(['None', 'Success', 'Error',
-                               'StressTest', 'Throughput'])
+                                   'StressTest', 'Throughput'])
   ServerIP = tr.cwmptypes.TriggerString()
   AutoRestartEnable = tr.cwmptypes.TriggerBool()
   MaxBitRate = tr.cwmptypes.TriggerFloat()

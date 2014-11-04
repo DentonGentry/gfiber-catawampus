@@ -139,4 +139,3 @@ def NormalizeIPAddr(addr):
     return socket.inet_ntop(socket.AF_INET6, i)
   else:
     return str(addr)
-

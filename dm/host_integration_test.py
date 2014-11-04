@@ -15,6 +15,7 @@
 
 # unittest requires method names starting in 'test'
 # pylint:disable=invalid-name
+# pylint:disable=unused-argument
 
 """Integration test for host.py implementation.
 
@@ -59,6 +60,7 @@ import qca83xx_ethernet
 
 
 class TestDeviceModelRoot(tr.core.Exporter):
+
   def __init__(self):
     super(TestDeviceModelRoot, self).__init__()
     self.Device = Device(dmroot=self)
@@ -67,6 +69,7 @@ class TestDeviceModelRoot(tr.core.Exporter):
 
 
 class Device(tr.core.Exporter):
+
   def __init__(self, dmroot):
     super(Device, self).__init__()
     self.DHCPv4 = dnsmasq.DHCPv4()
@@ -123,6 +126,7 @@ class MockQca83xxPort(object):
 
 
 class InternetGatewayDevice(tr.core.Exporter):
+
   def __init__(self):
     super(InternetGatewayDevice, self).__init__()
     self.LANDeviceList = {'1': LANDevice()}
@@ -139,6 +143,7 @@ class LANDevice(tr.core.Exporter):
 
 
 class HostIntegrationTest(unittest.TestCase):
+
   def setUp(self):
     self.old_IP6NEIGH = host.IP6NEIGH[0]
     self.old_PROC_NET_ARP = host.PROC_NET_ARP

@@ -15,6 +15,7 @@
 
 # unittest requires method names starting in 'test'
 # pylint:disable=invalid-name
+# pylint:disable=unused-argument
 
 """Unit tests for cwmpdate.py."""
 
@@ -22,13 +23,13 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import calendar
 import datetime
-from wvtest import unittest
-
 import google3
 import cwmpdate
+from wvtest import unittest
 
 
 class UTC(datetime.tzinfo):
+
   def utcoffset(self, dt):
     return datetime.timedelta(0)
 
@@ -40,6 +41,7 @@ class UTC(datetime.tzinfo):
 
 
 class OTH(datetime.tzinfo):
+
   def utcoffset(self, dt):
     return datetime.timedelta(0, 3600)
 

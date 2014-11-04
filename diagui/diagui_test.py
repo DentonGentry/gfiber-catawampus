@@ -5,10 +5,10 @@ __author__ = 'anandkhare@google.com (Anand Khare)'
 import ast
 import json
 import google3
-from tr.wvtest import unittest
 import diagui.main
 import tornado.httpclient
 import tr.mainloop
+from tr.wvtest import unittest
 
 
 class AsynchFetch(object):

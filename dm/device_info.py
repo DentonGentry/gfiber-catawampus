@@ -382,8 +382,8 @@ class DeviceInfo98Linux26(BASE98IGD.DeviceInfo):
 
 
 def main():
-  dp = DeviceInfo181Linux26()
-  #print tr.core.DumpSchema(dp)
+  dp = DeviceInfo181Linux26('deviceid')
+  # print tr.core.DumpSchema(dp)
   print tr.core.Dump(dp)
 
 if __name__ == '__main__':

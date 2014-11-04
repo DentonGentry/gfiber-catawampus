@@ -26,6 +26,7 @@ import fakewifi
 
 
 class BrcmWifiTest(unittest.TestCase):
+
   def testValidateExports(self):
     wifi = fakewifi.FakeWifiWlanConfiguration()
     wifi.ValidateExports()

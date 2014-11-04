@@ -121,7 +121,7 @@ class Util(object):
       if left < Util.BLOCK_SIZE:
         bytes_to_write = left
       write_buf = []
-      write_buf.extend(buf[buf_index : (buf_index + bytes_to_write)])
+      write_buf.extend(buf[buf_index: (buf_index + bytes_to_write)])
       time.sleep(0.001)
       self.bus.write_i2c_block_data(addr, offset, write_buf)
       offset += bytes_to_write

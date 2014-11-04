@@ -21,15 +21,9 @@
 
 __author__ = 'jnewlin@google.com (John Newlin)'
 
-# Refactored from gfmedia.py
-
-import datetime
-import errno
-import os
-import random
 import subprocess
-
 import google3
+
 
 # Unit tests can override these with fake data
 CWMP_TMP_DIR = '/tmp/cwmp'

@@ -15,6 +15,7 @@
 
 # TR-069 has mandatory attribute names that don't comply with policy
 # pylint:disable=invalid-name
+# pylint:disable=protected-access
 #
 """Implement handling for the X_GOOGLE-COM_GFIBERTV vendor data model."""
 
@@ -28,16 +29,17 @@ import re
 import subprocess
 import xmlrpclib
 import google3
+import selftest
 import tr.api
 import tr.core
 import tr.cwmpbool
 import tr.cwmpdate
+import tr.cwmptypes
 import tr.helpers
 import tr.mainloop
 import tr.session
-import tr.cwmptypes
 import tr.x_gfibertv_1_0
-import selftest
+
 BASETV = tr.x_gfibertv_1_0.X_GOOGLE_COM_GFIBERTV_v1_0.X_GOOGLE_COM_GFIBERTV
 
 # These are lists so list[0] can be reassigned in a unit test to affect
@@ -85,17 +87,21 @@ class GFiberTv(BASETV):
       return True
 
   EASFipsCode = tr.cwmptypes.FileBacked(EASFIPSFILE, tr.cwmptypes.String())
-  EASServiceAddress = tr.cwmptypes.FileBacked(EASADDRFILE, tr.cwmptypes.String())
+  EASServiceAddress = tr.cwmptypes.FileBacked(
+      EASADDRFILE, tr.cwmptypes.String())
   EASServicePort = tr.cwmptypes.FileBacked(EASPORTFILE, tr.cwmptypes.String())
   f = tr.cwmptypes.FileBacked(EASHEARTBEATFILE, tr.cwmptypes.Date())
   EASHeartbeatTimestamp = tr.cwmptypes.ReadOnly(f)
   TcpAlgorithm = tr.cwmptypes.FileBacked(TCPALGORITHM, tr.cwmptypes.String())
-  UiControlUrl = tr.cwmptypes.FileBacked(UICONTROLURLFILE, tr.cwmptypes.String())
-  TvBufferAddress = tr.cwmptypes.FileBacked(TVBUFFERADDRESS, tr.cwmptypes.String())
+  UiControlUrl = tr.cwmptypes.FileBacked(
+      UICONTROLURLFILE, tr.cwmptypes.String())
+  TvBufferAddress = tr.cwmptypes.FileBacked(
+      TVBUFFERADDRESS, tr.cwmptypes.String())
   TvBufferKey = tr.cwmptypes.FileBacked(TVBUFFERKEY, tr.cwmptypes.String())
 
   def __init__(self, mailbox_url, my_serial=None):
     """GFiberTV object.
+
     Args:
       mailbox_url: XML-RPC endpoint for Mailbox access.
       my_serial: serial number of this device. A device nickname
@@ -377,6 +383,7 @@ class PropList(tr.core.Exporter):
 
 
 def _PopulateTree(rpcclient, nodename):
+  """Populate the list of available objects using the config file contents."""
   # TODO(apenwarr): add a server API to get the actual property list.
   #  Then use it here. Reading it from the file is kind of cheating.
   top = PropList(rpcclient, nodename)

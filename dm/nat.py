@@ -25,7 +25,6 @@ in http://www.broadband-forum.org/cwmp/tr-181-2-6-0.html
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import binascii
-import socket
 import subprocess
 import traceback
 import tr.helpers
@@ -45,7 +44,8 @@ RESTARTCMD = ['update-acs-iptables']
 
 class NAT(BASENAT):
   """tr181 Device.NAT."""
-  InterfaceSettingNumberOfEntries = tr.cwmptypes.NumberOf('InterfaceSettingList')
+  InterfaceSettingNumberOfEntries = (
+      tr.cwmptypes.NumberOf('InterfaceSettingList'))
   PortMappingNumberOfEntries = tr.cwmptypes.NumberOf('PortMappingList')
 
   def __init__(self, dmroot):
@@ -66,10 +66,13 @@ class NAT(BASENAT):
 
   def _PrefixLines(self, lines, outidx):
     """Return prefixed lines.
-    Args
+
+    Args:
       lines: an array of lines of text
       outidx: the index to prefix
-    Returns a string."""
+    Returns:
+      a string.
+    """
 
     if not lines:
       return ''
@@ -190,7 +193,9 @@ class PortMapping(CATANAT.PortMapping):
 
   def _IsDmzComplete(self):
     """Returns true if object is fully configured for DMZ operation."""
-    return self.InternalClient and self.InternalPort == 0 and self.ExternalPort == 0
+    return (self.InternalClient and
+            self.InternalPort == 0 and
+            self.ExternalPort == 0)
 
   def _IsNatComplete(self):
     """Returns True if object is fully configured for Linux iptables."""
@@ -216,7 +221,8 @@ class PortMapping(CATANAT.PortMapping):
     entry in this table, the CPE MUST apply the port mapping associated with
     the highest precedence entry.
 
-    Returns: the precedence, an integer from 1 to 4.
+    Returns:
+      the precedence, an integer from 1 to 4.
     """
     if self.RemoteHost and self.ExternalPort:
       return 1
@@ -264,7 +270,7 @@ class PortMapping(CATANAT.PortMapping):
     else:
       dport = '%d' % self.InternalPort
     lines.append('DPORT=' + dport)
-    lines.append('ENABLE=%d' % (self.Enable == True))
+    lines.append('ENABLE=%d' % (1 if self.Enable else 0))
 
     return lines
 

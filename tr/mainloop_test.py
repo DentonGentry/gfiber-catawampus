@@ -31,7 +31,7 @@ import mainloop
 REQUEST_STRING = 'this is the request\n'
 
 
-idler = [0,0]
+idler = [0, 0]
 
 
 @mainloop.WaitUntilIdle
@@ -41,6 +41,7 @@ def IdleFunc():
 
 
 class IdleClass(object):
+
   @mainloop.WaitUntilIdle
   def ClassIdleFunc(self):
     print 'i1: %r' % self
@@ -144,10 +145,11 @@ class MainLoopTest(unittest.TestCase):
     loop = mainloop.MainLoop()
     loop.RunOnce()
     s1, s2 = socket.socketpair()
-    s3, s4 = socket.socketpair()
+    s3, unused_s4 = socket.socketpair()
     fd = os.dup(s1.fileno())
     print 'fds are: %d %d %d' % (s1.fileno(), s2.fileno(), fd)
     count = [0]
+
     def Handler(fd, events):
       count[0] += 1
       print 'handler: %r %r count=%d' % (fd, events, count[0])

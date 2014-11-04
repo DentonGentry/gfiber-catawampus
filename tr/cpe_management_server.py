@@ -40,6 +40,7 @@ import cwmpdate
 PERIODIC_CALLBACK = tornado.ioloop.PeriodicCallback
 SESSIONTIMEOUTFILE = '/tmp/cwmp/session_timeout'
 
+
 class ServerParameters(object):
   """Class to hold parameters of CpeManagementServer."""
 
@@ -344,10 +345,10 @@ class CpeManagementServer(object):
     c = 10 if retry_count >= 10 else retry_count
     m = float(self.config.CWMPRetryMinimumWaitInterval)
     k = float(self.config.CWMPRetryIntervalMultiplier) / 1000.0
-    start = m * math.pow(k, c-1)
+    start = m * math.pow(k, c - 1)
     stop = start * k
     # pin start/stop to have a maximum value of PeriodicInformInterval
-    start = int(min(start, periodic_interval/k))
+    start = int(min(start, periodic_interval / k))
     stop = int(min(stop, periodic_interval))
     randomwait = random.randrange(start, stop)
     return self.GetTimeout(SESSIONTIMEOUTFILE, randomwait)

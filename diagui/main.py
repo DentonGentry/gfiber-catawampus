@@ -6,13 +6,13 @@ __author__ = 'anandkhare@google.com (Anand Khare)'
 
 import hashlib
 import json
+import mimetypes
 import os
 import google3
-import mimetypes
 import tornado.ioloop
 import tornado.web
-import tr.pyinotify
 import tr.cwmptypes
+import tr.pyinotify
 
 ONU_STAT_FILE = '/tmp/cwmp/monitoring/onu/onustats.json'
 
@@ -76,7 +76,7 @@ class DiaguiSettings(tornado.web.Application):
     self.cpemach = cpemach
     if self.root:
       tr.cwmptypes.AddNotifier(type(self.root.Device.Ethernet),
-                           'InterfaceNumberOfEntries', self.AlertNotifiers)
+                               'InterfaceNumberOfEntries', self.AlertNotifiers)
       # TODO(anandkhare): Add notifiers on more parameters using the same format
       # as above, as and when they are implemented using types.py.
     self.pathname = os.path.dirname(__file__)

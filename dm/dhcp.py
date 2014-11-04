@@ -59,6 +59,7 @@ class Client(DHCP4SERVERPOOL.Client):
     """tr-181 Device.DHCPv4.Server.{i}.Client.{i}.
 
     Args:
+      chaddr: a MAC address.
       ipaddr: a dotted-quad IP address.
       expiry: an integer number of seconds since the epoch UTC
         when the lease will expire, OR a string timestamp, OR
@@ -114,6 +115,7 @@ class ClientOption(DHCP4SERVERPOOL.Client.Option):
 
   def __init__(self, tag, value):
     """tr-181 Device.DHCPv4.Server.{i}.Client.{i}.Option.{i}.
+
     Args:
       tag: numeric DHCP option tag
       value: string value

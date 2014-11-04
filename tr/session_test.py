@@ -187,6 +187,7 @@ class CwmpSessionTest(unittest.TestCase):
 
 
 class SimpleCacheObject(object):
+
   def __init__(self):
     self.cache_this_function_n = 0
     self.cache_this_function_args_n = 0
@@ -305,6 +306,7 @@ def setBarAtEnd(val):
 
 
 class RunAtEndTest(unittest.TestCase):
+
   def setUp(self):
     RunAtEndTestResults.clear()
 

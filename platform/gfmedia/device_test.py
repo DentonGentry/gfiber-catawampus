@@ -15,24 +15,22 @@
 
 # unittest requires method names starting in 'test'
 # pylint:disable=invalid-name
+# pylint:disable=unused-argument
 
 """Unit tests for device.py."""
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import os
-import shutil
-import tempfile
-
 import google3
-from tr.wvtest import unittest
+import device
 import tornado.ioloop
 import tornado.testing
-import device
 import tr.session
+from tr.wvtest import unittest
 
 
 class MockIoloop(object):
+
   def __init__(self):
     self.timeout = None
     self.callback = None
@@ -140,12 +138,12 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
 
   def testFanSpeed(self):
     fan = device.FanReadGpio(speed_filename='testdata/fanspeed',
-                    percent_filename='testdata/fanpercent')
+                             percent_filename='testdata/fanpercent')
     fan.ValidateExports()
     self.assertEqual(fan.RPM, 1800)
     self.assertEqual(fan.DesiredPercentage, 50)
     fan = device.FanReadGpio(speed_filename='foo',
-                    percent_filename='bar')
+                             percent_filename='bar')
     self.assertEqual(fan.RPM, -1)
     self.assertEqual(fan.DesiredPercentage, -1)
 
@@ -159,7 +157,7 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
   def testBadInstaller(self):
     device.GINSTALL = '/dev/null'
     inst = device.Installer('/dev/null', ioloop=self.io_loop)
-    inst.install(file_type='1 Firmware Upgrade Image',
+    inst.Install(file_type='1 Firmware Upgrade Image',
                  target_filename='',
                  callback=self.install_callback)
     self.assertTrue(self.install_cb_called)
@@ -169,7 +167,7 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
   def testInstallerStdout(self):
     device.GINSTALL = 'testdata/device/installer_128k_stdout'
     inst = device.Installer('testdata/device/imagefile', ioloop=self.io_loop)
-    inst.install(file_type='1 Firmware Upgrade Image',
+    inst.Install(file_type='1 Firmware Upgrade Image',
                  target_filename='',
                  callback=self.install_callback)
     self.wait()
@@ -181,7 +179,7 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
   def testInstallerFailed(self):
     device.GINSTALL = 'testdata/device/installer_fails'
     inst = device.Installer('testdata/device/imagefile', ioloop=self.io_loop)
-    inst.install(file_type='1 Firmware Upgrade Image',
+    inst.Install(file_type='1 Firmware Upgrade Image',
                  target_filename='',
                  callback=self.install_callback)
     self.wait()
@@ -207,6 +205,7 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
 
 
 class MockPynetInterface(object):
+
   def __init__(self, ifname):
     self.ifname = ifname
 

@@ -15,20 +15,22 @@
 
 # unittest requires method names starting in 'test'
 # pylint:disable=invalid-name
+# pylint:disable=unused-argument
 
 """Unit tests for device.py."""
 
 __author__ = 'zve@google.com (Alexei Zverovitch)'
 
 import google3
-from tr.wvtest import unittest
 import dm.periodic_statistics
 import tornado.ioloop
 import tornado.testing
+from tr.wvtest import unittest
 import device
 
 
 class MockIoloop(object):
+
   def __init__(self):
     self.timeout = None
     self.callback = None
@@ -170,7 +172,7 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
     device.INSTALL_FIRMWARE_IMAGE = 'testdata/device/install_firmware'
     device.INSTALL_JFFS_IMAGE = 'testdata/device/install_jffs'
     inst = device.Installer('/dev/null', ioloop=self.io_loop)
-    inst.install(file_type='INVALID FILE TYPE',
+    inst.Install(file_type='INVALID FILE TYPE',
                  target_filename='',
                  callback=self.install_callback)
     self.assertTrue(self.install_cb_called)
@@ -181,7 +183,7 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
     device.INSTALL_FIRMWARE_IMAGE = '/dev/null'
     device.INSTALL_JFFS_IMAGE = 'testdata/device/install_jffs'
     inst = device.Installer('/dev/null', ioloop=self.io_loop)
-    inst.install(file_type=device.FILETYPE_FIRMWARE_IMAGE,
+    inst.Install(file_type=device.FILETYPE_FIRMWARE_IMAGE,
                  target_filename='',
                  callback=self.install_callback)
     self.assertTrue(self.install_cb_called)
@@ -192,7 +194,7 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
     device.INSTALL_FIRMWARE_IMAGE = 'testdata/device/install_firmware'
     device.INSTALL_JFFS_IMAGE = '/dev/null'
     inst = device.Installer('/dev/null', ioloop=self.io_loop)
-    inst.install(file_type=device.FILETYPE_JFFS_IMAGE,
+    inst.Install(file_type=device.FILETYPE_JFFS_IMAGE,
                  target_filename='',
                  callback=self.install_callback)
     self.assertTrue(self.install_cb_called)
@@ -202,7 +204,7 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
   def testFirmwareInstallerStdout(self):
     device.INSTALL_FIRMWARE_IMAGE = 'testdata/device/install_firmware'
     inst = device.Installer('testdata/device/firmware.trx', ioloop=self.io_loop)
-    inst.install(file_type=device.FILETYPE_FIRMWARE_IMAGE,
+    inst.Install(file_type=device.FILETYPE_FIRMWARE_IMAGE,
                  target_filename='',
                  callback=self.install_callback)
     self.wait()
@@ -214,7 +216,7 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
   def testJffsInstallerStdout(self):
     device.INSTALL_JFFS_IMAGE = 'testdata/device/install_jffs'
     inst = device.Installer('testdata/device/jffs.tgz', ioloop=self.io_loop)
-    inst.install(file_type=device.FILETYPE_JFFS_IMAGE,
+    inst.Install(file_type=device.FILETYPE_JFFS_IMAGE,
                  target_filename='',
                  callback=self.install_callback)
     self.wait()
@@ -226,7 +228,7 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
   def testFirmwareInstallerFailed(self):
     device.INSTALL_FIRMWARE_IMAGE = 'testdata/device/install_fails'
     inst = device.Installer('testdata/device/firmware.trx', ioloop=self.io_loop)
-    inst.install(file_type=device.FILETYPE_FIRMWARE_IMAGE,
+    inst.Install(file_type=device.FILETYPE_FIRMWARE_IMAGE,
                  target_filename='',
                  callback=self.install_callback)
     self.wait()
@@ -237,7 +239,7 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
   def testJffsInstallerFailed(self):
     device.INSTALL_JFFS_IMAGE = 'testdata/device/install_fails'
     inst = device.Installer('testdata/device/jffs.trx', ioloop=self.io_loop)
-    inst.install(file_type=device.FILETYPE_JFFS_IMAGE,
+    inst.Install(file_type=device.FILETYPE_JFFS_IMAGE,
                  target_filename='',
                  callback=self.install_callback)
     self.wait()

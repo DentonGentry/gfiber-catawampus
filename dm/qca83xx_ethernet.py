@@ -32,7 +32,7 @@ import tr.cwmptypes
 
 QCAPORT = None
 try:
-  import qca83xx
+  import qca83xx  # pylint:disable=g-import-not-at-top
   QCAPORT = qca83xx.Port
 except ImportError:
   sys.stderr.write('No qca83xx module; continuing for unit test support.')
@@ -175,7 +175,7 @@ class EthernetInterfaceQca83xx(ETHERNET.Interface):
   def _UpdateStat(self, swstats, hwstats, swname, hwname):
     """Update accumulator from hardware counter.
 
-    Args
+    Args:
       swstats: a dict containing the accumulated values
       hwstats: a dict of values read from hardware counters
       swname: name of the tr-181 Stat to accumulate into

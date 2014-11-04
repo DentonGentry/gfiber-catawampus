@@ -205,8 +205,7 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
        'ff-ff-ff-00-00-00', 'FF-FF-FF-00-00-00',
        'ff-ff-ff-ff-00-00', 'FF-FF-FF-FF-00-00',
        'ff-ff-ff-ff-ff-00', 'FF-FF-FF-FF-FF-00',
-       'ff-ff-ff-ff-ff-ff', 'FF-FF-FF-FF-FF-FF',
-      ], init='')
+       'ff-ff-ff-ff-ff-ff', 'FF-FF-FF-FF-FF-FF'], init='')
   UserClassID = tr.cwmptypes.TriggerString('')
   VendorClassID = tr.cwmptypes.TriggerString('')
   # dnsmasq doesn't implement exact, prefix, or suffix matching.

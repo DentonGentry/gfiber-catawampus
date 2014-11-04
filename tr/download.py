@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# pylint:disable=unused-argument
 
 """Handlers for tr-69 Download and Scheduled Download."""
 
@@ -37,6 +39,7 @@ import session
 # Persistent object storage filename
 DNLDROOTNAME = 'tr69_dnld'
 BOOTROOTNAME = 'tr69_boot'
+INTERNAL_ERROR = 9002
 
 
 class Installer(object):
@@ -47,13 +50,12 @@ class Installer(object):
   tr.download.INSTALLER = their object.
   """
 
-  def install(self, file_type, target_filename, callback):
-    INTERNAL_ERROR = 9002
-    self.callback(faultcode=INTERNAL_ERROR,
-                  faultstring='No installer for this platform.',
-                  must_reboot=False)
+  def Install(self, file_type, target_filename, callback):
+    callback(faultcode=INTERNAL_ERROR,
+             faultstring='No installer for this platform.',
+             must_reboot=False)
 
-  def reboot(self):
+  def Reboot(self):
     return False
 
 # Class to be called after image is downloaded. Platform code is expected
@@ -171,6 +173,7 @@ class Download(object):
     return stateobj
 
   def _ScheduleTimer(self):
+    """Set up a timer to trigger the state machine at the right future time."""
     delay_seconds = getattr(self.stateobj, 'delay_seconds', 0)
     now = time.time()
     wait_start_time = self.stateobj.wait_start_time
@@ -183,7 +186,7 @@ class Download(object):
       when = now
 
     self.wait_handle = self.ioloop.add_timeout(
-        datetime.timedelta(seconds=when-now),
+        datetime.timedelta(seconds=when - now),
         self.TimerCallback)
 
   def _NewDownloadObject(self, stateobj):
@@ -229,7 +232,7 @@ class Download(object):
           self.stateobj.Update(dlstate=self.INSTALLING)
           file_type = getattr(self.stateobj, 'file_type', None)
           target_filename = getattr(self.stateobj, 'target_filename', None)
-          self.installer.install(file_type=file_type,
+          self.installer.Install(file_type=file_type,
                                  target_filename=target_filename,
                                  callback=self.InstallerCallback)
         else:
@@ -243,7 +246,7 @@ class Download(object):
         if faultcode == 0:
           if must_reboot:
             self.stateobj.Update(dlstate=self.REBOOTING)
-            self.installer.reboot()
+            self.installer.Reboot()
           else:
             end = time.time()
             self.stateobj.Update(dlstate=self.EXITING,
@@ -426,8 +429,9 @@ class DownloadManager(object):
     self._downloads.remove(dl)
     self._pending_complete.append(dl)
     if self.send_transfer_complete:
-      self.send_transfer_complete(command_key, faultcode, faultstring,
-                                  starttime, endtime, event_code)
+      self.send_transfer_complete(  # pylint:disable=not-callable
+          command_key, faultcode, faultstring,
+          starttime, endtime, event_code)
 
   def RestoreDownloads(self):
     pobjs = persistobj.GetPersistentObjects(objdir=self.config_dir,
@@ -481,7 +485,7 @@ class DownloadManager(object):
   @session.RunAtEnd
   def _DelayedReboot(self):
     installer = INSTALLER('')
-    installer.reboot()
+    installer.Reboot()
 
   def RestoreReboots(self):
     """Read state of Reboot RPCs in from storage."""

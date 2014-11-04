@@ -24,12 +24,13 @@ import datetime
 import os
 import shutil
 import google3
-from tr.wvtest import unittest
-import tr.mainloop
 import ookla
+import tr.mainloop
+from tr.wvtest import unittest
 
 
 class TimeNow(object):
+
   def timetuple(self):
     return (2013, 1, 2, 3, 4, 5)
 

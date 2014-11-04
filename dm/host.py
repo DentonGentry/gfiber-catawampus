@@ -94,8 +94,10 @@ class Hosts(BASE181HOSTS):
   def _BuildIfLookup(self, iflookup):
     """Walk the device tree to create an interface mapping.
 
+    Args:
+      iflookup: the empty or partially-filled dictionary to fill.
     Returns:
-      a dict mapping Linux ifnames to tr-69 parameter paths. Ex:
+      iflookup, updated to map Linux ifnames to tr-69 parameter paths. Ex:
        {'eth0': 'Device.Ethernet.Interface.1',
         'eth1': 'Device.MoCA.Interface.1'}
     """
@@ -145,6 +147,10 @@ class Hosts(BASE181HOSTS):
     (even with an empty string).
     Otherwise, replace entry['Layer1Interface'] if we have better
     information.
+
+    Args:
+      entry: the object to modify.
+      iface: the interface name to populate into entry.
     """
     l1 = self.Iflookup().get(iface, '')
     if l1:
@@ -178,7 +184,7 @@ class Hosts(BASE181HOSTS):
       while offset < len(fdb):
         (m1, m2, m3, m4, m5, m6, port_lo, unused_local, unused_age_timer,
          port_hi, unused_pad1, unused_pad2) = struct.unpack(
-             'BBBBBBBBIBBH', fdb[offset:offset+16])
+             'BBBBBBBBIBBH', fdb[offset:offset + 16])
         mac = '%02x:%02x:%02x:%02x:%02x:%02x' % (m1, m2, m3, m4, m5, m6)
         port = (port_hi << 8) | port_lo
         iface = interfaces.get(port, 'unknown')
@@ -266,7 +272,8 @@ class Hosts(BASE181HOSTS):
       dev = fields[2]
       mac = fields[4]
       try:
-        type(self)._MacValidator.Set(self, mac)
+        type(self)._MacValidator.Set(  # pylint:disable=protected-access
+            self, mac)
       except ValueError:
         continue
       active = 'REACHABLE' in line
@@ -509,6 +516,10 @@ class Hosts(BASE181HOSTS):
       ASUS - prints the model name, nicely
       dnssd - prints the hostname, but often appends trailing stuff to it.
       netbios - munges computer name to fit into 16 chars, all caps.
+
+    Args:
+      hosts: the dict of host objects that should have data filled in.
+        The objects already in the dict will have their members changed.
     """
     asus = self._ReadHostnameFile(ASUS_HOSTNAMES)
     dnssd = self._ReadHostnameFile(DNSSD_HOSTNAMES)
