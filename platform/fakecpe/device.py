@@ -51,7 +51,7 @@ class PlatformConfig(platform_config.PlatformConfigMeta):
 
   def __init__(self, ioloop=None):
     super(PlatformConfig, self).__init__()
-    tr.acs_config.SET_ACS = '/bin/true'
+    tr.acs_config.SET_ACS = 'true'
 
   def ConfigDir(self):
     return '/tmp/catawampus.%s/config/' % FakeCPEInstance()
