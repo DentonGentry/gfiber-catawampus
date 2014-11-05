@@ -108,7 +108,7 @@ class TestDeviceModelRoot(core.Exporter):
     """A parameter which, when accessed, will raise a TypeError."""
     raise TypeError('RaiseTypeError Parameter')
 
-  def SetRaiseTypeError(self, value):
+  def SetRaiseTypeError(self, unused_value):
     raise TypeError('RaiseTypeError Parameter')
 
   RaiseTypeError = property(GetRaiseTypeError, SetRaiseTypeError, None,
@@ -118,7 +118,7 @@ class TestDeviceModelRoot(core.Exporter):
     """A parameter which, when accessed, will raise a ValueError."""
     raise ValueError('RaiseValueError Parameter')
 
-  def SetRaiseValueError(self, value):
+  def SetRaiseValueError(self, unused_value):
     raise ValueError('RaiseValueError Parameter')
 
   RaiseValueError = property(GetRaiseValueError, SetRaiseValueError, None,
@@ -128,7 +128,7 @@ class TestDeviceModelRoot(core.Exporter):
     """A parameter which, when accessed, will raise a SystemError."""
     raise SystemError('RaiseSystemError Parameter')
 
-  def SetRaiseSystemError(self, value):
+  def SetRaiseSystemError(self, unused_value):
     raise SystemError('RaiseSystemError Parameter')
 
   RaiseSystemError = property(GetRaiseSystemError, SetRaiseSystemError, None,
