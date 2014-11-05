@@ -53,6 +53,7 @@ class NatTest(unittest.TestCase):
 
   def tearDown(self):
     super(NatTest, self).tearDown()
+    self.loop.RunOnce(timeout=1)
     shutil.rmtree(self.tmpdir)
     nat.DMZFILE4 = self.old_DMZFILE4
     nat.DMZFILE6 = self.old_DMZFILE6
