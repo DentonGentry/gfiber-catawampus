@@ -2,7 +2,7 @@ default: all
 
 GPYLINT=$(shell \
     if which gpylint >/dev/null; then \
-      echo gpylint --disable=g-bad-import-order; \
+      echo gpylint --disable=g-bad-import-order --disable=g-unknown-interpreter; \
     else \
       echo 'echo "(gpylint-missing)" >&2'; \
     fi \
