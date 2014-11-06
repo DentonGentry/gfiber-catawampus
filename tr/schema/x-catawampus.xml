@@ -30,5 +30,23 @@
         <syntax><boolean/></syntax>
       </parameter>
     </object>
+    <object name="X_CATAWAMPUS-ORG_CATAWAMPUS.ExpensiveStuff." access="readOnly" minEntries="1" maxEntries="1">
+      <parameter name="Stats" access="readOnly">
+        <description>Text description of the N most expensive PeriodicStatistics to sample.</description>
+        <syntax>
+          <string>
+            <size maxLength="131072"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="Notifications" access="readOnly">
+        <description>Text description of the N most expensive Notifications to sample.</description>
+        <syntax>
+          <string>
+            <size maxLength="131072"/>
+          </string>
+        </syntax>
+      </parameter>
+    </object>
   </model>
 </dm:document>

@@ -26,6 +26,8 @@ import pstats
 import StringIO
 import sys
 import google3
+import dm.periodic_statistics
+import tr.api
 import tr.core
 import tr.cwmptypes
 import tr.x_catawampus_1_0
@@ -39,6 +41,7 @@ class CatawampusDm(BASEDM.X_CATAWAMPUS_ORG_CATAWAMPUS):
   def __init__(self):
     super(CatawampusDm, self).__init__()
     self.Profiler = Profiler()
+    self.ExpensiveStuff = ExpensiveStuff()
 
   @property
   def RuntimeEnvInfo(self):
@@ -79,6 +82,26 @@ class Profiler(BASEDM.X_CATAWAMPUS_ORG_CATAWAMPUS.Profiler):
       val = s.getvalue()
       type(self).Result.Set(self, val[:16384])
       self.prof = None
+
+
+class ExpensiveStuff(BASEDM.X_CATAWAMPUS_ORG_CATAWAMPUS.ExpensiveStuff):
+  """Tracks expensive background activities."""
+
+  def getTopNSamples(self, samples, lim):
+    """Return the lim most expensive samples."""
+    expensive = sorted(samples, key=samples.get, reverse=True)
+    report = ''
+    for param in expensive[0:lim]:
+      report += '%s: %s\n' % (param, samples[param])
+    return report
+
+  @property
+  def Notifications(self):
+    return self.getTopNSamples(tr.api.ExpensiveNotifications, 40)
+
+  @property
+  def Stats(self):
+    return self.getTopNSamples(dm.periodic_statistics.ExpensiveStats, 40)
 
 
 if __name__ == '__main__':

@@ -25,6 +25,8 @@ import datetime
 import time
 import tr.api_soap
 import tr.cwmpbool
+import tr.cwmptypes
+import tr.monohelper
 import tr.session
 import tr.tr157_v1_3
 
@@ -37,14 +39,15 @@ def _timefunc():
 # version of the schema.
 BASE157PS = tr.tr157_v1_3.InternetGatewayDevice_v1_7.PeriodicStatistics
 
-CALC_MODES = frozenset(
-    ['Latest', 'Minimum', 'Maximum', 'Average'])
-SAMPLE_MODES = frozenset(['Current', 'Change'])
 # The spec says when TimeReference isn't set, we can pick the phase.  This
 # seems as good as any other.  Set the phase to start at the beginning of
 # a day/hour/minute/second.
 DEFAULT_TIME_REF_SEC = time.mktime((1970, 1, 1, 0, 0, 0, -1, -1, -1))
 TIMEFUNC = _timefunc
+
+
+# Profiling which parameters take the most time to sample.
+ExpensiveStats = {}
 
 
 def _MakeSampleSeconds(sample_times):
@@ -55,6 +58,9 @@ def _MakeSampleSeconds(sample_times):
 
 class PeriodicStatistics(BASE157PS):
   """An implementation of tr157 PeriodicStatistics sampling."""
+
+  MaxReportSamples = tr.cwmptypes.ReadOnlyUnsigned(0)
+  MinSampleInterval = tr.cwmptypes.ReadOnlyUnsigned(0)
 
   def __init__(self):
     super(PeriodicStatistics, self).__init__()
@@ -80,16 +86,6 @@ class PeriodicStatistics(BASE157PS):
     """Sets the cpe to use for scheduling polling events."""
     self._cpe = cpe
 
-  def StartTransaction(self):
-    # TODO(jnewlin): Implement the transaction model for SetParameterValues
-    pass
-
-  def AbandonTransaction(self):
-    pass
-
-  def CommitTransaction(self):
-    pass
-
   def IterSampleSets(self):
     return self.sample_sets.iteritems()
 
@@ -107,19 +103,6 @@ class PeriodicStatistics(BASE157PS):
   def SampleSetNumberOfEntries(self):
     return len(self.sample_sets)
 
-  @property
-  def MaxReportSamples(self):
-    """Maximum samples that can be collected in a report.
-
-    Returns:
-      A value of 0 in this case, indicates no specific maximum.
-    """
-    return 0
-
-  @property
-  def MinSampleInterval(self):
-    """Minimum sampling interval, a value of 0 indicates no minimum."""
-    return 0
 
   class SampleSet(BASE157PS.SampleSet):
     """Implementation of PeriodicStatistics.SampleSet."""
@@ -431,17 +414,20 @@ class PeriodicStatistics(BASE157PS):
     class Parameter(BASE157PS.SampleSet.Parameter):
       """Implementation of PeriodicStatistics.SampleSet.Parameter."""
 
+      CalculationMode = tr.cwmptypes.Enum(
+          ['Latest', 'Minimum', 'Maximum', 'Average'],
+          'Latest')
+      Enable = tr.cwmptypes.Bool(False)
+      Failures = tr.cwmptypes.ReadOnlyUnsigned(0)
+      HighThreshold = tr.cwmptypes.Unsigned(0)
+      LowThreshold = tr.cwmptypes.Unsigned(0)
+      SampleMode = tr.cwmptypes.Enum(['Current', 'Change'], 'Current')
+
       def __init__(self):
         BASE157PS.SampleSet.Parameter.__init__(self)
         self._parent = None
         self._root = None
-        self.Enable = False
-        self.HighThreshold = 0
-        self.LowThreshold = 0
         self.Reference = None
-        self._calculation_mode = 'Latest'
-        self._failures = 0
-        self._sample_mode = 'Current'
         self._sample_times = []
         self._suspect_data = []
         self._values = []
@@ -449,30 +435,6 @@ class PeriodicStatistics(BASE157PS):
       def Close(self):
         """Called when this object is not longer collecting data."""
         self._parent.DelParameterByVal(self)
-
-      @property
-      def CalculationMode(self):
-        return self._calculation_mode
-
-      @CalculationMode.setter
-      def CalculationMode(self, value):
-        if value not in CALC_MODES:
-          raise ValueError('Bad value sent for CalculationMode.')
-        self._calculation_mode = value
-
-      @property
-      def Failures(self):
-        return self._failures
-
-      @property
-      def SampleMode(self):
-        return self._sample_mode
-
-      @SampleMode.setter
-      def SampleMode(self, value):
-        if value not in SAMPLE_MODES:
-          raise ValueError('Bad value set for SampleMode: ' + str(value))
-        self._sample_mode = value
 
       @property
       def SampleSeconds(self):
@@ -520,6 +482,7 @@ class PeriodicStatistics(BASE157PS):
       def CollectSample(self, start_time):
         """Collects one new sample point."""
         current_time = TIMEFUNC()
+        start = tr.monohelper.monotime()
         if not self.Enable:
           return
         try:
@@ -533,6 +496,10 @@ class PeriodicStatistics(BASE157PS):
         finally:
           # This will keep just the last ReportSamples worth of samples.
           self.TrimSamples(self._parent.ReportSamples)
+        end = tr.monohelper.monotime()
+        accumulated = ExpensiveStats.get(self.Reference, 0.0)
+        accumulated += end - start
+        ExpensiveStats[self.Reference] = accumulated
 
       def ClearSamplingData(self):
         """Throw away any sampled data."""
