@@ -35,7 +35,6 @@ import tr.helpers
 import tr.session
 import tr.tr181_v2_6
 import tr.cwmptypes
-import dhcp
 
 BASE181HOSTS = tr.tr181_v2_6.Device_v2_6.Device.Hosts
 BASE181HOST = tr.tr181_v2_6.Device_v2_6.Device.Hosts.Host
