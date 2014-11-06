@@ -633,26 +633,30 @@ class LANDevice(BASE98IGD.LANDevice):
   LANUSBInterfaceNumberOfEntries = tr.cwmptypes.NumberOf(
       'LANUSBInterfaceConfigList')
 
-  def __init__(self):
+  def __init__(self, if_suffix, bridge):
     super(LANDevice, self).__init__()
     self.Unexport(['Alias'])
     self.Unexport(objects=['Hosts', 'LANHostConfigManagement'])
     self.LANEthernetInterfaceConfigList = {}
     self.LANUSBInterfaceConfigList = {}
     self.WLANConfigurationList = {}
-    if _DoesInterfaceExist('eth2'):
-      wifi = dm.brcmwifi.BrcmWifiWlanConfiguration('eth2')
+    if _DoesInterfaceExist('eth2' + if_suffix):
+      wifi = dm.brcmwifi.BrcmWifiWlanConfiguration('eth2' + if_suffix)
       self.WLANConfigurationList['1'] = wifi
-    if _DoesInterfaceExist('wlan0') and _DoesInterfaceExist('wlan1'):
+
+    if (_DoesInterfaceExist('wlan0' + if_suffix)
+        and _DoesInterfaceExist('wlan1' + if_suffix)):
       # Two radios, instantiate both with fixed bands
-      wifi = dm.binwifi.WlanConfiguration('wlan0', band='2.4')
+      wifi = dm.binwifi.WlanConfiguration('wlan0', if_suffix, bridge, '2.4')
       self.WLANConfigurationList['1'] = wifi
-      wifi = dm.binwifi.WlanConfiguration('wlan1', band='5', standard='ac',
-                                          width_5g=80, autochan='HIGH')
+      wifi = dm.binwifi.WlanConfiguration('wlan1', if_suffix, bridge, '5',
+                                          standard='ac', width_5g=80,
+                                          autochan='HIGH')
       self.WLANConfigurationList['2'] = wifi
-    elif _DoesInterfaceExist('wlan0'):
+    elif _DoesInterfaceExist('wlan0' + if_suffix):
       # One radio, allow switching bands
-      wifi = dm.binwifi.WlanConfiguration('wlan0', width_5g=40, autochan='LOW')
+      wifi = dm.binwifi.WlanConfiguration('wlan0', if_suffix, 'br0',
+                                          width_5g=40, autochan='LOW')
       self.WLANConfigurationList['1'] = wifi
 
 
@@ -670,7 +674,8 @@ class InternetGatewayDevice(BASE98IGD):
                            'TraceRouteDiagnostics', 'UploadDiagnostics',
                            'UserInterface'])
     self.Unexport(lists=['WANDevice'])
-    self.LANDeviceList = {'1': LANDevice()}
+    self.LANDeviceList = {'1': LANDevice('', 'br0'),
+                          '2': LANDevice('_portal', '')}
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
 
     self.DeviceInfo = dm.device_info.DeviceInfo98Linux26(device_id)

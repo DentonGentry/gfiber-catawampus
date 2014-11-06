@@ -85,13 +85,15 @@ class WlanConfiguration(CATA98WIFI):
   WPAEncryptionModes = tr.cwmptypes.TriggerEnum(
       encryption_modes, init='AESEncryption')
 
-  def __init__(self, ifname, band=None, standard='n',
+  def __init__(self, ifname, if_suffix, bridge, band=None, standard='n',
                width_2_4g=0, width_5g=0, autochan=None):
     super(WlanConfiguration, self).__init__()
     self._initialized = False
-    self._ifname = ifname
-    type(self).Name.Set(self, ifname)
+    self._if_suffix = if_suffix
+    self._ifname = ifname + if_suffix
+    type(self).Name.Set(self, self._ifname)
     self._band = band if band else '5'
+    self._bridge = bridge
     self._fixed_band = band
     self.Standard = standard
     self._channelwidth_2_4g = width_2_4g
@@ -204,6 +206,9 @@ class WlanConfiguration(CATA98WIFI):
   def _BinwifiShow(self):
     """Cache the output of /bin/wifi show."""
     cmd = BINWIFI + ['show', '-b', self._band]
+    if self._if_suffix:
+      cmd += ['-S', self._if_suffix]
+
     try:
       w = subprocess.Popen(cmd, stdout=subprocess.PIPE, close_fds=True)
       out, _ = w.communicate(None)
@@ -438,6 +443,11 @@ class WlanConfiguration(CATA98WIFI):
     env = os.environ.copy()
     cmd = BINWIFI + ['set', '-P', '-b', self._band,
                      '-e', self._GetEncryptionMode()]
+    if self._if_suffix:
+      cmd += ['-S', self._if_suffix]
+    if self._bridge:
+      cmd += ['-B', self._bridge]
+
     if not self.SSIDAdvertisementEnabled:
       cmd += ['-H']
     ae = self.new_config.AutoChannelEnable
@@ -480,6 +490,8 @@ class WlanConfiguration(CATA98WIFI):
       (cmd, env) = self._MakeBinWifiCommand()
     else:
       cmd = BINWIFI + ['off', '-P', '-b', self._band]
+      if self._if_suffix:
+        cmd += ['-S', self._if_suffix]
       env = None
 
     if cmd == self.last_bin_wifi and env == self.last_env:
