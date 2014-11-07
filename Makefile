@@ -51,7 +51,7 @@ LINT_FILES=$(shell \
 # let's try to batch several files together into each instance to minimize
 # the runtime.
 lint_parallel:
-	@echo $(LINT_FILES) | xargs -P12 -n25 $(GPYLINT)
+	@echo $(LINT_FILES) | xargs -P12 -n1 $(GPYLINT)
 
 lint: all
 	@$(GPYLINT) $(LINT_FILES)
