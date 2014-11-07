@@ -530,7 +530,6 @@ class IP(tr181.Device_v2_6.Device.IP):
       self.InterfaceList[10] = dm.ipinterface.IPInterfaceLinux26(
           ifname='wlan1_portal', lowerlayers='')
 
-
     self.ActivePortList = {}
     self.Diagnostics = IPDiagnostics()
 

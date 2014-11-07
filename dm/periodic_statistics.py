@@ -47,6 +47,7 @@ TIMEFUNC = _timefunc
 
 
 # Profiling which parameters take the most time to sample.
+# pylint:disable=g-bad-name
 ExpensiveStats = {}
 
 
@@ -102,7 +103,6 @@ class PeriodicStatistics(BASE157PS):
   @property
   def SampleSetNumberOfEntries(self):
     return len(self.sample_sets)
-
 
   class SampleSet(BASE157PS.SampleSet):
     """Implementation of PeriodicStatistics.SampleSet."""

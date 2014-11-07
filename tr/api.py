@@ -44,6 +44,7 @@ ACTIVE_NOTIFY = 2
 
 
 # Tracking of notifications which are particularly expensive to process.
+# pylint:disable=g-bad-name
 ExpensiveNotifications = {}
 
 
