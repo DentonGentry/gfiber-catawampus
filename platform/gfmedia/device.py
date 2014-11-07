@@ -39,6 +39,7 @@ import dm.binwifi
 import dm.brcmmoca
 import dm.brcmmoca2
 import dm.brcmwifi
+import dm.captive_portal
 import dm.device_info
 import dm.dns
 import dm.dnsmasq
@@ -581,6 +582,7 @@ class Device(tr181.Device_v2_6.Device):
     self.PeriodicStatistics = periodic_stats
     self.UPnP = dm.miniupnp.UPnP()
     self.X_CATAWAMPUS_ORG_DynamicDNS = dm.inadyn.Inadyn()
+    self.CaptivePortal = dm.captive_portal.CaptivePortal()
     self._AddTemperatureStuff()
     self._AddHostsStuff(dmroot=dmroot)
 
@@ -590,7 +592,7 @@ class Device(tr181.Device_v2_6.Device):
 
   def _UnexportStuff(self):
     self.Unexport(objects=[
-        'ATM', 'Bridging', 'CaptivePortal', 'DHCPv6', 'DSL', 'DSLite',
+        'ATM', 'Bridging', 'DHCPv6', 'DSL', 'DSLite',
         'ETSIM2M', 'Firewall', 'GatewayInfo', 'Ghn', 'HPNA',
         'HomePlug', 'IEEE8021x', 'IPsec', 'IPv6rd', 'LANConfigSecurity',
         'NAT', 'NeighborDiscovery', 'Optical', 'PPP', 'PTM', 'QoS',
