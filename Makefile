@@ -21,8 +21,9 @@ SUBTESTS= \
   platform/tomato/test
 $(SUBTESTS): all
 
-test: test_only lint_parallel
+test: test_only lint
 
+# Use this to skip the boring lint phase until you're almost done coding
 test_only: all $(SUBTESTS)
 	tr/vendor/wvtest/wvtestrun $(MAKE) runtests
 
@@ -38,23 +39,27 @@ clean: tr/clean
 	rm -f *~ .*~ *.pyc
 	find . -name '*.pyc' -o -name '*~' | xargs rm -f
 
-LINT_FILES=$(shell \
-	(echo cwmp; echo cwmpd; find -name '*.py' -size +1c) | \
-	grep -v '/vendor/' | \
-	grep -v 'google3.py' | \
-	grep -v '__init__.py' | \
-	grep -v 'pyinotify.py' \
+
+LINT_DIRS=$(shell \
+	find . -name vendor -prune -o -name '*.py' -size +1c -printf '%h\n' | \
+	sort -u \
 )
+LINT_TASKS?=12
 
 # For maximum parallelism, we could just have a rule that depends on %.lint
-# for all $(LINT_FILES).  But gpylint takes a long time to start up, so
+# for all interesting files.  But gpylint takes a long time to start up, so
 # let's try to batch several files together into each instance to minimize
-# the runtime.
-lint_parallel:
-	@echo $(LINT_FILES) | xargs -P12 -n1 $(GPYLINT)
+# the runtime.  For added fun, gpylint has bugs if you specify files from
+# more than one directory at once, so break it out by directory.
+lint: \
+  cwmp.lint \
+  cwmpd.lint \
+  $(patsubst %,%.dirlint,$(LINT_DIRS))
 
-lint: all
-	@$(GPYLINT) $(LINT_FILES)
+%.dirlint: all
+	@find $* -maxdepth 1 -size +1c -name '*.py' -type f \
+		-not -name google3.py | \
+	xargs -P$(LINT_TASKS) -n25 $(GPYLINT)
 
 %.lint: all
 	@$(GPYLINT) $*
