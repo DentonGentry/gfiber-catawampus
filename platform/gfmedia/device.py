@@ -585,9 +585,7 @@ class Device(tr181.Device_v2_6.Device):
     self._AddTemperatureStuff()
     self._AddHostsStuff(dmroot=dmroot)
 
-  @property
-  def InterfaceStackNumberOfEntries(self):
-    return len(self.InterfaceStackList)
+  InterfaceStackNumberOfEntries = tr.cwmptypes.NumberOf('InterfaceStackList')
 
   def _UnexportStuff(self):
     self.Unexport(objects=[

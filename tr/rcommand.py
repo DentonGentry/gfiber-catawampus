@@ -116,6 +116,14 @@ class RemoteCommandStreamer(quotedblock.QuotedBlockStreamer):
     """Return a list of objects, recursively starting at the given name."""
     return self._CmdList(name, recursive=True)
 
+  def CmdValidate(self, name=None):
+    """Validate the schema of an object and its children."""
+    h = self.root
+    if name:
+      h = self.root.SubHandle(self.root.GetExport(name))
+    h.ValidateExports(path=[name])
+    return []
+
   def CmdAdd(self, name, idx=None):
     """Add a sub-object to the given list with the given (optional) index."""
     idx, unused_obj = self.root.AddExportObject(name, idx)

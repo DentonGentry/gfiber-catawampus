@@ -168,7 +168,7 @@ class Client(object):
     request = os.path.join(self.cwd, _DotsToSlashes(lastword))
     subs = list(self._RequestCompletions(request))
     cmd = line.split(' ', 1)[0]
-    if cmd.lower() in ('cd', 'ls', 'list', 'rlist', 'add', 'del'):
+    if cmd.lower() in ('cd', 'ls', 'list', 'rlist', 'validate', 'add', 'del'):
       # only return object names, not parameters
       subs = [i for i in subs if i.endswith('.')]
     return (qtype, lastword, subs)
@@ -220,7 +220,8 @@ class Client(object):
 def DoCmd(client, words):
   words = [i.decode('utf-8') for i in words]
   cmd, args = (words[0].lower(), words[1:])
-  if cmd in ('cd', 'ls', 'list', 'rlist', 'add', 'del', 'get', 'set'):
+  if cmd in ('cd', 'ls', 'list', 'rlist', 'validate',
+             'add', 'del', 'get', 'set'):
     if not args:
       args = [client.cwd]
     relpath = _DotsToSlashes(args[0])

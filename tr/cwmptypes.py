@@ -599,7 +599,10 @@ class NumberOf(ReadOnly):
   def __get__(self, obj, _):
     if obj is None:
       return self
-    return len(getattr(obj, self.listname))
+    try:
+      return len(getattr(obj, self.listname))
+    except TypeError as e:
+      raise TypeError('%s: %s' % (self.listname, e))
 
 
 def tryattr(obj, attrname, value):

@@ -33,13 +33,14 @@ class RunserverTest(unittest.TestCase):
 
   sockname = '/tmp/cwmpd_test.sock.%d' % os.getpid()
 
-  def _StartClient(self, stdout=None):
-    client = subprocess.Popen(['./cwmp', '--unix-path', self.sockname],
+  def _StartClient(self, extra_args=[], stdout=None):
+    client = subprocess.Popen(['./cwmp', '--unix-path', self.sockname] +
+                              extra_args,
                               stdin=subprocess.PIPE, stdout=stdout)
     client.stdin.close()
     return client
 
-  def _DoTest(self, args):
+  def _DoTest(self, args, extra_args=[]):
     print
     print 'Testing with args=%r' % args
     tr.helpers.Unlink(self.sockname)
@@ -54,7 +55,7 @@ class RunserverTest(unittest.TestCase):
       print 'waiting for server to start...'
       while server.stdout.read():
         pass
-      client = self._StartClient()
+      client = self._StartClient(extra_args=extra_args)
       self.assertEqual(client.wait(), 0)
       server.stdin.close()
       self.assertEqual(server.wait(), 0)
@@ -82,7 +83,7 @@ class RunserverTest(unittest.TestCase):
     self._DoTest(['--no-cpe',
                   '--platform', 'fakecpe'])
     self._DoTest(['--fake-acs',
-                  '--platform', 'fakecpe'])
+                  '--platform', 'fakecpe'], extra_args=['validate'])
 
 
 if __name__ == '__main__':

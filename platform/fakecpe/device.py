@@ -162,7 +162,7 @@ class EthernetFakeCPE(tr181.Device_v2_2.Device.Ethernet):
 
   InterfaceNumberOfEntries = tr.cwmptypes.NumberOf('InterfaceList')
   LinkNumberOfEntries = tr.cwmptypes.NumberOf('LinkList')
-  VLANTerminationNumberOfEntries = tr.cwmptypes.NumberOf('VLANTermination')
+  VLANTerminationNumberOfEntries = tr.cwmptypes.NumberOf('VLANTerminationList')
 
   def __init__(self):
     super(EthernetFakeCPE, self).__init__()
@@ -210,6 +210,7 @@ class InternetGatewayDeviceFakeCPE(BASE98IGD):
                            'UserInterface'])
     self.Unexport(lists=['WANDevice'])
     self.LANDeviceList = {'1': LANDevice()}
+    self.WANDeviceList = {}
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
 
     self.DeviceInfo = dm.device_info.DeviceInfo98Linux26(device_id)
@@ -230,6 +231,8 @@ class LANDevice(BASE98IGD.LANDevice):
                          'LANUSBInterfaceConfig'])
     wifi = dm.fakewifi.FakeWifiWlanConfiguration()
     self.WLANConfigurationList = {'1': wifi}
+    self.LANEthernetInterfaceList = {}
+    self.LANUSBInterfaceList = {}
 
   LANWLANConfigurationNumberOfEntries = tr.cwmptypes.NumberOf(
       'WLANConfigurationList')
