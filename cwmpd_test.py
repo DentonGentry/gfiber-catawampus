@@ -33,14 +33,18 @@ class RunserverTest(unittest.TestCase):
 
   sockname = '/tmp/cwmpd_test.sock.%d' % os.getpid()
 
-  def _StartClient(self, extra_args=[], stdout=None):
+  def _StartClient(self, extra_args=None, stdout=None):
+    if extra_args is None:
+      extra_args = []
     client = subprocess.Popen(['./cwmp', '--unix-path', self.sockname] +
                               extra_args,
                               stdin=subprocess.PIPE, stdout=stdout)
     client.stdin.close()
     return client
 
-  def _DoTest(self, args, extra_args=[]):
+  def _DoTest(self, args, extra_args=None):
+    if extra_args is None:
+      extra_args = []
     print
     print 'Testing with args=%r' % args
     tr.helpers.Unlink(self.sockname)
