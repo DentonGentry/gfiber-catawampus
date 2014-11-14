@@ -218,6 +218,7 @@ class Client(object):
 
 
 def DoCmd(client, words):
+  """Send the command to cwmpd."""
   words = [i.decode('utf-8') for i in words]
   cmd, args = (words[0].lower(), words[1:])
   if cmd in ('cd', 'ls', 'list', 'rlist', 'validate',
