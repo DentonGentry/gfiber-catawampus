@@ -21,7 +21,13 @@ SUBTESTS= \
     platform/tomato/test
 $(SUBTESTS): all
 
-test: test_only lint
+# Use a submake here, only because otherwise GNU make (3.81) will not print
+# an error about 'test' itself failing if one of the two sub-targets fails.
+# Without such output, 'lint' could fail long before test_only fails, and
+# the test_only output could scroll off the top of the screen, leaving the
+# misleading impression that everything tested successfully.
+test:
+	$(MAKE) test_only lint
 
 # Use this to skip the boring lint phase until you're almost done coding
 test_only: all $(SUBTESTS)
