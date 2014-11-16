@@ -30,13 +30,14 @@ import dm.periodic_statistics
 import tr.api
 import tr.cwmptypes
 import tr.handle
-import tr.x_catawampus_1_0
+import tr.x_catawampus_tr181_2_0
 
-BASEDM = tr.x_catawampus_1_0.X_CATAWAMPUS_ORG_CATAWAMPUS_v1_0
+BASE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
+CATABASE = BASE.Device.X_CATAWAMPUS_ORG.Catawampus
 
 
-class CatawampusDm(BASEDM.X_CATAWAMPUS_ORG_CATAWAMPUS):
-  """Implementation of x-catawampus-1.0. See tr/schema/x-catawampus.xml."""
+class CatawampusDm(CATABASE):
+  """Implementation of catawampus extension. See tr/schema/x-cata181.xml."""
 
   def __init__(self):
     super(CatawampusDm, self).__init__()
@@ -60,7 +61,7 @@ class CatawampusDm(BASEDM.X_CATAWAMPUS_ORG_CATAWAMPUS):
     return json.dumps(env)
 
 
-class Profiler(BASEDM.X_CATAWAMPUS_ORG_CATAWAMPUS.Profiler):
+class Profiler(CATABASE.Profiler):
   """Implements a profiler for cwmpd."""
 
   Enable = tr.cwmptypes.TriggerBool(False)
@@ -84,7 +85,7 @@ class Profiler(BASEDM.X_CATAWAMPUS_ORG_CATAWAMPUS.Profiler):
       self.prof = None
 
 
-class ExpensiveStuff(BASEDM.X_CATAWAMPUS_ORG_CATAWAMPUS.ExpensiveStuff):
+class ExpensiveStuff(CATABASE.ExpensiveStuff):
   """Tracks expensive background activities."""
 
   def getTopNSamples(self, samples, lim):

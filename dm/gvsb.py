@@ -22,7 +22,10 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
 import tr.cwmptypes
-import tr.x_gvsb_1_0
+import tr.x_catawampus_tr181_2_0
+
+BASE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
+CATABASE = BASE.Device.X_CATAWAMPUS_ORG
 
 # Unit tests can override these.
 EPGPRIMARYFILE = ['/tmp/epgprimary']
@@ -33,7 +36,7 @@ GVSBKICKFILE = ['/tmp/gvsbkick']
 GVSBSERVERFILE = ['/tmp/gvsbhost']
 
 
-class Gvsb(tr.x_gvsb_1_0.X_GOOGLE_COM_GVSB_v1_1):
+class Gvsb(CATABASE.GVSB):
   """Implementation of x-gvsb.xml."""
   EpgPrimary = tr.cwmptypes.FileBacked(
       EPGPRIMARYFILE, tr.cwmptypes.String(), delete_if_empty=False)

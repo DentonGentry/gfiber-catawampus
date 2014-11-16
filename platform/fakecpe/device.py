@@ -96,7 +96,7 @@ def FakeCPEInstance():
   return FAKECPEINSTANCE
 
 
-class DeviceIdFakeCPE(dm.device_info.DeviceIdMeta):
+class DeviceId(dm.device_info.DeviceIdMeta):
   """Parameters for the DeviceInfo object for a FakeCPE platform."""
   AdditionalHardwareVersion = tr.cwmptypes.ReadOnlyString('0')
   AdditionalSoftwareVersion = tr.cwmptypes.ReadOnlyString('0')
@@ -267,7 +267,7 @@ def PlatformInit(name, device_model_root):
   params = list()
   objects = list()
   periodic_stats = dm.periodic_statistics.PeriodicStatistics()
-  devid = DeviceIdFakeCPE()
+  devid = DeviceId()
   device_model_root.Device = DeviceFakeCPE(devid, periodic_stats)
   objects.append('Device')
   device_model_root.InternetGatewayDevice = InternetGatewayDeviceFakeCPE(
@@ -278,7 +278,7 @@ def PlatformInit(name, device_model_root):
 
 def main():
   periodic_stats = dm.periodic_statistics.PeriodicStatistics()
-  devid = DeviceIdFakeCPE()
+  devid = DeviceId()
   device = DeviceFakeCPE(devid, periodic_stats)
   igd = InternetGatewayDeviceFakeCPE(devid, periodic_stats)
   tr.handle.Dump(device)

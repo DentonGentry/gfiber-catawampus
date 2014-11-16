@@ -26,13 +26,7 @@ import os
 import subprocess
 import traceback
 import google3
-import gfibertv
-import gvsb
-import hat
-import isostream
-import ookla
 import pynetlinux
-import ssh
 import stbservice
 import tornado.ioloop
 import dm.binwifi
@@ -46,8 +40,6 @@ import dm.dnsmasq
 import dm.ethernet
 import dm.host
 import dm.igd_time
-import dm.inadyn
-import dm.ip_diag_http
 import dm.ipinterface
 import dm.miniupnp
 import dm.nat
@@ -553,9 +545,6 @@ class IPDiagnostics(BASE181.Device.IP.Diagnostics):
     self.Unexport(objects=['IPPing', 'UploadDiagnostics',
                            'UDPEchoConfig', 'DownloadDiagnostics'])
     self.TraceRoute = dm.traceroute.TraceRoute()
-    self.X_CATAWAMPUS_ORG_Speedtest = ookla.Speedtest()
-    self.X_CATAWAMPUS_ORG_Isostream = isostream.Isostream()
-    self.X_CATAWAMPUS_ORG_HttpDownload = dm.ip_diag_http.DiagHttpDownload()
 
 
 class Device(BASE181.Device):
@@ -590,7 +579,6 @@ class Device(BASE181.Device):
     self.InterfaceStackList = {}
     self.PeriodicStatistics = periodic_stats
     self.UPnP = dm.miniupnp.UPnP()
-    self.X_CATAWAMPUS_ORG_DynamicDNS = dm.inadyn.Inadyn()
     self.CaptivePortal = dm.captive_portal.CaptivePortal()
 
     # Add platform temperature sensors.
@@ -701,25 +689,15 @@ class InternetGatewayDevice(BASE98IGD):
 # pylint:disable=unused-argument
 def PlatformInit(name, device_model_root):
   """Create platform-specific device models and initialize platform."""
+  root = device_model_root
   tr.download.INSTALLER = Installer
   params = []
   objects = []
   dev_id = DeviceId()
   periodic_stats = dm.periodic_statistics.PeriodicStatistics()
-  device_model_root.Device = Device(dev_id, periodic_stats,
-                                    dmroot=device_model_root)
-  device_model_root.InternetGatewayDevice = InternetGatewayDevice(
-      dev_id, periodic_stats)
-  device_model_root.X_GOOGLE_COM_GVSB = gvsb.Gvsb()
-  device_model_root.X_GOOGLE_COM_SSH = ssh.Ssh()
-  tvrpc = gfibertv.GFiberTv(mailbox_url='http://localhost:51834/xmlrpc',
-                            my_serial=dev_id.SerialNumber)
-  device_model_root.X_GOOGLE_COM_GFIBERTV = tvrpc
-  device_model_root.X_GOOGLE_COM_HAT = hat.Hat()
+  root.Device = Device(dev_id, periodic_stats, dmroot=root)
+  root.InternetGatewayDevice = InternetGatewayDevice(dev_id, periodic_stats)
   objects.append('Device')
   objects.append('InternetGatewayDevice')
-  objects.append('X_GOOGLE-COM_SSH')
-  objects.append('X_GOOGLE-COM_GVSB')
-  objects.append('X_GOOGLE-COM_GFIBERTV')
-  objects.append('X_GOOGLE-COM_HAT')
+
   return (params, objects)

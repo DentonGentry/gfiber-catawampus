@@ -347,7 +347,7 @@ class HostTest(unittest.TestCase):
 
   def _GetFakeCPE(self, tr98=True, tr181=True):
     igd = device = None
-    device_id = platform.fakecpe.device.DeviceIdFakeCPE()
+    device_id = platform.fakecpe.device.DeviceId()
     if tr98:
       igd = platform.fakecpe.device.InternetGatewayDeviceFakeCPE(
           device_id=device_id)

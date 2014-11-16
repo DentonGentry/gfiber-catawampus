@@ -25,8 +25,10 @@ import tr.cwmptypes
 import tr.handle
 import tr.helpers
 import tr.mainloop
-import tr.x_gfibertv_1_0
-BASETV = tr.x_gfibertv_1_0.X_GOOGLE_COM_HAT_v1_0.X_GOOGLE_COM_HAT
+import tr.x_catawampus_tr181_2_0
+
+BASE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
+CATABASE = BASE.Device.X_CATAWAMPUS_ORG
 
 SYSTEMPROPS = ['/rw/sagesrv/sagesrv.properties']
 USERPROPS = ['/rw/sagesrv/sagesrv_user.properties']
@@ -50,7 +52,7 @@ class TargetAttr(tr.cwmptypes.Attr):
     return None
 
 
-class Hat(BASETV):
+class Hat(CATABASE.HAT):
   """Implementation of x-hat.xml."""
   HAT = tr.cwmptypes.TriggerBool()
   DVRReplacement = tr.cwmptypes.TriggerBool()

@@ -156,6 +156,9 @@ class Exporter(object):
       lists: a list of object-list names (lists containing objects) in this
         object.
     """
+    assert not isinstance(params, basestring)
+    assert not isinstance(objects, basestring)
+    assert not isinstance(lists, basestring)
     if params:
       self.export_params.update(params)
     if objects:

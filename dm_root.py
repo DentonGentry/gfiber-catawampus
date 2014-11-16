@@ -25,9 +25,20 @@ import os.path
 import sys
 import google3
 import dm.catawampus
+import dm.gfibertv
+import dm.gvsb
+import dm.hat
+import dm.inadyn
+import dm.ip_diag_http
+import dm.isostream
 import dm.management_server
+import dm.ookla
+import dm.selftest
+import dm.ssh
 import tr.core
 import tr.handle
+
+BASE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
 
 
 def _RecursiveImport(name):
@@ -45,8 +56,6 @@ class DeviceModelRoot(tr.core.Exporter):
                                                    device_model_root=self)
     else:
       (params, objects) = (list(), list())
-    self.X_CATAWAMPUS_ORG_CATAWAMPUS = dm.catawampus.CatawampusDm()
-    objects.append('X_CATAWAMPUS-ORG_CATAWAMPUS')
     self.Export(params=params, objects=objects)
     if ext_dir:
       sys.path.insert(0, os.path.abspath(ext_dir))
@@ -70,6 +79,62 @@ class DeviceModelRoot(tr.core.Exporter):
   def get_platform_config(self, ioloop):
     """Return the platform_config.py object for this platform."""
     return self.device.PlatformConfig(ioloop=ioloop)
+
+  def add_cwmp_extensions(self):
+    try:
+      dev = self.Device
+    except AttributeError:
+      return  # no tr-181 is available for this platform
+    dev.Export(objects=['X_CATAWAMPUS-ORG'])
+    cata = dev.X_CATAWAMPUS_ORG = BASE.Device.X_CATAWAMPUS_ORG()
+    cata.Catawampus = dm.catawampus.CatawampusDm()
+    cata.DynamicDNS = dm.inadyn.Inadyn()
+    cata.GFiberTV = dm.gfibertv.GFiberTv(
+        mailbox_url='http://localhost:51834/xmlrpc',
+        my_serial=self.device.DeviceId().SerialNumber)
+    cata.GVSB = dm.gvsb.Gvsb()
+    cata.HAT = dm.hat.Hat()
+    cata.SelfTest = dm.selftest.SelfTest()
+    cata.Speedtest = dm.ookla.Speedtest()
+    cata.SSH = dm.ssh.Ssh()
+    cata.Isostream = dm.isostream.Isostream()
+    cata.HttpDownload = dm.ip_diag_http.DiagHttpDownload()
+
+    # TODO(apenwarr): Legacy names. Delete after the ACS stops using these.
+    #   Other than a few places where we added only individual parameters
+    #   to existing objects, we're trying to clean up our extensions by
+    #   centralizing them in a single extension section under Device.
+    #   Technically it may be incorrect to have more than one root-
+    #   level object, so although it's necessary to have both Device
+    #   and InternetGatewayDevice (for simultaneous tr-098 and tr-181 support)
+    #   we shouldn't make it worse by adding our own.  But we did that for
+    #   a while, so we need some temporary backward compatibility.
+    cata.GFiberTV.Export(objects=['SelfTest'])
+    cata.GFiberTV.SelfTest = cata.SelfTest
+
+    if isinstance(self.Device.IP.Diagnostics, tr.core.Exporter):
+      self.Device.IP.Diagnostics.Export(objects=[
+          'X_CATAWAMPUS-ORG_Speedtest',
+          'X_CATAWAMPUS-ORG_Isostream',
+          'X_CATAWAMPUS-ORG_HttpDownload',
+      ])
+    self.Device.IP.Diagnostics.X_CATAWAMPUS_ORG_Speedtest = cata.Speedtest
+    self.Device.IP.Diagnostics.X_CATAWAMPUS_ORG_Isostream = cata.Isostream
+    self.Device.IP.Diagnostics.X_CATAWAMPUS_ORG_HttpDownload = cata.HttpDownload
+
+    self.Device.Export(objects=['X_CATAWAMPUS-ORG_DynamicDNS'])
+    self.Device.X_CATAWAMPUS_ORG_DynamicDNS = cata.DynamicDNS
+
+    self.Export(objects=['X_CATAWAMPUS-ORG_CATAWAMPUS',
+                         'X_GOOGLE-COM_GFIBERTV',
+                         'X_GOOGLE-COM_GVSB',
+                         'X_GOOGLE-COM_HAT',
+                         'X_GOOGLE-COM_SSH'])
+    self.X_CATAWAMPUS_ORG_CATAWAMPUS = cata.Catawampus
+    self.X_GOOGLE_COM_GFIBERTV = cata.GFiberTV
+    self.X_GOOGLE_COM_GVSB = cata.GVSB
+    self.X_GOOGLE_COM_HAT = cata.HAT
+    self.X_GOOGLE_COM_SSH = cata.SSH
 
   def add_management_server(self, mgmt):
     try:

@@ -27,14 +27,18 @@ import copy
 import os
 import subprocess
 import google3
-import tr.x_ssh_1_0
+import tr.helpers
+import tr.x_catawampus_tr181_2_0
+
+BASE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
+CATABASE = BASE.Device.X_CATAWAMPUS_ORG
 
 # Unit tests can override these.
-AUTHORIZED_KEYS = '/user/sshd/authorized_keys'
-CAFILE = '/user/sshd/ca.pem'
-CERTFILE = '/user/sshd/clientcert.pem'
-KEYFILE = '/user/sshd/clientkey.pem'
-FAILSAFE_KEYS = '/etc/failsafe_keys'
+AUTHORIZED_KEYS = tr.helpers.Path('/user/sshd/authorized_keys')
+CAFILE = tr.helpers.Path('/user/sshd/ca.pem')
+CERTFILE = tr.helpers.Path('/user/sshd/clientcert.pem')
+KEYFILE = tr.helpers.Path('/user/sshd/clientkey.pem')
+FAILSAFE_KEYS = tr.helpers.Path('/etc/failsafe_keys')
 PROC_IF_INET6 = '/proc/net/if_inet6'
 
 
@@ -43,7 +47,7 @@ class SSHConfig(object):
   pass
 
 
-class Ssh(tr.x_ssh_1_0.X_GOOGLE_COM_SSH_v1_1):
+class Ssh(CATABASE.SSH):
   """Implementation of x-ssh.xml."""
 
   def __init__(self):

@@ -29,7 +29,7 @@ import tr.x_catawampus_tr181_2_0
 
 
 CATA181DEVICE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device
-HTTPDOWNLOAD = CATA181DEVICE.IP.Diagnostics.X_CATAWAMPUS_ORG_HttpDownload
+HTTPDOWNLOAD = CATA181DEVICE.X_CATAWAMPUS_ORG.HttpDownload
 CURL = ['curl']
 
 

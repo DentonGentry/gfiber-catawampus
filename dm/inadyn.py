@@ -30,13 +30,13 @@ import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 
 CATA181DEV = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
-CATA181DDNS = CATA181DEV.Device.X_CATAWAMPUS_ORG_DynamicDNS
+CATA181DDNS = CATA181DEV.Device.X_CATAWAMPUS_ORG.DynamicDNS
 OUTPUTDIR = '/chroot/inadyn/tmp/configs'
 RESTARTCMD = ['restart', 'inadyn']
 
 
 class Inadyn(CATA181DDNS):
-  """Device.X_CATAWAMPUS-ORG_DynamicDNS."""
+  """Device.X_CATAWAMPUS-ORG.DynamicDNS."""
   ServiceNumberOfEntries = tr.cwmptypes.NumberOf('ServiceList')
 
   def __init__(self):
@@ -67,7 +67,7 @@ class Inadyn(CATA181DDNS):
 
 
 class Service(CATA181DDNS.Service):
-  """Device.X_CATAWAMPUS-ORG_DynamicDNS.Service."""
+  """Device.X_CATAWAMPUS-ORG.DynamicDNS.Service."""
 
   Domain = tr.cwmptypes.TriggerString('')
   Enable = tr.cwmptypes.TriggerBool(False)
@@ -99,7 +99,7 @@ class Service(CATA181DDNS.Service):
     """Write out the configuration for this inadyn instance.
 
     Args:
-      idx: the {i} in Device.X_CATAWAMPUS-ORG_DynamicDNS.Service.{i}
+      idx: the {i} in Device.X_CATAWAMPUS-ORG.DynamicDNS.Service.{i}
     """
     if self.Status != 'Enabled':
       return

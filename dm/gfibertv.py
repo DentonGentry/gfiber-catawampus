@@ -29,7 +29,6 @@ import re
 import subprocess
 import xmlrpclib
 import google3
-import selftest
 import tr.api
 import tr.core
 import tr.cwmpbool
@@ -39,9 +38,10 @@ import tr.handle
 import tr.helpers
 import tr.mainloop
 import tr.session
-import tr.x_gfibertv_1_0
+import tr.x_catawampus_tr181_2_0
 
-BASETV = tr.x_gfibertv_1_0.X_GOOGLE_COM_GFIBERTV_v1_0.X_GOOGLE_COM_GFIBERTV
+BASE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
+CATABASE = BASE.Device.X_CATAWAMPUS_ORG
 
 # These are lists so list[0] can be reassigned in a unit test to affect
 # the operation of tr.cwmptypes.FileBacked.
@@ -70,7 +70,7 @@ def _SageEscape(s):
                 s.strip()).encode('unicode-escape')
 
 
-class GFiberTv(BASETV):
+class GFiberTv(CATABASE.GFiberTV):
   """Implementation of x-gfibertv.xml."""
   BtConfig = tr.cwmptypes.FileBacked(BTCONFIG, tr.cwmptypes.String())
   BtDevices = tr.cwmptypes.FileBacked(BTDEVICES, tr.cwmptypes.String())
@@ -110,8 +110,6 @@ class GFiberTv(BASETV):
     """
     super(GFiberTv, self).__init__()
     self.my_serial = my_serial
-    self.SelfTest = selftest.SelfTest()
-    self.Export(objects=['SelfTest'])
     self.Mailbox = Mailbox(mailbox_url)
     self.DevicePropertiesList = {}
     self._rpcclient = xmlrpclib.ServerProxy(mailbox_url)
@@ -196,7 +194,7 @@ class GFiberTv(BASETV):
     _ExportTree(top)
     return top
 
-  class _DeviceProperties(BASETV.DeviceProperties):
+  class _DeviceProperties(CATABASE.GFiberTV.DeviceProperties):
     """Implementation of gfibertv.DeviceProperties."""
 
     NickName = tr.cwmptypes.TriggerString()
@@ -241,7 +239,7 @@ class GFiberTv(BASETV):
       f.write('serials=%s\n' % ','.join(_SageEscape(i) for i in serials))
 
 
-class DvrSpace(BASETV.DvrSpace):
+class DvrSpace(CATABASE.GFiberTV.DvrSpace):
   """X_GOOGLE_COM_GFIBERTV.DvrSpace.
 
   Ephemeral object to export information from /tmp/dvr_space.
@@ -279,7 +277,7 @@ class DvrSpace(BASETV.DvrSpace):
             'error = {1}'.format(filename, e))
 
 
-class Mailbox(BASETV.Mailbox):
+class Mailbox(CATABASE.GFiberTV.Mailbox):
   """Getter/setter for individual values in the SageTV configuration.
 
   You set Node the node name, set Name to the config key you want to get/set,

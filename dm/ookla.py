@@ -16,7 +16,7 @@
 # TR-069 has mandatory attribute names that don't comply with policy
 # pylint:disable=invalid-name
 #
-"""Device.IP.Diagnostics.X_CATAWAMPUS-ORG_Speedtest.
+"""Device.IP.Diagnostics.X_CATAWAMPUS-ORG.Speedtest.
 
 Using Ookla's speedtest client.
 """
@@ -37,7 +37,7 @@ import tr.x_catawampus_tr181_2_0
 
 
 CATA181DEVICE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device
-CATA181SPEED = CATA181DEVICE.IP.Diagnostics.X_CATAWAMPUS_ORG_Speedtest
+CATA181SPEED = CATA181DEVICE.X_CATAWAMPUS_ORG.Speedtest
 SPEEDTEST = 'OoklaClient'
 SPEEDTESTDIR = '/tmp/ookla'
 TIMENOW = datetime.datetime.now
@@ -75,7 +75,7 @@ class Speedtest(CATA181SPEED):
     self._StartProc()
 
   DiagnosticsState = property(_GetState, _SetState, None,
-                              'X_CATAWAMPUS-ORG_Speedtest.DiagnosticsState')
+                              'X_CATAWAMPUS-ORG.Speedtest.DiagnosticsState')
 
   def _WriteLicense(self):
     if self.License:

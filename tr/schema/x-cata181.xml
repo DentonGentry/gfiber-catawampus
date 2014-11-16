@@ -27,15 +27,60 @@
       </parameter>
     </object>
 
-    <object name="Device.X_CATAWAMPUS-ORG_DynamicDNS." access="readOnly" minEntries="1" maxEntries="1">
+    <object name="Device.X_CATAWAMPUS-ORG." access="readOnly" minEntries="1" maxEntries="1"/>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Catawampus." access="readOnly" minEntries="1" maxEntries="1">
+      <description>Support for debugging the catawampus daemon itself.</description>
+      <parameter name="RuntimeEnvInfo" access="readOnly">
+        <description>Information about the runtime environment, useful for debugging.</description>
+        <syntax>
+          <string>
+            <size maxLength="4096"/>
+          </string>
+        </syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Catawampus.Profiler." access="readOnly" minEntries="1" maxEntries="1">
+      <parameter name="Enable" access="readWrite">
+        <description>Enables profiling.</description>
+        <syntax><boolean/></syntax>
+      </parameter>
+      <parameter name="Result" access="readOnly">
+        <description>Current profiling result, updated when profiler is enabled and then disabled.</description>
+        <syntax><boolean/></syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Catawampus.ExpensiveStuff." access="readOnly" minEntries="1" maxEntries="1">
+      <parameter name="Stats" access="readOnly">
+        <description>Text description of the N most expensive PeriodicStatistics to sample.</description>
+        <syntax>
+          <string>
+            <size maxLength="131072"/>
+          </string>
+        </syntax>
+      </parameter>
+
+      <parameter name="Notifications" access="readOnly">
+        <description>Text description of the N most expensive Notifications to sample.</description>
+        <syntax>
+          <string>
+            <size maxLength="131072"/>
+          </string>
+        </syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.DynamicDNS." access="readOnly" minEntries="1" maxEntries="1">
       <parameter name="ServiceNumberOfEntries" access="readOnly">
-        <description>The number of instances of {{object|.X_CATAWAMPUS-ORG_DynamicDNS.Service.{i}.}}.</description>
+        <description>The number of instances of {{object|.X_CATAWAMPUS-ORG.DynamicDNS.Service.{i}.}}.</description>
         <syntax>
           <unsignedInt/>
         </syntax>
       </parameter>
     </object>
-    <object base="Device.X_CATAWAMPUS-ORG_DynamicDNS.Service.{i}." access="readOnly" numEntriesParameter="ServiceNumberOfEntries" minEntries="0" maxEntries="unbounded" enableParameter="Enable">
+    <object base="Device.X_CATAWAMPUS-ORG.DynamicDNS.Service.{i}." access="readOnly" numEntriesParameter="ServiceNumberOfEntries" minEntries="0" maxEntries="unbounded" enableParameter="Enable">
       <description>Each instance is a Dynamic DNS provider to update as the device Internet Address changes.</description>
       <parameter name="Enable" access="readWrite">
         <description>Enable this entry.</description>
@@ -364,7 +409,422 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
       </parameter>
     </object>
 
-    <object name="Device.IP.Diagnostics.X_CATAWAMPUS-ORG_Speedtest." access="readOnly" minEntries="1" maxEntries="1">
+    <object name="Device.X_CATAWAMPUS-ORG.GFiberTV." access="readOnly" minEntries="1" maxEntries="1">
+      <description>Container for parameters supporting the Google Fiber TV system.</description>
+      <parameter name="DevicePropertiesNumberOfEntries" access="readOnly">
+        <description>Number of instances of {{object|DeviceProperties}}.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="BtDevices" access="readWrite">
+        <description>The bluetooth devices config.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="BtHHDevices" access="readWrite">
+        <description>The bluetooth HH devices config.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="BtConfig" access="readWrite">
+        <description>The bluetooth device config.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="BtNoPairing" access="readWrite">
+        <description>Creates a file that will prevent the device from pairing with the remote control over bluetooth, which effectively forces IR mode.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="EASHeartbeatTimestamp" access="readOnly">
+        <description>Timestamp of the last received Emergency Alert System heartbeat.</description>
+        <syntax>
+          <dateTime/>
+        </syntax>
+      </parameter>
+      <parameter name="EASFipsCode" access="readWrite">
+        <description>FIPS Code for the Emergency Alert System.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="EASServiceAddress" access="readWrite">
+        <description>Multicast address to monitor for the the Emergency Alert System.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="EASServicePort" access="readWrite">
+        <description>UDP Port number to monitor for the the Emergency Alert System.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="TcpAlgorithm" access="readWrite">
+        <description>TCP congestion control algorithm to use by default. This setting takes effect after reboot.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="UiControlUrl" access="readWrite">
+        <description>URL for UI Control.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="UiType" access="readWrite">
+        <description>UI version to run.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="TvBufferAddress" access="readWrite">
+        <description>The ip:port address of the buffering service. Enables use of the service if present and non-empty.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="TvBufferKey" access="readWrite">
+        <description>Key used to allow access to the buffering service.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+
+      <object name="DvrSpace." access="readOnly" minEntries="1" maxEntries="1">
+        <parameter name="PermanentFiles" access="readOnly">
+          <description>Number of permanent DVR files currently stored.</description>
+          <syntax>
+            <unsignedInt/>
+          </syntax>
+        </parameter>
+        <parameter name="PermanentMBytes" access="readOnly">
+          <description>Number of Megabytes of permanent DVR files currently stored.</description>
+          <syntax>
+            <unsignedInt/>
+          </syntax>
+        </parameter>
+        <parameter name="TransientFiles" access="readOnly">
+          <description>Number of transient DVR files currently stored. Transient files can be deleted as needed by the DVR, as part of its normal operation.</description>
+          <syntax>
+            <unsignedInt/>
+          </syntax>
+        </parameter>
+        <parameter name="TransientMBytes" access="readOnly">
+          <description>Number of Megabytes of transient DVR files currently stored. Transient files can be deleted as needed by the DVR, as part of its normal operation.</description>
+          <syntax>
+            <unsignedInt/>
+          </syntax>
+        </parameter>
+      </object>
+      <object name="DeviceProperties.{i}." access="readWrite" numEntriesParameter="DevicePropertiesNumberOfEntries" minEntries="0" maxEntries="16">
+        <parameter name="SerialNumber" access="readWrite">
+          <description>Serial number of the device.</description>
+          <syntax>
+            <string/>
+          </syntax>
+        </parameter>
+        <parameter name="NickName" access="readWrite">
+          <description>Nickname of the device.</description>
+          <syntax>
+            <string/>
+          </syntax>
+        </parameter>
+      </object>
+    </object>
+    <object name="Device.X_CATAWAMPUS-ORG.GFiberTV.Mailbox." access="readOnly" minEntries="1" maxEntries="1">
+      <description>Mailbox to access properties from the Google Fiber TV system.</description>
+      <parameter name="Node" access="readWrite">
+        <description>The Node to operate on (generally the serial number of the remote GFHD100). All Mailbox requests should be sent to the GFMS100, which can relay requests to the various GFHD100 devices. If this parameter is empty or omitted, the local properties of the GFMS100 are consulted.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="Name" access="readWrite">
+        <description>Name of the property to operate on.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="Value" access="readWrite">
+        <description>Value of the property. Writing to this parameter will write the the corresponding {Node,Name} property in the GFiberTV system. Reading from this property will fetch the corresponding {Node,Name} property from the GFiberTV system.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="NodeList" access="readOnly">
+        <description>Available Nodes, i.e. the serial numbers of all connected GFHD100 devices.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.GVSB." access="readOnly" minEntries="1" maxEntries="1">
+      <description>GVSB Configuration.</description>
+      <parameter name="GvsbServer" access="readWrite">
+        <description>URL of the GVSB server.</description>
+        <syntax>
+          <string>
+            <size maxLength="2000"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="GvsbChannelLineup" access="readWrite">
+        <description>Identifier for the current channel lineup.</description>
+        <syntax>
+          <base64>
+            <size minLength="1" maxLength="64"/>
+          </base64>
+        </syntax>
+      </parameter>
+      <parameter name="GvsbKick" access="readWrite">
+        <description>Current Kick value. Whenever the Kick value changes, device will re-fetch the channel list.</description>
+        <syntax>
+          <string>
+            <size maxLength="64"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="EpgPrimary" access="readWrite">
+        <description>Multicast IP address and port of the primary EPG feed. For example, "224.254.1.1:5000"</description>
+        <syntax>
+          <string>
+            <size maxLength="128"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="EpgSecondary" access="readWrite">
+        <description>Multicast IP address and port of the secondary EPG feed. For example, "224.254.1.2:5000"</description>
+        <syntax>
+          <string>
+            <size maxLength="128"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="EpgUrl" access="readWrite">
+        <description>URL of the EPG feed, eg: https://tv.prod.gfsvc.com/static/epginfo/prod</description>
+        <syntax>
+          <string>
+            <size maxLength="1024"/>
+          </string>
+        </syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.HAT." access="readOnly" minEntries="1" maxEntries="1">
+      <description>Container for parameters supporting the HAT system.</description>
+       <parameter name="HAT" access="readWrite">
+        <description>If set to true, this variable turns off anything related to the HAT system.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="Insert" access="readWrite">
+        <description>Turns on/off the HAT insertion.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="TestCueTones" access="readWrite">
+        <description>Turns on/off HAT cue tones parsing.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="AFillPercent" access="readWrite">
+        <description>AS fill percent.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="HTFillPercent" access="readWrite">
+        <description>HT fill percent.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="DVRReplacement" access="readWrite">
+        <description>Turns on/off HAT DVR replacement.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="SwapoutSecs" access="readWrite">
+        <description>HAT swapout interval in seconds.</description>
+        <syntax>
+          <unsignedLong/>
+        </syntax>
+        </parameter>
+        <parameter name="Target" access="readOnly">
+          <description>Turns on/off HAT target.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="FreqCapSecs" access="readWrite">
+        <description>HAT frequency cap in seconds.</description>
+        <syntax>
+          <unsignedLong/>
+        </syntax>
+      </parameter>
+      <parameter name="CMSGCIntervalSecs" access="readWrite">
+        <description>CMS garbage collector interval.</description>
+        <syntax>
+          <unsignedLong/>
+        </syntax>
+      </parameter>
+      <parameter name="GFTSPollingIntervalSecs" access="readWrite">
+        <description>How often to poll ithe GFTS in secs.</description>
+        <syntax>
+          <unsignedLong/>
+        </syntax>
+      </parameter>
+      <parameter name="GFTSUrl" access="readWrite">
+        <description>URL of the GFTS server.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="GFASUrl" access="readWrite">
+        <description>URL of the GFAS server.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="HATContracts" access="readWrite">
+        <description>The HAT contracts file.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.SelfTest." access="readOnly" minEntries="1" maxEntries="1">
+      <description>Parameters for configuring an automated self test.</description>
+      <parameter name="ServerIP" access="readWrite">
+        <description>For clients (ie. TV box) the server (storage box) to
+          connect to.  If this parameter is omitted, scans the local network
+          for a server.</description>
+        <syntax>
+          <dataType ref="IPAddress"/>
+        </syntax>
+      </parameter>
+      <parameter name="AutoRestartEnable" access="readWrite">
+        <description>If true, restart the test after it passes or fails.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="MaxBitRate" access="readWrite">
+        <description>Maximum data transmit rate, in {{units}}.  0 means no
+          transmission, and values less than zero mean unlimited.</description>
+        <syntax>
+          <float>
+            <units value="Mbps"/>
+          </float>
+        </syntax>
+      </parameter>
+      <parameter name="Mode" access="readWrite">
+        <description>The current self-test mode.  Set to None to disable
+          the test, StressTest to enable the stress test, or Throughput to
+          run a LAN bandwidth test.  Other kinds of tests may be added in
+          the future.</description>
+        <syntax>
+          <string>
+            <enumeration value="None"/>
+            <enumeration value="Success"/>
+            <enumeration value="Error"/>
+            <enumeration value="StressTest"/>
+            <enumeration value="Throughput"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="LastResult" access="readOnly">
+        <description>The result of the most recent test run. 0 means
+          success.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="LastResultTime" access="readOnly">
+        <description>The time of the most recent test run.</description>
+        <syntax>
+          <dateTime/>
+        </syntax>
+      </parameter>
+      <parameter name="Log" access="readOnly">
+        <description>The most recent output of the test script.</description>
+        <syntax>
+          <string>
+            <size maxLength="100000"/>
+          </string>
+        </syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.SSH." access="readOnly" minEntries="1" maxEntries="1">
+      <description>SSH remote access configuration.</description>
+      <parameter name="Enabled" access="readWrite">
+        <description>SSH daemon enabled and forwarded via remote tunnel.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="AuthorizedKeys" access="readWrite">
+        <description>RSA public key(s) of permitted remote login, suitable for use by OpenSSHD.</description>
+        <syntax>
+          <string>
+            <size maxLength="65536"/> <!-- 64k should be enough for anyone -->
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="TunnelHost" access="readWrite">
+        <description>Hostname to connect for remote tunnel.</description>
+        <syntax>
+          <string>
+            <size maxLength="1024"/> <!-- 1k should be enough for a hostname -->
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="TunnelPort" access="readWrite">
+        <description>Port to connect for remote tunnel.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="TunnelKeyData" access="readWrite">
+        <description>Key (PEM encoded) for SSL certificate for tunnel</description>
+        <syntax>
+          <string>
+            <size maxLength="65536"/> <!-- 64k should be enough for anyone -->
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="TunnelCertData" access="readWrite">
+        <description>Certificate (PEM encoded) for SSL certificate for tunnel</description>
+        <syntax>
+          <string>
+            <size maxLength="65536"/> <!-- 64k should be enough for anyone -->
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="TunnelCAData" access="readWrite">
+        <description>CA data (PEM encoded) for SSL certificate for tunnel</description>
+        <syntax>
+          <string>
+            <size maxLength="65536"/> <!-- 64k should be enough for anyone -->
+          </string>
+        </syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Speedtest." access="readOnly" minEntries="1" maxEntries="1">
       <description>This object provides access to an IP-layer performance test.</description>
       <parameter name="DiagnosticsState" access="readWrite" activeNotify="canDeny">
         <description>Indicates availability of diagnostic data.  {{enum}}
@@ -419,7 +879,7 @@ While the test is in progress, setting this parameter to {{enum|Requested}} (and
       </parameter>
     </object>
 
-    <object name="Device.IP.Diagnostics.X_CATAWAMPUS-ORG_Isostream." access="readOnly" minEntries="1" maxEntries="1">
+    <object name="Device.X_CATAWAMPUS-ORG.Isostream." access="readOnly" minEntries="1" maxEntries="1">
       <description>This object provides access to run an IP-layer jitter/throughput test.The results are very detailed and available only via the system logs.</description>
       <parameter name="ServerEnable" access="readWrite">
         <description>True if this device should accept incoming connections.</description>
@@ -467,7 +927,7 @@ While the test is in progress, setting this parameter to {{enum|Requested}} (and
       </parameter>
     </object>
 
-    <object name="Device.IP.Diagnostics.X_CATAWAMPUS-ORG_HttpDownload." access="readOnly" minEntries="1" maxEntries="1">
+    <object name="Device.X_CATAWAMPUS-ORG.HttpDownload." access="readOnly" minEntries="1" maxEntries="1">
       <description>Download a URL using http or https. The file is sent to /dev/null, not stored on the device.</description>
       <parameter name="DiagnosticsState" access="readWrite" activeNotify="canDeny">
         <description>Indicates availability of diagnostic data.  {{enum}}

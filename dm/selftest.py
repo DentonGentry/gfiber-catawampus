@@ -31,10 +31,10 @@ import tornado.ioloop
 import tr.cwmptypes
 import tr.handle
 import tr.mainloop
-import tr.x_selftest_1_0
+import tr.x_catawampus_tr181_2_0
 
-
-BASE = tr.x_selftest_1_0.X_GOOGLE_COM_SELFTEST_v1_0
+BASE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
+CATABASE = BASE.Device.X_CATAWAMPUS_ORG
 
 # this can be redefined in unit tests
 STRESSTEST_BIN = 'stresstest 2>&1 | tee /proc/self/fd/2 | logos stresstest'
@@ -42,7 +42,7 @@ IPERF_BIN = 'iperf 2>&1 | tee /proc/self/fd/2 | logos iperf'
 TIMENOW = datetime.datetime.now
 
 
-class SelfTest(BASE.X_GOOGLE_COM_GFIBERTV.SelfTest):
+class SelfTest(CATABASE.SelfTest):
   """Controls for a self-test module."""
 
   def __init__(self, loop=None):

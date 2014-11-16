@@ -20,12 +20,32 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 import errno
 import grp
 import os
+import os.path
 import pwd
 import socket
 
 
+def BaseDir():
+  """If not running as root (eg. for testing) provides a writable dir."""
+  if os.getuid() == 0:
+    return '/'
+  else:
+    return '/tmp/cwmpd'
+
+
+def Path(filename):
+  """Adjust a given absolute path to fall into BaseDir()."""
+  if filename.startswith('/'): filename = filename[1:]
+  return os.path.join(BaseDir(), filename)
+
+
+def Chown(filename, uid, gid):
+  if os.getuid() != 0: return  # pretend success
+  return os.chown(filename, uid, gid)
+
+
 # Unit tests can override these
-CHOWN = os.chown
+CHOWN = Chown
 GETGID = grp.getgrnam
 GETUID = pwd.getpwnam
 

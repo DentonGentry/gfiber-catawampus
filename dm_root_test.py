@@ -51,6 +51,7 @@ class DeviceModelRootTest(unittest.TestCase):
     root = dm_root.DeviceModelRoot(loop=None, platform=None,
                                    ext_dir='ext_test')
     mgmt = MockManagement()
+    root.add_cwmp_extensions()
     root.add_management_server(mgmt)  # should do nothing.
 
     root.Device = MockTr181()
