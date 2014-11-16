@@ -60,8 +60,7 @@ import tr.core
 import tr.download
 import tr.handle
 import tr.session
-import tr.tr098_v1_2
-import tr.tr181_v2_6 as tr181
+import tr.x_catawampus_tr098_1_0
 import tr.x_catawampus_tr181_2_0
 
 QCASWITCHPORT = None
@@ -77,8 +76,9 @@ except qca83xx.SdkError:
   traceback.print_exc()
   print 'Continuing catawampus startup'
 
+BASE98 = tr.x_catawampus_tr098_1_0.X_CATAWAMPUS_ORG_InternetGatewayDevice_v1_0
 BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
-CATA181 = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
+BASE181 = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
 PYNETIFCONF = pynetlinux.ifconfig.Interface
 
 # tr-69 error codes
@@ -285,7 +285,7 @@ class Installer(tr.download.Installer):
         self._call_callback(INTERNAL_ERROR, 'Unable to install image.')
 
 
-class Services(tr181.Device_v2_6.Device.Services):
+class Services(BASE181.Device.Services):
   """Implements tr-181 Device.Services."""
 
   def __init__(self):
@@ -343,7 +343,7 @@ def activewan(ifname):
     return ''
 
 
-class Ethernet(tr181.Device_v2_6.Device.Ethernet):
+class Ethernet(BASE181.Device.Ethernet):
   """Implementation of tr-181 Device.Ethernet for GFMedia platforms."""
 
   InterfaceNumberOfEntries = tr.cwmptypes.NumberOf('InterfaceList')
@@ -407,7 +407,7 @@ class Ethernet(tr181.Device_v2_6.Device.Ethernet):
     # Do not use idx 254, it is used for br0 above if has_wan_port
 
 
-class Moca(tr181.Device_v2_6.Device.MoCA):
+class Moca(BASE181.Device.MoCA):
   """Implementation of tr-181 Device.MoCA for GFMedia platforms."""
 
   def __init__(self):
@@ -434,7 +434,8 @@ class Moca(tr181.Device_v2_6.Device.MoCA):
     return len(self.InterfaceList)
 
 
-class FanReadGpio(CATA181.DeviceInfo.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
+class FanReadGpio(
+    BASE181.Device.DeviceInfo.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
   """Implementation of Fan object, reading rev/sec from a file."""
   Name = tr.cwmptypes.ReadOnlyString('')
 
@@ -474,7 +475,7 @@ class FanReadGpio(CATA181.DeviceInfo.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
       return -1
 
 
-class IP(tr181.Device_v2_6.Device.IP):
+class IP(BASE181.Device.IP):
   """tr-181 Device.IP implementation for Google Fiber media platforms."""
   # Enable fields are supposed to be writeable, but we don't support that.
   IPv4Capable = tr.cwmptypes.ReadOnlyBool(True)
@@ -544,29 +545,37 @@ class IP(tr181.Device_v2_6.Device.IP):
     return len(self.ActivePortList)
 
 
-class IPDiagnostics(CATA181.Device.IP.Diagnostics):
+class IPDiagnostics(BASE181.Device.IP.Diagnostics):
   """tr-181 Device.IP.Diagnostics for Google Fiber media platforms."""
 
   def __init__(self):
     super(IPDiagnostics, self).__init__()
-    self.Unexport(objects=['IPPing'])
+    self.Unexport(objects=['IPPing', 'UploadDiagnostics',
+                           'UDPEchoConfig', 'DownloadDiagnostics'])
     self.TraceRoute = dm.traceroute.TraceRoute()
     self.X_CATAWAMPUS_ORG_Speedtest = ookla.Speedtest()
     self.X_CATAWAMPUS_ORG_Isostream = isostream.Isostream()
     self.X_CATAWAMPUS_ORG_HttpDownload = dm.ip_diag_http.DiagHttpDownload()
 
 
-class Device(tr181.Device_v2_6.Device):
+class Device(BASE181.Device):
   """tr-181 Device implementation for Google Fiber media platforms."""
 
   RootDataModelVersion = tr.cwmptypes.ReadOnlyString('2.6')
+  InterfaceStackNumberOfEntries = tr.cwmptypes.NumberOf('InterfaceStackList')
 
   def __init__(self, device_id, periodic_stats, dmroot):
     super(Device, self).__init__()
-    self._UnexportStuff()
-    # TODO(dgentry): figure out why these are not being exported automatically.
-    self.Export(
-        objects=['DeviceInfo', 'NAT', 'X_CATAWAMPUS-ORG_DynamicDNS', 'UPnP'])
+    self.Unexport(objects=[
+        'ATM', 'Bridging', 'BulkData',
+        'DHCPv6', 'DLNA', 'DSL', 'DSLite', 'FaultMgmt',
+        'ETSIM2M', 'FAP', 'Firewall', 'GatewayInfo', 'Ghn', 'HPNA',
+        'HomePlug', 'IEEE8021x', 'IPsec', 'IPv6rd', 'LANConfigSecurity',
+        'NeighborDiscovery', 'Optical', 'PPP', 'PTM', 'QoS',
+        'RouterAdvertisement', 'Routing', 'Security',
+        'SelfTestDiagnostics', 'SoftwareModules',
+        'SmartCardReaders', 'Time',
+        'UPA', 'USB', 'UserInterface', 'Users', 'WiFi'])
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
     led = dm.device_info.LedStatusReadFromFile('LED', LEDSTATUS)
     self.DeviceInfo.AddLedStatus(led)
@@ -579,26 +588,12 @@ class Device(tr181.Device_v2_6.Device):
     self.NAT = dm.nat.NAT(dmroot=dmroot)
     self.Services = Services()
     self.InterfaceStackList = {}
-    self.Export(objects=['PeriodicStatistics'])
     self.PeriodicStatistics = periodic_stats
     self.UPnP = dm.miniupnp.UPnP()
     self.X_CATAWAMPUS_ORG_DynamicDNS = dm.inadyn.Inadyn()
     self.CaptivePortal = dm.captive_portal.CaptivePortal()
-    self._AddTemperatureStuff()
-    self._AddHostsStuff(dmroot=dmroot)
 
-  InterfaceStackNumberOfEntries = tr.cwmptypes.NumberOf('InterfaceStackList')
-
-  def _UnexportStuff(self):
-    self.Unexport(objects=[
-        'ATM', 'Bridging', 'DHCPv6', 'DSL', 'DSLite',
-        'ETSIM2M', 'Firewall', 'GatewayInfo', 'Ghn', 'HPNA',
-        'HomePlug', 'IEEE8021x', 'IPsec', 'IPv6rd', 'LANConfigSecurity',
-        'NAT', 'NeighborDiscovery', 'Optical', 'PPP', 'PTM', 'QoS',
-        'RouterAdvertisement', 'Routing', 'SmartCardReaders',
-        'UPA', 'USB', 'Users', 'WiFi'])
-
-  def _AddTemperatureStuff(self):
+    # Add platform temperature sensors.
     # GFHD100 & GFMS100 both monitor CPU temperature.
     # GFMS100 also monitors hard drive temperature.
     ts = self.DeviceInfo.TemperatureStatus
@@ -614,12 +609,7 @@ class Device(tr181.Device_v2_6.Device):
       except OSError:
         pass
 
-  def _AddHostsStuff(self, dmroot):
-    """Add tr-181 Device.Host implementation.
-
-    Args:
-      dmroot: the device model root object.
-    """
+    # Add platform host entries.
     # this is just a lookup table. It is harmless to have extra interfaces,
     # like Wifi interfaces on GFMS100 (which has no wifi).
     iflookup = {
@@ -668,19 +658,28 @@ class LANDevice(BASE98IGD.LANDevice):
 
 
 class InternetGatewayDevice(BASE98IGD):
-  """Implements tr-98 InternetGatewayDevice."""
+  """Implements tr-98 InternetGatewayDevice (deprecated but heavily used)."""
 
   def __init__(self, device_id, periodic_stats):
     super(InternetGatewayDevice, self).__init__()
-    self.Unexport(params=['DeviceSummary'])
-    self.Unexport(objects=['CaptivePortal', 'DeviceConfig',
-                           'DownloadDiagnostics', 'IPPingDiagnostics',
+    self.Unexport(params=['DeviceSummary', 'UserNumberOfEntries',
+                          'SmartCardReaderNumberOfEntries'],
+                  objects=['Capabilities', 'CaptivePortal', 'DeviceConfig',
+                           'DLNA', 'DownloadAvailability',
+                           'DownloadDiagnostics', 'FAP', 'FaultMgmt',
+                           'Firewall',
+                           'IPPingDiagnostics',
                            'LANConfigSecurity', 'LANInterfaces',
                            'Layer2Bridging', 'Layer3Forwarding',
-                           'QueueManagement', 'Services',
-                           'TraceRouteDiagnostics', 'UploadDiagnostics',
-                           'UserInterface'])
-    self.Unexport(lists=['WANDevice'])
+                           'NSLookupDiagnostics',
+                           'SelfTestDiagnostics',
+                           'QueueManagement', 'Security', 'Services',
+                           'SoftwareModules',
+                           'TraceRouteDiagnostics',
+                           'UDPEchoConfig', 'UploadDiagnostics',
+                           'UPnP', 'USBHosts',
+                           'UserInterface'],
+                  lists=['WANDevice', 'SmartCardReader', 'User'])
     self.LANDeviceList = {'1': LANDevice('', 'br0'),
                           '2': LANDevice('_portal', '')}
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in

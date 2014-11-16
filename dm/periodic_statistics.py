@@ -38,7 +38,7 @@ def _timefunc():
 
 # TODO(jnewlin): Denton has suggested that we might need to import a newer
 # version of the schema.
-BASE157PS = tr.tr157_v1_3.InternetGatewayDevice_v1_7.PeriodicStatistics
+BASE157PS = tr.tr157_v1_3.Device_v1_7.Device.PeriodicStatistics
 
 # The spec says when TimeReference isn't set, we can pick the phase.  This
 # seems as good as any other.  Set the phase to start at the beginning of

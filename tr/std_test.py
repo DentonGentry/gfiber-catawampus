@@ -25,11 +25,13 @@ import core
 import handle
 import tr098_v1_2 as tr098
 
+BASE098IGD = tr098.InternetGatewayDevice_v1_4.InternetGatewayDevice
 
-class MyModel(tr098.InternetGatewayDevice_v1_4):
+
+class MyModel(BASE098IGD):
 
   def __init__(self):
-    tr098.InternetGatewayDevice_v1_4.__init__(self)
+    BASE098IGD.__init__(self)
     self.InternetGatewayDevice = core.TODO()
     u = self.UDPEchoConfig = self.UDPEchoConfig()
     u.BytesReceived = 0
@@ -44,6 +46,25 @@ class MyModel(tr098.InternetGatewayDevice_v1_4):
     u.SourceIPAddress = '1.2.3.4'
     u.TimeLastPacketReceived = 0
     u.BytesResponded = 0
+    self.LANDeviceList = {}
+    self.WANDeviceList = {}
+    self.LANDeviceNumberOfEntries = 0
+    self.WANDeviceNumberOfEntries = 0
+    self.DeviceSummary = core.TODO()
+    self.TraceRouteDiagnostics = core.TODO()
+    self.Layer2Bridging = core.TODO()
+    self.ManagementServer = core.TODO()
+    self.DeviceInfo = core.TODO()
+    self.IPPingDiagnostics = core.TODO()
+    self.DeviceConfig = core.TODO()
+    self.Services = core.TODO()
+    self.Layer3Forwarding = core.TODO()
+    self.LANConfigSecurity = core.TODO()
+    self.CaptivePortal = core.TODO()
+    self.Time = core.TODO()
+    self.QueueManagement = core.TODO()
+    self.LANInterfaces = core.TODO()
+    self.UserInterface = core.TODO()
     self.UploadDiagnostics = core.TODO()
     self.Capabilities = core.TODO()
     self.DownloadDiagnostics = core.TODO()

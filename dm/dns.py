@@ -38,7 +38,7 @@ class DNS(BASEDNS):
 
   def __init__(self):
     super(DNS, self).__init__()
-    self.Unexport(objects=['Client', 'Relay'])
+    self.Unexport(objects=['Client', 'Relay', 'SD'])
     self.Diagnostics = Diagnostics()
 
 
@@ -50,3 +50,4 @@ class Diagnostics(BASEDNS.Diagnostics):
 
   def __init__(self):
     super(Diagnostics, self).__init__()
+    self.Unexport(objects=['NSLookupDiagnostics'])

@@ -11,12 +11,13 @@
     spec="urn:catawampus-org:x-catawampus-tr181-2-0">
   <description>Device:2.x data model (Catawampus additions).</description>
 
-  <import file="tr-181-2-4.xml" spec="urn:broadband-forum-org:tr-181-2-4">
-    <model name="Device:2.4"/>
+  <import file="tr-181-2-6.xml" spec="urn:broadband-forum-org:tr-181-2-6">
+    <model name="Device:2.6"/>
   </import>
 
-  <model name="X_CATAWAMPUS-ORG_Device:2.0" base="Device:2.4">
+  <model name="X_CATAWAMPUS-ORG_Device:2.0" base="Device:2.6">
     <object base="Device." access="readOnly" minEntries="1" maxEntries="1"/>
+    <object base="Device.DeviceInfo." access="readOnly" minEntries="1" maxEntries="1"/>
 
     <object name="Device.DNS." access="readOnly" minEntries="1" maxEntries="1"/>
     <object name="Device.DNS.Diagnostics." access="readOnly" minEntries="1" maxEntries="1">
@@ -122,7 +123,7 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
       </parameter>
     </object>
 
-    <object name="DeviceInfo." access="readOnly" minEntries="1" maxEntries="1">
+    <object name="Device.DeviceInfo." access="readOnly" minEntries="1" maxEntries="1">
       <parameter name="X_CATAWAMPUS-ORG_LedStatusNumberOfEntries" access="readOnly">
         <description>The number of instances of {{object|.X_CATAWAMPUS-ORG_LedStatus.{i}.}}.</description>
         <syntax>
@@ -130,7 +131,7 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
         </syntax>
       </parameter>
     </object>
-    <object name="DeviceInfo.X_CATAWAMPUS-ORG_LedStatus.{i}." access="readOnly"
+    <object name="Device.DeviceInfo.X_CATAWAMPUS-ORG_LedStatus.{i}." access="readOnly"
             numEntriesParameter="X_CATAWAMPUS-ORG_LedStatusNumberOfEntries" minEntries="0" maxEntries="unbounded">
         <description>This object reflects the state of an LED or other indicator light.</description>
         <uniqueKey><parameter ref="Name"/></uniqueKey>
@@ -147,8 +148,8 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
             </syntax>
         </parameter>
     </object>
-    <object name="DeviceInfo.TemperatureStatus." access="readOnly" minEntries="1" maxEntries="1" />
-    <object name="DeviceInfo.TemperatureStatus.X_CATAWAMPUS-ORG_Fan.{i}." access="readOnly" 
+    <object name="Device.DeviceInfo.TemperatureStatus." access="readOnly" minEntries="1" maxEntries="1" />
+    <object name="Device.DeviceInfo.TemperatureStatus.X_CATAWAMPUS-ORG_Fan.{i}." access="readOnly" 
             numEntriesParameter="X_CATAWAMPUS-ORG_FanNumberOfEntries" minEntries="0" maxEntries="unbounded">
         <description>This object represents information that the device has obtained via sampling a fan, blower, or other temperature management device.</description>
         <uniqueKey><parameter ref="Name"/></uniqueKey>

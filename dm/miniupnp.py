@@ -31,7 +31,7 @@ import tr.helpers
 import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 
-BASEUPNP = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.UPnP
+BASEUPNP = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device.UPnP
 POLL_CMD = ['ssdp_poll']
 RESTARTCMD = ['restart', 'upnpd']
 UPNPFILE = '/tmp/upnpd-enabled'
@@ -42,7 +42,7 @@ class UPnP(BASEUPNP):
 
   def __init__(self):
     super(UPnP, self).__init__()
-    self.Unexport(objects=['Discovery'])
+    self.Unexport(objects=['Discovery', 'Description'])
     self.Device = Device()
 
 

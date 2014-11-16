@@ -34,8 +34,9 @@ import tr.cwmpdate
 import tr.tr181_v2_2
 import tr.x_catawampus_tr181_2_0
 
-BASE181TEMPERATURE = tr.tr181_v2_2.Device_v2_2.DeviceInfo.TemperatureStatus
-CATA181DI = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.DeviceInfo
+BASE181 = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
+BASE181TEMPERATURE = BASE181.Device.DeviceInfo.TemperatureStatus
+CATA181DI = BASE181.Device.DeviceInfo
 NUMBER = re.compile(r'(\d+(?:\.\d+)?)')
 
 # tr-181 defines a temperature below 0 Kelvin as "Invalid temperature"
@@ -86,6 +87,7 @@ class TemperatureSensor(BASE181TEMPERATURE.TemperatureSensor):
 
   def __init__(self, name, sensor, ioloop=None):
     super(TemperatureSensor, self).__init__()
+    self.Unexport(['Alias'])
     self._name = name
     self._sensor = sensor
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()

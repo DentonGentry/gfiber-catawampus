@@ -328,7 +328,8 @@ def RenderComponent(model, prefix, spec, xmlelement):
       RenderObject(model, prefix, spec, i)
     elif i.tag == 'component':
       refspec, unused_refname, ref = chunks[spec, 'component', i.attrib['ref']]
-      RenderComponent(model, prefix, refspec, ref)
+      component_prefix = prefix + i.attrib.get('path', '')
+      RenderComponent(model, component_prefix, refspec, ref)
     elif i.tag in ('profile', 'description'):
       pass
     else:
@@ -375,9 +376,11 @@ class Spec(object):
       out.append('')
 
     if self.models:
+      out.append('# Tip: execute this file to get a simple schema listing')
       out.append("if __name__ == '__main__':")
+      out.append('  import handle  # pylint:disable=g-import-not-at-top')
       for model in self.models:
-        out.append('  print core.DumpSchema(%s)' % model.name)
+        out.append('  print handle.DumpSchema(%s)' % model.name)
     return '\n'.join(out) + '\n'
 
   def MakeObjects(self):

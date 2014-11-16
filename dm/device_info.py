@@ -30,15 +30,15 @@ import os
 import tornado.ioloop
 import tr.core
 import tr.session
-import tr.tr098_v1_4
-import tr.tr181_v2_2
+import tr.x_catawampus_tr098_1_0
+import tr.x_catawampus_tr181_2_0
 import tr.cwmptypes
 import temperature
 
-BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
-BASE181DEVICE = tr.tr181_v2_2.Device_v2_2
-CATA181DEVICE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
-CATA181DEVICEINFO = CATA181DEVICE.DeviceInfo
+BASE98 = tr.x_catawampus_tr098_1_0.X_CATAWAMPUS_ORG_InternetGatewayDevice_v1_0
+BASE98IGD = BASE98.InternetGatewayDevice
+BASE181 = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
+BASE181DEVICE = BASE181.Device
 
 # Unit tests can override these with fake data
 PERIODICCALL = tornado.ioloop.PeriodicCallback
@@ -112,7 +112,7 @@ def _GetUptime():
   return int(uptime)
 
 
-class DeviceInfo181Linux26(CATA181DEVICEINFO):
+class DeviceInfo181Linux26(BASE181DEVICE.DeviceInfo):
   """Implements tr-181 DeviceInfo for Linux 2.6 and similar systems."""
 
   def __init__(self, device_id, ioloop=None):
@@ -340,7 +340,8 @@ class ProcessStatusLinux26(BASE181DEVICE.DeviceInfo.ProcessStatus):
       yield pid, proc
 
 
-class LedStatusReadFromFile(CATA181DEVICEINFO.X_CATAWAMPUS_ORG_LedStatus):
+class LedStatusReadFromFile(
+    BASE181DEVICE.DeviceInfo.X_CATAWAMPUS_ORG_LedStatus):
   """X_CATAWAMPUS-ORG_LedStatus implementation to read a line from a file."""
   Name = tr.cwmptypes.ReadOnlyString('')
 
@@ -363,7 +364,20 @@ class DeviceInfo98Linux26(BASE98IGD.DeviceInfo):
     assert isinstance(device_id, DeviceIdMeta)
     self._device_id = device_id
     self.Unexport(params=['DeviceLog', 'EnabledOptions', 'FirstUseDate',
-                          'ProvisioningCode'])
+                          'ProvisioningCode',
+                          'SupportedDataModelNumberOfEntries',
+                          'ProcessorNumberOfEntries',
+                          'LocationNumberOfEntries',
+                          'VendorLogFileNumberOfEntries'],
+                  objects=['NetworkProperties',
+                           'ProcessStatus',
+                           'ProxierInfo',
+                           'MemoryStatus',
+                           'TemperatureStatus'],
+                  lists=['VendorLogFile',
+                         'SupportedDataModel',
+                         'Processor',
+                         'Location'])
     self.VendorConfigFileList = {}
 
   @property

@@ -59,7 +59,10 @@ class ManagementServer181(BASEMGMT181):
     self.Unexport(['DownloadProgressURL', 'KickURL', 'NATDetected',
                    'STUNMaximumKeepAlivePeriod', 'STUNMinimumKeepAlivePeriod',
                    'STUNPassword', 'STUNServerAddress', 'STUNServerPort',
-                   'STUNUsername', 'UDPConnectionRequestAddress'])
+                   'STUNUsername', 'UDPConnectionRequestAddress'],
+                  objects=['DownloadAvailability',
+                           'AutonomousTransferCompletePolicy',
+                           'DUStateChangeComplPolicy'])
 
     self.ManageableDeviceList = {}
 
@@ -131,7 +134,9 @@ class ManagementServer98(BASEMGMT98):
                    'STUNMinimumKeepAlivePeriod', 'STUNPassword',
                    'STUNServerAddress', 'STUNServerPort', 'STUNUsername',
                    'UDPConnectionRequestAddress',
-                   'UDPConnectionRequestAddressNotificationLimit'])
+                   'UDPConnectionRequestAddressNotificationLimit'],
+                  objects=['DUStateChangeComplPolicy',
+                           'AutonomousTransferCompletePolicy'])
 
     self.EmbeddedDeviceList = {}
     self.ManageableDeviceList = {}

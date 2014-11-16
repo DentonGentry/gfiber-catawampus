@@ -252,12 +252,14 @@ class Device(tr181.Device_v2_2.Device):
     super(Device, self).__init__()
     self.Export(objects=['DeviceInfo'])
     self.Unexport(objects=['ATM', 'Bridging', 'CaptivePortal', 'DHCPv4',
-                           'DHCPv6', 'DNS', 'DSL', 'DSLite', 'Firewall',
+                           'DHCPv6', 'DLNA', 'DNS', 'DSL', 'DSLite', 'Firewall',
                            'GatewayInfo', 'HPNA', 'HomePlug', 'Hosts',
                            'IEEE8021x', 'IPv6rd', 'LANConfigSecurity',
                            'NAT', 'NeighborDiscovery', 'PPP', 'PTM', 'QoS',
                            'RouterAdvertisement', 'Routing', 'SmartCardReaders',
-                           'UPA', 'USB', 'Users', 'WiFi'])
+                           'SelfTestDiagnostics',
+                           'SoftwareModules', 'Time', 'UPA', 'UPnP', 'USB',
+                           'UserInterface', 'Users', 'WiFi'])
 
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
     self.ManagementServer = tr.core.TODO()  # Higher layer code splices this in
@@ -412,7 +414,8 @@ class IPDiagnostics(CATA181.Device.IP.Diagnostics):
 
   def __init__(self):
     super(IPDiagnostics, self).__init__()
-    self.Unexport(objects=['IPPing',
+    self.Unexport(objects=['IPPing', 'UploadDiagnostics',
+                           'DownloadDiagnostics', 'UDPEchoConfig',
                            'X_CATAWAMPUS-ORG_Speedtest',
                            'X_CATAWAMPUS-ORG_Isostream',
                            'X_CATAWAMPUS-ORG_HttpDownload'])

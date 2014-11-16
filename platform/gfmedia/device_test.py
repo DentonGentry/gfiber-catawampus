@@ -193,6 +193,8 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
     tr.handle.ValidateExports(device.LANDevice('portal', ''))
     tr.handle.ValidateExports(device.IP())
     tr.handle.ValidateExports(device.Ethernet())
+    # TODO(apenwarr): instantiate the entire schema here for proper testing.
+    #   It's a pain because many subsections may need fake data.
 
   def testActiveWan(self):
     device.ACTIVEWAN = 'testdata/device/activewan'

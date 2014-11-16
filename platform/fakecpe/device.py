@@ -135,12 +135,16 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
     super(DeviceFakeCPE, self).__init__()
     self.Export(objects=['DeviceInfo'])
     self.Unexport(objects=['ATM', 'Bridging',
-                           'DHCPv6', 'DNS', 'DSL', 'DSLite', 'Firewall',
+                           'DHCPv6', 'DLNA', 'DNS', 'DSL', 'DSLite',
+                           'Firewall',
                            'GatewayInfo', 'HPNA', 'HomePlug', 'Hosts',
                            'IEEE8021x', 'IPv6rd', 'LANConfigSecurity', 'NAT',
                            'NeighborDiscovery', 'PPP', 'PTM', 'QoS',
-                           'RouterAdvertisement', 'Routing', 'SmartCardReaders',
-                           'UPA', 'USB', 'Users', 'WiFi'])
+                           'RouterAdvertisement', 'Routing',
+                           'SelfTestDiagnostics',
+                           'SoftwareModules', 'SmartCardReaders', 'Time',
+                           'UPA', 'UPnP', 'USB',
+                           'UserInterface', 'Users', 'WiFi'])
 
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
     self.DHCPv4 = dm.fake_dhcp_server.DHCPv4()
@@ -197,20 +201,33 @@ class IPFakeCPE(tr181.Device_v2_2.Device.IP):
 class InternetGatewayDeviceFakeCPE(BASE98IGD):
   """Implements tr-98 InternetGatewayDevice."""
 
+  SmartCardReaderNumberOfEntries = tr.cwmptypes.NumberOf('SmartCardReaderList')
+  UserNumberOfEntries = tr.cwmptypes.NumberOf('UserList')
   LANDeviceNumberOfEntries = tr.cwmptypes.NumberOf('LANDeviceList')
   WANDeviceNumberOfEntries = tr.cwmptypes.NumberOf('WANDeviceList')
 
   def __init__(self, device_id, periodic_stats=None):
     super(InternetGatewayDeviceFakeCPE, self).__init__()
-    self.Unexport(params=['DeviceSummary'])
-    self.Unexport(objects=['CaptivePortal', 'DeviceConfig',
-                           'DownloadDiagnostics', 'IPPingDiagnostics',
+    self.Unexport(params=['DeviceSummary'],
+                  objects=['CaptivePortal', 'Capabilities', 'DeviceConfig',
+                           'DLNA',
+                           'DownloadAvailability',
+                           'DownloadDiagnostics', 'FAP', 'FaultMgmt',
+                           'Firewall',
+                           'IPPingDiagnostics',
                            'LANConfigSecurity', 'LANInterfaces',
                            'Layer2Bridging', 'Layer3Forwarding',
-                           'QueueManagement', 'Services',
-                           'TraceRouteDiagnostics', 'UploadDiagnostics',
-                           'UserInterface'])
-    self.Unexport(lists=['WANDevice'])
+                           'NSLookupDiagnostics',
+                           'QueueManagement', 'Security',
+                           'SelfTestDiagnostics',
+                           'Services',
+                           'SoftwareModules',
+                           'TraceRouteDiagnostics',
+                           'UDPEchoConfig', 'UploadDiagnostics',
+                           'UPnP', 'USBHosts', 'UserInterface'],
+                  lists=[])
+    self.SmartCardReaderList = {}
+    self.UserList = {}
     self.LANDeviceList = {'1': LANDevice()}
     self.WANDeviceList = {}
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
