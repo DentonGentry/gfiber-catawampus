@@ -60,7 +60,9 @@ class CaptivePortalTest(unittest.TestCase):
         '-i',
         'wlan0_portal',
         '-a',
-        '1.2.3.4 5.6.7.8'
+        '1.2.3.4 5.6.7.8',
+        '-u',
+        'https://youtube.com'
     ]
     self.assertEquals(exp_cmd, cp._command)
     self.assertEquals(cp.Status, 'Enabled')
@@ -82,7 +84,9 @@ class CaptivePortalTest(unittest.TestCase):
         '-i',
         'wlan1_portal wlan0_portal',
         '-a',
-        '1.2.3.4 5.6.7.8'
+        '1.2.3.4 5.6.7.8',
+        '-u',
+        'https://youtube.com'
     ]
     self.assertEquals(exp_cmd, cp._command)
     self.assertEquals(cp.Status, 'Enabled')
