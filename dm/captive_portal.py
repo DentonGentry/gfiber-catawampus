@@ -31,6 +31,7 @@ CATA181_CAPTIVE_PORTAL = CATA181DEV.Device.CaptivePortal
 
 CAPTIVE_PORTAL = 'captive_portal'
 
+
 class CaptivePortal(CATA181_CAPTIVE_PORTAL):
   """Device.CaptivePortal."""
 
@@ -59,15 +60,15 @@ class CaptivePortal(CATA181_CAPTIVE_PORTAL):
   @tr.mainloop.WaitUntilIdle
   def Triggered(self):
     if (self.Enable and self.URL and self.X_CATAWAMPUS_ORG_Port
-      and self.AllowedList):
+        and self.AllowedList):
       args = [CAPTIVE_PORTAL, 'start', '-p', str(self.X_CATAWAMPUS_ORG_Port),
-              '-i', " ".join(self._interfaces), '-a', str(self.AllowedList)]
+              '-i', ' '.join(self._interfaces), '-a', str(self.AllowedList)]
     else:
       args = [CAPTIVE_PORTAL, 'stop']
     self._runCmd(args)
     # TODO(estrulyov): also start/stop HTTP bouncer
 
   def _runCmd(self, args):
-    print cmd
+    print args
     subprocess.call(args, shell=False)
 
