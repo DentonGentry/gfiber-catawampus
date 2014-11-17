@@ -24,6 +24,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import os
 import sys
 import google3
+import dm.captive_portal
 import dm.device_info
 import dm.fake_dhcp_server
 import dm.fakemoca
@@ -133,7 +134,7 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
   def __init__(self, device_id, periodic_stats=None):
     super(DeviceFakeCPE, self).__init__()
     self.Export(objects=['DeviceInfo'])
-    self.Unexport(objects=['ATM', 'Bridging', 'CaptivePortal',
+    self.Unexport(objects=['ATM', 'Bridging',
                            'DHCPv6', 'DNS', 'DSL', 'DSLite', 'Firewall',
                            'GatewayInfo', 'HPNA', 'HomePlug', 'Hosts',
                            'IEEE8021x', 'IPv6rd', 'LANConfigSecurity', 'NAT',
@@ -145,6 +146,7 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
     self.DHCPv4 = dm.fake_dhcp_server.DHCPv4()
     self.ManagementServer = tr.core.TODO()  # Higher layer code splices this in
     self.Services = ServicesFakeCPE()
+    self.CaptivePortal = dm.captive_portal.CaptivePortal()
 
     self.InterfaceStackList = {}
 
