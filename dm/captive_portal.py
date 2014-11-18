@@ -38,7 +38,7 @@ class CaptivePortal(CATA181_CAPTIVE_PORTAL):
   AllowedList = tr.cwmptypes.TriggerString('')
   Enable = tr.cwmptypes.TriggerBool(False)
   URL = tr.cwmptypes.TriggerString('')
-  X_CATAWAMPUS_ORG_Port = tr.cwmptypes.TriggerUnsigned(0)
+  X_CATAWAMPUS_ORG_Port = tr.cwmptypes.TriggerUnsigned(8888)
 
   def __init__(self):
     super(CaptivePortal, self).__init__()
@@ -62,11 +62,11 @@ class CaptivePortal(CATA181_CAPTIVE_PORTAL):
     if (self.Enable and self.URL and self.X_CATAWAMPUS_ORG_Port
         and self.AllowedList):
       args = [CAPTIVE_PORTAL, 'start', '-p', str(self.X_CATAWAMPUS_ORG_Port),
-              '-i', ' '.join(self._interfaces), '-a', str(self.AllowedList)]
+              '-i', ' '.join(self._interfaces), '-a', str(self.AllowedList),
+              '-u', self.URL]
     else:
       args = [CAPTIVE_PORTAL, 'stop']
     self._runCmd(args)
-    # TODO(estrulyov): also start/stop HTTP bouncer
 
   def _runCmd(self, args):
     print args
