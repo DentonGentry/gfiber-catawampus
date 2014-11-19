@@ -1,8 +1,14 @@
 default: all
 
+# Note: super-init-not-called really should be enabled, but we had to
+# disable it for now due to gpylint bug b/18440404.  Re-enable the warning
+# if that bug gets fixed.
 GPYLINT=$(shell \
     if which gpylint >/dev/null; then \
-      echo gpylint --disable=g-bad-import-order --disable=g-unknown-interpreter; \
+      echo gpylint \
+          --disable=g-bad-import-order \
+          --disable=g-unknown-interpreter \
+          --disable=super-init-not-called; \
     else \
       echo 'echo "(gpylint-missing)" >&2'; \
     fi \
@@ -65,7 +71,8 @@ lint: \
 %.dirlint: all
 	@find $* -maxdepth 1 -size +1c -name '*.py' -type f \
 		-not -name google3.py | \
-	xargs -P$(LINT_TASKS) -n25 $(GPYLINT)
+	sort | \
+	xargs -P$(LINT_TASKS) -n25 --verbose $(GPYLINT)
 
 %.lint: all
 	@$(GPYLINT) $*
