@@ -1017,15 +1017,5 @@ If both {{param|X_CATAWAMPUS-ORG_PortRangeSize}} and {{param|ExternalPortEndRang
       </parameter>
     </object>
 
-    <object name="Device.CaptivePortal." access="readOnly" minEntries="1" maxEntries="1">
-      <parameter name="X_CATAWAMPUS_ORG_Port" access="readWrite">
-        <description>Port on which captive portal HTTP redirector will listen.</description>
-        <syntax>
-          <unsignedInt>
-            <range minInclusive="0" maxInclusive="65535"/>
-          </unsignedInt>
-        </syntax>
-      </parameter>
-    </object>
   </model>
 </dm:document>

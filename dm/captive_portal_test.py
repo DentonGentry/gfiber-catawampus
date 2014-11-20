@@ -46,7 +46,6 @@ class CaptivePortalTest(unittest.TestCase):
   def testOneInterfaceEnable(self):
     cp = CaptivePortal(['wlan0_portal'])
     cp.StartTransaction()
-    cp.X_CATAWAMPUS_ORG_Port = 8888
     cp.URL = 'https://youtube.com'
     cp.AllowedList = '1.2.3.4 5.6.7.8'
     cp.Enable = True
@@ -55,8 +54,6 @@ class CaptivePortalTest(unittest.TestCase):
     exp_cmd = [
         captive_portal.CAPTIVE_PORTAL,
         'start',
-        '-p',
-        '8888',
         '-i',
         'wlan0_portal',
         '-a',
@@ -70,7 +67,6 @@ class CaptivePortalTest(unittest.TestCase):
   def testTwoInterfaceEnable(self):
     cp = CaptivePortal(['wlan1_portal', 'wlan0_portal'])
     cp.StartTransaction()
-    cp.X_CATAWAMPUS_ORG_Port = 8888
     cp.URL = 'https://youtube.com'
     cp.AllowedList = '1.2.3.4 5.6.7.8'
     cp.Enable = True
@@ -79,8 +75,6 @@ class CaptivePortalTest(unittest.TestCase):
     exp_cmd = [
         captive_portal.CAPTIVE_PORTAL,
         'start',
-        '-p',
-        '8888',
         '-i',
         'wlan1_portal wlan0_portal',
         '-a',
@@ -94,7 +88,6 @@ class CaptivePortalTest(unittest.TestCase):
   def testDisable(self):
     cp = CaptivePortal(['wlan1_portal', 'wlan0_portal'])
     cp.StartTransaction()
-    cp.X_CATAWAMPUS_ORG_Port = 8888
     cp.URL = 'https://youtube.com'
     cp.AllowedList = '1.2.3.4 5.6.7.8'
     cp.Enable = True

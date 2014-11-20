@@ -38,7 +38,6 @@ class CaptivePortal(CATA181_CAPTIVE_PORTAL):
   AllowedList = tr.cwmptypes.TriggerString('')
   Enable = tr.cwmptypes.TriggerBool(False)
   URL = tr.cwmptypes.TriggerString('')
-  X_CATAWAMPUS_ORG_Port = tr.cwmptypes.TriggerUnsigned(8888)
 
   def __init__(self):
     super(CaptivePortal, self).__init__()
@@ -50,8 +49,6 @@ class CaptivePortal(CATA181_CAPTIVE_PORTAL):
 
     if not self.Enable:
       return 'Disabled'
-    elif not self.X_CATAWAMPUS_ORG_Port:
-      return 'X_CATAWAMPUS_ORG_Error_PortNotSet'
     elif not self.URL:
       return 'Error_URLEmpty'
     else:
@@ -59,11 +56,9 @@ class CaptivePortal(CATA181_CAPTIVE_PORTAL):
 
   @tr.mainloop.WaitUntilIdle
   def Triggered(self):
-    if (self.Enable and self.URL and self.X_CATAWAMPUS_ORG_Port
-        and self.AllowedList):
-      args = [CAPTIVE_PORTAL, 'start', '-p', str(self.X_CATAWAMPUS_ORG_Port),
-              '-i', ' '.join(self._interfaces), '-a', str(self.AllowedList),
-              '-u', self.URL]
+    if self.Enable and self.URL and self.AllowedList:
+      args = [CAPTIVE_PORTAL, 'start', '-i', ' '.join(self._interfaces),
+              '-a', self.AllowedList, '-u', self.URL]
     else:
       args = [CAPTIVE_PORTAL, 'stop']
     self._runCmd(args)

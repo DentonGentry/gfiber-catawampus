@@ -10888,14 +10888,6 @@ The CPE MUST permit the captive portal URL to be set to {{empty}}, which has the
           </string>
         </syntax>
       </parameter>
-      <parameter name="X_CATAWAMPUS_ORG_Port" access="readWrite">
-        <description>Port on which captive portal HTTP redirector will listen.</description>
-        <syntax>
-          <unsignedInt>
-            <range minInclusive="0" maxInclusive="65535"/>
-          </unsignedInt>
-        </syntax>
-      </parameter>
     </object>
 
     <object name="Device.Routing." access="readOnly" minEntries="1" maxEntries="1">
