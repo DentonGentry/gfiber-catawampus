@@ -22,6 +22,8 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
 from tr.wvtest import unittest
+import tr.core
+import tr.experiment
 import tr.handle
 import catawampus
 
@@ -30,15 +32,21 @@ class CatawampusTest(unittest.TestCase):
   """Tests for catawampus.py."""
 
   def testValidateExports(self):
-    c = catawampus.CatawampusDm(None)
+    r = tr.core.Exporter()
+    h = tr.experiment.ExperimentHandle(r)
+    c = catawampus.CatawampusDm(h)
     tr.handle.ValidateExports(c)
 
   def testRuntimeEnv(self):
-    c = catawampus.CatawampusDm(None)
+    r = tr.core.Exporter()
+    h = tr.experiment.ExperimentHandle(r)
+    c = catawampus.CatawampusDm(h)
     self.assertTrue(c.RuntimeEnvInfo)
 
   def testProfiler(self):
-    c = catawampus.CatawampusDm(None)
+    r = tr.core.Exporter()
+    h = tr.experiment.ExperimentHandle(r)
+    c = catawampus.CatawampusDm(h)
     c.Profiler.Enable = True
     # Profiler is running. Need something to profile.
     unused_j = 0

@@ -36,7 +36,7 @@ import dm.ookla
 import dm.selftest
 import dm.ssh
 import tr.core
-import tr.handle
+import tr.experiment
 
 BASE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
 
@@ -50,7 +50,7 @@ class DeviceModelRoot(tr.core.Exporter):
 
   def __init__(self, loop, platform, ext_dir):
     tr.core.Exporter.__init__(self)
-    self.handle = tr.handle.Handle(self)
+    self.handle = tr.experiment.ExperimentHandle(self)
     if platform:
       self.device = _RecursiveImport('platform.%s.device' % platform)
       (params, objects) = self.device.PlatformInit(name=platform,
@@ -101,6 +101,7 @@ class DeviceModelRoot(tr.core.Exporter):
     cata.SSH = dm.ssh.Ssh()
     cata.Isostream = dm.isostream.Isostream()
     cata.HttpDownload = dm.ip_diag_http.DiagHttpDownload()
+    self.handle.root_experiments = cata.Catawampus.Experiments
 
     # TODO(apenwarr): Legacy names. Delete after the ACS stops using these.
     #   Other than a few places where we added only individual parameters
