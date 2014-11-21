@@ -120,7 +120,7 @@ class RemoteCommandStreamer(quotedblock.QuotedBlockStreamer):
     """Validate the schema of an object and its children."""
     h = self.root
     if name:
-      h = self.root.SubHandle(self.root.GetExport(name))
+      h = self.root.Sub(name)
     h.ValidateExports(path=[name])
     return []
 

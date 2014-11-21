@@ -72,9 +72,9 @@ class Encode(object):
       with xml['cwmp:Inform']:
         with xml.DeviceId:
           try:
-            di = root.GetExport('Device.DeviceInfo')
+            di = root.obj.Device.DeviceInfo
           except AttributeError:
-            di = root.GetExport('InternetGatewayDevice.DeviceInfo')
+            di = root.obj.InternetGatewayDevice.DeviceInfo
           xml.Manufacturer(di.Manufacturer)
           xml.OUI(di.ManufacturerOUI)
           xml.ProductClass(di.ProductClass)

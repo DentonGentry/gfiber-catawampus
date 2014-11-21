@@ -161,14 +161,15 @@ class CoreTest(unittest.TestCase):
     self.assertEqual(handle.Handle(root.SubList[0]).GetExport('Count'), 3)
 
     # FindExport of Sub.0 shouldn't actually instantiate the .0
-    self.assertEqual(h.FindExport('Sub.0'), (root.SubList, '0'))
+    hp = h.FindExport('Sub.0')
+    self.assertEqual((hp[0].obj, hp[1]), (root.SubList, '0'))
     self.assertEqual(root.SubList[0].Count, 4)
 
     # FindExport of Sub.0.Count should instantiate Sub.0 exactly once
     s0, name = h.FindExport('Sub.0.Count')
     self.assertEqual(name, 'Count')
-    self.assertEqual(s0.Count, 5)
-    self.assertEqual(s0.Count, 5)
+    self.assertEqual(s0.obj.Count, 5)
+    self.assertEqual(s0.obj.Count, 5)
 
     self.assertEqual(handle.Handle(root.SubList[0]).GetExport('Count'), 6)
     self.assertEqual(h.GetExport('Sub.0.Count'), 7)

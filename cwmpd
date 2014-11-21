@@ -90,7 +90,7 @@ def main():
   loop = tr.mainloop.MainLoop()
   root = dm_root.DeviceModelRoot(loop, opt.platform, opt.ext_dir)
   root.add_cwmp_extensions()
-  handle = tr.handle.Handle(root)
+  handle = root.handle
   if opt.rcmd_port:
     loop.ListenInet((opt.listenip, opt.rcmd_port),
                     tr.rcommand.MakeRemoteCommandStreamer(handle))

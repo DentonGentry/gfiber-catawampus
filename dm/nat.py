@@ -91,7 +91,7 @@ class NAT(BASENAT):
     this by creating four lists of config file lines, and then outputting
     them in priority order.
 
-    An "IDX_#" string in the COMMENT line lets us reconstruct the object
+    An 'IDX_#' string in the COMMENT line lets us reconstruct the object
     numbering when read back in.
     """
     ip4configs = {}

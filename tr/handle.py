@@ -53,12 +53,19 @@ class Handle(object):
   ('Obj.ThingList.5.Name').
   """
 
-  def __init__(self, obj):
+  def __init__(self, obj, basename='', roothandle=None):
     assert hasattr(obj, 'Export') or hasattr(obj, 'iteritems')
+    self.roothandle = roothandle
+    self.basename = basename
     self.obj = obj
 
-  def SubHandle(self, obj):
-    return type(self)(obj)
+  def _Sub(self, name, obj):
+    if self.basename:
+      name = self.basename + '.' + name
+    return type(self)(obj, basename=name, roothandle=self.roothandle or self)
+
+  def Sub(self, name):
+    return self._Sub(name, self.GetExport(name))
 
   @staticmethod
   def GetCanonicalName(root, obj_to_find):
@@ -123,15 +130,15 @@ class Handle(object):
       self._GetExport(self.obj, name)
     for name in self.obj.export_objects:
       self.AssertValidExport(name, path=path)
-      obj = self._GetExport(self.obj, name)
-      if isinstance(obj, type):
+      h = self.Sub(name)
+      if isinstance(h.obj, type):
         raise Exc(name, 'is a type; instantiate it')
       try:
-        obj.Export()
+        h.obj.Export()
       except AttributeError:
         raise Exc(name, 'is %r, must implement core.Exporter'
-                  % type(obj))
-      self.SubHandle(obj).ValidateExports(path + [name])
+                  % type(h.obj))
+      h.ValidateExports(path + [name])
     for name in self.obj.export_object_lists:
       self.AssertValidExport(name, path=path)
 
@@ -150,6 +157,7 @@ class Handle(object):
       except AttributeError:
         raise Exc(name + 'List', 'is an objlist but failed to iteritems')
       for (iname, obj) in l.iteritems():
+        sh = self._Sub('%s.%s' % (name, iname), obj)
         if isinstance(obj, type):
           raise Exc('%s.%s' % (name, iname),
                     'is a type; instantiate it')
@@ -158,7 +166,7 @@ class Handle(object):
         except AttributeError:
           raise Exc(name, 'is %r, must implement core.Exporter'
                     % type(obj))
-        self.SubHandle(obj).ValidateExports(path + [name, str(iname)])
+        sh.ValidateExports(path + [name, str(iname)])
 
   @staticmethod
   def IsValidExport(obj, name):
@@ -215,29 +223,21 @@ class Handle(object):
       pass
     return parent[name]
 
-  def FindExport(self, name, allow_create=False):
+  def FindExport(self, name):
     """Navigate through the export hierarchy to find the parent of 'name'.
 
     Args:
       name: the name of the sub-object to find the parent of.
-      allow_create: if true, try adding a row to a table to create the object.
     Returns:
-      (parent, subname): the parent object and the name of the parameter or
+      (parent, subname): the parent handle and the name of the parameter or
          object referred to by 'name', relative to the parent.
     """
-    parent = None
     o = self.obj
     assert not name.endswith('.')
     parts = name.split('.')
     for i in parts[:-1]:
-      parent = o
       o = self._GetExport(o, i)
-    if allow_create:
-      try:
-        self._GetExport(o, parts[-1])
-      except KeyError:
-        self.SubHandle(parent).AddExportObject(parts[-2], parts[-1])
-    return o, parts[-1]
+    return self._Sub('.'.join(parts[:-1]), o), parts[-1]
 
   def GetExport(self, name):
     """Get a child of this object (a parameter or object).
@@ -249,7 +249,8 @@ class Handle(object):
     """
     parent, subname = self.FindExport(name)
     try:
-      return self._GetExport(parent, subname)
+      # pylint:disable=protected-access
+      return parent._GetExport(parent.obj, subname)
     except KeyError:
       # re-raise the KeyError with the full name, not just the subname.
       raise KeyError(name)
@@ -266,11 +267,11 @@ class Handle(object):
         ends in '.', it is an object or a list item; if it doesn't, it is
         a parameter.
     Yields:
-      a series of (obj, paramname) tuples.  For objects, paramname is
+      a series of (handle, paramname) tuples.  For objects, paramname is
       an empty string.  Otherwise it is the last element of the dot-separated
-      path, and you can do things like getattr(obj, paramname) or
-      setattr(obj, paramname, 'value').  The yielded list is guaranteed
-      to be in the same order as the input list of names.
+      path, and you can do things like handle.GetExport(paramname) or
+      handle.SetExportParam(paramname, 'value').  The yielded list is
+      guaranteed to be in the same order as the input list of names.
 
       To support vendor parameters like X_CATAWAMPUS-ORG_Foo, underscores
       are substituted for dashes.
@@ -291,7 +292,7 @@ class Handle(object):
       assert o is not None
       for i in after:
         before = tuple(list(before) + [i])
-        cache[before] = o = self.SubHandle(Handle._GetExport(o.obj, i))
+        cache[before] = o = o.Sub(i)
       yield o, param.replace('-', '_')
 
   def SetExportParam(self, name, value):
@@ -306,14 +307,15 @@ class Handle(object):
       KeyError: if the name is not an exported parameter.
     """
     parent, subname = self.FindExport(name)
-    fixed = [Handle._FixExportName(parent, x) for x in parent.export_params]
+    fixed = [Handle._FixExportName(parent.obj, x)
+             for x in parent.obj.export_params]
     if subname not in fixed:
       raise KeyError(name)
-    if not parent.dirty:
-      parent.StartTransaction()
-      parent.dirty = True
-    setattr(parent, subname, value)
-    return parent
+    if not parent.obj.dirty:
+      parent.obj.StartTransaction()
+      parent.obj.dirty = True
+    setattr(parent.obj, subname, value)
+    return parent.obj
 
   def SetExportAttrs(self, param, attrs):
     """Set the attributes of a given parameter.
@@ -326,10 +328,10 @@ class Handle(object):
       True:  If the object handled setting the attribute.
       False:  If the object does not hanlde setting the attribute.
     """
-    obj, unused_name = self.FindExport(param)
-    if not hasattr(obj, 'SetAttributes'):
+    parent, unused_name = self.FindExport(param)
+    if not hasattr(parent.obj, 'SetAttributes'):
       return False
-    obj.SetAttributes(attrs)
+    parent.obj.SetAttributes(attrs)
     return True
 
   def _AddExportObject(self, name, idx):
@@ -352,7 +354,7 @@ class Handle(object):
     assert '.' not in idx
     newobj = constructor()
     try:
-      self.SubHandle(newobj).ValidateExports()
+      self._Sub('', newobj).ValidateExports()
     except SchemaError, e:
       raise NotAddableError('%s: %s' % (name, e))
     objlist[_Int(idx)] = newobj
@@ -371,7 +373,7 @@ class Handle(object):
     """
     parent, subname = self.FindExport(name)
     # pylint:disable=protected-access
-    return self.SubHandle(parent)._AddExportObject(subname, idx)
+    return parent._AddExportObject(subname, idx)
 
   def DeleteExportObject(self, name, idx):
     """Delete the object with index idx in the list named name.
@@ -404,7 +406,7 @@ class Handle(object):
       if obj is not None:
         yield '%s.' % (idx,)
         if recursive:
-          for i in self.SubHandle(obj)._ListExports(recursive):  # pylint:disable=protected-access
+          for i in self._Sub('', obj)._ListExports(recursive):  # pylint:disable=protected-access
             yield '%s.%s' % (idx, i)
 
   def _ListExports(self, recursive):
@@ -416,9 +418,8 @@ class Handle(object):
       elif name in self.obj.export_objects:
         yield name + '.'
         if recursive:
-          obj = self._GetExport(self.obj, name)
           # pylint:disable=protected-access
-          for i in self.SubHandle(obj)._ListExports(recursive):
+          for i in self.Sub(name)._ListExports(recursive):
             yield name + '.' + i
       if name in self.obj.export_object_lists:
         yield name + '.'
@@ -441,7 +442,7 @@ class Handle(object):
       obj = self.GetExport(name)
     if hasattr(obj, 'Export'):
       # pylint:disable=protected-access
-      return self.SubHandle(obj)._ListExports(recursive=recursive)
+      return self._Sub(name, obj)._ListExports(recursive=recursive)
     else:
       return self._ListExportsFromDict(obj, recursive=recursive)
 

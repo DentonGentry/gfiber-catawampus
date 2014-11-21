@@ -277,8 +277,8 @@ class CPEStateMachine(object):
       events.append(ev)
     parameter_list = []
     try:
-      ms = self.cpe.root.GetExport('InternetGatewayDevice.ManagementServer')
-      di = self.cpe.root.GetExport('InternetGatewayDevice.DeviceInfo')
+      ms = self.cpe.root.obj.InternetGatewayDevice.ManagementServer
+      di = self.cpe.root.obj.InternetGatewayDevice.DeviceInfo
       parameter_list += [
           ('InternetGatewayDevice.ManagementServer.ConnectionRequestURL',
            ms.ConnectionRequestURL),

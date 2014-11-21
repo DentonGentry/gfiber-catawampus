@@ -161,7 +161,7 @@ class DeviceModelRoot(tr.core.Exporter):
       pass  # no tr-157 object on the InternetGatewayDevice.
     else:
       tr157_object.SetCpe(cpe)
-      tr157_object.SetRoot(tr.handle.Handle(self))
+      tr157_object.SetRoot(self.handle)
 
     try:
       tr157_object = self.Device.PeriodicStatistics
@@ -169,4 +169,4 @@ class DeviceModelRoot(tr.core.Exporter):
       pass  # no tr-157 object found on the Device object
     else:
       tr157_object.SetCpe(cpe)
-      tr157_object.SetRoot(tr.handle.Handle(self))
+      tr157_object.SetRoot(self.handle)
