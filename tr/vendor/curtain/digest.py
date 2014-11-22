@@ -76,7 +76,7 @@ class DigestAuthMixin(object):
             keyvalues = [(k.strip(), v.strip().replace('"', '')) for k, v in keyvalues]
             self.params = dict(keyvalues)
         except:
-            self.params = []
+            self.params = dict()
 
     def _create_nonce(self):
         return md5("%d:%s" % (time.time(), self.realm)).hexdigest()
@@ -95,6 +95,7 @@ class DigestAuthMixin(object):
         expected_response = None
         actual_response = None
         auth = None
+        self.params = dict()
         if not hasattr(self,'realm'):
             self.realm = realm
 
