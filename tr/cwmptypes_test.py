@@ -31,7 +31,8 @@ from wvtest import unittest
 
 TEST_FILE = 'testobject.tmp'
 TEST2_FILE = 'testobject2.tmp'
-TEST3_FILE = '/this/file/does/not/exist/i/hope'
+TEST3_FILE = 'testobject3.tmp'
+TESTBAD_FILE = '/this/file/does/not/exist/i/hope'
 
 
 class TestObject(object):
@@ -48,9 +49,11 @@ class TestObject(object):
   ip4 = tr.cwmptypes.IP4Addr()
   ip6 = tr.cwmptypes.IP6Addr()
   file = tr.cwmptypes.FileBacked([TEST_FILE], tr.cwmptypes.Bool())
-  file2 = tr.cwmptypes.FileBacked([TEST_FILE], tr.cwmptypes.Bool(),
+  file2 = tr.cwmptypes.FileBacked([TEST2_FILE], tr.cwmptypes.Bool(),
                                   delete_if_empty=False)
-  file3 = tr.cwmptypes.FileBacked([TEST3_FILE], tr.cwmptypes.String())
+  file3 = tr.cwmptypes.FileBacked([TEST3_FILE], tr.cwmptypes.String(),
+                                  delete_if_empty=True)
+  file_bad = tr.cwmptypes.FileBacked([TESTBAD_FILE], tr.cwmptypes.String())
 
   v = tr.cwmptypes.Unsigned()
 
@@ -261,7 +264,7 @@ class TypesTest(unittest.TestCase):
     self.assertEquals(obj.file, 1)
     open(TEST_FILE, 'w').write('0')
     self.assertEquals(obj.file, 0)
-    obj.file = ''
+    obj.file = ''  # file is Bool, so converts to False, which is NOT empty
     loop = mainloop.MainLoop()
     loop.RunOnce()
     self.assertTrue(os.path.exists(TEST_FILE))
@@ -305,10 +308,32 @@ class TypesTest(unittest.TestCase):
     self.assertTrue(os.path.exists(TEST2_FILE))
     os.unlink(TEST2_FILE)
 
+  def testFileBackedDeleteRace(self):
+    obj = TestObject()
+    open(TEST3_FILE, 'w').write('0')
+    self.assertEquals(obj.file3, '0')
+    obj.file3 = ''  # should cause deletion
+    loop = mainloop.MainLoop()
+    loop.RunOnce()
+    self.assertFalse(os.path.exists(TEST3_FILE))
+    obj.file2 = None
+    loop.RunOnce()
+    self.assertTrue(os.path.exists(TEST2_FILE))
+    self.assertEqual(open(TEST2_FILE).read(), '')
+    obj.file3 = ''  # schedule a deletion
+    obj.file3 = 'string'  # schedule a file replacement
+    loop.RunOnce()
+    self.assertTrue(os.path.exists(TEST3_FILE))
+    self.assertEqual(open(TEST3_FILE).read(), 'string\n')
+    obj.file3 = 'string'  # schedule a file replacement
+    obj.file3 = ''  # schedule a deletion
+    loop.RunOnce()
+    self.assertFalse(os.path.exists(TEST3_FILE))
+
   def testFileBackedNotExist(self):
     obj = TestObject()
     with self.assertRaises(IOError):
-      obj.file3 = 'this should assert!'
+      obj.file_bad = 'this should assert!'
     loop = mainloop.MainLoop()
     loop.RunOnce()
 

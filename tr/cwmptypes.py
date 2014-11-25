@@ -14,7 +14,7 @@
 # limitations under the License.
 
 # TR-069 has mandatory attribute names that don't comply with policy
-# pylint: disable=invalid-name,W0212
+# pylint: disable=invalid-name
 #
 """Type descriptors for common TR-069 data types."""
 
@@ -60,11 +60,13 @@ class Attr(object):
     return self._callbacklist
 
   def _MakeAttrs(self, obj):
+    # pylint: disable=protected-access
     try:
       return obj.__Attrs
     except AttributeError:
       obj.__Attrs = {}
       return obj.__Attrs
+    # pylint: enable=protected-access
 
   def __get__(self, obj, _):
     # Type descriptors (ie. this class) are weird because they only have
@@ -338,7 +340,7 @@ class FileBacked(Attr):
 
   def __init__(self, filename_ptr, attr, delete_if_empty=True,
                file_owner=None, file_group=None):
-    super(FileBacked, self).__init__(self)
+    super(FileBacked, self).__init__()
     if isinstance(filename_ptr, basestring):
       # Handle it if someone just provides a filename directly instead
       # of a [filename]
@@ -367,35 +369,41 @@ class FileBacked(Attr):
     except ValueError:
       return ''
 
+  # Note: don't pass this function any special parameters.  WaitUntilIdle
+  # will schedule up to 1 call of this function with *each* combination
+  # of parameters it is passed, which is probably not what you want.
   @mainloop.WaitUntilIdle
-  def _ReallyWriteFile(self, delete):
-    os.rename(self.filename_ptr[0] + '.tmp', self.filename_ptr[0])
-    if delete:
-      helpers.Unlink(self.filename_ptr[0])
+  def _ReallyWriteFile(self):
+    try:
+      os.rename(self.filename_ptr[0] + '.tmp', self.filename_ptr[0])
+    except OSError as e:
+      if e.errno == errno.ENOENT:
+        helpers.Unlink(self.filename_ptr[0])
+      else:
+        raise
 
   def WriteFile(self, value):
-    """Writes the data out the file, the file is updated at idle time."""
+    """Writes the data out the file. The file is updated at idle time."""
 
-    # First write a .tmp file, we do this to catch exceptions where the
+    # First write a .tmp file.  We do this to catch exceptions where the
     # directory doesn't exist or permission issues etc.  Once we write a
     # tmp file, _ReallyWriteFile will schedule to rename the tmp file to the
     # real file.  This can still fail if we don't have permission to the actual
     # file but we have permission to the directory, but that seems less likely
-    # then the directory just not existig.
-
-    # pylint: disable=g-explicit-bool-comparison
-
-    delete = False
-    if value is None or value == '':
-      data = ''
-      delete = self.delete_if_empty
+    # then the directory just not existing.
+    #
+    tmpname = self.filename_ptr[0] + '.tmp'
+    if value in [None, '']:
+      if self.delete_if_empty:
+        helpers.Unlink(tmpname)
+      else:
+        helpers.WriteFileAtomic(tmpname, '',
+                                owner=self.file_owner, group=self.file_group)
     else:
       data = unicode(value).rstrip().encode('utf-8') + '\n'
-    helpers.WriteFileAtomic(self.filename_ptr[0] + '.tmp',
-                            data,
-                            owner=self.file_owner,
-                            group=self.file_group)
-    self._ReallyWriteFile(delete)
+      helpers.WriteFileAtomic(tmpname, data,
+                              owner=self.file_owner, group=self.file_group)
+    self._ReallyWriteFile()
 
   def _SetWithoutNotify(self, obj, value):
     self.WriteFile(value)
@@ -405,7 +413,7 @@ class _Proxy(Attr):
   """Base for classes that wrap a property. See Trigger and ReadOnly."""
 
   def __init__(self, attr):
-    super(_Proxy, self).__init__(attr)
+    super(_Proxy, self).__init__()
     self.attr = attr
 
   @property
