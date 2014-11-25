@@ -6,3 +6,4 @@ cwmp-1-2.[ch]xx
 *.pyc
 *~
 .*~
+*.tmp

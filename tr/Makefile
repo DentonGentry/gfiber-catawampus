@@ -42,5 +42,5 @@ test:
 	vendor/wvtest/wvtestrun $(MAKE) runtests
 
 clean:
-	rm -f *~ .*~ *.pyc *.stamp tr???_*.py* x_*.py* stamp.*
+	rm -f *~ .*~ *.pyc *.stamp tr???_*.py* x_*.py* stamp.* *.tmp
 	rm -rf std

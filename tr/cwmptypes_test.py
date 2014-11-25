@@ -23,10 +23,12 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 import datetime
 import os.path
 import time
+import weakref
 import google3
-import tr.cwmptypes
 import mainloop
 from wvtest import unittest
+import tr.cwmptypes
+import tr.filenotifier
 
 
 TEST_FILE = 'testobject.tmp'
@@ -105,6 +107,8 @@ class TriggerObject(object):
   m = tr.cwmptypes.TriggerMacAddr(init='')
   ip4 = tr.cwmptypes.TriggerIP4Addr('1.2.3.4')
   ip6 = tr.cwmptypes.TriggerIP6Addr('1111:2222::3333:4444')
+  file3 = tr.cwmptypes.Trigger(tr.cwmptypes.FileBacked([TEST3_FILE],
+                                                       tr.cwmptypes.String()))
 
   v = tr.cwmptypes.TriggerFloat()
 
@@ -142,6 +146,12 @@ class NumberOfObject(object):
 
 
 class TypesTest(unittest.TestCase):
+
+  def setUp(self):
+    # If one of these is left over from a previous failed test, strange
+    # things can ensue.  It holds a ref to the mainloop, so you could get
+    # more than one of them.
+    tr.cwmptypes.SetFileBackedNotifier(None)
 
   def testTypes(self):
     obj = TestObject()
@@ -336,6 +346,64 @@ class TypesTest(unittest.TestCase):
       obj.file_bad = 'this should assert!'
     loop = mainloop.MainLoop()
     loop.RunOnce()
+
+  def testFileBackedNotifier(self):
+    loop = mainloop.MainLoop()
+    notifier = tr.filenotifier.FileNotifier(loop)
+    tr.cwmptypes.SetFileBackedNotifier(notifier)
+    tr.helpers.Unlink(TEST3_FILE)
+    obj = TestObject()
+    count = [0]
+    def CallMe(obj):
+      print 'callme: %r' % obj
+      count[0] += 1
+    # file monitoring doesn't kick in until we read/write the value once.
+    # See cwmptypes.FileBacked._RegisterNotifier() for an explanation.
+    _ = obj.file3
+    tr.cwmptypes.AddNotifier(type(obj), 'file3', CallMe)
+    loop.RunOnce()
+    self.assertEqual(count, [0])
+    open(TEST3_FILE, 'w').write('boo')
+    loop.RunOnce()
+    self.assertEqual(count, [1])
+    loop.RunOnce()
+    self.assertEqual(count, [1])
+    open(TEST3_FILE, 'w').write('doo')
+    loop.RunOnce()
+    self.assertEqual(count, [2])
+
+  def testFileBackedTrigger(self):
+    loop = mainloop.MainLoop()
+    notifier = tr.filenotifier.FileNotifier(loop)
+    tr.cwmptypes.SetFileBackedNotifier(notifier)
+    self.assertEqual(len(notifier.watches), 0)
+    tr.helpers.Unlink(TEST3_FILE)
+    obj = TriggerObject()
+    obj_ref = weakref.ref(obj)
+    self.assertEqual(len(notifier.watches), 0)
+    # file monitoring doesn't kick in until we read/write the value once.
+    # See cwmptypes.FileBacked._RegisterNotifier() for an explanation.
+    _ = obj.file3
+    self.assertEqual(len(notifier.watches), 1)
+    loop.RunOnce()
+    self.assertEqual(obj.triggers, 0)
+    open(TEST3_FILE, 'w').write('boo')
+    loop.RunOnce()
+    self.assertEqual(obj.triggers, 1)
+    loop.RunOnce()
+    self.assertEqual(obj.triggers, 1)
+    open(TEST3_FILE, 'w').write('doo')
+    loop.RunOnce()
+    self.assertEqual(obj.triggers, 2)
+    obj.file3 = 'wonk'
+    loop.RunOnce()
+    self.assertEqual(obj.triggers, 3)
+    loop.RunOnce()
+    self.assertEqual(obj.triggers, 3)
+    self.assertEqual(obj.file3, 'wonk')
+    self.assertTrue(obj_ref())
+    del obj
+    self.assertFalse(obj_ref())
 
   def testTypeCoercion(self):
     obj = TestObject()

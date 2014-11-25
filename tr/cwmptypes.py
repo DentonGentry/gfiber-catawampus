@@ -25,6 +25,7 @@ import errno
 import os
 import re
 import socket
+import weakref
 import cwmpdate
 import helpers
 import mainloop
@@ -167,6 +168,9 @@ class Attr(object):
 
   def __set__(self, obj, value):
     self._SetWithoutNotify(obj, self.validate(obj, value))
+    self.CallCallbacks(obj)
+
+  def CallCallbacks(self, obj):
     for i in self.callbacklist:
       i(obj)
 
@@ -330,6 +334,14 @@ class IP6Addr(Attr):
     return value
 
 
+_FileBacked_Notifier = None
+
+
+def SetFileBackedNotifier(notifier):
+  global _FileBacked_Notifier
+  _FileBacked_Notifier = notifier
+
+
 class FileBacked(Attr):
   """An attribute that is actually a string stored in a file.
 
@@ -341,6 +353,7 @@ class FileBacked(Attr):
   def __init__(self, filename_ptr, attr, delete_if_empty=True,
                file_owner=None, file_group=None):
     super(FileBacked, self).__init__()
+    self.notifier = None
     if isinstance(filename_ptr, basestring):
       # Handle it if someone just provides a filename directly instead
       # of a [filename]
@@ -354,9 +367,54 @@ class FileBacked(Attr):
     self.file_owner = file_owner
     self.file_group = file_group
 
+  def _CallRefCallbacks(self, obj_ref):
+    """CallCallbacks using a weakref, only if the weakref is still valid."""
+    obj = obj_ref()
+    if obj:
+      self.CallCallbacks(obj)
+
+  def _RegisterNotifier(self, obj):
+    if not obj: return
+    d = self._MakeAttrs(obj)
+    if (id(self) not in d) and _FileBacked_Notifier:
+      # This is a little tricky.  You might think we'd just register the
+      # notifier in the FileBacked constructor, but that doesn't work for
+      # several reasons:
+      #  - Descriptor constructors are called at the time the containing
+      #    class is *defined*, not when it is instantiated, which is very
+      #    early, and only once per class, not per instance.
+      #  - _FileBacked_Notifier has probably not been constructed yet at that
+      #    time.
+      #  - We don't want to inotify on a file just because there exists a
+      #    class that contains a FileBacked that might need notifications,
+      #    if that class were instantiated.
+      #
+      # So instead, we start watching the file only the first time someone
+      # gets or sets the FileBacked object.  This actually makes sense: a
+      # program that has never looked at the content presumably doesn't care
+      # what it contains anyway, so it also doesn't care if the content
+      # changes.  And it allows us to defer creating the notifier until
+      # much later.
+      #
+      # We store the Watch object inside the object instance's own
+      # dictionary, so that when the object goes away, the notifier gets
+      # unregistered too.
+      #
+      # To make matters worse, since the Watch needs a callback, and the
+      # callback is a reference to the object being called, that creates a
+      # circular reference, which would prevent the object from being
+      # cleaned up.  So we use a weakref instead when generating the callback.
+      obj_ref = weakref.ref(obj)
+      watch = _FileBacked_Notifier.WatchObj(
+          self.filename_ptr[0],
+          lambda: self._CallRefCallbacks(obj_ref))
+      d[id(self)] = None
+      d[id(watch)] = watch
+
   def __get__(self, obj, _):
     if obj is None:
       return self
+    self._RegisterNotifier(obj)
     try:
       content = open(self.filename_ptr[0]).read().rstrip()
     except IOError as e:
@@ -365,9 +423,18 @@ class FileBacked(Attr):
         return self.validate(obj, '')
       raise
     try:
-      return self.validate(obj, content)
+      v = self.validate(obj, content)
     except ValueError:
-      return ''
+      v = ''
+    d = self._MakeAttrs(obj)
+    try:
+      old_v = d.get(id(self), None)
+    except (ValueError, TypeError):
+      old_v = ''
+    if v != old_v and (old_v, v) not in [(None, ''), ('', None)]:
+      d[id(self)] = v
+      self.CallCallbacks(obj)
+    return v
 
   # Note: don't pass this function any special parameters.  WaitUntilIdle
   # will schedule up to 1 call of this function with *each* combination
@@ -406,6 +473,8 @@ class FileBacked(Attr):
     self._ReallyWriteFile()
 
   def _SetWithoutNotify(self, obj, value):
+    self._RegisterNotifier(obj)
+    self._MakeAttrs(obj)[id(self)] = value  # cache this value
     self.WriteFile(value)
 
 
@@ -415,14 +484,6 @@ class _Proxy(Attr):
   def __init__(self, attr):
     super(_Proxy, self).__init__()
     self.attr = attr
-
-  @property
-  def callbacklist(self):
-    # Normally we just want to use the attr's callbacklist, so that changes
-    # it makes internally will trigger callbacks.  But if we wrap a
-    # basic property that doesn't have callbacks, we'll have to provide our
-    # own callback list.
-    return getattr(self.attr, 'callbacklist', self._callbacklist)
 
   def __get__(self, obj, _):
     if obj is None:
@@ -472,10 +533,28 @@ class Trigger(_Proxy):
     thing = None   # triggers
   """
 
+  def __init__(self, attr):
+    super(Trigger, self).__init__(attr=attr)
+    self.__no_trigger = 0
+    if hasattr(self.attr, 'callbacklist'):
+      self.attr.callbacklist.append(self._Trigger)
+
+  def _Trigger(self, obj):
+    if not self.__no_trigger:
+      obj.Triggered()
+
   def __set__(self, obj, value):
-    old = self.__get__(obj, None)
-    super(Trigger, self).__set__(obj, value)
-    new = self.__get__(obj, None)
+    # Prevent multi-triggers caused by setting the inner attribute, which
+    # causes a callback on the inner object, which calls _Trigger.  Normally
+    # that's what we want, but not now since we'll call Triggered() ourselves
+    # if necessary.
+    self.__no_trigger += 1
+    try:
+      old = self.__get__(obj, None)
+      super(Trigger, self).__set__(obj, value)
+      new = self.__get__(obj, None)
+    finally:
+      self.__no_trigger -= 1
     if old != new:
       # the attr's __set__ function might have rejected the change; only
       # call Triggered if it *really* changed.
@@ -539,6 +618,14 @@ class ReadOnly(_Proxy):
     x.b = False        # raises AttributeError
     X.b.Set(x, False)  # actually sets the bool
   """
+
+  @property
+  def callbacklist(self):
+    # Normally we just want to use the attr's callbacklist, so that changes
+    # it makes internally will trigger callbacks.  But if we wrap a
+    # basic property that doesn't have callbacks, we'll have to provide our
+    # own callback list.
+    return getattr(self.attr, 'callbacklist', self._callbacklist)
 
   def validate(self, unused_obj, _):
     # this is the same exception raised by a read-only @property

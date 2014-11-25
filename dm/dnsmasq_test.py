@@ -53,7 +53,6 @@ class DnsmasqTest(unittest.TestCase):
     self.dh4.PoolList[1] = self.dh4p
 
   def tearDown(self):
-    super(DnsmasqTest, self).tearDown()
     self.dh4p.Close()
     self.dh4.Close()
     self.dh4p = None
@@ -61,6 +60,7 @@ class DnsmasqTest(unittest.TestCase):
     dnsmasq.DNSMASQCONFIG = self.old_DNSMASQCONFIG
     dnsmasq.DNSMASQLEASES = self.old_DNSMASQLEASES
     shutil.rmtree(self.config_dir)
+    super(DnsmasqTest, self).tearDown()
 
   def testValidateExports(self):
     dh4 = dnsmasq.DHCPv4()

@@ -202,16 +202,21 @@ class IOLoopWrapper(tornado.ioloop.IOLoop):
 class MainLoop(object):
   """A slightly more convenient wrapper for tornado.ioloop.IOLoop."""
 
+  instance_count = [0]
+
   def __init__(self):
+    self.instance_count[0] += 1
     self.loop_timeout = None
     self.ioloop = None
     self.ioloop = IOLoopWrapper.instance()
 
   def __del__(self):
+    self.instance_count[0] -= 1
     # we have to do this so objects who have registered with the ioloop
     # can get their refcounts down to zero, so their destructors can be
-    # called
-    if self.ioloop:
+    # called.  But since there is only a single global tornado ioloop
+    # instance, we only want to tear down when *all* the mainloops are gone.
+    if self.ioloop and not self.instance_count[0]:
       # pylint:disable=protected-access
       for fd in self.ioloop._handlers.keys():
         self.ioloop.remove_handler(fd)
