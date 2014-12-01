@@ -293,7 +293,12 @@ class Handle(object):
       for i in after:
         before = tuple(list(before) + [i])
         cache[before] = o = o.Sub(i)
-      yield o, param.replace('-', '_')
+      yield o, param
+
+  def LookupAndFixupExports(self, names):
+    """Like LookupExports(), but paramnames are run through _FixExportName."""
+    for o, param in self.LookupExports(names):
+      yield o, self._FixExportName(o.obj, param)
 
   def SetExportParam(self, name, value):
     """Set the value of a parameter of this object.
@@ -307,9 +312,8 @@ class Handle(object):
       KeyError: if the name is not an exported parameter.
     """
     parent, subname = self.FindExport(name)
-    fixed = [Handle._FixExportName(parent.obj, x)
-             for x in parent.obj.export_params]
-    if subname not in fixed:
+    subname = Handle._FixExportName(parent.obj, subname)
+    if not hasattr(parent.obj, subname):
       raise KeyError(name)
     if not parent.obj.dirty:
       parent.obj.StartTransaction()

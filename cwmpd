@@ -33,6 +33,8 @@ import dm_root
 import factory
 import tr.acs_config
 import tr.api
+import tr.cwmptypes
+import tr.filenotifier
 import tr.handle
 import tr.http
 import tr.mainloop
@@ -91,6 +93,8 @@ def main():
   root = dm_root.DeviceModelRoot(loop, opt.platform, opt.ext_dir)
   root.add_cwmp_extensions()
   handle = root.handle
+  notifier = tr.filenotifier.FileNotifier(loop)
+  tr.cwmptypes.SetFileBackedNotifier(notifier)
   if opt.rcmd_port:
     loop.ListenInet((opt.listenip, opt.rcmd_port),
                     tr.rcommand.MakeRemoteCommandStreamer(handle))

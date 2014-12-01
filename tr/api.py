@@ -394,7 +394,7 @@ class CPE(TR069Service):
       else:
         keys.append(key)
         values.append(value)
-    lookup = list(self.root.LookupExports(keys))
+    lookup = list(self.root.LookupAndFixupExports(keys))
 
     # phase 1: grab existing values.
     oldvals = []

@@ -362,10 +362,29 @@ class FileBacked(Attr):
       # A one-element list containing a filename, so that the filename
       # itself can be reassigned later, eg. by a unit test
       self.filename_ptr = filename_ptr
+    self.filename_id_object = object()  # used for key in _MakeAttrs() dict
+    self.watcher_object = object()  # used for key in _MakeAttrs() dict
     self.validate = attr.validate
     self.delete_if_empty = delete_if_empty
     self.file_owner = file_owner
     self.file_group = file_group
+
+  def GetFileName(self, obj):
+    d = self._MakeAttrs(obj)
+    fn = d.get(id(self.filename_id_object), None)
+    if fn:
+      return fn
+    else:
+      return self.filename_ptr[0]
+
+  def SetFileName(self, obj, filename):
+    d = self._MakeAttrs(obj)
+    d[id(self.filename_id_object)] = filename
+    try:
+      del d[id(self.watcher_object)]
+    except KeyError:
+      pass
+    self._RegisterNotifier(obj)
 
   def _CallRefCallbacks(self, obj_ref):
     """CallCallbacks using a weakref, only if the weakref is still valid."""
@@ -376,7 +395,7 @@ class FileBacked(Attr):
   def _RegisterNotifier(self, obj):
     if not obj: return
     d = self._MakeAttrs(obj)
-    if (id(self) not in d) and _FileBacked_Notifier:
+    if (id(self.watcher_object) not in d) and _FileBacked_Notifier:
       # This is a little tricky.  You might think we'd just register the
       # notifier in the FileBacked constructor, but that doesn't work for
       # several reasons:
@@ -405,22 +424,28 @@ class FileBacked(Attr):
       # circular reference, which would prevent the object from being
       # cleaned up.  So we use a weakref instead when generating the callback.
       obj_ref = weakref.ref(obj)
-      watch = _FileBacked_Notifier.WatchObj(
-          self.filename_ptr[0],
-          lambda: self._CallRefCallbacks(obj_ref))
-      d[id(self)] = None
-      d[id(watch)] = watch
+      try:
+        watch = _FileBacked_Notifier.WatchObj(
+            self.GetFileName(obj),
+            lambda: self._CallRefCallbacks(obj_ref))
+      except _FileBacked_Notifier.Error as e:
+        # Not fatal, but will retry registering next time
+        print repr(e)
+      else:
+        d[id(self)] = None
+        d[id(self.watcher_object)] = watch
 
   def __get__(self, obj, _):
     if obj is None:
       return self
     self._RegisterNotifier(obj)
     try:
-      content = open(self.filename_ptr[0]).read().rstrip()
+      content = open(self.GetFileName(obj)).read().rstrip()
     except IOError as e:
-      # If file doesn't exist, then it's an empty string
+      # If file doesn't exist, then use None.  Unless overridden, validate()
+      # will convert this to ''.
       if e.errno == errno.ENOENT:
-        return self.validate(obj, '')
+        return self.validate(obj, None)
       raise
     try:
       v = self.validate(obj, content)
@@ -440,16 +465,17 @@ class FileBacked(Attr):
   # will schedule up to 1 call of this function with *each* combination
   # of parameters it is passed, which is probably not what you want.
   @mainloop.WaitUntilIdle
-  def _ReallyWriteFile(self):
+  def _ReallyWriteFile(self, obj):
+    filename = self.GetFileName(obj)
     try:
-      os.rename(self.filename_ptr[0] + '.tmp', self.filename_ptr[0])
+      os.rename(filename + '.tmp', filename)
     except OSError as e:
       if e.errno == errno.ENOENT:
-        helpers.Unlink(self.filename_ptr[0])
+        helpers.Unlink(filename)
       else:
         raise
 
-  def WriteFile(self, value):
+  def _WriteFile(self, obj, value):
     """Writes the data out the file. The file is updated at idle time."""
 
     # First write a .tmp file.  We do this to catch exceptions where the
@@ -459,7 +485,7 @@ class FileBacked(Attr):
     # file but we have permission to the directory, but that seems less likely
     # then the directory just not existing.
     #
-    tmpname = self.filename_ptr[0] + '.tmp'
+    tmpname = self.GetFileName(obj) + '.tmp'
     if value in [None, '']:
       if self.delete_if_empty:
         helpers.Unlink(tmpname)
@@ -470,12 +496,12 @@ class FileBacked(Attr):
       data = unicode(value).rstrip().encode('utf-8') + '\n'
       helpers.WriteFileAtomic(tmpname, data,
                               owner=self.file_owner, group=self.file_group)
-    self._ReallyWriteFile()
+    self._ReallyWriteFile(obj)
 
   def _SetWithoutNotify(self, obj, value):
     self._RegisterNotifier(obj)
     self._MakeAttrs(obj)[id(self)] = value  # cache this value
-    self.WriteFile(value)
+    self._WriteFile(obj, value)
 
 
 class _Proxy(Attr):
@@ -494,6 +520,14 @@ class _Proxy(Attr):
     f = getattr(self.attr, 'validate', None)
     if f: return f(obj, value)
     return value
+
+  def validator(self, valfunc):
+    f = getattr(self.attr, 'validator', None)
+    if f:
+      f(valfunc)
+    else:
+      Attr.validator(self, valfunc)
+    return self
 
   def _SetWithoutNotify(self, obj, value):
     f = getattr(self.attr, '_SetWithoutNotify', None)
