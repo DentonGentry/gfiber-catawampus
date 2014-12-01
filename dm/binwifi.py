@@ -23,15 +23,17 @@ The platform code is expected to set the BSSID (which is really a MAC address).
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import errno
 import os
 import subprocess
 import traceback
+import netdev
 import tr.cwmpbool
+import tr.experiment
 import tr.mainloop
 import tr.session
 import tr.tr098_v1_6
 import tr.x_catawampus_tr098_1_0
-import netdev
 
 BASE98IGD = tr.tr098_v1_6.InternetGatewayDevice_v1_12.InternetGatewayDevice
 BASE98WIFI = BASE98IGD.LANDevice.WLANConfiguration
@@ -46,6 +48,45 @@ BINWIFI = ['wifi']
 class WifiConfig(object):
   """A dumb data object to store config settings."""
   pass
+
+
+def _WifiConfigs(roothandle):
+  try:
+    landevices = roothandle.obj.InternetGatewayDevice.LANDeviceList
+  except AttributeError as e:
+    print '_WifiConfigs: %r' % e
+    return
+
+  for lann, lan in landevices.iteritems():
+    try:
+      wlanconfigs = lan.WLANConfigurationList
+    except AttributeError:
+      pass
+    for wlann, wlan in wlanconfigs.iteritems():
+      yield ('InternetGatewayDevice.LANDevice.%s.WLANConfiguration.%s.'
+             % (lann, wlann)), wlan
+
+
+@tr.experiment.Experiment
+def AutoDisableWifi(roothandle):
+  for wlankey, wlan in _WifiConfigs(roothandle):
+    if hasattr(wlan, 'X_CATAWAMPUS_ORG_AllowAutoDisable'):
+      yield (wlankey + 'X_CATAWAMPUS-ORG_AllowAutoDisable'), True
+
+
+@tr.experiment.Experiment
+def ForceTvBoxWifi(roothandle):
+  try:
+    model_name = roothandle.obj.Device.DeviceInfo.ModelName
+  except AttributeError as e:
+    print 'ForceTvBoxWifi: %r' % e
+    return
+  if not model_name.startswith('GFHD'):
+    print 'ForceTvBoxWifi: %r is not a TV box.  skipping.' % model_name
+    return
+  for wlankey, unused_wlan in _WifiConfigs(roothandle):
+    yield wlankey + 'Enable', True
+    yield wlankey + 'RadioEnabled', True
 
 
 class WlanConfiguration(CATA98WIFI):
@@ -142,6 +183,15 @@ class WlanConfiguration(CATA98WIFI):
 
     # WDS, currently unimplemented but could be supported at some point.
     self.Unexport(['PeerBSSID', 'DistanceFromRoot'])
+
+    # Waveguide interface
+    try:
+      os.makedirs('/tmp/waveguide', 0755)
+    except OSError as e:
+      if e.errno != errno.EEXIST:
+        raise
+    type(self).X_CATAWAMPUS_ORG_AutoDisableRecommended.attr.attr.SetFileName(
+        self, '/tmp/waveguide/%s.disabled' % self.Name)
 
   def _ParseBinwifiOutput(self, lines):
     """Parse output of /bin/wifi show.
@@ -346,9 +396,31 @@ class WlanConfiguration(CATA98WIFI):
   def Stats(self):
     return WlanConfigurationStats(ifname=self._ifname)
 
+  X_CATAWAMPUS_ORG_AllowAutoDisable = tr.cwmptypes.TriggerBool(False)
+
+  X_CATAWAMPUS_ORG_AutoDisableRecommended = tr.cwmptypes.Trigger(
+      tr.cwmptypes.ReadOnly(
+          tr.cwmptypes.FileBacked(
+              '/tmp/waveguide/disabled',  # filename varies
+              tr.cwmptypes.Bool())))
+
+  @X_CATAWAMPUS_ORG_AutoDisableRecommended.validator
+  def validator(self, value):
+    # Non-None means True.  Thus, a file which exists but is empty is
+    # true.
+    return value is not None
+
+  def _ReallyWantWifi(self):
+    return (self.Enable and
+            self.RadioEnabled and
+            not (self.X_CATAWAMPUS_ORG_AllowAutoDisable and
+                 self.X_CATAWAMPUS_ORG_AutoDisableRecommended))
+
   @property
   def Status(self):
     """WLANConfiguration.Status."""
+    if not self._ReallyWantWifi():
+      return 'Down'
     if not self.SSID:
       return 'Error'
     # TODO(dgentry): get /bin/wifi to return a status.
@@ -486,7 +558,7 @@ class WlanConfiguration(CATA98WIFI):
   @tr.mainloop.WaitUntilIdle
   def UpdateBinWifi(self):
     """Apply config to device by running /bin/wifi."""
-    if self.Enable and self.RadioEnabled:
+    if self._ReallyWantWifi():
       (cmd, env) = self._MakeBinWifiCommand()
     else:
       cmd = BINWIFI + ['off', '-P', '-b', self._band]

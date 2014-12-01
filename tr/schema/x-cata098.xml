@@ -36,10 +36,22 @@ If the radio supports multiple bands, and {{param}} is changed, then all paramet
           </string>
         </syntax>
       </parameter>
-      <parameter name="X_CATAWAMPUS-ORG_AutoChanType" access="readOnly" activeNotify="canDeny">
+      <parameter name="X_CATAWAMPUS-ORG_AutoChanType" access="readWrite" activeNotify="canDeny">
         <description>The AutoChannel algorithm to use, for example NONDFS or HIGH.</description>
         <syntax>
           <string/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_AllowAutoDisable" access="readWrite">
+        <description>If AutoDisableRecommended is non-empty, CPE disables the interface and Status goes to Down (but Enabled and RadioEnabled are not modified).</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_AutoDisableRecommended" access="readOnly" activeNotify="canDeny">
+        <description>If the system recommends disabling this radio, this is set to true.</description>
+        <syntax>
+          <boolean/>
         </syntax>
       </parameter>
     </object>

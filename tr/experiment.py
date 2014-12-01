@@ -105,7 +105,7 @@ class Experiments(CATABASE.Experiments):
           print 'no such experiment: %r' % name
         else:
           print 'Applying experiment %r' % name
-          forces = expfunc(self.roothandle)
+          forces = list(expfunc(self.roothandle))
           self.force_values.update(forces)
           keys = [f[0] for f in forces]
           lookups = list(self.roothandle.inner.LookupExports(keys))

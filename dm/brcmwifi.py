@@ -546,7 +546,9 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
     self.Unexport(['Alias', 'BeaconAdvertisementEnabled', 'ChannelsInUse',
                    'MaxBitRate', 'PossibleDataTransmitRates',
                    'TotalIntegrityFailures', 'TotalPSKFailures',
-                   'X_CATAWAMPUS-ORG_AutoChanType'])
+                   'X_CATAWAMPUS-ORG_AutoChanType',
+                   'X_CATAWAMPUS-ORG_AllowAutoDisable',
+                   'X_CATAWAMPUS-ORG_AutoDisableRecommended'])
 
     self.AssociatedDeviceList = tr.core.AutoDict(
         'AssociatedDeviceList', iteritems=self.IterAssociations,

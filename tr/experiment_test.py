@@ -31,7 +31,7 @@ def TestExp1(h):
 
 @experiment.Experiment
 def TestExp2(h):
-  return [('SubObj.TestParam', h.obj.TestParam)]
+  yield ('SubObj.TestParam', h.obj.TestParam)
 
 
 @experiment.Experiment
