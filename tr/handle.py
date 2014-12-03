@@ -406,52 +406,61 @@ class Handle(object):
     except KeyError:
       raise KeyError((name, idx))
 
-  def _ListExportsFromDict(self, objlist, recursive):
-    if not hasattr(objlist, 'iteritems'):
+  def _ListExportsFromDict(self):
+    if not hasattr(self.obj, 'iteritems'):
       return
-    for (idx, obj) in sorted(objlist.iteritems()):
+    for (idx, obj) in sorted(self.obj.iteritems()):
       if obj is not None:
-        yield '%s.' % (idx,)
-        if recursive:
-          for i in self._Sub('', obj)._ListExports(recursive):  # pylint:disable=protected-access
-            yield '%s.%s' % (idx, i)
+        sidx = str(idx)
+        yield '%s.' % (sidx,), self._Sub(sidx, obj), None
 
-  def _ListExports(self, recursive):
+  def _ListExports(self):
     for name in sorted(set().union(self.obj.export_params,
                                    self.obj.export_objects,
                                    self.obj.export_object_lists)):
       if name in self.obj.export_objects:
-        yield name + '.'
-        if recursive:
-          # pylint:disable=protected-access
-          for i in self.Sub(name)._ListExports(recursive):
-            yield name + '.' + i
+        yield name + '.', self.Sub(name), None
       elif name in self.obj.export_params:
-        yield name
+        yield name, self, name
       if name in self.obj.export_object_lists:
-        yield name + '.'
-        if recursive:
-          objlist = self._GetExport(self.obj, name)
-          for i in self._ListExportsFromDict(objlist, recursive=recursive):
-            yield '%s.%s' % (name, i)
+        yield name + '.', self.Sub(name), None
 
-  def ListExports(self, name=None, recursive=False):
+  def ListExportsEx(self, name=None, recursive=False):
     """Return a sorted list of sub-objects and parameters.
 
     Args:
       name: subobject name to start from (if None, starts at this object).
       recursive: true if you want to include children of children.
-    Returns:
-      An iterable of strings that can be passed to GetExport().
+    Yields:
+      An series of strings that can be passed to GetExport().
     """
-    obj = self.obj
     if name:
-      obj = self.GetExport(name)
-    if hasattr(obj, 'Export'):
-      # pylint:disable=protected-access
-      return self._Sub(name, obj)._ListExports(recursive=recursive)
+      topobj = self.GetExport(name)
+      if (not hasattr(topobj, 'Export') and
+          not hasattr(topobj, 'iteritems')):
+        # a leaf parameter; it has no sub-exports.
+        return
+      top = self._Sub(name, topobj)
     else:
-      return self._ListExportsFromDict(obj, recursive=recursive)
+      top = self
+    if hasattr(top.obj, 'Export'):
+      # pylint:disable=protected-access
+      it = top._ListExports()
+    elif hasattr(top.obj, 'iteritems'):
+      # pylint:disable=protected-access
+      it = top._ListExportsFromDict()
+    else:
+      it = [(name, self, None)]
+    for fullname, h, subname in it:
+      yield fullname, h, subname
+      if recursive and fullname.endswith('.'):
+        x_it = h.ListExportsEx(subname, recursive=recursive)
+        for x_fullname, x_h, x_subname in x_it:
+          yield fullname + x_fullname, x_h, x_subname
+
+  def ListExports(self, name=None, recursive=False):
+    for i in self.ListExportsEx(name=name, recursive=recursive):
+      yield i[0]
 
 
 def Dump(root):

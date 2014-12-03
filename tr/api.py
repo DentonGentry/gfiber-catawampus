@@ -470,7 +470,7 @@ class CPE(TR069Service):
     for param in parameter_names:
       if not param:
         # tr69 A.3.2.2: empty string indicates top of the name hierarchy.
-        paramlist = self.root.ListExports(None, False)
+        paramlist = self.root.ListExports(None, recursive=False)
         parameter_names.extend(paramlist)
       elif param.endswith('.'):
         paramlist = self.root.ListExports(param[:-1], False)
