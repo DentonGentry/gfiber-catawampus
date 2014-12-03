@@ -635,6 +635,8 @@ class GetParamsRpcTest(unittest.TestCase):
     responseXml = cpe.cpe_soap.Handle(soapxml)
     root = ET.fromstring(str(responseXml))
     fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
+    if fault:
+      print responseXml
     self.assertFalse(fault)
 
   def testGetBadParamValue(self):

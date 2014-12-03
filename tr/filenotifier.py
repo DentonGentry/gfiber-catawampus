@@ -12,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# pylint:disable=invalid-name
 
 """Simple real-time notifications of file changes."""
 
@@ -21,18 +23,29 @@ import mainloop
 import pyinotify
 
 
+Error = pyinotify.WatchManagerError
+
+
 class FileNotifier(object):
   """A class for managing file notifications in a tornado ioloop."""
 
+  # In some future world, there may be more than one kind of filenotifier
+  # implementation (eg. if inotify isn't available).  Make our error base
+  # class accessible to anyone who has an instance of our FileNotifier so
+  # that they can try/except on it safely for any variant.
+  Error = pyinotify.WatchManagerError
+
   def __init__(self, loop):
     self.loop = loop
+    self.watches = {}
     self.wm = pyinotify.WatchManager()
     self.tornado_notifier = pyinotify.TornadoAsyncNotifier(
         self.wm, self.loop.ioloop)
-    self.watches = {}
 
   def __del__(self):
-    self.tornado_notifier.stop()
+    n = getattr(self, 'tornado_notifier', None)
+    if n:
+      self.tornado_notifier.stop()
 
   def WatchObj(self, filename, callback):
     """Returns a filenotifier.Watch object, which calls Add() and Del()."""
@@ -100,10 +113,13 @@ class Watch(object):
     self.filenotifier = filenotifier
     self.filename = filename
     self.callback = callback
+    self.registered = False
     self.filenotifier.Add(self.filename, self.callback)
+    self.registered = True
 
   def __del__(self):
-    self.filenotifier.Del(self.filename, self.callback)
+    if self.registered:
+      self.filenotifier.Del(self.filename, self.callback)
 
 
 def main():

@@ -46,7 +46,7 @@ class RunserverTest(unittest.TestCase):
     if extra_args is None:
       extra_args = []
     print
-    print 'Testing with args=%r' % args
+    print 'Testing with args=%r extra=%r' % (args, extra_args)
     tr.helpers.Unlink(self.sockname)
     server = subprocess.Popen(['./cwmpd',
                                '--platform', 'fakecpe',
