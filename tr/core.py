@@ -117,7 +117,56 @@ class AutoDict(object):
     return list(self.iteritems())
 
 
-class Exporter(object):
+class AbstractExporter(object):
+  """A basic data model.  Most implementations derive from Exporter."""
+
+  # The following members might be overridden as properties or per-instance
+  # objects in subclasses.  We don't assign them in __init__ because that
+  # would prevent subclasses from making them properties.
+
+  # Setting _lastindex = 0, means the first AddObject will have an index
+  # of 1, which is what is called for in the spec.
+  _lastindex = 0
+  dirty = False  # true if object has pending SetParameters to be committed
+  export_params = None
+  export_objects = None
+  export_object_lists = None
+
+  def __init__(self):
+    pass
+
+  def Export(self, params=None, objects=None, lists=None):
+    raise NotImplementedError()
+
+  def Unexport(self, params=None, objects=None, lists=None):
+    raise NotImplementedError()
+
+  def Close(self):
+    """Called when an object is being deleted."""
+    pass
+
+  def StartTransaction(self):
+    """Prepare for a series of Set operations, to be applied atomically.
+
+    After StartTransaction the object will receive zero or more set operations
+    to its exported parameters. Each Set should check its arguments as best it
+    can, and raise ValueError or TypeError if there is a problem.
+
+    The transaction will conclude with either an AbandonTransaction or
+    CommitTransaction.
+    """
+    pass
+
+  def AbandonTransaction(self):
+    """Discard a pending transaction; do not apply the changes to the system."""
+    pass
+
+  def CommitTransaction(self):
+    """Apply a pending modification to the system."""
+    pass
+
+
+class Exporter(AbstractExporter):
   """An object containing named parameters that can be get/set.
 
   It can also contain sub-objects with their own parameters, and attributes
@@ -130,13 +179,9 @@ class Exporter(object):
     Args:
       defaults: (optional) a dictionary of attrs to set on the object.
     """
-    # Setting _lastindex = 0, means the first AddObject will have an index
-    # of 1, which is what is called for in the spec.
-    self._lastindex = 0
     self.export_params = set()
     self.export_objects = set()
     self.export_object_lists = set()
-    self.dirty = False  # object has pending SetParameters to be committed.
     if defaults:
       for (key, value) in defaults.iteritems():
         setattr(self, key, value)
@@ -193,30 +238,6 @@ class Exporter(object):
       assert not isinstance(lists, basestring)
       for l in lists:
         self.export_object_lists.remove(l)
-
-  def Close(self):
-    """Called when an object is being deleted."""
-    pass
-
-  def StartTransaction(self):
-    """Prepare for a series of Set operations, to be applied atomically.
-
-    After StartTransaction the object will receive zero or more set operations
-    to its exported parameters. Each Set should check its arguments as best it
-    can, and raise ValueError or TypeError if there is a problem.
-
-    The transaction will conclude with either an AbandonTransaction or
-    CommitTransaction.
-    """
-    pass
-
-  def AbandonTransaction(self):
-    """Discard a pending transaction; do not apply the changes to the system."""
-    pass
-
-  def CommitTransaction(self):
-    """Apply a pending modification to the system."""
-    pass
 
 
 class TODO(Exporter):

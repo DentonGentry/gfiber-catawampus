@@ -18,6 +18,8 @@
 #
 """A wrapper for accessing a tree of core.Exporter objects."""
 
+import traceback
+
 
 class NotAddableError(KeyError):
   """Raised when AddObject is not allowed on an object list."""
@@ -106,6 +108,17 @@ class Handle(object):
           return name + '.' + str(idx) + '.' + tmp_path
     return None
 
+  @staticmethod
+  def _AssertIsExporter(obj, name, Exc):
+    try:
+      getattr(obj, 'export_params')
+      getattr(obj, 'export_objects')
+      getattr(obj, 'export_object_lists')
+      getattr(obj, 'dirty')
+      getattr(obj, '_lastindex')
+    except AttributeError as e:
+      raise Exc(name, 'is %r, missing attribute %r' % (type(obj), e))
+
   def ValidateExports(self, path=None):
     """Trace through this object's exports to ensure no attributes are missing.
 
@@ -133,11 +146,7 @@ class Handle(object):
       h = self.Sub(name)
       if isinstance(h.obj, type):
         raise Exc(name, 'is a type; instantiate it')
-      try:
-        h.obj.Export()
-      except AttributeError:
-        raise Exc(name, 'is %r, must implement core.Exporter'
-                  % type(h.obj))
+      self._AssertIsExporter(h.obj, name, Exc)
       h.ValidateExports(path + [name])
     for name in self.obj.export_object_lists:
       self.AssertValidExport(name, path=path)
@@ -161,21 +170,14 @@ class Handle(object):
         if isinstance(obj, type):
           raise Exc('%s.%s' % (name, iname),
                     'is a type; instantiate it')
-        try:
-          obj.Export()
-        except AttributeError:
-          raise Exc(name, 'is %r, must implement core.Exporter'
-                    % type(obj))
+        self._AssertIsExporter(obj, name, Exc)
         sh.ValidateExports(path + [name, str(iname)])
 
   @staticmethod
   def IsValidExport(obj, name):
-    if (name in obj.export_params or
-        name in obj.export_objects or
-        name in obj.export_object_lists):
-      return True
-    else:
-      return False
+    return (name in obj.export_params or
+            name in obj.export_objects or
+            name in obj.export_object_lists)
 
   def AssertValidExport(self, name, path=None):
     if not self.IsValidExport(self.obj, name):
@@ -191,12 +193,13 @@ class Handle(object):
         # So we getattr() if not hasattr(); getattr() will raise the real
         # exception, which we deliberately allow to percolate out.
         getattr(self.obj, ename)
-      except AttributeError, e:
+      except AttributeError as e:
         # AttributeError probably means the attribute actually doesn't exist.
         # There's one exception to that: running an @property might
         # accidentally throw AttributeError for some other reason.  Just in
         # case, we print the original exception string in addition to our
         # SchemaError.
+        traceback.print_exc()
         raise SchemaError('%s is exported but does not exist (%s)'
                           % (fullname, e))
 
@@ -417,14 +420,14 @@ class Handle(object):
     for name in sorted(set().union(self.obj.export_params,
                                    self.obj.export_objects,
                                    self.obj.export_object_lists)):
-      if name in self.obj.export_params:
-        yield name
-      elif name in self.obj.export_objects:
+      if name in self.obj.export_objects:
         yield name + '.'
         if recursive:
           # pylint:disable=protected-access
           for i in self.Sub(name)._ListExports(recursive):
             yield name + '.' + i
+      elif name in self.obj.export_params:
+        yield name
       if name in self.obj.export_object_lists:
         yield name + '.'
         if recursive:
