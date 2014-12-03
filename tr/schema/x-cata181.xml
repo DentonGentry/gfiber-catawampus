@@ -564,33 +564,6 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
         </parameter>
       </object>
     </object>
-    <object name="Device.X_CATAWAMPUS-ORG.GFiberTV.Mailbox." access="readOnly" minEntries="1" maxEntries="1">
-      <description>Mailbox to access properties from the Google Fiber TV system.</description>
-      <parameter name="Node" access="readWrite">
-        <description>The Node to operate on (generally the serial number of the remote GFHD100). All Mailbox requests should be sent to the GFMS100, which can relay requests to the various GFHD100 devices. If this parameter is empty or omitted, the local properties of the GFMS100 are consulted.</description>
-        <syntax>
-          <string/>
-        </syntax>
-      </parameter>
-      <parameter name="Name" access="readWrite">
-        <description>Name of the property to operate on.</description>
-        <syntax>
-          <string/>
-        </syntax>
-      </parameter>
-      <parameter name="Value" access="readWrite">
-        <description>Value of the property. Writing to this parameter will write the the corresponding {Node,Name} property in the GFiberTV system. Reading from this property will fetch the corresponding {Node,Name} property from the GFiberTV system.</description>
-        <syntax>
-          <string/>
-        </syntax>
-      </parameter>
-      <parameter name="NodeList" access="readOnly">
-        <description>Available Nodes, i.e. the serial numbers of all connected GFHD100 devices.</description>
-        <syntax>
-          <string/>
-        </syntax>
-      </parameter>
-    </object>
 
     <object name="Device.X_CATAWAMPUS-ORG.GVSB." access="readOnly" minEntries="1" maxEntries="1">
       <description>GVSB Configuration.</description>

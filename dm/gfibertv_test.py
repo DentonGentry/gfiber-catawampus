@@ -151,59 +151,7 @@ class GfiberTvTests(unittest.TestCase):
 
   def testValidate(self):
     tv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
-    tv.Mailbox.Node = 'Node1'
-    tv.Mailbox.Name = 'Prop1'
     tr.handle.ValidateExports(tv)
-
-  def testGetProperties(self):
-    tvrpc = gfibertv.Mailbox('http://localhost:%d' % srv_port)
-    tvrpc.Node = 'Node1'
-    tvrpc.Name = 'Prop1'
-    self.assertEqual(tvrpc.Value, 'Prop1Value')
-    tvrpc.Name = 'Prop2'
-    self.assertEqual(tvrpc.Value, 'Prop2Value')
-    tvrpc.Node = 'Node2'
-    tvrpc.Name = 'Prop3'
-    self.assertEqual(tvrpc.Value, 'Prop3Value')
-    tvrpc.Name = 'Prop4'
-    self.assertRaises(IndexError, lambda: tvrpc.Value)
-    tvrpc.Node = 'Node3'
-    self.assertRaises(IndexError, lambda: tvrpc.Value)
-
-  def testGetPropertiesProtocolError(self):
-    tvrpc = gfibertv.Mailbox('http://localhost:2')
-    tvrpc.Node = 'Node1'
-    tvrpc.Name = 'Prop1'
-    self.assertRaises(IndexError, lambda: tvrpc.Value)
-
-  def testSetProperties(self):
-    tvrpc = gfibertv.Mailbox('http://localhost:%d' % srv_port)
-    tvrpc.Node = 'Node1'
-    tvrpc.Name = 'Prop1'
-    tvrpc.Value = 'Prop1NewValue'
-    self.assertEqual(tvrpc.Value, 'Prop1NewValue')
-    tvrpc.Name = 'Prop4'
-    self.assertRaises(IndexError, lambda: tvrpc.Value)
-    tvrpc.Node = 'Node3'
-    self.assertRaises(IndexError, lambda: tvrpc.Value)
-
-  def testSetPropertyInteger(self):
-    tvrpc = gfibertv.Mailbox('http://localhost:%d' % srv_port)
-    tvrpc.Node = 'Node1'
-    tvrpc.Name = 'Prop1'
-    tvrpc.Value = 1
-    # RPC turns value into a string
-    self.assertEqual(TvProperties['Node1']['Prop1'], '1')
-
-  def testSetPropertiesProtocolError(self):
-    tvrpc = gfibertv.Mailbox('http://localhost:2')
-    tvrpc.Node = 'Node1'
-    tvrpc.Name = 'Prop1'
-    self.assertRaises(IndexError, lambda: setattr(tvrpc, 'Value', 1))
-
-  def testNodeList(self):
-    tvrpc = gfibertv.Mailbox('http://localhost:%d' % srv_port)
-    self.assertEqual(tvrpc.NodeList, 'Node1, Node2')
 
   def testConfigGetProperties(self):
     # these values are deliberately different than testdata/gfibertv/Sage.*

@@ -112,21 +112,9 @@ class GFiberTv(CATABASE.GFiberTV):
     """
     super(GFiberTv, self).__init__()
     self.my_serial = my_serial
-    self.Mailbox = Mailbox(mailbox_url)
     self.DevicePropertiesList = {}
     self._rpcclient = xmlrpclib.ServerProxy(mailbox_url)
-
-    # TODO(apenwarr): Maybe remove this eventually.
-    #  Right now the storage box has an API, but TV boxes don't, so we
-    #  can't control a TV box directly; we have to control it through the
-    #  storage box in the Node list.  This makes it a bit messy to configure
-    #  with the ACS since the configuration keys need to refer to individual
-    #  devices. If we add a server on the TV boxes, we can eventually remove
-    #  this part and leave only Config.
-    self.NodeList = tr.core.AutoDict('NodeList',
-                                     iteritems=self._ListNodes,
-                                     getitem=self._GetNode)
-    self.Export(objects=['Config'], lists=['Node'])
+    self.Export(objects=['Config'])
 
   def GetUiType(self):
     cmd = HNVRAM + ['-q', '-r', 'UITYPE']
@@ -176,23 +164,11 @@ class GFiberTv(CATABASE.GFiberTV):
 
   @property
   def Config(self):
-    return self._GetNode('')
-
-  def _ListNodes(self):
-    try:
-      nodes = self._rpcclient.ListNodes()
-    except IOError, e:
-      if e.errno == errno.ECONNREFUSED:
-        return []
-      else:
-        raise IndexError('Failure listing nodes: %s' % e)
-    except (xmlrpclib.Fault, xmlrpclib.ProtocolError), e:
-      raise IndexError('Failure listing nodes: %s' % e)
-    return [(str(node), self._GetNode(node)) for node in nodes]
+    return self._GetTreeTop()
 
   @tr.session.cache
-  def _GetNode(self, name):
-    top = _PopulateTree(self._rpcclient, name, '')
+  def _GetTreeTop(self):
+    top = _PopulateTree(self._rpcclient, '')
     _ExportTree(top)
     return top
 
@@ -279,60 +255,6 @@ class DvrSpace(CATABASE.GFiberTV.DvrSpace):
             'error = {1}'.format(filename, e))
 
 
-class Mailbox(CATABASE.GFiberTV.Mailbox):
-  """Getter/setter for individual values in the SageTV configuration.
-
-  You set Node the node name, set Name to the config key you want to get/set,
-  and then get/set the Value field to read or write the actual value in the
-  configuration file.
-
-  Note: this API is deprecated. Consider using the PropList (GFiberTv.Config)
-  instead.
-  """
-
-  Node = tr.cwmptypes.String('')
-  Name = tr.cwmptypes.String('')
-
-  def __init__(self, url):
-    super(Mailbox, self).__init__()
-    self.rpcclient = xmlrpclib.ServerProxy(url)
-
-  @property
-  def Value(self):
-    if not self.Name:
-      return None
-    try:
-      return str(self.rpcclient.GetProperty(self.Name, self.Node))
-    except xmlrpclib.Fault:
-      raise IndexError('No such Property %s:%s' % (self.Node, self.Name))
-    except (xmlrpclib.ProtocolError, IOError):
-      raise IndexError(
-          'Unable to access Property %r:%r' % (self.Node, self.Name))
-
-  @Value.setter
-  def Value(self, value):
-    try:
-      return str(self.rpcclient.SetProperty(self.Name, str(value), self.Node))
-    except xmlrpclib.Fault:
-      raise IndexError('No such Property %s:%s' % (self.Node, self.Name))
-    except (xmlrpclib.ProtocolError, IOError):
-      raise IndexError(
-          'Unable to access Property %r:%r' % (self.Node, self.Name))
-
-  @property
-  def NodeList(self):
-    try:
-      nodes = self.rpcclient.ListNodes()
-      if nodes and isinstance(nodes, basestring):
-        # if there is only one node, xmlrpclib helpfully returns a string
-        # instead of a list.
-        nodes = [nodes]
-      return str(', '.join(nodes))
-    except (xmlrpclib.Fault, xmlrpclib.ProtocolError, IOError), e:
-      print 'gfibertv.NodeList: %s' % e
-      return ''
-
-
 class _LyingSet(set):
   """A set object that always lies and says it contains the given key."""
 
@@ -347,10 +269,9 @@ class _LyingSet(set):
 class PropList(tr.core.AbstractExporter):
   """An auto-generated list of properties in the SageTV database."""
 
-  def __init__(self, rpcclient, node, realname):
+  def __init__(self, rpcclient, realname):
     self._initialized = False
     self._rpcclient = rpcclient
-    self._node = node
     self._realname = realname
     self._params = {}
     self._subs = {}
@@ -383,7 +304,7 @@ class PropList(tr.core.AbstractExporter):
     #  is very slow.
     print 'xmlrpc getting %r' % realname
     try:
-      return str(self._rpcclient.GetProperty(realname, self._node))
+      return str(self._rpcclient.GetProperty(realname, ''))
     except xmlrpclib.expat.ExpatError as e:
       # TODO(apenwarr): SageTV produces invalid XML.
       # ...if the value contains <> characters, for example.
@@ -391,18 +312,18 @@ class PropList(tr.core.AbstractExporter):
       return None
     except xmlrpclib.Fault as e:
       # by request from ACS team, nonexistent params return empty not fault
-      param = '%s/%s' % (self._node, realname)
+      param = '/%s' % realname
       print 'xmlrpc: no such parameter %r: returning empty string' % param
       return ''
     except (xmlrpclib.ProtocolError, IOError) as e:
-      print 'xmlrpc: %s/%s: %r' % (self._node, realname, e)
+      print 'xmlrpc: /%s: %r' % (realname, e)
       raise AttributeError('unable to get value %r' % realname)
 
   def _Set(self, realname, value):
     try:
-      return str(self._rpcclient.SetProperty(realname, str(value), self._node))
+      return str(self._rpcclient.SetProperty(realname, str(value), ''))
     except (xmlrpclib.Fault, xmlrpclib.ProtocolError, IOError), e:
-      print 'xmlrpc: %s/%s: %s' % (self._node, realname, e)
+      print 'xmlrpc: /%s: %s' % (realname, e)
       raise ValueError('unable to set value: %s' % (e,))
 
   def __getattr__(self, name):
@@ -432,11 +353,11 @@ class PropList(tr.core.AbstractExporter):
       return super(PropList, self).__setattr__(name, value)
 
 
-def _PopulateTree(rpcclient, nodename, topname):
+def _PopulateTree(rpcclient, topname):
   """Populate the list of available objects using the config file contents."""
   # TODO(apenwarr): add a server API to get the actual property list.
   #  Then use it here. Reading it from the file is kind of cheating.
-  top = PropList(rpcclient, nodename, topname)
+  top = PropList(rpcclient, topname)
   for g in SAGEFILES:
     for filename in glob.glob(g):
       try:
@@ -457,8 +378,7 @@ def _PopulateTree(rpcclient, nodename, topname):
           obj = top
           for i, part in enumerate(parts[:-1]):
             if part not in obj._subs:
-              obj._subs[part] = PropList(rpcclient, nodename,
-                                         '/'.join(parts[:i+1]))
+              obj._subs[part] = PropList(rpcclient, '/'.join(parts[:i+1]))
             obj = obj._subs[part]
           obj._params[parts[-1]] = '/'.join(parts)
   return top
