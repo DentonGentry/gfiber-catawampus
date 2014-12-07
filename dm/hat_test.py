@@ -67,11 +67,13 @@ class HatTests(unittest.TestCase):
     self.assertTrue('hat=1\n' in lines)
 
     hat_handler.Insert = True
+    hat_handler.MinChannelDwellTimeSecs = 30
     self.loop.RunOnce()
     lines = open(hat.SYSTEMPROPS[0]).readlines()
-    self.assertEqual(len(lines), 2)
+    self.assertEqual(len(lines), 3)
     self.assertTrue('hat=1\n' in lines)
     self.assertTrue('hat_insertion=1\n' in lines)
+    self.assertTrue('min_channel_dwell_time_secs=30\n' in lines)
 
   def testSetAll(self):
     hat_handler = hat.Hat()
@@ -83,12 +85,16 @@ class HatTests(unittest.TestCase):
     hat_handler.HTFillPercent = 90
     hat_handler.SwapoutSecs = 120
     hat_handler.GFTSPollingIntervalSecs = 1200
+    hat_handler.HatRequestMaxDelaySecs = 120
+    hat_handler.MinChannelDwellTimeSecs = 10
+    hat_handler.MinRepeatHatReportIntervalSecs = 7200
+    hat_handler.MinActiveViewingHeuristicSecs = 3600
     hat_handler.GFTSUrl = 'www.google.com'
     hat_handler.GFASUrl = 'fiber.google.com'
 
     self.loop.RunOnce()
     lines = open(hat.SYSTEMPROPS[0]).readlines()
-    self.assertEqual(len(lines), 10)
+    self.assertEqual(len(lines), 14)
     self.assertTrue('hat=1\n' in lines)
     self.assertTrue('hat_insertion=0\n' in lines)
     self.assertTrue('dvr_replacement=0\n' in lines)
@@ -97,12 +103,17 @@ class HatTests(unittest.TestCase):
     self.assertTrue('ht_fill_percent=90\n' in lines)
     self.assertTrue('hat_swapout_secs=120\n' in lines)
     self.assertTrue('gfts_polling_interval_secs=1200\n' in lines)
+    self.assertTrue('hat_request_max_delay_secs=120\n' in lines)
+    self.assertTrue('min_channel_dwell_time_secs=10\n' in lines)
+    self.assertTrue('min_repeat_hat_report_interval_secs=7200\n' in lines)
+    self.assertTrue('min_active_viewing_heuristic_secs=3600\n' in lines)
     self.assertTrue('gfas_url=fiber.google.com\n' in lines)
     self.assertTrue('gfts_url=www.google.com\n' in lines)
 
     hat_handler.HAT = False
     hat_handler.Insert = True
     hat_handler.GFTSPollingIntervalSecs = 12000
+    hat_handler.MinRepeatHatReportIntervalSecs = 600
 
     self.loop.RunOnce()
     lines = open(hat.SYSTEMPROPS[0]).readlines()
@@ -114,23 +125,12 @@ class HatTests(unittest.TestCase):
     self.assertTrue('ht_fill_percent=90\n' in lines)
     self.assertTrue('hat_swapout_secs=120\n' in lines)
     self.assertTrue('gfts_polling_interval_secs=12000\n' in lines)
+    self.assertTrue('hat_request_max_delay_secs=120\n' in lines)
+    self.assertTrue('min_channel_dwell_time_secs=10\n' in lines)
+    self.assertTrue('min_repeat_hat_report_interval_secs=600\n' in lines)
+    self.assertTrue('min_active_viewing_heuristic_secs=3600\n' in lines)
     self.assertTrue('gfas_url=fiber.google.com\n' in lines)
     self.assertTrue('gfts_url=www.google.com\n' in lines)
-
-  def testTarget(self):
-    hat_handler = hat.Hat()
-    hat.USERPROPS[0] = 'testdata/hat/userprops_true'
-
-    self.assertEqual(hat_handler.Target, True)
-
-    hat.USERPROPS[0] = 'testdata/hat/userprops_false'
-    self.assertEqual(hat_handler.Target, False)
-
-    hat.USERPROPS[0] = '/blabla/nonexistant'
-    self.assertEqual(hat_handler.Target, None)
-
-    hat.USERPROPS[0] = 'testdata/hat/userprops_bad'
-    self.assertEqual(hat_handler.Target, None)
 
   def testContracts(self):
     hat_handler = hat.Hat()

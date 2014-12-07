@@ -31,25 +31,7 @@ BASE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
 CATABASE = BASE.Device.X_CATAWAMPUS_ORG
 
 SYSTEMPROPS = ['/rw/sagesrv/sagesrv.properties']
-USERPROPS = ['/rw/sagesrv/sagesrv_user.properties']
 CONTRACTS = ['/var/media/ads/contracts/ad_contracts.csv']
-
-
-class TargetAttr(tr.cwmptypes.Attr):
-  """An attribute that has the string representation of targeting.
-
-  You can set it to the strings 'targeting=1' or 'targeting=0'.
-  """
-
-  def validate(self, obj, value):
-    if value is None:
-      return value
-    s = str(value).lower()
-    if s == 'targeting=0':
-      return False
-    if s == 'targeting=1':
-      return True
-    return None
 
 
 class Hat(CATABASE.HAT):
@@ -64,12 +46,14 @@ class Hat(CATABASE.HAT):
   GFTSPollingIntervalSecs = tr.cwmptypes.TriggerUnsigned()
   CMSGCIntervalSecs = tr.cwmptypes.TriggerUnsigned()
   FreqCapSecs = tr.cwmptypes.TriggerUnsigned()
+  HatRequestMaxDelaySecs = tr.cwmptypes.TriggerUnsigned()
+  MinChannelDwellTimeSecs = tr.cwmptypes.TriggerUnsigned()
+  MinRepeatHatReportIntervalSecs = tr.cwmptypes.TriggerUnsigned()
+  MinActiveViewingHeuristicSecs = tr.cwmptypes.TriggerUnsigned()
 
   GFTSUrl = tr.cwmptypes.TriggerString()
   GFASUrl = tr.cwmptypes.TriggerString()
 
-  Target = tr.cwmptypes.ReadOnly(
-      tr.cwmptypes.FileBacked(USERPROPS, TargetAttr()))
   HATContracts = tr.cwmptypes.FileBacked(CONTRACTS, tr.cwmptypes.String())
 
   def __init__(self):
@@ -104,6 +88,14 @@ class Hat(CATABASE.HAT):
       self.printIfSetUnsigned(f, self.SwapoutSecs, 'hat_swapout_secs')
       self.printIfSetUnsigned(f, self.GFTSPollingIntervalSecs,
                               'gfts_polling_interval_secs')
+      self.printIfSetUnsigned(f, self.HatRequestMaxDelaySecs,
+                              'hat_request_max_delay_secs')
+      self.printIfSetUnsigned(f, self.MinChannelDwellTimeSecs,
+                              'min_channel_dwell_time_secs')
+      self.printIfSetUnsigned(f, self.MinRepeatHatReportIntervalSecs,
+                              'min_repeat_hat_report_interval_secs')
+      self.printIfSetUnsigned(f, self.MinActiveViewingHeuristicSecs,
+                              'min_active_viewing_heuristic_secs')
       self.printIfSetString(f, self.GFTSUrl, 'gfts_url')
       self.printIfSetString(f, self.GFASUrl, 'gfas_url')
 
