@@ -50,6 +50,9 @@ class Hat(CATABASE.HAT):
   MinChannelDwellTimeSecs = tr.cwmptypes.TriggerUnsigned()
   MinRepeatHatReportIntervalSecs = tr.cwmptypes.TriggerUnsigned()
   MinActiveViewingHeuristicSecs = tr.cwmptypes.TriggerUnsigned()
+  DiskSpaceLimitGb = tr.cwmptypes.TriggerUnsigned()
+  DiskSpaceLowWatermarkPercent = tr.cwmptypes.TriggerUnsigned()
+  DiskSpaceHighWatermarkPercent = tr.cwmptypes.TriggerUnsigned()
 
   GFTSUrl = tr.cwmptypes.TriggerString()
   GFASUrl = tr.cwmptypes.TriggerString()
@@ -96,6 +99,11 @@ class Hat(CATABASE.HAT):
                               'min_repeat_hat_report_interval_secs')
       self.printIfSetUnsigned(f, self.MinActiveViewingHeuristicSecs,
                               'min_active_viewing_heuristic_secs')
+      self.printIfSetUnsigned(f, self.DiskSpaceLimitGb, 'disk_space_limit_gb')
+      self.printIfSetUnsigned(f, self.DiskSpaceLowWatermarkPercent,
+                              'disk_space_low_watermark_percent')
+      self.printIfSetUnsigned(f, self.DiskSpaceHighWatermarkPercent,
+                              'disk_space_high_watermark_percent')
       self.printIfSetString(f, self.GFTSUrl, 'gfts_url')
       self.printIfSetString(f, self.GFASUrl, 'gfas_url')
 
