@@ -1,0 +1,17 @@
+{
+  "MocaVersion": "1.0",
+  "FwVersion": "10.3.3",
+  "MocaNetworkVersion": 16,
+  "NodeId": 0,
+  "NcNodeId": 0,
+  "BackupNcNodeId": 2,
+  "LinkUptime": 1587,
+  "FcEnabled": 0,
+  "PreferredNc": 1,
+  "Cof": 575,
+  "Lof": 575,
+  "Qam256": 0,
+  "PrivacyEn": 1,
+  "PacketAggregation": 7,
+  "dummy": 0
+}
