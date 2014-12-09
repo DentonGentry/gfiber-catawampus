@@ -568,7 +568,7 @@ class Device(BASE181.Device):
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
     led = dm.device_info.LedStatusReadFromFile('LED', LEDSTATUS)
     self.DeviceInfo.AddLedStatus(led)
-    self.DHCPv4 = dm.dnsmasq.DHCPv4()
+    self.DHCPv4 = dm.dnsmasq.DHCPv4(dmroot=dmroot)
     self.DNS = dm.dns.DNS()
     self.Ethernet = Ethernet()
     self.IP = IP()

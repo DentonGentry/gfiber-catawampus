@@ -24,11 +24,13 @@ import os.path
 import shutil
 import tempfile
 import google3
-from tr.wvtest import unittest
+import dnsmasq
+import management_server
+import tr.cpe_management_server
 import tr.handle
 import tr.mainloop
 import tr.session
-import dnsmasq
+from tr.wvtest import unittest
 
 
 class DnsmasqTest(unittest.TestCase):
@@ -45,6 +47,7 @@ class DnsmasqTest(unittest.TestCase):
     self.old_DNSMASQLEASES = dnsmasq.DNSMASQLEASES
     dnsmasq.DNSMASQLEASES[0] = 'testdata/dnsmasq/leases'
     dnsmasq.LOGCONFIG = False
+    dnsmasq.DhcpAcsUrl[0] = ''
     self.old_RESTARTCMD = dnsmasq.RESTARTCMD
     self.restartfile = os.path.join(self.config_dir, 'restarted')
     dnsmasq.RESTARTCMD = ['testdata/dnsmasq/restart', self.restartfile]
@@ -63,10 +66,60 @@ class DnsmasqTest(unittest.TestCase):
     super(DnsmasqTest, self).tearDown()
 
   def testValidateExports(self):
-    dh4 = dnsmasq.DHCPv4()
+    dh4 = dnsmasq.DHCPv4(dmroot=None)
     tr.handle.ValidateExports(dh4)
     dh4p = dnsmasq.Dhcp4ServerPool()
     tr.handle.ValidateExports(dh4p)
+
+  def testAcsUrl(self):
+    class FakeAcsConfig(object):
+
+      def __init__(self):
+        self.url = None
+
+      def SetAcsUrl(self, value):
+        print 'SetAcsUrl(%r)' % value
+        self.url = value
+        return self.url
+
+      def GetAcsUrl(self):
+        return self.url
+
+    dmroot = tr.core.Exporter()
+    unused_dh4 = dnsmasq.DHCPv4(dmroot=dmroot)
+
+    dmroot.Device = tr.core.Exporter()
+    _mgmt = tr.cpe_management_server.CpeManagementServer(
+        acs_config=FakeAcsConfig(),
+        port=12345,
+        ping_path='http://localhost')
+    mgmt = management_server.ManagementServer181(_mgmt)
+    dmroot.Device.ManagementServer = mgmt
+
+    self.loop.RunOnce()
+    self.assertEqual(dnsmasq._ReadFileActiveLines(dnsmasq.DNSMASQCONFIG[0]),
+                     [])
+
+    mgmt.URL = 'http://localhost'
+    # no idle cycle yet, so config not rewritten
+    self.assertEqual(dnsmasq._ReadFileActiveLines(dnsmasq.DNSMASQCONFIG[0]),
+                     [])
+    self.loop.RunOnce()
+    # now it should be updated.
+    cfg = dnsmasq._ReadFileActiveLines(dnsmasq.DNSMASQCONFIG[0])
+    self.assertNotEqual(cfg, [])
+    cfg = [i for i in cfg if 'tag:cwmp' in i]
+    self.assertNotEqual(cfg, [])
+    self.assertEqual(len(cfg), 1)
+    self.assertTrue('option6:1,"http://localhost"' in cfg[0])
+
+    mgmt.URL = 'http://localh"ost\\2'
+    self.loop.RunOnce()
+    cfg = dnsmasq._ReadFileActiveLines(dnsmasq.DNSMASQCONFIG[0])
+    cfg = [i for i in cfg if 'tag:cwmp' in i]
+    self.assertNotEqual(cfg, [])
+    self.assertEqual(len(cfg), 1)
+    self.assertTrue('option6:1,"http://localhost2"' in cfg[0])
 
   def testAtomicWrite(self):
     dh4p = self.dh4p

@@ -34,6 +34,7 @@ import google3
 import tornado.ioloop
 import cwmpbool
 import cwmpdate
+import cwmptypes
 
 
 # Allow unit tests to override with a mock
@@ -187,8 +188,8 @@ class CpeManagementServer(object):
   def Username(self, value):
     self.config.Username = value
 
-  def GetURL(self):
-    """Return the ACS URL to use."""
+  def _GetURL(self):
+    """Return the ACS URL to use (internal only)."""
     if self.acs_url:
       try:
         self.ValidateAcsUrl(self.acs_url)
@@ -201,6 +202,7 @@ class CpeManagementServer(object):
     while url and max_attempts:
       try:
         self.ValidateAcsUrl(url)
+        self.MostRecentURL = url
         return url
       except ValueError as e:
         print 'Invalidating url %r (%s)' % (url, e)
@@ -214,14 +216,28 @@ class CpeManagementServer(object):
     # If we get here, there is no valid platform url.
     return None
 
+  def GetURL(self):
+    """Return the ACS URL to use."""
+    url = self._GetURL()
+    # All assignments could trigger callbacks, so don't assign unless the
+    # value has changed.
+    if url and self.MostRecentURL != url:
+      self.MostRecentURL = url
+    return url
+
   def SetURL(self, value):
     self.ValidateAcsUrl(value)
     if self.acs_url:
       self.acs_url = value
     else:
       self._acs_config.SetAcsUrl(value)
+    self.MostRecentURL = value
 
   URL = property(GetURL, SetURL, None, 'tr-98/181 ManagementServer.URL')
+
+  # This is mainly to allow other code to register callbacks.
+  # TODO(apenwarr): convert URL to use tr.cwmptypes someday.
+  MostRecentURL = cwmptypes.String()
 
   def _isIp6Address(self, ip):
     # pylint:disable=bare-except

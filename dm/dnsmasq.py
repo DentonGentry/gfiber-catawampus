@@ -38,14 +38,14 @@ import string
 import subprocess
 import traceback
 
+import dhcp
 import tr.core
+import tr.cwmptypes
 import tr.helpers
 import tr.mainloop
 import tr.session
 import tr.tr181_v2_6
-import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
-import dhcp
 
 CATA181DEV = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
 DHCP4SERVER = CATA181DEV.Device.DHCPv4.Server
@@ -71,7 +71,12 @@ DhcpServers = set()
 DhcpPoolTags = set()
 
 
-def _ReadFileActiveLines(filename):
+# The URL of the ACS in use, which we'll export to our DHCP clients
+# if nonempty.  (A one-element list, for ease of reassignment.)
+DhcpAcsUrl = ['']
+
+
+def _ActiveLines(lines):
   """Return all non-commented lines.
 
   For example:
@@ -82,21 +87,27 @@ def _ReadFileActiveLines(filename):
     ['This would be dnsmasq configuration']
 
   Args:
-    filename: the file to read in.
+    lines: the array of lines, as read from open().readlines().
   Returns:
     A list of active lines from filename.
   """
+  activelines = []
+  for line in lines:
+    if not line.strip():
+      continue
+    if not line.startswith('#'):
+      activelines.append(line)
+  return activelines
+
+
+def _ReadFileActiveLines(filename):
+  """Return all _ActiveLines from the given filename."""
   try:
-    activelines = []
-    with open(filename) as f:
-      for line in f:
-        if not line:
-          continue
-        if not line.startswith('#'):
-          activelines.append(line)
-    return activelines
+    f = open(filename)
   except IOError:
     return []
+  else:
+    return _ActiveLines(f)
 
 
 def _LogConfig(prefix, lines):
@@ -104,6 +115,7 @@ def _LogConfig(prefix, lines):
   if not LOGCONFIG:
     return
   for line in lines:
+    if line.endswith('\n'): line = line[:-1]
     print 'dnsmasq.conf %s: %s' % (prefix, line)
 
 
@@ -118,34 +130,65 @@ def UpdateDnsmasqConfig():
   servers = sorted(pools, key=lambda server: server.Order)
 
   lines = []
+
+  # Include the value of the ACS server URL if possible.
+  if DhcpAcsUrl and DhcpAcsUrl[0]:
+    url = DhcpAcsUrl[0].replace('"', '').replace('\\', '')
+    lines.extend([
+        '# Set flag cwmp, when vendor-class contains dslform.org\n',
+        'dhcp-vendorclass=set:cwmp,enterprise:3561,dslforum.org\n',
+        '# Sends option 1 with option space cwmp if the flag cwmp is set\n',
+        'dhcp-option=tag:cwmp,vi-encap:3561,option6:1,"%s"\n' % url,
+        '\n',
+    ])
+
   for server in servers:
     lines.extend(server.DnsmasqConfig())
 
   oldfilelines = _ReadFileActiveLines(DNSMASQCONFIG[0])
-  if lines == oldfilelines:
-    print 'dnsmasq config has not changed, not updating.\n'
+  if _ActiveLines(lines) == oldfilelines:
+    print 'dnsmasq config has not changed, not updating.'
     return
 
   _LogConfig('new', lines)
   try:
     with tr.helpers.AtomicFile(DNSMASQCONFIG[0]) as f:
-      f.write('# saved by catawampus %s\n' % str(datetime.datetime.utcnow()))
+      f.write('# saved by catawampus %s\n\n' % datetime.datetime.utcnow())
       for line in lines:
         f.write(line)
     subprocess.check_call(RESTARTCMD, close_fds=True)
   except (IOError, OSError, subprocess.CalledProcessError):
-    print 'Unable to restart dnsmasq\n'
+    print 'Unable to restart dnsmasq'
     traceback.print_exc()
 
 
 class DHCPv4(CATA181DEV.Device.DHCPv4):
+  """tr-181 Device.DHCPv4."""
   ClientNumberOfEntries = tr.cwmptypes.NumberOf('ClientList')
 
-  def __init__(self):
+  def __init__(self, dmroot):
     super(DHCPv4, self).__init__()
+    self.dmroot = dmroot
     self.Server = Dhcp4Server()
     self.ClientList = {}
     self.Unexport(objects=['Relay'])
+    if self.dmroot:
+      self._SetupUrlChanged()
+
+  @tr.mainloop.WaitUntilIdle
+  def _SetupUrlChanged(self):
+    """We delay this setup so that Device.ManagementServer is populated."""
+    tms = type(self.dmroot.Device.ManagementServer)
+    if hasattr(tms, 'URL'):
+      tms.URL.callbacklist.append(self._UrlChanged)
+    else:
+      print 'warning: dnsmasq: ManagementServer is missing URL element.'
+
+  def _UrlChanged(self, unused_obj):
+    url = self.dmroot.Device.ManagementServer.URL
+    print 'dnsmasq: ACS URL changed to %r' % url
+    DhcpAcsUrl[0] = url
+    UpdateDnsmasqConfig()
 
 
 class Dhcp4Server(DHCP4SERVER):

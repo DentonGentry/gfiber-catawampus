@@ -22,6 +22,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
 import dm_root
+import tr.cwmptypes
 import tr.tr098_v1_4
 import tr.tr181_v2_2
 from tr.wvtest import unittest
@@ -40,6 +41,7 @@ class MockTr98(BASE98):
 
 
 class MockManagement(object):
+  MostRecentURL = tr.cwmptypes.String()
 
   def __init__(self):
     self.EnableCWMP = False

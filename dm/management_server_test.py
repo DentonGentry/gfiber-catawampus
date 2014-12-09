@@ -20,20 +20,14 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import copy
 import google3
 from tr.wvtest import unittest
+import tr.cpe_management_server
 import tr.handle
 import management_server
 
 
-class MockConfig(object):
-
-  def __init__(self):
-    pass
-
-
-class MockCpeManagementServer(object):
+class AcsConfig(object):
 
   def __init__(self):
     self.CWMPRetryIntervalMultiplier = 1
@@ -51,23 +45,36 @@ class MockCpeManagementServer(object):
     self.URL = 'http://example.com/'
     self.Username = 'Username'
 
-  def StartTransaction(self):
-    self.copy = copy.copy(self)
+  def GetAcsUrl(self):
+    return self.URL
 
-  def CommitTransaction(self):
-    del self.copy
+  def SetAcsUrl(self, value):
+    self.URL = value
+    return value
 
-  def AbandonTransaction(self):
-    for k, v in self.copy.__dict__.iteritems():
-      self.__dict__[k] = v
-    del self.copy
+
+def MakeCpeManagementServer():
+  mgmt = tr.cpe_management_server.CpeManagementServer(
+      acs_config=AcsConfig(), port=12345, ping_path='')
+  mgmt.CWMPRetryIntervalMultiplier = 1
+  mgmt.CWMPRetryMinimumWaitInterval = 2
+  mgmt.ConnectionRequestPassword = 'ConnectPassword'
+  mgmt.ConnectionRequestUsername = 'ConnectUsername'
+  mgmt.DefaultActiveNotificationThrottle = 3
+  mgmt.Password = 'Password'
+  mgmt.PeriodicInformEnable = False
+  mgmt.PeriodicInformInterval = 4
+  mgmt.PeriodicInformTime = 5
+  mgmt.URL = 'http://example.com/'
+  mgmt.Username = 'Username'
+  return mgmt
 
 
 class ManagementServerTest(unittest.TestCase):
   """Tests for management_server.py."""
 
   def testGetMgmt181(self):
-    mgmt = MockCpeManagementServer()
+    mgmt = MakeCpeManagementServer()
     mgmt181 = management_server.ManagementServer181(mgmt)
     self.assertEqual(mgmt181.ParameterKey, mgmt.ParameterKey)
     self.assertEqual(mgmt181.EnableCWMP, mgmt.EnableCWMP)
@@ -77,7 +84,7 @@ class ManagementServerTest(unittest.TestCase):
     tr.handle.ValidateExports(mgmt181)
 
   def testGetMgmt98(self):
-    mgmt = MockCpeManagementServer()
+    mgmt = MakeCpeManagementServer()
     mgmt98 = management_server.ManagementServer98(mgmt)
     self.assertEqual(mgmt98.ParameterKey, mgmt.ParameterKey)
     self.assertEqual(mgmt98.EnableCWMP, mgmt.EnableCWMP)
@@ -86,7 +93,7 @@ class ManagementServerTest(unittest.TestCase):
     tr.handle.ValidateExports(mgmt98)
 
   def testSetMgmt181(self):
-    mgmt = MockCpeManagementServer()
+    mgmt = MakeCpeManagementServer()
     mgmt181 = management_server.ManagementServer181(mgmt)
     self.assertEqual(mgmt.CWMPRetryIntervalMultiplier, 1)
     self.assertEqual(mgmt181.CWMPRetryIntervalMultiplier, 1)
@@ -97,25 +104,13 @@ class ManagementServerTest(unittest.TestCase):
                       'ManageableDeviceNumberOfEntries', 1)
 
   def testSetMgmt98(self):
-    mgmt = MockCpeManagementServer()
+    mgmt = MakeCpeManagementServer()
     mgmt98 = management_server.ManagementServer98(mgmt)
     self.assertEqual(mgmt.CWMPRetryIntervalMultiplier, 1)
     self.assertEqual(mgmt98.CWMPRetryIntervalMultiplier, 1)
     mgmt98.CWMPRetryIntervalMultiplier = 2
     self.assertEqual(mgmt.CWMPRetryIntervalMultiplier, 2)
     self.assertEqual(mgmt98.CWMPRetryIntervalMultiplier, 2)
-
-  def testDelMgmt181(self):
-    mgmt = MockCpeManagementServer()
-    mgmt181 = management_server.ManagementServer181(mgmt)
-    delattr(mgmt181, 'CWMPRetryIntervalMultiplier')
-    self.assertFalse(hasattr(mgmt, 'CWMPRetryIntervalMultiplier'))
-
-  def testDelMgmt98(self):
-    mgmt = MockCpeManagementServer()
-    mgmt98 = management_server.ManagementServer98(mgmt)
-    delattr(mgmt98, 'CWMPRetryIntervalMultiplier')
-    self.assertFalse(hasattr(mgmt, 'CWMPRetryIntervalMultiplier'))
 
   def TransactionTester(self, mgmt_server):
     mgmt_server.StartTransaction()
@@ -141,12 +136,12 @@ class ManagementServerTest(unittest.TestCase):
     self.assertEqual('newname', mgmt_server.ConnectionRequestUsername)
 
   def testTransactions181(self):
-    mgmt = MockCpeManagementServer()
+    mgmt = MakeCpeManagementServer()
     mgmt181 = management_server.ManagementServer181(mgmt)
     self.TransactionTester(mgmt181)
 
   def testTransactions98(self):
-    mgmt = MockCpeManagementServer()
+    mgmt = MakeCpeManagementServer()
     mgmt98 = management_server.ManagementServer98(mgmt)
     self.TransactionTester(mgmt98)
 

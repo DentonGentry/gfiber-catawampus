@@ -56,6 +56,10 @@ class ManagementServer181(BASEMGMT181):
     super(ManagementServer181, self).__init__()
     self.mgmt = mgmt
 
+    # Update URL (including calling callbacks) whenever mgmt.MostRecentURL
+    # changes.
+    type(self.mgmt).MostRecentURL.callbacklist.append(self._URLChanged)
+
     self.Unexport(['DownloadProgressURL', 'KickURL', 'NATDetected',
                    'STUNMaximumKeepAlivePeriod', 'STUNMinimumKeepAlivePeriod',
                    'STUNPassword', 'STUNServerAddress', 'STUNServerPort',
@@ -87,11 +91,18 @@ class ManagementServer181(BASEMGMT181):
   def UpgradesManaged(self):
     return True
 
+  URL = tr.cwmptypes.String()
+
+  def _URLChanged(self, unused_obj):
+    # This weird syntax is needed in order to bypass the self.__setattr__
+    # logic.
+    type(self).URL.__set__(self, self.mgmt.MostRecentURL)
+
   def __getattr__(self, name):
     if name in self.MGMTATTRS:
       return getattr(self.mgmt, name)
     else:
-      raise KeyError('No such attribute %s' % name)
+      raise AttributeError('No such attribute %s' % name)
 
   def __setattr__(self, name, value):
     if name in self.MGMTATTRS:

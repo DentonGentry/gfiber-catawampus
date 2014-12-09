@@ -73,7 +73,7 @@ class Device(tr.core.Exporter):
 
   def __init__(self, dmroot):
     super(Device, self).__init__()
-    self.DHCPv4 = dnsmasq.DHCPv4()
+    self.DHCPv4 = dnsmasq.DHCPv4(dmroot=dmroot)
     self.Ethernet = Ethernet()
     self.Hosts = host.Hosts(dmroot=dmroot, bridgename='br0')
     self.MoCA = MoCA()
