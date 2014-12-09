@@ -37,29 +37,34 @@ import tr.mainloop
 from tr.wvtest import unittest
 
 
-TvProperties = {}
-
-
 class TvPropertyRpcs(object):
 
   def __init__(self):
     self.running = True
+    self.newprops = []
 
   def Quit(self):
     self.running = False
     return True
 
+  # pylint:disable=unused-argument
   def GetProperty(self, name, node):
-    sys.stderr.write('GetProperty(%r) %r\n' % (name, TvProperties))
-    return TvProperties[node][name]
+    sys.stderr.write('GetProperty(%r) %r\n' % name)
+    raise NotImplementedError()
 
   def SetProperty(self, name, value, node):
     sys.stderr.write('SetProperty(%r)=%r\n' % (name, value))
-    TvProperties[node][name] = value
+    self.newprops.append((name, value))
+    return ''
+
+  def SaveProperties(self):
+    f = open(gfibertv.SAGEFILES[-1], 'a')
+    for name, value in self.newprops:
+      f.write('%s=%s\n' % (name, value))
     return ''
 
   def ListNodes(self):
-    return TvProperties.keys()
+    raise NotImplementedError()
 
   def Ping(self):
     return ''
@@ -95,9 +100,6 @@ class GfiberTvTests(unittest.TestCase):
   """Tests for gfibertv.py."""
 
   def setUp(self):
-    TvProperties.clear()
-    TvProperties['Node1'] = {'Prop1': 'Prop1Value', 'Prop2': 'Prop2Value'}
-    TvProperties['Node2'] = {'Prop3': 'Prop3Value'}
     srv_cv.acquire()
     self.server_thread = XmlRpcThread()
     self.server_thread.start()
@@ -109,7 +111,10 @@ class GfiberTvTests(unittest.TestCase):
     gfibertv.DISK_SPACE_FILE = ['testdata/gfibertv/dvr_space']
     self.old_HNVRAM = gfibertv.HNVRAM
     self.old_SAGEFILES = gfibertv.SAGEFILES
-    gfibertv.SAGEFILES = ['testdata/gfibertv/Sage.properties']
+    sagein = 'testdata/gfibertv/Sage.properties'
+    sageout = sagein + '.tmp'
+    shutil.copy(sagein, sageout)
+    gfibertv.SAGEFILES = [sagein, sageout]
 
     self.tmpdir = tempfile.mkdtemp()
     self.nick_file_name = os.path.join(self.tmpdir, 'NICKFILE')
@@ -151,22 +156,23 @@ class GfiberTvTests(unittest.TestCase):
 
   def testValidate(self):
     tv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
+    # pylint:disable=pointless-statement
+    tv.Config
+    tv.Config.export_params
+    tv.Config.export_objects
     tr.handle.ValidateExports(tv)
 
   def testConfigGetProperties(self):
-    # these values are deliberately different than testdata/gfibertv/Sage.*
-    TvProperties[''] = {'foo': 'rab', 'baz': 2, 'woowoo': True}
     gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
-    self.assertEqual(gftv.Config.foo, 'rab')
-    self.assertEqual(gftv.Config.baz, '2')
-    self.assertEqual(gftv.Config.woowoo, 'True')
+    self.assertEqual(gftv.Config.foo, 'bar')
+    self.assertEqual(gftv.Config.baz, '1')
+    self.assertEqual(gftv.Config.woowoo, 'false')
     # by request from ACS team, nonexistent params return empty not fault
     self.assertEqual(gftv.Config.nonexistent, '')
 
   def testConfigListProperties(self):
     """Verify that keys in Sage.properties are pre-populated in object."""
     gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
-    TvProperties[''] = {}
     h = tr.handle.Handle(gftv)
     self.assertTrue(h.IsValidExport(gftv.Config, 'foo'))
     self.assertTrue(h.IsValidExport(gftv.Config, 'baz'))
@@ -179,11 +185,14 @@ class GfiberTvTests(unittest.TestCase):
                       'sub.',
                       'sub.a',
                       'sub.b.',
-                      'sub.b.c',
+                      'sub.b.c_d',
+                      'sub.x_y.',
+                      'sub.x_y.z_z',
                       'woowoo'])
     gftv.Config.sub.does_not_exist_yet = 'now_it_does'
     gftv.Config.whatever = 'something'
     self.assertEqual(gftv.Config.does_not_exist_yet, '')
+    self.assertEqual(gftv.Config.whatever, 'something')
     self.assertEqual(gftv.Config.sub.whatever, '')
     self.assertEqual(sorted(h.ListExports('Config', recursive=False)),
                      ['baz', 'foo', 'sub.', 'whatever', 'woowoo'])
@@ -193,14 +202,23 @@ class GfiberTvTests(unittest.TestCase):
                       'sub.',
                       'sub.a',
                       'sub.b.',
-                      'sub.b.c',
+                      'sub.b.c_d',
                       'sub.does_not_exist_yet',
+                      'sub.x_y.',
+                      'sub.x_y.z_z',
                       'whatever',
                       'woowoo'])
 
+  def _CheckPropsInclude(self, want):
+    want += '\n'
+    for line in open(gfibertv.SAGEFILES[-1]):
+      if line == want:
+        self.assertEquals(line, want)
+        return True
+    print open(gfibertv.SAGEFILES[-1]).read()
+    self.assertEquals(want, '')
+
   def testConfigSetProperties(self):
-    # these values are deliberately different than testdata/gfibertv/Sage.*
-    TvProperties[''] = {'foo': 'rab', 'baz': 2, 'woowoo': True}
     gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
     gftv.Config.foo = 'updated1'
     self.assertEqual(gftv.Config.foo, 'updated1')
@@ -208,11 +226,23 @@ class GfiberTvTests(unittest.TestCase):
     self.assertEqual(gftv.Config.baz, '3')
     gftv.Config.does_not_exist_yet = 'now_it_does'
     self.assertEqual(gftv.Config.does_not_exist_yet, 'now_it_does')
-    self.assertEqual(TvProperties['']['does_not_exist_yet'], 'now_it_does')
+    gftv.Config.sub.x_y.z = 'test'
+    gftv.Config.sub.x_y.a = 'test2'
+    gftv.Config.sub.b.c_d = 'hello'
+    gftv.Config.sub.x_y.z_z = 'world'
+    gftv._rpcclient.SaveProperties()
+    self._CheckPropsInclude('does_not_exist_yet=now_it_does')
+    self._CheckPropsInclude('sub/x:y/z=test')
+    self._CheckPropsInclude('sub/x:y/a=test2')
+    self._CheckPropsInclude('sub/b/c.d=hello')
+    self._CheckPropsInclude('sub/x:y/z.z=world')
 
   def testConfigProtocolError(self):
     gftv = gfibertv.GFiberTv('http://localhost:2')
-    self.assertRaises(AttributeError, lambda: gftv.Config.foo)
+    # Can't connect to server, so gets succeed, but sets fail
+    self.assertEqual(gftv.Config.foo, 'bar')
+    with self.assertRaises(ValueError):
+      gftv.Config.foo = 'anything'
 
   def testListManipulation(self):
     gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)

@@ -21,6 +21,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import bisect
 import errno
 import glob
 import json
@@ -168,9 +169,7 @@ class GFiberTv(CATABASE.GFiberTV):
 
   @tr.session.cache
   def _GetTreeTop(self):
-    top = _PopulateTree(self._rpcclient, '')
-    _ExportTree(top)
-    return top
+    return _SageTvTree(self._rpcclient)
 
   class _DeviceProperties(CATABASE.GFiberTV.DeviceProperties):
     """Implementation of gfibertv.DeviceProperties."""
@@ -255,8 +254,139 @@ class DvrSpace(CATABASE.GFiberTV.DvrSpace):
             'error = {1}'.format(filename, e))
 
 
+class _SageProps(object):
+  """A sorted list of (key, value) pairs straight out of Sage.properties.
+
+  This is the base data structure that we read from the Sage.properties file.
+  Everything else is just a view onto it.  We keep it sorted so that we can
+  use binary searches to find items, insert items, and iterate over items
+  that match a given prefix.
+  """
+
+  def __init__(self, data):
+    self.data = data
+    self.data.sort()
+    self.cached_lists = {}
+    self.cleaned = {}
+
+    # Reverse lookup table for TR-069-compatible names back to SageTV names
+    for key, unused_value in data:
+      parts = key.split('/')
+      clean_parts = [_Clean(p) for p in parts]
+      p = ''
+      for i in range(0, len(parts)):
+        c = p + clean_parts[i] + '/'
+        p += parts[i] + '/'
+        if p != c:
+          self.cleaned[c] = p
+
+  def _Iter(self, prefix):
+    assert prefix.endswith('/')
+    i = bisect.bisect_left(self.data, (prefix,))
+    end = bisect.bisect_left(self.data, (prefix[:-1]+chr(ord('/')+1),), i)
+    for i in xrange(i, end):
+      yield self.data[i]
+
+  def Iter(self, prefix):
+    if not prefix:
+      return iter(self.data)
+    else:
+      return self._Iter(prefix)
+
+  def __iter__(self):
+    return iter(self.data)
+
+  def __len__(self):
+    return len(self.data)
+
+  def get(self, key, defval):
+    try:
+      return self[key]
+    except KeyError:
+      return defval
+
+  def __getitem__(self, key):
+    start = bisect.bisect_left(self.data, (key,))
+    if start < len(self.data) and self.data[start][0] == key:
+      return self.data[start][1]
+    else:
+      raise KeyError(key)
+
+  def __setitem__(self, key, value):
+    value = str(value)  # the SageTV file only knows about strings
+    start = bisect.bisect_left(self.data, (key,))
+    if start < len(self.data) and self.data[start][0] == key:
+      self.data[start] = (key, value)
+    else:
+      self.cached_lists.clear()
+      self.data.insert(start, (key, value))
+
+  def DeClean(self, clean_key):
+    return self.cleaned.get(clean_key, clean_key)
+
+  def GenCache(self, prefix):
+    try:
+      return self.cached_lists[prefix]
+    except KeyError:
+      prelen = len(prefix)
+      out1 = set()
+      out2 = set()
+      for k, unused_v in self.Iter(prefix):
+        sub_k = k[prelen:]
+        if '/' in sub_k:
+          # it has sub-items, so it must be an object, not a param
+          out2.add(_Clean(sub_k.split('/', 1)[0]))
+        else:
+          out1.add(_Clean(sub_k))
+      out = (out1, out2)
+      self.cached_lists[prefix] = out
+      return out
+
+
+def _Clean(sagekey):
+  return re.sub(r'[^\w/]', '_', sagekey)
+
+
+def _ParseProps(lines):
+  for line in lines:
+    line = line.split('#', 1)[0]  # remove comments
+    keyval = line.split('=', 1)
+    if len(keyval) < 2: continue
+    key, val = keyval
+    key = re.sub(r'\\(.)', r'\1', key).strip()
+    val = re.sub(r'\\(.)', r'\1', val).strip()
+    yield key, val
+
+
+def _SageTvTree(rpcclient):
+  """Generates a toplevel _SageTvExporter."""
+
+  print 'xmlrpc SaveProperties()'
+  try:
+    rpcclient.SaveProperties()
+  except (xmlrpclib.expat.ExpatError,
+          xmlrpclib.ProtocolError,
+          xmlrpclib.Fault,
+          IOError) as e:
+    print 'xmlrpc: SaveProperties: %r' % e
+    # not fatal, so continue anyway
+
+  d = {}
+  for g in SAGEFILES:
+    for filename in glob.glob(g):
+      try:
+        lines = open(filename).readlines()
+      except IOError as e:
+        print e  # non-fatal, but interesting
+        continue
+      d.update(_ParseProps(lines))
+  props = _SageProps(d.items())
+  x = _SageTvExporter(rpcclient, props, '')
+  return x
+
+
 class _LyingSet(set):
-  """A set object that always lies and says it contains the given key."""
+  """A set object that lies about whether it contains the given key."""
 
   def __init__(self, contents, contains_func):
     set.__init__(self, contents)
@@ -266,132 +396,90 @@ class _LyingSet(set):
     return self.contains_func(key)
 
 
-class PropList(tr.core.AbstractExporter):
-  """An auto-generated list of properties in the SageTV database."""
+class _SageTvExporter(tr.core.AbstractExporter):
+  """An auto-generated hierarchical view of the SageTV properties files.
 
-  def __init__(self, rpcclient, realname):
+  Querying SageTV itself is slow, so we do that only to flush the config file
+  initially, and to actually change values.  For reading values, we just use
+  the file contents, which are stored in the _SageTvProps object.
+
+  The _SageTvExporter is a tr.core.AbstractExporter that is a thin wrapper
+  on top of (some subsection of) the props.  The idea is the _SageTvExports
+  objects can come and go without any significant re-parsing cost.
+
+  Note: there are actually three levels SageTV looks at for its properties:
+    0) Every get() call inside SageTV provides a default value.
+    1) There's a read-only Sage.properties.default file with defaults.
+    2) There's an read-write, initially empty, Sage.properties file with the
+       values that differ from defaults.
+
+  This implementation reads from #1 and #2.  There is no way to get the
+  values from #0 as they exist at every call site inside SageTV (and the
+  defaults might vary from one call site to another).  That restriction
+  exists even if we use SageTV's GetProperty() RPC.
+  """
+
+  def __init__(self, rpcclient, props, realname):
     self._initialized = False
     self._rpcclient = rpcclient
+    self._props = props
     self._realname = realname
-    self._params = {}
-    self._subs = {}
-    self._GetExport = True
-    super(PropList, self).__init__()
-    self._initialized = True
+    self._params = None
+    self._subs = None
+    super(_SageTvExporter, self).__init__()
 
   # This is used to convince tr.Handle that the requested parameter exists,
   # for all safe parameters.
   @property
   def export_params(self):
-    return _LyingSet(self._params.keys(), self._IsSafeName)
+    return _LyingSet(self._props.GenCache(self._realname)[0],
+                     self._IsSafeName)
 
   @property
   def export_objects(self):
-    return self._subs.keys()
+    return self._props.GenCache(self._realname)[1]
 
   @property
   def export_object_lists(self):
     return set()
 
+  def _FullName(self, name):
+    return self._realname + name
+
+  def _IsObject(self, name):
+    return name in self.export_objects
+
   def _IsSafeName(self, key):
     return (not key.startswith('_') and
             key not in self.__dict__ and
-            not hasattr(tr.core.Exporter, key))
-
-  def _Get(self, realname):
-    # TODO(apenwarr): use a single API call to get all the names and values,
-    #  then just cache them.  Retrieving them one at a time from SageTV
-    #  is very slow.
-    print 'xmlrpc getting %r' % realname
-    try:
-      return str(self._rpcclient.GetProperty(realname, ''))
-    except xmlrpclib.expat.ExpatError as e:
-      # TODO(apenwarr): SageTV produces invalid XML.
-      # ...if the value contains <> characters, for example.
-      print 'Expat decode error: %s' % e
-      return None
-    except xmlrpclib.Fault as e:
-      # by request from ACS team, nonexistent params return empty not fault
-      param = '/%s' % realname
-      print 'xmlrpc: no such parameter %r: returning empty string' % param
-      return ''
-    except (xmlrpclib.ProtocolError, IOError) as e:
-      print 'xmlrpc: /%s: %r' % (realname, e)
-      raise AttributeError('unable to get value %r' % realname)
+            not hasattr(tr.core.Exporter, key) and
+            key == _Clean(key))
 
   def _Set(self, realname, value):
     try:
-      return str(self._rpcclient.SetProperty(realname, str(value), ''))
+      self._rpcclient.SetProperty(realname, str(value), '')
     except (xmlrpclib.Fault, xmlrpclib.ProtocolError, IOError), e:
-      print 'xmlrpc: /%s: %s' % (realname, e)
+      print 'xmlrpc: %s: %s' % (realname, e)
       raise ValueError('unable to set value: %s' % (e,))
 
   def __getattr__(self, name):
     if name.startswith('_') or not self._IsSafeName(name):
       raise AttributeError(name)
-    elif name in self._subs:
-      return self._subs[name]
-    elif name in self._params:
-      return self._Get(self._params[name])
+    fullname = self._FullName(name)
+    if self._IsObject(name):
+      return _SageTvExporter(self._rpcclient, self._props,
+                             self._props.DeClean(fullname + '/'))
     else:
-      fullname = name
-      if self._realname: fullname = self._realname + '/' + name
-      return self._Get(fullname)
+      # by request from ACS team, nonexistent params return empty not fault
+      return self._props.get(fullname, '')
 
   def __setattr__(self, name, value):
     if name.startswith('_') or not self._IsSafeName(name):
-      return super(PropList, self).__setattr__(name, value)
-    elif name in self._params:
-      return self._Set(self._params[name], value)
-    elif self._initialized:
-      # once object is initialized, unknown parameters go to XML-RPC not local
-      fullname = str(name)
-      if self._realname: fullname = self._realname + '/' + name
-      self._params[name] = fullname
-      return self._Set(fullname, value)
-    else:
-      return super(PropList, self).__setattr__(name, value)
-
-
-def _PopulateTree(rpcclient, topname):
-  """Populate the list of available objects using the config file contents."""
-  # TODO(apenwarr): add a server API to get the actual property list.
-  #  Then use it here. Reading it from the file is kind of cheating.
-  top = PropList(rpcclient, topname)
-  for g in SAGEFILES:
-    for filename in glob.glob(g):
-      try:
-        lines = open(filename).readlines()
-      except IOError as e:
-        print e  # non-fatal, but interesting
-        continue
-      for line in lines:
-        line = line.split('#', 1)[0]  # remove comments
-        line = line.split('=', 1)[0]  # remove =value from key=value
-        line = line.strip()
-        realname = line.strip()
-        if topname: realname = topname + '/' + realname
-        # Find or create the intermediate PropLists leading up to this leaf
-        if realname:
-          clean = re.sub(r'[^\w/]', '_', realname)
-          parts = clean.split('/')
-          obj = top
-          for i, part in enumerate(parts[:-1]):
-            if part not in obj._subs:
-              obj._subs[part] = PropList(rpcclient, '/'.join(parts[:i+1]))
-            obj = obj._subs[part]
-          obj._params[parts[-1]] = '/'.join(parts)
-  return top
-
-
-def _ExportTree(obj):
-  # Once the tree is populated, this function recursively registers it
-  # with tr.core.Exporter.
-  for i in obj._subs:
-    if i in obj._params:
-      del obj._params[i]
-  for i in obj._subs.values():
-    _ExportTree(i)
+      super(_SageTvExporter, self).__setattr__(name, value)
+      return
+    fullname = self._FullName(name)
+    self._Set(self._props.DeClean(fullname + '/')[:-1], value)
+    self._props[fullname] = value
 
 
 if __name__ == '__main__':
