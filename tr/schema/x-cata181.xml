@@ -769,6 +769,12 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
           <unsignedLong/>
         </syntax>
       </parameter>
+      <parameter name="HatCatalogPollingIntervalSecs" access="readWrite">
+        <description>Polling interval to check for an updated hat catalog.</description>
+        <syntax>
+          <unsignedLong/>
+        </syntax>
+      </parameter>
       <parameter name="GFTSUrl" access="readWrite">
         <description>URL of the GFTS server.</description>
         <syntax>

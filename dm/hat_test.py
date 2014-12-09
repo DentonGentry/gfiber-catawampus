@@ -94,12 +94,13 @@ class HatTests(unittest.TestCase):
     hat_handler.DiskSpaceLimitGb = 60
     hat_handler.DiskSpaceLowWatermarkPercent = 50
     hat_handler.DiskSpaceHighWatermarkPercent = 70
+    hat_handler.HatCatalogPollingIntervalSecs = 600
     hat_handler.GFTSUrl = 'www.google.com'
     hat_handler.GFASUrl = 'fiber.google.com'
 
     self.loop.RunOnce()
     lines = open(hat.SYSTEMPROPS[0]).readlines()
-    self.assertEqual(len(lines), 17)
+    self.assertEqual(len(lines), 18)
     self.assertTrue('hat=1\n' in lines)
     self.assertTrue('hat_insertion=0\n' in lines)
     self.assertTrue('dvr_replacement=0\n' in lines)
@@ -115,6 +116,7 @@ class HatTests(unittest.TestCase):
     self.assertTrue('disk_space_limit_gb=60\n' in lines)
     self.assertTrue('disk_space_low_watermark_percent=50\n' in lines)
     self.assertTrue('disk_space_high_watermark_percent=70\n' in lines)
+    self.assertTrue('hat_catalog_polling_interval_secs=600\n' in lines)
     self.assertTrue('gfas_url=fiber.google.com\n' in lines)
     self.assertTrue('gfts_url=www.google.com\n' in lines)
 

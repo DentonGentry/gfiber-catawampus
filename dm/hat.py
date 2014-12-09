@@ -53,6 +53,7 @@ class Hat(CATABASE.HAT):
   DiskSpaceLimitGb = tr.cwmptypes.TriggerUnsigned()
   DiskSpaceLowWatermarkPercent = tr.cwmptypes.TriggerUnsigned()
   DiskSpaceHighWatermarkPercent = tr.cwmptypes.TriggerUnsigned()
+  HatCatalogPollingIntervalSecs = tr.cwmptypes.TriggerUnsigned()
 
   GFTSUrl = tr.cwmptypes.TriggerString()
   GFASUrl = tr.cwmptypes.TriggerString()
@@ -104,6 +105,8 @@ class Hat(CATABASE.HAT):
                               'disk_space_low_watermark_percent')
       self.printIfSetUnsigned(f, self.DiskSpaceHighWatermarkPercent,
                               'disk_space_high_watermark_percent')
+      self.printIfSetUnsigned(f, self.HatCatalogPollingIntervalSecs,
+                              'hat_catalog_polling_interval_secs')
       self.printIfSetString(f, self.GFTSUrl, 'gfts_url')
       self.printIfSetString(f, self.GFASUrl, 'gfas_url')
 
