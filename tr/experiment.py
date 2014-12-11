@@ -18,10 +18,17 @@
 #
 """Support for 'experiments' which can be used for A/B testing."""
 
+import errno
+import os
+import traceback
 import google3
 import cwmptypes
 import handle
+import helpers
 import x_catawampus_tr181_2_0
+
+REGDIR = helpers.Path('/tmp/experiments')
+ACTIVEDIR = helpers.Path('/config/experiments')
 
 BASE = x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
 CATABASE = BASE.Device.X_CATAWAMPUS_ORG
@@ -29,6 +36,23 @@ CATABASE = BASE.Device.X_CATAWAMPUS_ORG
 
 # The global list of all experiments registered with @Experiment
 registered = {}
+
+
+def _ListIfExists(dirname):
+  try:
+    return os.listdir(dirname)
+  except OSError as e:
+    if e.errno == errno.ENOENT:
+      return []
+    raise
+
+
+def _GetSystemExperiments(dirname, suffix):
+  out = set()
+  for name in _ListIfExists(dirname):
+    if name.endswith(suffix):
+      out.add(name[:-len(suffix)])
+  return out
 
 
 def Experiment(fn):
@@ -61,15 +85,28 @@ class Experiments(CATABASE.Experiments):
 
   def __init__(self, roothandle):
     super(Experiments, self).__init__()
+    self.force_values = {}
+    self.saved_values = {}
     self.roothandle = roothandle
     assert hasattr(roothandle, 'inner')
     self.active = []
-    self.force_values = {}
-    self.saved_values = {}
+    # Read initial value of requested system experiments from the filesystem
+    try:
+      # This will trigger Triggered(), but can't be allowed to throw an
+      # exception at startup time, so catch it if something goes wrong.
+      req = ((_GetSystemExperiments(ACTIVEDIR, '.active') |
+              _GetSystemExperiments(ACTIVEDIR, '.requested')) -
+             _GetSystemExperiments(ACTIVEDIR, '.unrequested'))
+      self.Requested = ','.join(sorted(req))
+    except (IOError, OSError) as e:
+      traceback.print_exc()
+      print "Experiments: can't init self.Requested: %r" % e
 
   @property
   def Available(self):
-    return ','.join(sorted(registered.keys()))
+    avail = set(registered.keys())
+    sysavail = _GetSystemExperiments(REGDIR, '.available')
+    return ','.join(sorted(avail | sysavail))
 
   # TODO(apenwarr): make experiments persist across reboots.
   #  Without such a feature, we won't be able to make experiments that
@@ -78,11 +115,23 @@ class Experiments(CATABASE.Experiments):
 
   @Requested.validator
   def Requested(self, v):
+    # Note: unlike Available, order of the Requested object is significant,
+    # so we shouldn't sort it.
     return ','.join(i.strip() for i in v.split(','))
 
   @property
   def Active(self):
-    return ','.join(name for name, unused_obj in self.active)
+    # Note: unlike Available, order of the Active object is significant,
+    # so we shouldn't sort it.
+    available = self.Available
+    active = [name for name, unused_obj in self.active]
+    sysactive = set()
+    for name in _ListIfExists(ACTIVEDIR):
+      if name.endswith('.active'):
+        exp = name[:-7]
+        if exp in available:
+          sysactive.add(exp)
+    return ','.join(active + sorted(sysactive))
 
   def Triggered(self):
     """Triggered whenever Requested is changed."""
@@ -98,25 +147,46 @@ class Experiments(CATABASE.Experiments):
 
     # TODO(apenwarr): use transactions like api.SetParameterValues() does.
     print 'Experiments requested: %r' % self.Requested
-    if self.Requested:
-      for name in self.Requested.split(','):
-        expfunc = registered.get(name)
-        if not expfunc:
+    sysavail = _GetSystemExperiments(REGDIR, '.available')
+    sysactive = _GetSystemExperiments(ACTIVEDIR, '.active')
+    sysrequested = _GetSystemExperiments(ACTIVEDIR, '.requested')
+
+    reqstr = self.Requested
+    requested = reqstr.split(',') if reqstr else []
+    for name in requested:
+      if name in sysavail:
+        print 'Requesting system experiment %r' % name
+        helpers.Unlink(os.path.join(ACTIVEDIR, name + '.unrequested'))
+        if not os.path.exists(os.path.join(ACTIVEDIR, name + '.active')):
+          helpers.WriteFileAtomic(
+              os.path.join(ACTIVEDIR, name + '.requested'), '')
+      expfunc = registered.get(name)
+      if not expfunc:
+        if name not in sysavail:
           print 'no such experiment: %r' % name
-        else:
-          print 'Applying experiment %r' % name
-          forces = list(expfunc(self.roothandle))
-          self.force_values.update(forces)
-          keys = [f[0] for f in forces]
-          lookups = list(self.roothandle.inner.LookupExports(keys))
-          for (k, _), (h, param) in zip(forces, lookups):
-            if k not in self.saved_values:
-              print '  Saving pre-experiment value for %r' % k
-              self.saved_values[k] = h.GetExport(param)
-          for (k, v), (h, param) in zip(forces, lookups):
-            print '  Writing new value for %r = %r' % (k, v)
-            h.SetExportParam(param, v)
-          self.active.append((name, forces))
+      else:
+        print 'Applying experiment %r' % name
+        forces = list(expfunc(self.roothandle))
+        self.force_values.update(forces)
+        keys = [f[0] for f in forces]
+        lookups = list(self.roothandle.inner.LookupExports(keys))
+        for (k, _), (h, param) in zip(forces, lookups):
+          if k not in self.saved_values:
+            print '  Saving pre-experiment value for %r' % k
+            self.saved_values[k] = h.GetExport(param)
+        for (k, v), (h, param) in zip(forces, lookups):
+          print '  Writing new value for %r = %r' % (k, v)
+          h.SetExportParam(param, v)
+        self.active.append((name, forces))
+
+    for name in sysactive | sysrequested:
+      if name not in requested:
+        print 'Unrequesting system experiment %r' % name
+        helpers.Unlink(os.path.join(ACTIVEDIR, name + '.requested'))
+        if os.path.exists(os.path.join(ACTIVEDIR, name + '.active')):
+          helpers.WriteFileAtomic(
+              os.path.join(ACTIVEDIR, name + '.unrequested'), '')
+
     print 'Experiments now active: %r' % self.Active
 
 

@@ -19,6 +19,10 @@
 #
 """Tests for experiment.py."""
 
+import os.path
+import shutil
+import tempfile
+import google3
 import core
 import experiment
 from wvtest import unittest
@@ -59,6 +63,20 @@ class TerminalObject(core.Exporter):
 
 
 class ExperimentTest(unittest.TestCase):
+
+  def setUp(self):
+    self.tmpdir = tempfile.mkdtemp()
+    self.old_REGDIR = experiment.REGDIR
+    self.old_ACTIVEDIR = experiment.ACTIVEDIR
+    experiment.REGDIR = os.path.join(self.tmpdir, 'reg')
+    experiment.ACTIVEDIR = os.path.join(self.tmpdir, 'act')
+    os.mkdir(experiment.REGDIR)
+    os.mkdir(experiment.ACTIVEDIR)
+
+  def tearDown(self):
+    experiment.REGDIR = self.old_REGDIR
+    experiment.ACTIVEDIR = self.old_ACTIVEDIR
+    shutil.rmtree(self.tmpdir)
 
   def testExperiments(self):
     root = TestObject()
@@ -120,6 +138,72 @@ class ExperimentTest(unittest.TestCase):
     # You can apply the same experiment more than once.
     exps.Requested = 'TestExp1,TestExp2,TestExpOverlap,TestExp1'
     self.assertEqual(Vals(), (1, 1, 'Hello'))
+
+  def testSysExperiments(self):
+    root = core.Exporter()
+    eh = experiment.ExperimentHandle(root)
+    exps = experiment.Experiments(eh)
+    eh.root_experiments = exps
+
+    self.assertEqual(exps.Requested, '')
+    self.assertEqual(exps.Available, 'TestExp1,TestExp2,TestExpOverlap')
+    open(os.path.join(experiment.REGDIR, 'Foo.available'), 'w')
+    self.assertEqual(exps.Requested, '')
+    self.assertEqual(exps.Available, 'Foo,TestExp1,TestExp2,TestExpOverlap')
+    self.assertEqual(exps.Active, '')
+    open(os.path.join(experiment.ACTIVEDIR, 'Foo.requested'), 'w')
+    self.assertEqual(exps.Available, 'Foo,TestExp1,TestExp2,TestExpOverlap')
+    self.assertEqual(exps.Active, '')
+    open(os.path.join(experiment.ACTIVEDIR, 'Foo.active'), 'w')
+    self.assertEqual(exps.Available, 'Foo,TestExp1,TestExp2,TestExpOverlap')
+    self.assertEqual(exps.Active, 'Foo')
+    os.unlink(os.path.join(experiment.REGDIR, 'Foo.available'))
+    self.assertEqual(exps.Available, 'TestExp1,TestExp2,TestExpOverlap')
+    self.assertEqual(exps.Active, '')
+    os.unlink(os.path.join(experiment.ACTIVEDIR, 'Foo.requested'))
+
+    open(os.path.join(experiment.REGDIR, 'Goo.available'), 'w')
+    self.assertEqual(exps.Available, 'Goo,TestExp1,TestExp2,TestExpOverlap')
+    self.assertEqual(exps.Active, '')
+    exps.Requested = 'Foo, Goo '
+    self.assertEqual(exps.Active, '')
+    os.rename(os.path.join(experiment.ACTIVEDIR, 'Goo.requested'),
+              os.path.join(experiment.ACTIVEDIR, 'Goo.active'))
+    self.assertEqual(exps.Requested, 'Foo,Goo')
+    self.assertEqual(exps.Active, 'Goo')
+    self.assertFalse(os.path.exists(
+        os.path.join(experiment.ACTIVEDIR, 'Foo.requested')))
+
+    exps.Requested = 'Foo'
+    self.assertEqual(exps.Active, 'Goo')
+    os.unlink(os.path.join(experiment.ACTIVEDIR, 'Goo.active'))
+    self.assertEqual(exps.Requested, 'Foo')
+    self.assertEqual(exps.Active, '')
+    os.unlink(os.path.join(experiment.ACTIVEDIR, 'Goo.unrequested'))
+    self.assertEqual(exps.Requested, 'Foo')
+    self.assertEqual(exps.Active, '')
+
+  def testSysExperimentsExistAtStartup(self):
+    open(os.path.join(experiment.ACTIVEDIR, 'Foo.active'), 'w')
+    open(os.path.join(experiment.ACTIVEDIR, 'Goo.requested'), 'w')
+    open(os.path.join(experiment.ACTIVEDIR, 'Grue.active'), 'w')
+    open(os.path.join(experiment.ACTIVEDIR, 'Grue.unrequested'), 'w')
+
+    root = core.Exporter()
+    eh = experiment.ExperimentHandle(root)
+    exps = experiment.Experiments(eh)
+    eh.root_experiments = exps
+
+    self.assertEqual(exps.Requested, 'Foo,Goo')
+    self.assertEqual(exps.Available, 'TestExp1,TestExp2,TestExpOverlap')
+    self.assertEqual(exps.Active, '')
+    open(os.path.join(experiment.REGDIR, 'Foo.available'), 'w')
+    self.assertEqual(exps.Active, 'Foo')
+    open(os.path.join(experiment.REGDIR, 'Goo.available'), 'w')
+    self.assertEqual(exps.Active, 'Foo')
+    open(os.path.join(experiment.REGDIR, 'Grue.available'), 'w')
+    self.assertEqual(exps.Active, 'Foo,Grue')
+    self.assertEqual(exps.Requested, 'Foo,Goo')
 
 
 if __name__ == '__main__':
