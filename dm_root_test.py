@@ -47,23 +47,32 @@ class MockManagement(object):
     self.EnableCWMP = False
 
 
+class MockDevice(object):
+
+  def DeviceId(self):
+    class X(object):
+      SerialNumber = '1234'
+    return X()
+
+
 class DeviceModelRootTest(unittest.TestCase):
 
   def testAddManagementServer(self):
     root = dm_root.DeviceModelRoot(loop=None, platform=None,
                                    ext_dir='ext_test')
     mgmt = MockManagement()
-    root.add_cwmp_extensions()
     root.add_management_server(mgmt)  # should do nothing.
 
+    root.device = MockDevice()
     root.Device = MockTr181()
     root.InternetGatewayDevice = MockTr98()
     root.Export(objects=['Device', 'InternetGatewayDevice'])
+    root.add_cwmp_extensions()
     self.assertFalse(isinstance(root.InternetGatewayDevice.ManagementServer,
                                 BASE98.ManagementServer))
     self.assertFalse(isinstance(root.Device.ManagementServer,
                                 BASE181.ManagementServer))
-    root.add_management_server(mgmt)  # should do nothing.
+    root.add_management_server(mgmt)  # should actually work now
     print type(root.InternetGatewayDevice.ManagementServer)
     self.assertTrue(isinstance(root.InternetGatewayDevice.ManagementServer,
                                BASE98.ManagementServer))
@@ -72,6 +81,13 @@ class DeviceModelRootTest(unittest.TestCase):
                                BASE181.ManagementServer))
     self.assertEqual(root.TestBaseExt, True)
     self.assertEqual(root.TestSubExt, 97)  # auto-rounded to int
+
+    # Make sure aliasing is working as expected
+    root.X_CATAWAMPUS_ORG_CATAWAMPUS.Experiments.Requested = 'test1'
+    self.assertEqual(root.X_CATAWAMPUS_ORG_CATAWAMPUS.Experiments.Requested,
+                     'test1')
+    self.assertEqual(root.Device.X_CATAWAMPUS_ORG.Experiments.Requested,
+                     'test1')
 
 
 if __name__ == '__main__':

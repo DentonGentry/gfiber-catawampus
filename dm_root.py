@@ -85,12 +85,17 @@ class DeviceModelRoot(tr.core.Exporter):
     try:
       dev = self.Device
     except AttributeError:
+      print 'add_cwmp_extensions: no tr-181 Device model available.'
       return  # no tr-181 is available for this platform
     dev.Export(objects=['X_CATAWAMPUS-ORG'])
     cata = dev.X_CATAWAMPUS_ORG = BASE.Device.X_CATAWAMPUS_ORG()
     cata.Catawampus = dm.catawampus.CatawampusDm(self.handle)
     cata.DynamicDNS = dm.inadyn.Inadyn()
-    cata.Experiments = tr.experiment.Experiments(self.handle)
+    # TODO(apenwarr): remove deprecated Catawapus.Experiments eventually.
+    #   then we'll just have cata.Experiments and construct it here instead.
+    #   Experiments are new, but so is the Device.X_CATAWAMPUS_ORG object.
+    #   For now, we don't assume that one will be supported by ACS.
+    cata.Experiments = cata.Catawampus.Experiments
     cata.GFiberTV = dm.gfibertv.GFiberTv(
         mailbox_url='http://localhost:51834/xmlrpc',
         my_serial=self.device.DeviceId().SerialNumber)
