@@ -769,8 +769,14 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
           <unsignedLong/>
         </syntax>
       </parameter>
+      <parameter name="DiskSpaceCleanupIntervalSecs" access="readWrite">
+        <description>Interval (in secs) to cleanup disk space.</description>
+        <syntax>
+          <unsignedLong/>
+        </syntax>
+      </parameter>
       <parameter name="HatCatalogPollingIntervalSecs" access="readWrite">
-        <description>Polling interval to check for an updated hat catalog.</description>
+        <description>Polling interval (in secs) to check for an updated hat catalog.</description>
         <syntax>
           <unsignedLong/>
         </syntax>
