@@ -119,7 +119,7 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
     device.PROC_CPUINFO = 'testdata/device/proc_cpuinfo_b0'
     device.NAND_MB = 'testdata/device/nand_size_mb_rev1'
     did = device.DeviceId()
-    self.assertEqual(did.HardwareVersion, 'rev')
+    self.assertEqual(did.HardwareVersion, 'ver')
 
     device.HNVRAM = 'testdata/device/hnvramFOO_Empty'
     did = device.DeviceId()

@@ -194,17 +194,17 @@ class DeviceId(dm.device_info.DeviceIdMeta):
     return serial
 
   def _HardwareVersion(self):
-    """Return NVRAM HW_REV, inferring one if not present."""
-    hw_rev = self._GetNvramParam('HW_REV', default=None)
-    if hw_rev:
-      return hw_rev
+    """Return NVRAM HW_VER, inferring one if not present."""
+    hw_ver = self._GetNvramParam('HW_VER', default=None)
+    if hw_ver:
+      return hw_ver
 
-    # initial builds with no HW_REV; infer a rev.
-    cpu = open(PROC_CPUINFO, 'r').read()
+    # initial builds with no HW_VER; infer a version.
+    cpu = open(PROC_CPUINFO).read()
     if cpu.find('BCM7425B2') > 0:
       # B2 chip with 4 Gig MLC flash == rev1. 1 Gig SLC flash == rev2.
       try:
-        siz = int(open(NAND_MB, 'r').read())
+        siz = int(open(NAND_MB).read())
       except (OSError, IOError):
         return '?'
       if siz == 4096:

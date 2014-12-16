@@ -12,8 +12,8 @@ if [ "$1" = "-r" ] && [ "$2" = "GPN" ]; then
   echo "GPN=PartNumber"
 fi
 
-if [ "$1" = "-r" ] && [ "$2" = "HW_REV" ]; then
-  echo "HW_REV=rev"
+if [ "$1" = "-r" ] && [ "$2" = "HW_VER" ]; then
+  echo "HW_VER=ver"
 fi
 
 exit 0
