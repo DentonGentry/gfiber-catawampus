@@ -59,7 +59,9 @@ class Hat(CATABASE.HAT):
   GFTSUrl = tr.cwmptypes.TriggerString()
   GFASUrl = tr.cwmptypes.TriggerString()
 
-  HATContracts = tr.cwmptypes.FileBacked(CONTRACTS, tr.cwmptypes.String())
+  HATContracts = tr.cwmptypes.FileBacked(
+      CONTRACTS, tr.cwmptypes.String(), delete_if_empty=True,
+      file_owner='video', file_group='video')
 
   def __init__(self):
     super(Hat, self).__init__()
@@ -81,7 +83,8 @@ class Hat(CATABASE.HAT):
 
   @tr.mainloop.WaitUntilIdle
   def Triggered(self):
-    with tr.helpers.AtomicFile(SYSTEMPROPS[0]) as f:
+    with tr.helpers.AtomicFile(
+        SYSTEMPROPS[0], owner='video', group='video') as f:
       self.printIfSetBool(f, self.HAT, 'hat')
       self.printIfSetBool(f, self.DVRReplacement, 'dvr_replacement')
       self.printIfSetBool(f, self.Insert, 'hat_insertion')
