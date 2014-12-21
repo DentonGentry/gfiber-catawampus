@@ -18,6 +18,7 @@
 #
 """Support for 'experiments' which can be used for A/B testing."""
 
+import datetime
 import errno
 import os
 import traceback
@@ -25,6 +26,7 @@ import google3
 import cwmptypes
 import handle
 import helpers
+import mainloop
 import x_catawampus_tr181_2_0
 
 REGDIR = helpers.Path('/tmp/experiments')
@@ -90,6 +92,7 @@ class Experiments(CATABASE.Experiments):
     self.roothandle = roothandle
     assert hasattr(roothandle, 'inner')
     self.active = []
+    self.loop = mainloop.MainLoop()
     # Read initial value of requested system experiments from the filesystem
     try:
       # This will trigger Triggered(), but can't be allowed to throw an
@@ -101,6 +104,7 @@ class Experiments(CATABASE.Experiments):
     except (IOError, OSError) as e:
       traceback.print_exc()
       print "Experiments: can't init self.Requested: %r" % e
+    self._Periodic()
 
   @property
   def Available(self):
@@ -132,6 +136,14 @@ class Experiments(CATABASE.Experiments):
         if exp in available:
           sysactive.add(exp)
     return ','.join(active + sorted(sysactive))
+
+  def _AnnounceActives(self):
+    print 'Experiments now active: %r' % self.Active
+
+  def _Periodic(self):
+    self.loop.ioloop.add_timeout(datetime.timedelta(seconds=29),
+                                 self._Periodic)
+    self._AnnounceActives()
 
   def Triggered(self):
     """Triggered whenever Requested is changed."""
@@ -187,7 +199,7 @@ class Experiments(CATABASE.Experiments):
           helpers.WriteFileAtomic(
               os.path.join(ACTIVEDIR, name + '.unrequested'), '')
 
-    print 'Experiments now active: %r' % self.Active
+    self._AnnounceActives()
 
 
 class ExperimentHandle(handle.Handle):
