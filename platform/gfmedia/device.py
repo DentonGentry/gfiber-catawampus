@@ -575,11 +575,13 @@ class Device(BASE181.Device):
     self.UPnP = dm.miniupnp.UPnP()
     self.CaptivePortal = dm.captive_portal.CaptivePortal()
 
+    ts = self.DeviceInfo.TemperatureStatus
+    if os.path.exists('/tmp/gpio/fanspeed'):
+      ts.AddFan(FanReadGpio())
+
     # Add platform temperature sensors.
     # GFHD100 & GFMS100 both monitor CPU temperature.
     # GFMS100 also monitors hard drive temperature.
-    ts = self.DeviceInfo.TemperatureStatus
-    ts.AddFan(FanReadGpio())
     ts.AddSensor(name='CPU temperature',
                  sensor=dm.temperature.SensorReadFromFile(
                      '/tmp/gpio/cpu_temperature'))
