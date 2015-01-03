@@ -25,6 +25,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import codecs
 import datetime
+import errno
 import os
 import struct
 import subprocess
@@ -457,19 +458,22 @@ class Hosts(BASE181HOSTS):
   def _PopulateDhcpFingerprints(self, hosts):
     """Add DhcpFingerprint parameters wherever we can."""
     try:
-      with open(DHCP_FINGERPRINTS) as f:
-        for line in f:
-          fields = line.split()
-          if len(fields) != 2:
-            continue
-          (mac, fingerprint) = fields
-          mac = mac.strip().lower()
-          host = hosts.get(mac, None)
-          if host:
-            host['DhcpFingerprint'] = fingerprint.strip()
+      f = open(DHCP_FINGERPRINTS)
     except IOError as e:
-      print 'Populate DHCP fingerprints: %s' % e
+      if e.errno != errno.ENOENT:
+        print 'Populate DHCP fingerprints: %s' % e
       return
+
+    for line in f:
+      fields = line.split()
+      if len(fields) != 2:
+        continue
+      (mac, fingerprint) = fields
+      mac = mac.strip().lower()
+      host = hosts.get(mac, None)
+      if host:
+        host['DhcpFingerprint'] = fingerprint.strip()
+    f.close()
 
   def _PopulateSsdpServers(self, hosts):
     """Add SsdpServer parameters wherever we can."""
