@@ -198,7 +198,10 @@ class NodeWrapper(object):
       return defval
 
   def __getattr__(self, key):
-    return self._Get(key)
+    try:
+      return self._Get(key)
+    except KeyError as e:
+      raise AttributeError(e)
 
   def __getitem__(self, key):
     return self._Get(key)
