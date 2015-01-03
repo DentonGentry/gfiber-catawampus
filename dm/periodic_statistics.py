@@ -433,6 +433,7 @@ class PeriodicStatistics(BASE157PS):
         self._sample_times = []
         self._suspect_data = []
         self._values = []
+        self._logged = False
 
       def Close(self):
         """Called when this object is not longer collecting data."""
@@ -493,7 +494,9 @@ class PeriodicStatistics(BASE157PS):
             # TODO(jnewlin): Update _suspect_data.
             current_value = f(self.Reference)
           except (KeyError, AttributeError, IndexError), e:
-            print 'CollectSample error: %r' % e
+            if not self._logged:
+              print 'CollectSample("%s") error: %r' % (self.Reference, e)
+              self._logged = True
           else:
             (_, soapstring) = tr.api_soap.Soapify(current_value)
             self._values.append(soapstring)
