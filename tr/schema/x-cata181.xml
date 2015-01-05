@@ -324,6 +324,62 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
           </string>
         </syntax>
       </parameter>
+      <parameter name="WifiAssociationDuration" access="readOnly">
+        <description>A comma-separated list containing the Duration field from the last N Wifi Association frames.</description>
+        <syntax>
+          <string>
+            <size maxLength="1024"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="WifiAuthenticationDuration" access="readOnly">
+        <description>A comma-separated list containing the Duration field from the last N Wifi Authentication frames.</description>
+        <syntax>
+          <string>
+            <size maxLength="1024"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="WifiProbeDuration" access="readOnly">
+        <description>A comma-separated list containing the Duration field from the last N Wifi Probe frames.</description>
+        <syntax>
+          <string>
+            <size maxLength="1024"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="WifiProbeBroadcastDuration" access="readOnly">
+        <description>A comma-separated list containing the Duration field from the last N Wifi Probe frames sent to a NULL SSID (meaning Broadcast).</description>
+        <syntax>
+          <string>
+            <size maxLength="1024"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="WifiProbeElements" access="readOnly">
+        <description>A string description of the Information Elements present in the most recent Probe frame from this station.</description>
+        <syntax>
+          <string>
+            <size maxLength="1024"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="WifiProbeBroadcastElements" access="readOnly">
+        <description>A string description of the Information Elements present in the most recent Probe frame sent to a NULL SSID (meaning Broadcast).</description>
+        <syntax>
+          <string>
+            <size maxLength="1024"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="WifiAssociationElements" access="readOnly">
+        <description>A string description of the Information Elements present in the most recent Association frame from this station.</description>
+        <syntax>
+          <string>
+            <size maxLength="1024"/>
+          </string>
+        </syntax>
+      </parameter>
     </object>
 
     <object name="Device.IP.Interface.{i}." access="readWrite" numEntriesParameter="InterfaceNumberOfEntries" enableParameter="Enable" minEntries="0" maxEntries="unbounded">

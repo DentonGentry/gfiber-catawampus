@@ -1,0 +1,7 @@
+duration_assoc: 10,10,
+duration_auth: 20,20,
+duration_probe: 30,30,
+duration_probe_bcast: 40,40,
+mlme_probe: oui:001122,tag:1,2,3,4
+mlme_probe_bcast: oui:001122,tag:5,6,7,8
+mlme_assoc: oui:001122,tag:9,10,11,12

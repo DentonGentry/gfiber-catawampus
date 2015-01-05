@@ -58,6 +58,7 @@ class HostTest(unittest.TestCase):
     self.old_POLL_CMD = miniupnp.POLL_CMD
     self.old_SYS_CLASS_NET_PATH = host.SYS_CLASS_NET_PATH
     self.old_TIMENOW = host.TIMENOW
+    self.old_WIFI_FINGERPRINT_DIR = host.WIFI_FINGERPRINT_DIR
     host.ASUS_HOSTNAMES = 'testdata/host/asus_hostnames'
     host.DHCP_FINGERPRINTS = 'testdata/host/fingerprints-dhcp'
     host.DNSSD_HOSTNAMES = 'testdata/host/dnssd_hostnames'
@@ -66,6 +67,7 @@ class HostTest(unittest.TestCase):
     host.PROC_NET_ARP = '/dev/null'
     host.SYS_CLASS_NET_PATH = 'testdata/host/sys/class/net'
     host.TIMENOW = TimeNow
+    host.WIFI_FINGERPRINT_DIR = 'testdata/host/wifi-hostapd-fingerprints'
     miniupnp.POLL_CMD = ['testdata/host/ssdp_poll']
 
   def tearDown(self):
@@ -77,6 +79,7 @@ class HostTest(unittest.TestCase):
     host.PROC_NET_ARP = self.old_PROC_NET_ARP
     host.SYS_CLASS_NET_PATH = self.old_SYS_CLASS_NET_PATH
     host.TIMENOW = self.old_TIMENOW
+    host.WIFI_FINGERPRINT_DIR = self.old_WIFI_FINGERPRINT_DIR
     miniupnp.POLL_CMD = self.old_POLL_CMD
 
   def testValidateExports(self):
@@ -272,6 +275,28 @@ class HostTest(unittest.TestCase):
         self.assertEqual('SsdpServer3', srv)
         found |= 4
     self.assertEqual(7, found)
+
+  def testWifiFingerprint(self):
+    host.PROC_NET_ARP = 'testdata/host/proc_net_arp'
+    iflookup = {'foo0': 'Device.Foo.Interface.1',
+                'foo1': 'Device.Foo.Interface.2'}
+    hosts = host.Hosts(iflookup)
+    self.assertEqual(3, len(hosts.HostList))
+    found = 0
+    for h in hosts.HostList.values():
+      ci = h.X_CATAWAMPUS_ORG_ClientIdentification
+      if h.PhysAddress == 'f8:8f:ca:00:00:01':
+        self.assertEqual(ci.WifiAssociationDuration, '10,10,')
+        self.assertEqual(ci.WifiAuthenticationDuration, '20,20,')
+        self.assertEqual(ci.WifiProbeDuration, '30,30,')
+        self.assertEqual(ci.WifiProbeBroadcastDuration, '40,40,')
+        self.assertEqual(ci.WifiProbeElements, 'oui:001122,tag:1,2,3,4')
+        self.assertEqual(ci.WifiProbeBroadcastElements,
+                         'oui:001122,tag:5,6,7,8')
+        self.assertEqual(ci.WifiAssociationElements,
+                         'oui:001122,tag:9,10,11,12')
+        found = 1
+    self.assertEqual(1, found)
 
   def testHostnames4(self):
     host.PROC_NET_ARP = 'testdata/host/proc_net_arp'
