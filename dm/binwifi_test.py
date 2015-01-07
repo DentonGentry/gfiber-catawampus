@@ -405,7 +405,7 @@ class BinWifiTest(unittest.TestCase):
     buf = open(self.wifioutfile).read()
     self.assertTrue('"-w" "80"' in buf)
 
-    bw = binwifi.WlanConfiguration('wifi0', '', 'br0', band='5', width_2_4g=80)
+    bw = binwifi.WlanConfiguration('wifi0', '', 'br0', band='5', width_2_4g=40)
     bw.StartTransaction()
     bw.RadioEnabled = True
     bw.Enable = True
@@ -413,10 +413,10 @@ class BinWifiTest(unittest.TestCase):
     bw.SSID = 'Test SSID 1'
     self.loop.RunOnce(timeout=1)
     buf = open(self.wifioutfile).read()
-    self.assertFalse('"-w" "80"' in buf)
+    self.assertFalse('"-w" "40"' in buf)
 
     bw = binwifi.WlanConfiguration('wifi0', '', 'br0', band='2.4',
-                                   width_2_4g=80)
+                                   width_2_4g=40)
     bw.StartTransaction()
     bw.RadioEnabled = True
     bw.Enable = True
@@ -424,7 +424,7 @@ class BinWifiTest(unittest.TestCase):
     bw.SSID = 'Test SSID 1'
     self.loop.RunOnce(timeout=1)
     buf = open(self.wifioutfile).read()
-    self.assertTrue('"-w" "80"' in buf)
+    self.assertTrue('"-w" "40"' in buf)
 
     bw = binwifi.WlanConfiguration('wifi0', '', 'br0', band='2.4', width_5g=80)
     bw.StartTransaction()

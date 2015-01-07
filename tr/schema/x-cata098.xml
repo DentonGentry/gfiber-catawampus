@@ -36,6 +36,23 @@ If the radio supports multiple bands, and {{param}} is changed, then all paramet
           </string>
         </syntax>
       </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_Width24G" access="readWrite" activeNotify="canDeny">
+        <description>The requested channel width when using 2.4 GHz channels.</description>
+          <string>
+            <enumeration value=""/>
+            <enumeration value="20"/>
+            <enumeration value="40"/>
+          </string>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_Width5G" access="readWrite" activeNotify="canDeny">
+        <description>The requested channel width when using 5 GHz channels.</description>
+          <string>
+            <enumeration value=""/>
+            <enumeration value="20"/>
+            <enumeration value="40"/>
+            <enumeration value="80"/>
+          </string>
+      </parameter>
       <parameter name="X_CATAWAMPUS-ORG_AutoChanType" access="readWrite" activeNotify="canDeny">
         <description>The AutoChannel algorithm to use, for example NONDFS or HIGH.</description>
         <syntax>
@@ -52,6 +69,32 @@ If the radio supports multiple bands, and {{param}} is changed, then all paramet
         <description>If the system recommends disabling this radio, this is set to true.</description>
         <syntax>
           <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_AutoChannelAlgorithm" access="readWrite">
+        <description>If LEGACY, use old-style /bin/wifi autochannel recommendation.  If INITIAL, use boot-time waveguide recommendation.  If DYNAMIC, use real-time waveguide recommendation.</description>
+        <syntax>
+          <string>
+            <enumeration value="LEGACY"/>
+            <enumeration value="INITIAL"/>
+            <enumeration value="DYNAMIC"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_RecommendedChannel" access="readOnly" activeNotify="canDeny">
+        <description>The waveguide-recommended channel frequency to use (most recent).</description>
+        <syntax>
+          <int>
+            <units value="MHz"/>
+          </int>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_InitiallyRecommendedChannel" access="readOnly" activeNotify="canDeny">
+        <description>The waveguide-recommended channel frequency to use (boot time).</description>
+        <syntax>
+          <int>
+            <units value="MHz"/>
+          </int>
         </syntax>
       </parameter>
     </object>

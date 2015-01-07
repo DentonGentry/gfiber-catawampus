@@ -138,7 +138,7 @@ class Experiments(CATABASE.Experiments):
     return ','.join(active + sorted(sysactive))
 
   def _AnnounceActives(self):
-    print 'Experiments now active: %r' % self.Active
+    print 'Experiments now active: %s' % self.Active
 
   def _Periodic(self):
     self.loop.ioloop.add_timeout(datetime.timedelta(seconds=29),

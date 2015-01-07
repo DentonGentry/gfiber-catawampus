@@ -546,6 +546,11 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
     self.Unexport(['Alias', 'BeaconAdvertisementEnabled', 'ChannelsInUse',
                    'MaxBitRate', 'PossibleDataTransmitRates',
                    'TotalIntegrityFailures', 'TotalPSKFailures',
+                   'X_CATAWAMPUS-ORG_Width24G',
+                   'X_CATAWAMPUS-ORG_Width5G',
+                   'X_CATAWAMPUS-ORG_AutoChannelAlgorithm',
+                   'X_CATAWAMPUS-ORG_RecommendedChannel',
+                   'X_CATAWAMPUS-ORG_InitiallyRecommendedChannel',
                    'X_CATAWAMPUS-ORG_AutoChanType',
                    'X_CATAWAMPUS-ORG_AllowAutoDisable',
                    'X_CATAWAMPUS-ORG_AutoDisableRecommended'])

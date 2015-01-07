@@ -75,6 +75,29 @@ def AutoDisableWifi(roothandle):
 
 
 @tr.experiment.Experiment
+def WaveguideInitialChannel(roothandle):
+  for wlankey, wlan in _WifiConfigs(roothandle):
+    yield (wlankey + 'AutoChannelEnable'), True
+    if hasattr(wlan, 'X_CATAWAMPUS_ORG_AutoChannelAlgorithm'):
+      yield (wlankey + 'X_CATAWAMPUS-ORG_AutoChannelAlgorithm'), 'INITIAL'
+
+
+@tr.experiment.Experiment
+def WaveguideDynamicChannel(roothandle):
+  for wlankey, wlan in _WifiConfigs(roothandle):
+    yield (wlankey + 'AutoChannelEnable'), True
+    if hasattr(wlan, 'X_CATAWAMPUS_ORG_AutoChannelAlgorithm'):
+      yield (wlankey + 'X_CATAWAMPUS-ORG_AutoChannelAlgorithm'), 'DYNAMIC'
+
+
+@tr.experiment.Experiment
+def Wifi24GForce40M(roothandle):
+  for wlankey, wlan in _WifiConfigs(roothandle):
+    if hasattr(wlan, 'X_CATAWAMPUS_ORG_Width24G'):
+      yield (wlankey + 'X_CATAWAMPUS-ORG_Width24G'), '40'
+
+
+@tr.experiment.Experiment
 def ForceTvBoxWifi(roothandle):
   try:
     model_name = roothandle.obj.Device.DeviceInfo.ModelName
@@ -87,6 +110,42 @@ def ForceTvBoxWifi(roothandle):
   for wlankey, unused_wlan in _WifiConfigs(roothandle):
     yield wlankey + 'Enable', True
     yield wlankey + 'RadioEnabled', True
+
+
+@tr.experiment.Experiment
+def ForceNoTvBoxWifi(roothandle):
+  try:
+    model_name = roothandle.obj.Device.DeviceInfo.ModelName
+  except AttributeError as e:
+    print 'ForceNoTvBoxWifi: %r' % e
+    return
+  if not model_name.startswith('GFHD'):
+    print 'ForceNoTvBoxWifi: %r is not a TV box.  skipping.' % model_name
+    return
+  for wlankey, unused_wlan in _WifiConfigs(roothandle):
+    yield wlankey + 'Enable', False
+    yield wlankey + 'RadioEnabled', False
+
+
+def _FreqToChan(mhz):
+  if mhz / 100 == 24:
+    return 1 + (mhz - 2412) / 5
+  elif mhz / 1000 == 5:
+    return 36 + (mhz - 5180) / 5
+  else:
+    print 'invalid wifi frequency: %r' % (mhz,)
+    return 0
+
+
+class _SoftInt(tr.cwmptypes.Int):
+  """Like tr.cwmptypes.Int, but converts invalid values to zero."""
+
+  def validate(self, obj, value):
+    try:
+      value = int(value)
+    except (TypeError, ValueError):
+      value = 0
+    return super(_SoftInt, self).validate(obj, value)
 
 
 class WlanConfiguration(CATA98WIFI):
@@ -137,8 +196,8 @@ class WlanConfiguration(CATA98WIFI):
     self._bridge = bridge
     self._fixed_band = band
     self.Standard = standard
-    self._channelwidth_2_4g = width_2_4g
-    self._channelwidth_5g = width_5g
+    self.X_CATAWAMPUS_ORG_Width24G = str(width_2_4g) if width_2_4g else ''
+    self.X_CATAWAMPUS_ORG_Width5G = str(width_5g) if width_5g else ''
     self._autochan = autochan
     self.new_config = None
     self.last_bin_wifi = None
@@ -191,8 +250,21 @@ class WlanConfiguration(CATA98WIFI):
     except OSError as e:
       if e.errno != errno.EEXIST:
         raise
+    # pylint:disable=protected-access
     type(self).X_CATAWAMPUS_ORG_AutoDisableRecommended.attr.attr.SetFileName(
         self, '/tmp/waveguide/%s.disabled' % self.Name)
+    type(self)._RecommendedChannel_2G.attr.attr.SetFileName(
+        self, '/tmp/waveguide/%s.autochan_2g' % self.Name)
+    type(self)._RecommendedChannel_5G.attr.attr.SetFileName(
+        self, '/tmp/waveguide/%s.autochan_5g' % self.Name)
+    type(self)._RecommendedChannel_Free.attr.attr.SetFileName(
+        self, '/tmp/waveguide/%s.autochan_free' % self.Name)
+    type(self)._InitiallyRecommendedChannel_2G.attr.attr.SetFileName(
+        self, '/tmp/waveguide/%s.autochan_2g.init' % self.Name)
+    type(self)._InitiallyRecommendedChannel_5G.attr.attr.SetFileName(
+        self, '/tmp/waveguide/%s.autochan_5g.init' % self.Name)
+    type(self)._InitiallyRecommendedChannel_Free.attr.attr.SetFileName(
+        self, '/tmp/waveguide/%s.autochan_free.init' % self.Name)
 
   def _ParseBinwifiOutput(self, lines):
     """Parse output of /bin/wifi show.
@@ -289,8 +361,15 @@ class WlanConfiguration(CATA98WIFI):
     return result
 
   def GetAutoChannelEnable(self):
-    d = self._BinwifiShow()
-    return True if d.get('AutoChannel', 'TRUE') == 'TRUE' else False
+    acalg = self.X_CATAWAMPUS_ORG_AutoChannelAlgorithm
+    if acalg == 'LEGACY':
+      d = self._BinwifiShow()
+      return d.get('AutoChannel', 'TRUE') == 'TRUE'
+    else:
+      # In non-legacy modes, we're passing an explicit channel to
+      # /bin/wifi, so in its mind, we are never using autochannel.
+      # Report back the real autochannel setting.
+      return self.new_config.AutoChannelEnable
 
   def SetAutoChannelEnable(self, value):
     b = tr.cwmpbool.parse(value)
@@ -397,6 +476,11 @@ class WlanConfiguration(CATA98WIFI):
   def Stats(self):
     return self._Stats
 
+  X_CATAWAMPUS_ORG_Width24G = tr.cwmptypes.TriggerEnum(
+      ['', '20', '40'], '')
+  X_CATAWAMPUS_ORG_Width5G = tr.cwmptypes.TriggerEnum(
+      ['', '20', '40', '80'], '')
+
   X_CATAWAMPUS_ORG_AllowAutoDisable = tr.cwmptypes.TriggerBool(False)
 
   X_CATAWAMPUS_ORG_AutoDisableRecommended = tr.cwmptypes.Trigger(
@@ -410,6 +494,65 @@ class WlanConfiguration(CATA98WIFI):
     # Non-None means True.  Thus, a file which exists but is empty is
     # true.
     return value is not None
+
+  X_CATAWAMPUS_ORG_AutoChannelAlgorithm = tr.cwmptypes.TriggerEnum(
+      ['LEGACY', 'INITIAL', 'DYNAMIC'], 'LEGACY')
+
+  _RecommendedChannel_2G = tr.cwmptypes.Trigger(
+      tr.cwmptypes.ReadOnly(
+          tr.cwmptypes.FileBacked(
+              '/tmp/waveguide/autochan_2g',  # filename varies
+              _SoftInt())))
+
+  _RecommendedChannel_5G = tr.cwmptypes.Trigger(
+      tr.cwmptypes.ReadOnly(
+          tr.cwmptypes.FileBacked(
+              '/tmp/waveguide/autochan_5g',  # filename varies
+              _SoftInt())))
+
+  _RecommendedChannel_Free = tr.cwmptypes.Trigger(
+      tr.cwmptypes.ReadOnly(
+          tr.cwmptypes.FileBacked(
+              '/tmp/waveguide/autochan_free',  # filename varies
+              _SoftInt())))
+
+  @property
+  def X_CATAWAMPUS_ORG_RecommendedChannel(self):
+    # TODO(apenwarr): Add some way to express "choose best band automatically".
+    #  Waveguide (coordinating with other APs on the LAN) can probably make
+    #  better decisions than ACS.  Then we'd use _RecommendedChannel_Free.
+    #  For now, we'll just take the ACS's recommendation.
+    if self.OperatingFrequencyBand == '2.4GHz':
+      return self._RecommendedChannel_2G
+    elif self.OperatingFrequencyBand == '5GHz':
+      return self._RecommendedChannel_5G
+
+  _InitiallyRecommendedChannel_2G = tr.cwmptypes.Trigger(
+      tr.cwmptypes.ReadOnly(
+          tr.cwmptypes.FileBacked(
+              '/tmp/waveguide/autochan_2g.init',  # filename varies
+              _SoftInt())))
+
+  _InitiallyRecommendedChannel_5G = tr.cwmptypes.Trigger(
+      tr.cwmptypes.ReadOnly(
+          tr.cwmptypes.FileBacked(
+              '/tmp/waveguide/autochan_5g.init',  # filename varies
+              _SoftInt())))
+
+  _InitiallyRecommendedChannel_Free = tr.cwmptypes.Trigger(
+      tr.cwmptypes.ReadOnly(
+          tr.cwmptypes.FileBacked(
+              '/tmp/waveguide/autochan_free.init',  # filename varies
+              _SoftInt())))
+
+  @property
+  def X_CATAWAMPUS_ORG_InitiallyRecommendedChannel(self):
+    # TODO(apenwarr): Add some way to express "choose best band automatically".
+    #  See note in RecommendedChannel above.
+    if self.OperatingFrequencyBand == '2.4GHz':
+      return self._InitiallyRecommendedChannel_2G
+    elif self.OperatingFrequencyBand == '5GHz':
+      return self._InitiallyRecommendedChannel_5G
 
   def _ReallyWantWifi(self):
     return (self.Enable and
@@ -523,10 +666,18 @@ class WlanConfiguration(CATA98WIFI):
 
     if not self.SSIDAdvertisementEnabled:
       cmd += ['-H']
-    ae = self.new_config.AutoChannelEnable
-    ch = 'auto' if ae else str(self.new_config.Channel)
+    if self.new_config.AutoChannelEnable:
+      acalg = self.X_CATAWAMPUS_ORG_AutoChannelAlgorithm
+      if acalg == 'INITIAL':
+        ch = _FreqToChan(self.X_CATAWAMPUS_ORG_InitiallyRecommendedChannel)
+      elif acalg == 'DYNAMIC':
+        ch = _FreqToChan(self.X_CATAWAMPUS_ORG_RecommendedChannel)
+      else:  # LEGACY
+        ch = 'auto'
+    else:
+      ch = self.new_config.Channel
     if ch:
-      cmd += ['-c', ch]
+      cmd += ['-c', str(ch)]
     ssid = self.new_config.SSID
     if ssid:
       cmd += ['-s', ssid]
@@ -534,10 +685,12 @@ class WlanConfiguration(CATA98WIFI):
     if autotype:
       cmd += ['-a', autotype]
 
-    if self._band == '2.4' and self._channelwidth_2_4g:
-      cmd += ['-w', str(self._channelwidth_2_4g)]
-    elif self._band == '5' and self._channelwidth_5g:
-      cmd += ['-w', str(self._channelwidth_5g)]
+    cw24 = self.X_CATAWAMPUS_ORG_Width24G
+    cw5 = self.X_CATAWAMPUS_ORG_Width5G
+    if self._band == '2.4' and cw24:
+      cmd += ['-w', cw24]
+    elif self._band == '5' and cw5:
+      cmd += ['-w', cw5]
 
     if self.Standard == 'ac':
       cmd += ['-p', 'a/b/g/n/ac']
