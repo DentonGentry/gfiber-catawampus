@@ -323,6 +323,29 @@ class DnsmasqTest(unittest.TestCase):
     self._checkConditionalResults(lines)
     self.assertEqual(len(lines), 0)
 
+  def testMultipleDhcpHosts(self):
+    dh4p = self.dh4p
+    h = tr.handle.Handle(dh4p)
+    dh4p.Enable = True
+    (_, ip) = h.AddExportObject('StaticAddress')
+    ip.Enable = True
+    ip.Chaddr = '11:22:33:44:55:66'
+    ip.Yiaddr = '1.2.3.4'
+    (_, ip) = h.AddExportObject('StaticAddress')
+    ip.Enable = True
+    ip.Chaddr = '22:33:44:55:66:77'
+    ip.Yiaddr = '1.2.3.4'
+    (_, ip) = h.AddExportObject('StaticAddress')
+    ip.Enable = True
+    ip.X_CATAWAMPUS_ORG_ClientID = 'cid'
+    ip.Yiaddr = '1.2.3.4'
+
+    self.loop.RunOnce(timeout=1)
+    lines = dnsmasq._ReadFileActiveLines(dnsmasq.DNSMASQCONFIG[0])
+    # self.assertTrue before remove() to make the test more clear.
+    e = ['dhcp-host=11:22:33:44:55:66,22:33:44:55:66:77,id:cid,1.2.3.4\n']
+    self.assertEqual(e, lines)
+
   def testStatus(self):
     dh4p = self.dh4p
     dh4p.MinAddress = '1.2.3.4'

@@ -186,9 +186,10 @@ class DHCPv4(CATA181DEV.Device.DHCPv4):
 
   def _UrlChanged(self, unused_obj):
     url = self.dmroot.Device.ManagementServer.URL
-    print 'dnsmasq: ACS URL changed to %r' % url
-    DhcpAcsUrl[0] = url
-    UpdateDnsmasqConfig()
+    if not DhcpAcsUrl or DhcpAcsUrl[0] != url:
+      print 'dnsmasq: ACS URL changed to %r' % url
+      DhcpAcsUrl[0] = url
+      UpdateDnsmasqConfig()
 
 
 class Dhcp4Server(DHCP4SERVER):
@@ -467,16 +468,23 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
       l = ('dhcp-option=%soption:%d,%s\n' % (restrict, opt.Tag, val))
       lines.append(l)
 
+    static_ips = {}
     for s in self.StaticAddressList.values():
       if not s.Enable:
         continue
+      ip = s.Yiaddr
+      mappings = static_ips.get(ip, [])
       if s.Chaddr:
         mac = str(s.Chaddr)
-        l = 'dhcp-host=%s%s,%s\n' % (restrict, mac, s.Yiaddr)
-        lines.append(l)
+        mappings.append(mac)
       if s.X_CATAWAMPUS_ORG_ClientID:
-        cid = str(s.X_CATAWAMPUS_ORG_ClientID)
-        l = 'dhcp-host=%sid:%s,%s\n' % (restrict, cid, s.Yiaddr)
-        lines.append(l)
+        cid = 'id:%s' % str(s.X_CATAWAMPUS_ORG_ClientID)
+        mappings.append(cid)
+      static_ips[ip] = mappings
+
+    for (ip, mappings) in static_ips.iteritems():
+      group = ','.join(mappings)
+      l = 'dhcp-host=%s%s,%s\n' % (restrict, group, ip)
+      lines.append(l)
 
     return lines
