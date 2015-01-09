@@ -53,7 +53,7 @@ class SetParameterErrors(Exception):
   """Exceptions which occurred during a SetParameterValues transaction."""
 
   def __init__(self, error_list, msg):
-    Exception.__init__(self, '%s (%s)' % (msg, error_list))
+    super(SetParameterErrors, self).__init__('%s (%s)' % (msg, error_list))
     self.error_list = error_list
 
 
@@ -61,7 +61,7 @@ class ParameterNameError(KeyError):
   """Raised for SetParameterValue/GetParameterNames to nonexistant parameter."""
 
   def __init__(self, parameter, msg):
-    KeyError.__init__(self, msg)
+    super(ParameterNameError, self).__init__(msg)
     self.parameter = parameter
 
 
@@ -69,7 +69,7 @@ class ParameterTypeError(TypeError):
   """Raised when a SetParameterValue has the wrong type."""
 
   def __init__(self, parameter, msg):
-    TypeError.__init__(self, msg)
+    super(ParameterTypeError, self).__init__(msg)
     self.parameter = parameter
 
 
@@ -77,7 +77,7 @@ class ParameterValueError(ValueError):
   """Raised when a SetParameterValue has an invalid value."""
 
   def __init__(self, parameter, msg):
-    ValueError.__init__(self, msg)
+    super(ParameterValueError, self).__init__(msg)
     self.parameter = parameter
 
 
@@ -85,7 +85,15 @@ class ParameterNotWritableError(AttributeError):
   """Raised when a SetParameterValue tries to set a read-only parameter."""
 
   def __init__(self, parameter, msg):
-    AttributeError.__init__(self, msg)
+    super(ParameterNotWritableError, self).__init__(msg)
+    self.parameter = parameter
+
+
+class ParameterInternalError(EnvironmentError):
+  """Raised when something else goes wrong with SetParameterValue."""
+
+  def __init__(self, parameter, msg):
+    super(ParameterInternalError, self).__init__(msg)
     self.parameter = parameter
 
 
@@ -93,7 +101,7 @@ class AddObjectsErrors(Exception):
   """Exceptions which occurred during an AddObjects transaction."""
 
   def __init__(self, error_list, msg):
-    Exception.__init__(self, '%s (%s)' % (msg, error_list))
+    super(AddObjectsErrors, self).__init__('%s (%s)' % (msg, error_list))
     self.error_list = error_list
 
 
@@ -381,6 +389,8 @@ class CPE(TR069Service):
       # writing values, it must mean read-only, because it wasn't missing
       # before.
       error_list.append(attr_error(parameter=fullname, msg=str(e)))
+    except EnvironmentError as e:
+      error_list.append(ParameterInternalError(parameter=fullname, msg=str(e)))
 
   def SetParameterValues(self, parameter_list, parameter_key):
     """Sets parameters on some objects."""

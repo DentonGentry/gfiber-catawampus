@@ -198,6 +198,8 @@ class SoapHandler(object):
         code = soap.CpeFault.INVALID_PARAM_NAME
       elif isinstance(error, api.ParameterNotWritableError):
         code = soap.CpeFault.NON_WRITABLE_PARAM
+      elif isinstance(error, api.ParameterInternalError):
+        code = soap.INTERNAL_ERROR
       else:
         code = soap.CpeFault.INTERNAL_ERROR
       faults.append((error.parameter, code, str(error)))
