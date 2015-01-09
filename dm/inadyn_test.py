@@ -70,14 +70,15 @@ class InadynTest(unittest.TestCase):
     filename = os.path.join(self.tmpdir, 'inadyn.' + idx + '.conf')
     self.assertTrue(os.stat(filename))
     lines = open(filename).readlines()
-    self.assertEqual(len(lines), 7)
-    self.assertTrue('system name@example.com\n' in lines)
-    self.assertTrue('dyndns_server_url http://example.com/\n' in lines)
-    self.assertTrue('username username\n' in lines)
-    self.assertTrue('password password\n' in lines)
-    self.assertTrue('update_period_sec 600\n' in lines)
-    self.assertTrue('alias mydomain.com\n' in lines)
-    self.assertTrue('verbose 1\n' in lines)
+    expected = ['system name@example.com\n',
+                'dyndns_server_url http://example.com/\n',
+                'username username\n', 'password password\n',
+                'update_period_sec 600\n', 'alias mydomain.com\n',
+                'verbose 1\n', 'ssl\n']
+    for e in expected:
+      self.assertTrue(e in lines)
+      lines.remove(e)
+    self.assertEqual(0, len(lines))
     self.assertTrue(os.path.exists(self.restartfile))
 
   def testStatus(self):
