@@ -504,10 +504,12 @@ class IP(BASE181.Device.IP):
 
     if _DoesInterfaceExist('wan0'):
       self.InterfaceList[4] = dm.ipinterface.IPInterfaceLinux26(
-          ifname='wan0', lowerlayers='Device.Ethernet.Interface.1')
+          ifname='wan0', lowerlayers='Device.Ethernet.Interface.1',
+          status_fcn=lambda: activewan('wan0'))
     if _DoesInterfaceExist('wan0.2'):
       self.InterfaceList[5] = dm.ipinterface.IPInterfaceLinux26(
-          ifname='wan0.2', lowerlayers='Device.Ethernet.Interface.2')
+          ifname='wan0.2', lowerlayers='Device.Ethernet.Interface.2',
+          status_fcn=lambda: activewan('wan0.2'))
 
     if _DoesInterfaceExist('wlan0'):
       self.InterfaceList[6] = dm.ipinterface.IPInterfaceLinux26(

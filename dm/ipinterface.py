@@ -48,6 +48,8 @@ BASEIPINTF = tr.tr181_v2_6.Device_v2_6.Device.IP.Interface
 CATA181IP = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device.IP
 IPCONFIG = ['tr69_ipconfig']
 PYNETIFCONF = pynetlinux.ifconfig.Interface
+STATIC_IDX = 1000
+NUM_STATIC_IPS = 5
 
 
 def _ConvertMaskToCIDR(mask):
@@ -91,7 +93,7 @@ class IPInterfaceLinux26(CATA181IP.Interface):
   Name = tr.cwmptypes.ReadOnlyString('')
   Type = tr.cwmptypes.ReadOnlyString('Normal')
 
-  def __init__(self, ifname, lowerlayers=''):
+  def __init__(self, ifname, lowerlayers='', status_fcn=None):
     super(IPInterfaceLinux26, self).__init__()
     self._pynet = PYNETIFCONF(ifname)
     self._ifname = ifname
@@ -101,6 +103,13 @@ class IPInterfaceLinux26(CATA181IP.Interface):
     type(self).LowerLayers.Set(self, lowerlayers)
     self.IPv6PrefixList = {}
     self._Stats = IPInterfaceStatsLinux26(ifname=ifname)
+    # This will be a dict where the key is the list index for
+    # IPv4AddressList, and the value will be an IP4Address object.
+    self.static_ips = {}
+    for i in range(STATIC_IDX, STATIC_IDX + NUM_STATIC_IPS):
+      self.static_ips[i] = self.IPv4Address()
+    # status_fnc tells us if this is the wan interface.
+    self.status_fcn = status_fcn
 
   def IPv4Address(self):
     return IPv4Address(parent=self, origin='Static')
@@ -157,11 +166,41 @@ class IPInterfaceLinux26(CATA181IP.Interface):
     ips = IFADDRESSES(self._ifname)
     ip4s = ips.get(socket.AF_INET, [])
     result = {}
-    for idx, ipdict in enumerate(ip4s, start=1):
+    idx = 1
+    wan_port = self.status_fcn is not None and self.status_fcn() != 'Down'
+    for ipdict in ip4s:
+      is_static = False
       ip4 = ipdict.get('addr', '0.0.0.0')
       mask = ipdict.get('netmask', '0.0.0.0')
+      # Check if this ip address is in the static ip table.
+      # This is N^2 but the list only has 5 items so I don't think it will
+      # be an issue, we could add another dict to key off of ipaddr if it is.
+      if wan_port:
+        for k, v in self.static_ips.iteritems():
+          if ip4 == v.IPAddress:
+            # If the address matches, update the netmask so we report back to
+            # ACS what is actually programmed on the interface.
+            result[str(k)] = v
+            v.SubnetMask = mask
+            is_static = True
+            break
+
+      if is_static:
+        continue
+      # If the ip address is not in the static ip table, create a new
+      # entry at the current index.
       ipa = IPv4Address(parent=self, ipaddr=ip4, netmask=mask)
       result[str(idx)] = ipa
+      idx += 1
+
+    # We also need to report static ips that are not set, otherwise when
+    # the ACS sets these we'll get an exception that the object isn't in
+    # the list.
+    if wan_port:
+      for k, v in self.static_ips.iteritems():
+        if str(k) in result:
+          continue
+        result[str(k)] = v
     return result
 
   @property
