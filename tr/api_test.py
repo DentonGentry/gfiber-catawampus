@@ -168,6 +168,26 @@ class FakeAttrs(dict):
     self[item] = value
 
 
+def RaiseAttributeError(*unused_args):
+  raise AttributeError('foo!')
+
+
+def RaiseTypeError(*unused_args):
+  raise TypeError('bar!')
+
+
+def RaiseValueError(*unused_args):
+  raise ValueError('baz!')
+
+
+def RaiseKeyError(*unused_args):
+  raise KeyError('boo!')
+
+
+def RaiseIOError(*unused_args):
+  raise IOError('far!')
+
+
 set_notification_arg = [[]]
 new_session_called = [0]
 
@@ -256,6 +276,23 @@ class ParameterAttrsTest(unittest.TestCase):
     root.AutoThingyList['3'].word = 'word1'
     cpe.parameter_attrs.CheckForTriggers()
     self.assertEqual(1, len(set_notification_arg[0]))
+
+  def testSetAttrErrors(self):
+    root = TestSimpleRoot()
+    cpe = api.CPE(handle.Handle(root))
+    error_list = []
+    cpe._Apply(error_list, 'fullname', api.ParameterNotWritableError,
+               RaiseAttributeError, [])
+    cpe._Apply(error_list, 'fullname', None, RaiseTypeError, [])
+    cpe._Apply(error_list, 'fullname', None, RaiseValueError, [])
+    cpe._Apply(error_list, 'fullname', None, RaiseKeyError, [])
+    cpe._Apply(error_list, 'fullname', None, RaiseIOError, [])
+    self.assertEqual(5, len(error_list))
+    self.assertEqual(api.ParameterNotWritableError, type(error_list[0]))
+    self.assertEqual(api.ParameterTypeError, type(error_list[1]))
+    self.assertEqual(api.ParameterValueError, type(error_list[2]))
+    self.assertEqual(api.ParameterNameError, type(error_list[3]))
+    self.assertEqual(api.ParameterInternalError, type(error_list[4]))
 
 
 if __name__ == '__main__':
