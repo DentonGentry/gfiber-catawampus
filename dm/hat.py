@@ -31,7 +31,7 @@ BASE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
 CATABASE = BASE.Device.X_CATAWAMPUS_ORG
 
 SYSTEMPROPS = ['/rw/sagesrv/sagesrv.properties']
-CONTRACTS = ['/var/media/ads/contracts/ad_contracts.csv']
+CONTRACTS = ['/rw/ads/contracts/ad_contracts.csv']
 
 
 class Hat(CATABASE.HAT):
