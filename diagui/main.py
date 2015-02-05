@@ -12,9 +12,12 @@ import google3
 import tornado.ioloop
 import tornado.web
 import tr.cwmptypes
+import tr.helpers
 import tr.pyinotify
 
+# For unit test overrides.
 ONU_STAT_FILE = '/tmp/cwmp/monitoring/onu/onustats.json'
+ACTIVEWAN = 'activewan'
 
 
 class DiagnosticsHandler(tornado.web.RequestHandler):
@@ -229,6 +232,11 @@ class DiaguiSettings(tornado.web.Application):
         self.data['domain'] = serv.Domain
     except AttributeError:
       pass
+
+    # We want the 'connected' field to be a boolean, but Activewan
+    # returns either the empty string, or the name of the active wan
+    # interface.
+    self.data['connected'] =  not not tr.helpers.Activewan(ACTIVEWAN)
 
     self.ReadOnuStats()
     self.UpdateCheckSum()

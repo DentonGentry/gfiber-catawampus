@@ -34,8 +34,13 @@ class DiaguiTest(unittest.TestCase):
   """
 
   def setUp(self):
+    self.save_activewan = diagui.main.ACTIVEWAN
+    diagui.main.ACTIVEWAN = 'testdata/activewan'
     self.checksum = '0'
     self.url_string = 'http://localhost:8880/content.json?checksum='
+
+  def tearDown(self):
+    diagui.main.ACTIVEWAN = self.save_activewan
 
   def testUpdateDict(self):
     test_data = """acs OK (May 21 2013 18:58:41+700)
