@@ -26,11 +26,11 @@ import datetime
 import random
 import socket
 import sys
-import subprocess
 import time
 import urllib
 
 from curtain import digest
+import helpers
 import pycurl
 import tornado.httpclient
 import tornado.ioloop
@@ -216,13 +216,8 @@ class CPEStateMachine(object):
 
   def LookupDevIP6(self):
     """Returns the global IPv6 address for the named interface."""
-    try:
-      child = subprocess.Popen(GETWANPORT, stdout=subprocess.PIPE)
-      name, _ = child.communicate(None)
-      name = name.strip()
-      if not name:
-        return 0
-    except (IOError, OSError, subprocess.CalledProcessError):
+    name = helpers.Activewan(GETWANPORT)
+    if not name:
       return 0
 
     with open(PROC_IF_INET6, 'r') as f:
