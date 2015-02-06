@@ -26,9 +26,6 @@ import os
 import subprocess
 import traceback
 import google3
-import pynetlinux
-import stbservice
-import tornado.ioloop
 import dm.binwifi
 import dm.brcmmoca
 import dm.brcmmoca2
@@ -48,12 +45,16 @@ import dm.storage
 import dm.temperature
 import dm.traceroute
 import platform_config
+import pynetlinux
+import tornado.ioloop
 import tr.core
 import tr.download
 import tr.handle
+import tr.helpers
 import tr.session
 import tr.x_catawampus_tr098_1_0
 import tr.x_catawampus_tr181_2_0
+import stbservice
 
 QCASWITCHPORT = None
 try:
@@ -318,21 +319,10 @@ class Services(BASE181.Device.Services):
 
 def activewan(ifname):
   """Returns 'Down' if ifname is not the active WAN port."""
-  cmd = [ACTIVEWAN]
-  try:
-    act = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-    out, _ = act.communicate()
-    if act.returncode != 0:
-      return ''
-  except OSError:
+  out = tr.helpers.Activewan(ACTIVEWAN)
+  if not out or out == ifname:
     return ''
-  out = out.strip()
-  if not out:
-    return ''
-  elif out != ifname:
-    return 'Down'
-  else:
-    return ''
+  return 'Down'
 
 
 class Ethernet(BASE181.Device.Ethernet):

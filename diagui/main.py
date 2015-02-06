@@ -147,8 +147,10 @@ class DiaguiSettings(tornado.web.Application):
     for unused_i, inter in self.root.Device.IP.InterfaceList.iteritems():
       t = wan_addrs if inter.Name in ['wan0', 'wan0.2'] else lan_addrs
       for unused_j, ip4 in inter.IPv4AddressList.iteritems():
-        t[ip4.IPAddress] = '(%s)' % ip4.Status
-        self.data['subnetmask'] = ip4.SubnetMask
+        # Static IPs show up even if there is no address.
+        if ip4.IPAddress is not None:
+          t[ip4.IPAddress] = '(%s)' % ip4.Status
+          self.data['subnetmask'] = ip4.SubnetMask
       for unused_i, ip6 in inter.IPv6AddressList.iteritems():
         if ip6.IPAddress[:4] != 'fe80':
           t[ip6.IPAddress] = '(%s)' % ip6.Status

@@ -23,6 +23,7 @@ import os
 import os.path
 import pwd
 import socket
+import subprocess
 
 
 def BaseDir():
@@ -159,3 +160,14 @@ def NormalizeIPAddr(addr):
     return socket.inet_ntop(socket.AF_INET6, i)
   else:
     return str(addr)
+
+
+def Activewan(cmd='activewan'):
+  try:
+    child = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    name, _ = child.communicate(None)
+    if child.returncode != 0:
+      return ''
+    return name.strip()
+  except (IOError, OSError, subprocess.CalledProcessError):
+    return ''
