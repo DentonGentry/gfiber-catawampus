@@ -236,7 +236,7 @@ class DiaguiSettings(tornado.web.Application):
     # We want the 'connected' field to be a boolean, but Activewan
     # returns either the empty string, or the name of the active wan
     # interface.
-    self.data['connected'] =  not not tr.helpers.Activewan(ACTIVEWAN)
+    self.data['connected'] = not not tr.helpers.Activewan(ACTIVEWAN)
 
     self.ReadOnuStats()
     self.UpdateCheckSum()
