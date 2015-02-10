@@ -35,6 +35,7 @@ import dm.management_server
 import dm.ookla
 import dm.selftest
 import dm.ssh
+import dm.wifiblaster
 import tr.core
 import tr.experiment
 
@@ -101,11 +102,12 @@ class DeviceModelRoot(tr.core.Exporter):
         my_serial=self.device.DeviceId().SerialNumber)
     cata.GVSB = dm.gvsb.Gvsb()
     cata.HAT = dm.hat.Hat()
+    cata.HttpDownload = dm.ip_diag_http.DiagHttpDownload()
+    cata.Isostream = dm.isostream.Isostream()
+    cata.SSH = dm.ssh.Ssh()
     cata.SelfTest = dm.selftest.SelfTest()
     cata.Speedtest = dm.ookla.Speedtest()
-    cata.SSH = dm.ssh.Ssh()
-    cata.Isostream = dm.isostream.Isostream()
-    cata.HttpDownload = dm.ip_diag_http.DiagHttpDownload()
+    cata.Wifiblaster = dm.wifiblaster.Wifiblaster()
     self.handle.root_experiments = cata.Catawampus.Experiments
 
     # TODO(apenwarr): Legacy names. Delete after the ACS stops using these.

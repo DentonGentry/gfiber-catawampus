@@ -1160,5 +1160,25 @@ If both {{param|X_CATAWAMPUS-ORG_PortRangeSize}} and {{param|ExternalPortEndRang
       </parameter>
     </object>
 
+    <object name="Device.X_CATAWAMPUS-ORG.Wifiblaster." access="readOnly" minEntries="1" maxEntries="1">
+      <description>This object provides access to a wifi packet blast tester.</description>
+      <parameter name="Duration" access="readWrite">
+        <description>Test duration in seconds.</description>
+        <syntax><float/></syntax>
+      </parameter>
+      <parameter name="Enable" access="readWrite">
+        <description>Enable.</description>
+        <syntax><boolean/></syntax>
+      </parameter>
+      <parameter name="Interval" access="readWrite">
+        <description>Average time between tests in seconds.</description>
+        <syntax><float/></syntax>
+      </parameter>
+      <parameter name="Size" access="readWrite">
+        <description>Packet size.</description>
+        <syntax><unsignedInt/></syntax>
+      </parameter>
+    </object>
+
   </model>
 </dm:document>
