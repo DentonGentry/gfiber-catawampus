@@ -288,13 +288,17 @@ class Device(tr181.Device_v2_4.Device):
   def __init__(self, device_id, periodic_stats):
     super(Device, self).__init__()
     self.Ethernet = Ethernet()
-    self.Unexport(objects=['ATM', 'Bridging', 'CaptivePortal', 'DHCPv4',
-                           'DHCPv6', 'DNS', 'DSL', 'DSLite', 'Firewall',
-                           'GatewayInfo', 'Ghn', 'HPNA', 'HomePlug', 'Hosts',
-                           'IEEE8021x', 'IP', 'IPv6rd', 'LANConfigSecurity',
-                           'MoCA', 'NAT', 'NeighborDiscovery', 'PPP', 'PTM',
-                           'QoS', 'RouterAdvertisement', 'Routing', 'Services',
-                           'SmartCardReaders', 'UPA', 'USB', 'Users', 'WiFi'])
+    self.Unexport(objects=[
+      'ATM', 'Bridging', 'CaptivePortal',
+      'DHCPv4', 'DHCPv6', 'DLNA', 'DNS', 'DSL', 'DSLite',
+      'FaultMgmt',  'FAP', 'Firewall',
+      'GatewayInfo', 'Ghn', 'HPNA', 'HomePlug', 'Hosts',
+      'IEEE8021x', 'IP', 'IPv6rd', 'LANConfigSecurity',
+      'MoCA', 'NAT', 'NeighborDiscovery', 'PPP', 'PTM',
+      'QoS', 'RouterAdvertisement', 'Routing', 'Security',
+      'SelfTestDiagnostics', 'SoftwareModules', 'Services',
+      'Time', 'UPA', 'UPnP', 'USB', 'UserInterface', 'Users',
+      'WiFi', 'SmartCardReaders'])
     self.Unexport(lists=['InterfaceStack'])
     self.Unexport(['InterfaceStackNumberOfEntries', 'RootDataModelVersion'])
     with open(PLATFORM_FILE) as f:
@@ -334,15 +338,25 @@ class InternetGatewayDevice(BASE98IGD):
     super(InternetGatewayDevice, self).__init__()
     self.ManagementServer = tr.core.TODO()
     self.Unexport(params=['DeviceSummary', 'LANDeviceNumberOfEntries',
-                          'WANDeviceNumberOfEntries'])
-    self.Unexport(objects=['CaptivePortal', 'DeviceConfig',
-                           'DownloadDiagnostics', 'IPPingDiagnostics',
+                          'WANDeviceNumberOfEntries', 'UserNumberOfEntries',
+                          'SmartCardReaderNumberOfEntries'])
+    self.Unexport(objects=['Capabilities', 'CaptivePortal', 'DeviceConfig',
+                           'DLNA',
+                           'DownloadAvailability',
+                           'DownloadDiagnostics', 'FAP', 'FaultMgmt',
+                           'Firewall',
+                           'IPPingDiagnostics',
                            'LANConfigSecurity', 'LANInterfaces',
                            'Layer2Bridging', 'Layer3Forwarding',
-                           'QueueManagement', 'Services',
+                           'NSLookupDiagnostics',
+                           'QueueManagement', 'Security',
+                           'SelfTestDiagnostics',
+                           'Services',
+                           'SoftwareModules',
                            'TraceRouteDiagnostics', 'UploadDiagnostics',
-                           'UserInterface'])
-    self.Unexport(lists=['LANDevice', 'WANDevice'])
+                           'UDPEchoConfig',
+                           'UPnP', 'USBHosts', 'UserInterface'])
+    self.Unexport(lists=['LANDevice', 'WANDevice', 'User', 'SmartCardReader'])
 
     self.DeviceInfo = dm.device_info.DeviceInfo98Linux26(device_id)
     self.DeviceInfo.Unexport(params=['VendorConfigFileNumberOfEntries'])
