@@ -310,6 +310,41 @@ class NatTest(unittest.TestCase):
     p.Enable = False
     self.loop.RunOnce(timeout=1)
     self.assertFalse(os.path.exists(self.dmzfile4))
+    # Add some static dmz mappings.
+    for i in range(4):
+      m = n.X_CATAWAMPUS_ORG_DmzMapping()
+      m.LanAddress = '1.2.3.%d' % i
+      m.WanAddress = '192.168.1.%d' % (i+10)
+      n.X_CATAWAMPUS_ORG_DmzMappingList['%s' % i] = m
+    p.Enable = True
+    self.loop.RunOnce(timeout=1)
+    self.assertTrue(os.path.exists(self.dmzfile4))
+    config4 = open(self.dmzfile4).read().strip().split('\n')
+    self.assertEqual(len(config4), 5)
+    self.assertTrue('1.1.1.1' in config4)
+    for i in range(4):
+      self.assertTrue('192.168.1.%d 1.2.3.%d' % (i+10, i))
+    # Disable one of the entries.
+    n.X_CATAWAMPUS_ORG_DmzMappingList['2'].WanAddress = ''
+    self.loop.RunOnce(timeout=1)
+    config4 = open(self.dmzfile4).read().strip().split('\n')
+    self.assertEqual(len(config4), 4)
+    for i in range(4):
+      if i != 2:
+        self.assertTrue('192.168.1.%d 1.2.3.%d' % (i+10, i))
+    # Make sure disable works with static entries.
+    p.Enable = False
+    self.loop.RunOnce(timeout=1)
+    self.assertTrue(os.path.exists(self.dmzfile4))
+    config4 = open(self.dmzfile4).read().strip().split('\n')
+    self.assertEqual(len(config4), 3)
+    # Check that setting a bogus ip4 address does something sensible.
+    got_exception = False
+    try:
+      n.X_CATAWAMPUS_ORG_DmzMappingList['1'].LanAddress = '512.513.514.515'
+    except ValueError:
+      got_exception = True
+    self.assertTrue(got_exception)
 
   def testDmz6(self):
     n = nat.NAT(dmroot=DeviceModelRoot())

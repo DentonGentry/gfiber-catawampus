@@ -27,11 +27,11 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import binascii
 import subprocess
 import traceback
+import tr.cwmptypes
 import tr.handle
 import tr.helpers
 import tr.mainloop
 import tr.tr181_v2_6
-import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 
 BASENAT = tr.tr181_v2_6.Device_v2_6.Device.NAT
@@ -48,15 +48,21 @@ class NAT(BASENAT):
   InterfaceSettingNumberOfEntries = (
       tr.cwmptypes.NumberOf('InterfaceSettingList'))
   PortMappingNumberOfEntries = tr.cwmptypes.NumberOf('PortMappingList')
+  X_CATAWAMPUS_ORG_DmzMappingNumberOfEntries = tr.cwmptypes.NumberOf(
+      'X_CATAWAMPUS_ORG_DmzMappingList')
 
   def __init__(self, dmroot):
     super(NAT, self).__init__()
     self.dmroot = dmroot
     self.InterfaceSettingList = {}
     self.PortMappingList = {}
+    self.X_CATAWAMPUS_ORG_DmzMappingList = {}
 
   def PortMapping(self):
     return PortMapping(parent=self)
+
+  def X_CATAWAMPUS_ORG_DmzMapping(self):
+    return DmzMapping(parent=self)
 
   def GetIPInterface(self, ipif):
     """Return the Device.IP.Interface.{i} object in dmroot for ipif."""
@@ -99,16 +105,19 @@ class NAT(BASENAT):
     for i in range(1, 5):
       ip4configs[i] = []
       ip6configs[i] = []
-      dmz4 = ''
-      dmz6 = ''
+    dmz4 = []
+    dmz6 = ''
     for (idx, mapping) in self.PortMappingList.iteritems():
       precedence = mapping.Precedence()
       ip4configs[precedence].append(mapping.ConfigLinesIP4(idx=idx))
       ip6configs[precedence].append(mapping.ConfigLinesIP6(idx=idx))
       if mapping.DmzIP4():
-        dmz4 = mapping.DmzIP4()
+        dmz4.append(mapping.DmzIP4())
       if mapping.DmzIP6():
         dmz6 = mapping.DmzIP6()
+    for (idx, mapping) in self.X_CATAWAMPUS_ORG_DmzMappingList.iteritems():
+      if mapping.LanAddress and mapping.WanAddress:
+        dmz4.append('%s %s' % (mapping.LanAddress, mapping.WanAddress))
     outidx = 1
     try:
       with tr.helpers.AtomicFile(OUTPUTFILE4) as f:
@@ -125,7 +134,8 @@ class NAT(BASENAT):
               outidx += 1
       if dmz4:
         with tr.helpers.AtomicFile(DMZFILE4) as f:
-          f.write(dmz4)
+          f.write('\n'.join(dmz4))
+          f.write('\n')
       else:
         tr.helpers.Unlink(DMZFILE4)
       if dmz6:
@@ -351,3 +361,16 @@ class PortMapping(CATANAT.PortMapping):
     if self.InternalClient and tr.helpers.IsIP4Addr(self.InternalClient):
       return None
     return self.InternalClient
+
+
+class DmzMapping(CATANAT.X_CATAWAMPUS_ORG_DmzMapping):
+  """tr1818 Device.NAT.DmzMapping."""
+  WanAddress = tr.cwmptypes.TriggerIP4Addr('')
+  LanAddress = tr.cwmptypes.TriggerIP4Addr('')
+
+  def __init__(self, parent):
+    super(DmzMapping, self).__init__()
+    self.parent = parent
+
+  def Triggered(self):
+    self.parent.WriteConfigs()

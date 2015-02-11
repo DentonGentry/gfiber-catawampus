@@ -1141,7 +1141,7 @@ If both {{param|X_CATAWAMPUS-ORG_PortRangeSize}} and {{param|ExternalPortEndRang
         </syntax>
       </parameter>
     </object>
-    <object name="Device.X_CATAWAMPUS-ORG.DmzMapping.{i}." access="readWrite" numEntriesParameter="DmzMappingNumberOfEntries" enableParameter="Enable" minEntries="0" maxEntries="unbounded">
+    <object name="Device.NAT.X_CATAWAMPUS-ORG_DmzMapping.{i}." access="readWrite" numEntriesParameter="DmzMappingNumberOfEntries" enableParameter="Enable" minEntries="0" maxEntries="unbounded">
       <parameter name="WanAddress" access="readWrite">
         <description>External IPv4 Address.</description>
         <syntax>

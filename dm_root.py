@@ -89,8 +89,6 @@ class DeviceModelRoot(tr.core.Exporter):
       return  # no tr-181 is available for this platform
     dev.Export(objects=['X_CATAWAMPUS-ORG'])
     cata = dev.X_CATAWAMPUS_ORG = BASE.Device.X_CATAWAMPUS_ORG()
-    # TODO(jnewlin): Remove this when dmzmapping is implemented.
-    cata.Unexport(lists=['DmzMapping'])
     cata.Catawampus = dm.catawampus.CatawampusDm(self.handle)
     cata.DynamicDNS = dm.inadyn.Inadyn()
     # TODO(apenwarr): remove deprecated Catawapus.Experiments eventually.
