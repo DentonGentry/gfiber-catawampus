@@ -288,17 +288,17 @@ class Device(tr181.Device_v2_4.Device):
   def __init__(self, device_id, periodic_stats):
     super(Device, self).__init__()
     self.Ethernet = Ethernet()
-    self.Unexport(objects=[
-      'ATM', 'Bridging', 'CaptivePortal',
-      'DHCPv4', 'DHCPv6', 'DLNA', 'DNS', 'DSL', 'DSLite',
-      'FaultMgmt',  'FAP', 'Firewall',
-      'GatewayInfo', 'Ghn', 'HPNA', 'HomePlug', 'Hosts',
-      'IEEE8021x', 'IP', 'IPv6rd', 'LANConfigSecurity',
-      'MoCA', 'NAT', 'NeighborDiscovery', 'PPP', 'PTM',
-      'QoS', 'RouterAdvertisement', 'Routing', 'Security',
-      'SelfTestDiagnostics', 'SoftwareModules', 'Services',
-      'Time', 'UPA', 'UPnP', 'USB', 'UserInterface', 'Users',
-      'WiFi', 'SmartCardReaders'])
+    self.Unexport(
+        objects=['ATM', 'Bridging', 'CaptivePortal',
+                 'DHCPv4', 'DHCPv6', 'DLNA', 'DNS', 'DSL', 'DSLite',
+                 'FaultMgmt', 'FAP', 'Firewall',
+                 'GatewayInfo', 'Ghn', 'HPNA', 'HomePlug', 'Hosts',
+                 'IEEE8021x', 'IP', 'IPv6rd', 'LANConfigSecurity',
+                 'MoCA', 'NAT', 'NeighborDiscovery', 'PPP', 'PTM',
+                 'QoS', 'RouterAdvertisement', 'Routing', 'Security',
+                 'SelfTestDiagnostics', 'SoftwareModules', 'Services',
+                 'Time', 'UPA', 'UPnP', 'USB', 'UserInterface', 'Users',
+                 'WiFi', 'SmartCardReaders'])
     self.Unexport(lists=['InterfaceStack'])
     self.Unexport(['InterfaceStackNumberOfEntries', 'RootDataModelVersion'])
     with open(PLATFORM_FILE) as f:
