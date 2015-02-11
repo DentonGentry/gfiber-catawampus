@@ -173,15 +173,19 @@ class HTTPConnection(object):
 
     def write(self, chunk, callback=None):
         """Writes a chunk of output to the stream."""
-        assert self._request, "Request closed"
+        if not self._request:
+          print "Request closed"
+          return
         if not self.stream.closed():
             self._write_callback = stack_context.wrap(callback)
             self.stream.write(chunk, self._on_write_complete)
 
     def finish(self):
         """Finishes the request."""
-        assert self._request, "Request closed"
         self._request_finished = True
+        if not self._request:
+          print "Request closed"
+          return
         if not self.stream.writing():
             self._finish_request()
 
