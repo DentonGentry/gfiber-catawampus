@@ -155,42 +155,6 @@ class IpInterfaceTest(unittest.TestCase):
     self.assertEqual(ipinterface._ConvertMaskToCIDR('0.1.0.0'), -1)
     self.assertEqual(ipinterface._ConvertMaskToCIDR('0.0.0.255'), -1)
 
-  def testEmptyStaticIpAddresses(self):
-    ip = ipinterface.IPInterfaceLinux26('foo1', status_fcn=lambda: True)
-    self.assertEqual(len(ip.static_ips), 5)
-    self.assertEqual(len(ip.IPv4AddressList), 5)
-    self.assertIs(ip.IPv4AddressList['1000'].IPAddress, None)
-    self.assertIs(ip.IPv4AddressList['1001'].IPAddress, None)
-    self.assertIs(ip.IPv4AddressList['1002'].IPAddress, None)
-    self.assertIs(ip.IPv4AddressList['1003'].IPAddress, None)
-    self.assertIs(ip.IPv4AddressList['1004'].IPAddress, None)
-    self.assertIs(ip.IPv4AddressList['1000'].SubnetMask, None)
-    self.assertIs(ip.IPv4AddressList['1001'].SubnetMask, None)
-    self.assertIs(ip.IPv4AddressList['1002'].SubnetMask, None)
-    self.assertIs(ip.IPv4AddressList['1003'].SubnetMask, None)
-    self.assertIs(ip.IPv4AddressList['1004'].SubnetMask, None)
-
-  def testSetStaticIpAddresses(self):
-    ip = ipinterface.IPInterfaceLinux26('foo0', status_fcn=lambda: True)
-    ip.IPv4AddressList['1004'].IPAddress = '1.1.1.3'
-    ip.IPv4AddressList['1004'].SubnetMask = '255.255.0.0'
-    # I'm not sure why self.loop.RunOnce() here doesn't flush the cache,
-    # isn't it supposed to clear at the end of a session?
-    tr.session.cache.flush()
-    self.assertEqual(len(ip.static_ips), 5)
-    self.assertEqual(len(ip.IPv4AddressList), 6)
-    self.assertIs(ip.IPv4AddressList['1000'].IPAddress, None)
-    self.assertIs(ip.IPv4AddressList['1001'].IPAddress, None)
-    self.assertIs(ip.IPv4AddressList['1002'].IPAddress, None)
-    self.assertIs(ip.IPv4AddressList['1003'].IPAddress, None)
-    self.assertEqual(ip.IPv4AddressList['1004'].IPAddress, '1.1.1.3')
-    self.assertIs(ip.IPv4AddressList['1000'].SubnetMask, None)
-    self.assertIs(ip.IPv4AddressList['1001'].SubnetMask, None)
-    self.assertIs(ip.IPv4AddressList['1002'].SubnetMask, None)
-    self.assertIs(ip.IPv4AddressList['1003'].SubnetMask, None)
-    # Test that we report back what is actually on the interface.
-    self.assertEqual(ip.IPv4AddressList['1004'].SubnetMask, '255.255.255.0')
-
 
 class MockPynet(object):
   v_is_up = True
