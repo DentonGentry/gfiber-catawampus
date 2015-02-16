@@ -52,6 +52,8 @@ class BinWifiTest(unittest.TestCase):
     binwifi.BINWIFI = ['testdata/binwifi/binwifi', self.wifioutfile]
     self.old_PROC_NET_DEV = netdev.PROC_NET_DEV
     netdev.PROC_NET_DEV = 'testdata/binwifi/proc_net_dev'
+    self.old_TMPWAVEGUIDE = binwifi.TMPWAVEGUIDE[0]
+    binwifi.TMPWAVEGUIDE[0] = self.tmpdir
     self.loop = tr.mainloop.MainLoop()
     tr.session.cache.flush()
 
@@ -435,6 +437,14 @@ class BinWifiTest(unittest.TestCase):
     self.loop.RunOnce(timeout=1)
     buf = open(self.wifioutfile).read()
     self.assertFalse('"-w" "80"' in buf)
+
+  def testAutoDisableRecommended(self):
+    bw = binwifi.WlanConfiguration('wifi0', '', 'br0', band='5')
+    self.assertFalse(bw.X_CATAWAMPUS_ORG_AutoDisableRecommended)
+    open(self.tmpdir + '/wifi0.disabled', 'w').write('')
+    self.assertTrue(bw.X_CATAWAMPUS_ORG_AutoDisableRecommended)
+    open(self.tmpdir + '/wifi0.disabled', 'w').write('f8:8f:ca:00:00:01')
+    self.assertTrue(bw.X_CATAWAMPUS_ORG_AutoDisableRecommended)
 
 
 if __name__ == '__main__':
