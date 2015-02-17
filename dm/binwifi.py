@@ -43,6 +43,7 @@ CATA98WIFI = CATA98.InternetGatewayDevice.LANDevice.WLANConfiguration
 
 # Unit tests can override these.
 BINWIFI = ['wifi']
+TMPWAVEGUIDE = ['/tmp/waveguide']
 
 
 class WifiConfig(object):
@@ -148,6 +149,14 @@ class _SoftInt(tr.cwmptypes.Int):
     return super(_SoftInt, self).validate(obj, value)
 
 
+class _SoftBool(tr.cwmptypes.Bool):
+  """Like tr.cwmptypes.Bool, but any value (even empty) is true."""
+
+  def validate(self, obj, value):
+    # A file which exists but is empty is true.
+    return value is not None
+
+
 class WlanConfiguration(CATA98WIFI):
   """An implementation of tr98 WLANConfiguration for /bin/wifi."""
   encryption_modes = ['X_CATAWAMPUS-ORG_None', 'None', 'WEPEncryption',
@@ -246,25 +255,25 @@ class WlanConfiguration(CATA98WIFI):
 
     # Waveguide interface
     try:
-      os.makedirs('/tmp/waveguide', 0755)
+      os.makedirs(TMPWAVEGUIDE[0], 0755)
     except OSError as e:
       if e.errno != errno.EEXIST:
         raise
     # pylint:disable=protected-access
     type(self).X_CATAWAMPUS_ORG_AutoDisableRecommended.attr.attr.SetFileName(
-        self, '/tmp/waveguide/%s.disabled' % self.Name)
+        self, TMPWAVEGUIDE[0] + '/%s.disabled' % self.Name)
     type(self)._RecommendedChannel_2G.attr.attr.SetFileName(
-        self, '/tmp/waveguide/%s.autochan_2g' % self.Name)
+        self, TMPWAVEGUIDE[0] + '/%s.autochan_2g' % self.Name)
     type(self)._RecommendedChannel_5G.attr.attr.SetFileName(
-        self, '/tmp/waveguide/%s.autochan_5g' % self.Name)
+        self, TMPWAVEGUIDE[0] + '/%s.autochan_5g' % self.Name)
     type(self)._RecommendedChannel_Free.attr.attr.SetFileName(
-        self, '/tmp/waveguide/%s.autochan_free' % self.Name)
+        self, TMPWAVEGUIDE[0] + '/%s.autochan_free' % self.Name)
     type(self)._InitiallyRecommendedChannel_2G.attr.attr.SetFileName(
-        self, '/tmp/waveguide/%s.autochan_2g.init' % self.Name)
+        self, TMPWAVEGUIDE[0] + '/%s.autochan_2g.init' % self.Name)
     type(self)._InitiallyRecommendedChannel_5G.attr.attr.SetFileName(
-        self, '/tmp/waveguide/%s.autochan_5g.init' % self.Name)
+        self, TMPWAVEGUIDE[0] + '/%s.autochan_5g.init' % self.Name)
     type(self)._InitiallyRecommendedChannel_Free.attr.attr.SetFileName(
-        self, '/tmp/waveguide/%s.autochan_free.init' % self.Name)
+        self, TMPWAVEGUIDE[0] + '/%s.autochan_free.init' % self.Name)
 
   def _ParseBinwifiOutput(self, lines):
     """Parse output of /bin/wifi show.
@@ -486,14 +495,8 @@ class WlanConfiguration(CATA98WIFI):
   X_CATAWAMPUS_ORG_AutoDisableRecommended = tr.cwmptypes.Trigger(
       tr.cwmptypes.ReadOnly(
           tr.cwmptypes.FileBacked(
-              '/tmp/waveguide/disabled',  # filename varies
-              tr.cwmptypes.Bool())))
-
-  @X_CATAWAMPUS_ORG_AutoDisableRecommended.validator
-  def validator(self, value):
-    # Non-None means True.  Thus, a file which exists but is empty is
-    # true.
-    return value is not None
+              TMPWAVEGUIDE[0] + '/disabled',  # filename varies
+              _SoftBool())))
 
   X_CATAWAMPUS_ORG_AutoChannelAlgorithm = tr.cwmptypes.TriggerEnum(
       ['LEGACY', 'INITIAL', 'DYNAMIC'], 'LEGACY')
@@ -501,19 +504,19 @@ class WlanConfiguration(CATA98WIFI):
   _RecommendedChannel_2G = tr.cwmptypes.Trigger(
       tr.cwmptypes.ReadOnly(
           tr.cwmptypes.FileBacked(
-              '/tmp/waveguide/autochan_2g',  # filename varies
+              TMPWAVEGUIDE[0] + '/autochan_2g',  # filename varies
               _SoftInt())))
 
   _RecommendedChannel_5G = tr.cwmptypes.Trigger(
       tr.cwmptypes.ReadOnly(
           tr.cwmptypes.FileBacked(
-              '/tmp/waveguide/autochan_5g',  # filename varies
+              TMPWAVEGUIDE[0] + '/autochan_5g',  # filename varies
               _SoftInt())))
 
   _RecommendedChannel_Free = tr.cwmptypes.Trigger(
       tr.cwmptypes.ReadOnly(
           tr.cwmptypes.FileBacked(
-              '/tmp/waveguide/autochan_free',  # filename varies
+              TMPWAVEGUIDE[0] + '/autochan_free',  # filename varies
               _SoftInt())))
 
   @property
@@ -530,19 +533,19 @@ class WlanConfiguration(CATA98WIFI):
   _InitiallyRecommendedChannel_2G = tr.cwmptypes.Trigger(
       tr.cwmptypes.ReadOnly(
           tr.cwmptypes.FileBacked(
-              '/tmp/waveguide/autochan_2g.init',  # filename varies
+              TMPWAVEGUIDE[0] + '/autochan_2g.init',  # filename varies
               _SoftInt())))
 
   _InitiallyRecommendedChannel_5G = tr.cwmptypes.Trigger(
       tr.cwmptypes.ReadOnly(
           tr.cwmptypes.FileBacked(
-              '/tmp/waveguide/autochan_5g.init',  # filename varies
+              TMPWAVEGUIDE[0] + '/autochan_5g.init',  # filename varies
               _SoftInt())))
 
   _InitiallyRecommendedChannel_Free = tr.cwmptypes.Trigger(
       tr.cwmptypes.ReadOnly(
           tr.cwmptypes.FileBacked(
-              '/tmp/waveguide/autochan_free.init',  # filename varies
+              TMPWAVEGUIDE[0] + '/autochan_free.init',  # filename varies
               _SoftInt())))
 
   @property
