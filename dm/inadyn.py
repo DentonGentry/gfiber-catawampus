@@ -117,3 +117,4 @@ class Service(CATA181DDNS.Service):
       for alias in self.Domain.split(','):
         f.write('alias ' + alias + '\n')
       f.write('verbose 1\n')
+      f.write('ssl\n')

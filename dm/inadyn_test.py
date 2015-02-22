@@ -74,7 +74,7 @@ class InadynTest(unittest.TestCase):
                 'dyndns_server_url http://example.com/\n',
                 'username username\n', 'password password\n',
                 'update_period_sec 600\n', 'alias mydomain.com\n',
-                'verbose 1\n']
+                'verbose 1\n', 'ssl\n']
     for e in expected:
       self.assertTrue(e in lines)
       lines.remove(e)
