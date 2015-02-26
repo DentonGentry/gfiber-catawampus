@@ -55,6 +55,7 @@ class Hat(CATABASE.HAT):
   DiskSpaceHighWatermarkPercent = tr.cwmptypes.TriggerUnsigned()
   DiskSpaceCleanupIntervalSecs = tr.cwmptypes.TriggerUnsigned()
   HatCatalogPollingIntervalSecs = tr.cwmptypes.TriggerUnsigned()
+  MinImpressionViewDurationPts = tr.cwmptypes.TriggerInt()
 
   GFTSUrl = tr.cwmptypes.TriggerString()
   GFASUrl = tr.cwmptypes.TriggerString()
@@ -76,6 +77,9 @@ class Hat(CATABASE.HAT):
   def printIfSetUnsigned(self, f, var, name):
     if var is not None:
       f.write('%s=%d\n' % (name, var))
+
+  def printIfSetSigned(self, f, var, name):
+    self.printIfSetUnsigned(f, var, name)
 
   def printIfSetString(self, f, var, name):
     if var is not None:
@@ -113,6 +117,8 @@ class Hat(CATABASE.HAT):
                               'disk_space_cleanup_interval_secs')
       self.printIfSetUnsigned(f, self.HatCatalogPollingIntervalSecs,
                               'hat_catalog_polling_interval_secs')
+      self.printIfSetSigned(f, self.MinImpressionViewDurationPts,
+                            'min_impression_view_duration_pts')
       self.printIfSetString(f, self.GFTSUrl, 'gfts_url')
       self.printIfSetString(f, self.GFASUrl, 'gfas_url')
 
