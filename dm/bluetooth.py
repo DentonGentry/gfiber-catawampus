@@ -51,7 +51,7 @@ class iBeacon(CATA181DEVICE.X_CATAWAMPUS_ORG.Bluetooth.iBeacon):
   def StartStop(self):
     if self.Major and self.Minor and self.UUID and self.TxPower and self.Enable:
       args = IBEACONCMD + ['-u', self.UUID, '-m', str(self.Major),
-          '-n', str(self.Minor), '-t', str(self.TxPower)]
+                           '-n', str(self.Minor), '-t', str(self.TxPower)]
       rc = subprocess.call(args)
       if rc != 0:
         print 'iBeacon config failed rc=%d' % rc
