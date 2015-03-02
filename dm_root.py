@@ -24,6 +24,7 @@ import glob
 import os.path
 import sys
 import google3
+import dm.bluetooth
 import dm.catawampus
 import dm.gfibertv
 import dm.gvsb
@@ -90,6 +91,7 @@ class DeviceModelRoot(tr.core.Exporter):
       return  # no tr-181 is available for this platform
     dev.Export(objects=['X_CATAWAMPUS-ORG'])
     cata = dev.X_CATAWAMPUS_ORG = BASE.Device.X_CATAWAMPUS_ORG()
+    cata.Bluetooth = dm.bluetooth.Bluetooth()
     cata.Catawampus = dm.catawampus.CatawampusDm(self.handle)
     cata.DynamicDNS = dm.inadyn.Inadyn()
     # TODO(apenwarr): remove deprecated Catawapus.Experiments eventually.

@@ -131,6 +131,41 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
       </parameter>
     </object>
 
+    <object name="Device.X_CATAWAMPUS-ORG.Bluetooth." access="readOnly" minEntries="1" maxEntries="1"/>
+    <object base="Device.X_CATAWAMPUS-ORG.Bluetooth.iBeacon." access="readOnly" minEntries="1" maxEntries="1" enableParameter="Enable">
+      <parameter name="Enable" access="readWrite">
+        <description>Enables or disables the iBeacon.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="UUID" access="readWrite">
+        <description>UUID to send in beacons.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="Major" access="readWrite">
+        <description>Major number to send in beacons.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="Minor" access="readWrite">
+        <description>Minor number to send in beacons.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="TxPower" access="readWrite">
+        <description>Transmit power to populate in beacons. This is not the amount of TX Power to use, it is a field in the beacon which tells the recipient what power to expect to see at 1 meter distance from the device. This allows the recipient to calculate how far away the beacon must therefore be.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+    </object>
+
+
     <object base="Device.Ethernet." access="readOnly" minEntries="1" maxEntries="1"/>
     <object base="Device.Ethernet.Interface.{i}." access="readOnly" numEntriesParameter="InterfaceNumberOfEntries" minEntries="0" maxEntries="unbounded">
       <parameter name="X_CATAWAMPUS-ORG_ActualBitRate" access="readOnly" dmr:previousParameter="MaxBitRate">
