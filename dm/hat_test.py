@@ -83,10 +83,6 @@ class HatTests(unittest.TestCase):
     hat_handler.DVRReplacement = False
     hat_handler.Insert = False
     hat_handler.TestCueTones = True
-    hat_handler.AFillPercent = 10
-    hat_handler.HTFillPercent = 90
-    hat_handler.SwapoutSecs = 120
-    hat_handler.GFTSPollingIntervalSecs = 1200
     hat_handler.HatRequestMaxDelaySecs = 120
     hat_handler.MinChannelDwellTimeSecs = 10
     hat_handler.MinRepeatHatReportIntervalSecs = 7200
@@ -99,20 +95,15 @@ class HatTests(unittest.TestCase):
     hat_handler.MinImpressionViewDurationPts = 450000
     throttle = '[00:00-6:00,25,15][12:00-6:00,25,40]'
     hat_handler.FetcherThrottlingIntervals = throttle
-    hat_handler.GFTSUrl = 'www.google.com'
     hat_handler.GFASUrl = 'fiber.google.com'
 
     self.loop.RunOnce()
     lines = open(hat.SYSTEMPROPS[0]).readlines()
-    self.assertEqual(len(lines), 21)
+    self.assertEqual(len(lines), 15)
     self.assertTrue('hat=1\n' in lines)
     self.assertTrue('hat_insertion=0\n' in lines)
     self.assertTrue('dvr_replacement=0\n' in lines)
     self.assertTrue('test_cue_tones=1\n' in lines)
-    self.assertTrue('a_fill_percent=10\n' in lines)
-    self.assertTrue('ht_fill_percent=90\n' in lines)
-    self.assertTrue('hat_swapout_secs=120\n' in lines)
-    self.assertTrue('gfts_polling_interval_secs=1200\n' in lines)
     self.assertTrue('hat_request_max_delay_secs=120\n' in lines)
     self.assertTrue('min_channel_dwell_time_secs=10\n' in lines)
     self.assertTrue('min_repeat_hat_report_interval_secs=7200\n' in lines)
@@ -126,11 +117,9 @@ class HatTests(unittest.TestCase):
     self.assertTrue('fetcher_throttling_intervals='
                     '[00:00-6:00,25,15][12:00-6:00,25,40]\n' in lines)
     self.assertTrue('gfas_url=fiber.google.com\n' in lines)
-    self.assertTrue('gfts_url=www.google.com\n' in lines)
 
     hat_handler.HAT = False
     hat_handler.Insert = True
-    hat_handler.GFTSPollingIntervalSecs = 12000
     hat_handler.MinRepeatHatReportIntervalSecs = 600
     hat_handler.DiskSpaceHighWatermarkPercent = 90
     hat_handler.FetcherThrottlingIntervals = '[00:00-6:00,10,25]'
@@ -141,10 +130,6 @@ class HatTests(unittest.TestCase):
     self.assertTrue('hat_insertion=1\n' in lines)
     self.assertTrue('dvr_replacement=0\n' in lines)
     self.assertTrue('test_cue_tones=1\n' in lines)
-    self.assertTrue('a_fill_percent=10\n' in lines)
-    self.assertTrue('ht_fill_percent=90\n' in lines)
-    self.assertTrue('hat_swapout_secs=120\n' in lines)
-    self.assertTrue('gfts_polling_interval_secs=12000\n' in lines)
     self.assertTrue('hat_request_max_delay_secs=120\n' in lines)
     self.assertTrue('min_channel_dwell_time_secs=10\n' in lines)
     self.assertTrue('min_repeat_hat_report_interval_secs=600\n' in lines)
@@ -158,7 +143,6 @@ class HatTests(unittest.TestCase):
     self.assertTrue('fetcher_throttling_intervals='
                     '[00:00-6:00,10,25]\n' in lines)
     self.assertTrue('gfas_url=fiber.google.com\n' in lines)
-    self.assertTrue('gfts_url=www.google.com\n' in lines)
 
   def testContracts(self):
     hat_handler = hat.Hat()

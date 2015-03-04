@@ -40,12 +40,6 @@ class Hat(CATABASE.HAT):
   DVRReplacement = tr.cwmptypes.TriggerBool()
   Insert = tr.cwmptypes.TriggerBool()
   TestCueTones = tr.cwmptypes.TriggerBool()
-  AFillPercent = tr.cwmptypes.TriggerUnsigned()
-  HTFillPercent = tr.cwmptypes.TriggerUnsigned()
-  SwapoutSecs = tr.cwmptypes.TriggerUnsigned()
-  GFTSPollingIntervalSecs = tr.cwmptypes.TriggerUnsigned()
-  CMSGCIntervalSecs = tr.cwmptypes.TriggerUnsigned()
-  FreqCapSecs = tr.cwmptypes.TriggerUnsigned()
   HatRequestMaxDelaySecs = tr.cwmptypes.TriggerUnsigned()
   MinChannelDwellTimeSecs = tr.cwmptypes.TriggerUnsigned()
   MinRepeatHatReportIntervalSecs = tr.cwmptypes.TriggerUnsigned()
@@ -57,7 +51,6 @@ class Hat(CATABASE.HAT):
   HatCatalogPollingIntervalSecs = tr.cwmptypes.TriggerUnsigned()
   MinImpressionViewDurationPts = tr.cwmptypes.TriggerInt()
 
-  GFTSUrl = tr.cwmptypes.TriggerString()
   GFASUrl = tr.cwmptypes.TriggerString()
   FetcherThrottlingIntervals = tr.cwmptypes.TriggerString()
 
@@ -94,13 +87,6 @@ class Hat(CATABASE.HAT):
       self.printIfSetBool(f, self.DVRReplacement, 'dvr_replacement')
       self.printIfSetBool(f, self.Insert, 'hat_insertion')
       self.printIfSetBool(f, self.TestCueTones, 'test_cue_tones')
-      self.printIfSetUnsigned(f, self.FreqCapSecs, 'freq_cap_secs')
-      self.printIfSetUnsigned(f, self.CMSGCIntervalSecs, 'cms_gc_interval_secs')
-      self.printIfSetUnsigned(f, self.AFillPercent, 'a_fill_percent')
-      self.printIfSetUnsigned(f, self.HTFillPercent, 'ht_fill_percent')
-      self.printIfSetUnsigned(f, self.SwapoutSecs, 'hat_swapout_secs')
-      self.printIfSetUnsigned(f, self.GFTSPollingIntervalSecs,
-                              'gfts_polling_interval_secs')
       self.printIfSetUnsigned(f, self.HatRequestMaxDelaySecs,
                               'hat_request_max_delay_secs')
       self.printIfSetUnsigned(f, self.MinChannelDwellTimeSecs,
@@ -122,7 +108,6 @@ class Hat(CATABASE.HAT):
                             'min_impression_view_duration_pts')
       self.printIfSetString(f, self.FetcherThrottlingIntervals,
                             'fetcher_throttling_intervals')
-      self.printIfSetString(f, self.GFTSUrl, 'gfts_url')
       self.printIfSetString(f, self.GFASUrl, 'gfas_url')
 
 if __name__ == '__main__':

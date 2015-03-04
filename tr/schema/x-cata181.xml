@@ -776,46 +776,10 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
           <boolean/>
         </syntax>
       </parameter>
-      <parameter name="AFillPercent" access="readWrite">
-        <description>AS fill percent.</description>
-        <syntax>
-          <unsignedInt/>
-        </syntax>
-      </parameter>
-      <parameter name="HTFillPercent" access="readWrite">
-        <description>HT fill percent.</description>
-        <syntax>
-          <unsignedInt/>
-        </syntax>
-      </parameter>
       <parameter name="DVRReplacement" access="readWrite">
         <description>Turns on/off HAT DVR replacement.</description>
         <syntax>
           <unsignedInt/>
-        </syntax>
-      </parameter>
-      <parameter name="SwapoutSecs" access="readWrite">
-        <description>HAT swapout interval in seconds.</description>
-        <syntax>
-          <unsignedLong/>
-        </syntax>
-      </parameter>
-      <parameter name="FreqCapSecs" access="readWrite">
-        <description>HAT frequency cap in seconds.</description>
-        <syntax>
-          <unsignedLong/>
-        </syntax>
-      </parameter>
-      <parameter name="CMSGCIntervalSecs" access="readWrite">
-        <description>CMS garbage collector interval.</description>
-        <syntax>
-          <unsignedLong/>
-        </syntax>
-      </parameter>
-      <parameter name="GFTSPollingIntervalSecs" access="readWrite">
-        <description>How often to poll ithe GFTS in secs.</description>
-        <syntax>
-          <unsignedLong/>
         </syntax>
       </parameter>
       <parameter name="HatRequestMaxDelaySecs" access="readWrite">
@@ -876,12 +840,6 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
         <description>Duration (in pts) of an ad viewing that turns it into an impression.</description>
         <syntax>
           <long/>
-        </syntax>
-      </parameter>
-      <parameter name="GFTSUrl" access="readWrite">
-        <description>URL of the GFTS server.</description>
-        <syntax>
-          <string/>
         </syntax>
       </parameter>
       <parameter name="GFASUrl" access="readWrite">
