@@ -59,6 +59,7 @@ class Hat(CATABASE.HAT):
 
   GFTSUrl = tr.cwmptypes.TriggerString()
   GFASUrl = tr.cwmptypes.TriggerString()
+  FetcherThrottlingIntervals = tr.cwmptypes.TriggerString()
 
   HATContracts = tr.cwmptypes.FileBacked(
       CONTRACTS, tr.cwmptypes.String(), delete_if_empty=True,
@@ -119,6 +120,8 @@ class Hat(CATABASE.HAT):
                               'hat_catalog_polling_interval_secs')
       self.printIfSetSigned(f, self.MinImpressionViewDurationPts,
                             'min_impression_view_duration_pts')
+      self.printIfSetString(f, self.FetcherThrottlingIntervals,
+                            'fetcher_throttling_intervals')
       self.printIfSetString(f, self.GFTSUrl, 'gfts_url')
       self.printIfSetString(f, self.GFASUrl, 'gfas_url')
 

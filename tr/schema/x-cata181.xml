@@ -896,6 +896,12 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
           <string/>
         </syntax>
       </parameter>
+      <parameter name="FetcherThrottlingIntervals" access="readWrite">
+        <description>List of intervals for the fetcher to know the bandwidth limit and how many downloads can be performed in that timeframe.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
     </object>
 
     <object name="Device.X_CATAWAMPUS-ORG.SelfTest." access="readOnly" minEntries="1" maxEntries="1">
