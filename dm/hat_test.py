@@ -97,7 +97,8 @@ class HatTests(unittest.TestCase):
     hat_handler.DiskSpaceCleanupIntervalSecs = 180
     hat_handler.HatCatalogPollingIntervalSecs = 600
     hat_handler.MinImpressionViewDurationPts = 450000
-    hat_handler.FetcherThrottlingIntervals = '[00:00-6:00,25,15][12:00-6:00,25,40]'
+    throttle = '[00:00-6:00,25,15][12:00-6:00,25,40]'
+    hat_handler.FetcherThrottlingIntervals = throttle
     hat_handler.GFTSUrl = 'www.google.com'
     hat_handler.GFASUrl = 'fiber.google.com'
 
@@ -122,7 +123,8 @@ class HatTests(unittest.TestCase):
     self.assertTrue('disk_space_cleanup_interval_secs=180\n' in lines)
     self.assertTrue('hat_catalog_polling_interval_secs=600\n' in lines)
     self.assertTrue('min_impression_view_duration_pts=450000\n' in lines)
-    self.assertTrue('fetcher_throttling_intervals=[00:00-6:00,25,15][12:00-6:00,25,40]\n' in lines)
+    self.assertTrue('fetcher_throttling_intervals='
+                    '[00:00-6:00,25,15][12:00-6:00,25,40]\n' in lines)
     self.assertTrue('gfas_url=fiber.google.com\n' in lines)
     self.assertTrue('gfts_url=www.google.com\n' in lines)
 
@@ -153,7 +155,8 @@ class HatTests(unittest.TestCase):
     self.assertTrue('disk_space_cleanup_interval_secs=180\n' in lines)
     self.assertTrue('hat_catalog_polling_interval_secs=600\n' in lines)
     self.assertTrue('min_impression_view_duration_pts=450000\n' in lines)
-    self.assertTrue('fetcher_throttling_intervals=[00:00-6:00,10,25]\n' in lines)
+    self.assertTrue('fetcher_throttling_intervals='
+                    '[00:00-6:00,10,25]\n' in lines)
     self.assertTrue('gfas_url=fiber.google.com\n' in lines)
     self.assertTrue('gfts_url=www.google.com\n' in lines)
 
