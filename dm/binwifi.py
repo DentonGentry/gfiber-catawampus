@@ -331,7 +331,15 @@ class WlanConfiguration(CATA98WIFI):
       else:
         param, val = line.split(':', 1)
         rc[param.strip()] = val.strip()
-    rc['AssociatedDevices'] = stations
+    valid_stations = []
+    # The RG will print stations that have connected but aren't authorized
+    # or authenticated, this loop removes any such stations.
+    for station in stations:
+      if (('authorized' in station and station['authorized'] != 'yes') or
+          ('authenticated' in station and station['authenticated'] != 'yes')):
+        continue
+      valid_stations.append(station)
+    rc['AssociatedDevices'] = valid_stations
     return rc
 
   @tr.session.cache
