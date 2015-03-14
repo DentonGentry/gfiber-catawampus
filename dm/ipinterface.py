@@ -155,7 +155,7 @@ class IPInterfaceLinux26(CATA181IP.Interface):
   def IPv4AddressList(self):
     """Device.IP.Interface.{i}.IPv4Address.{i}."""
     ips = IFADDRESSES(self._ifname)
-    ip4s = ips.get(socket.AF_INET, [])
+    ip4s = sorted(ips.get(socket.AF_INET, []))
     result = {}
     for idx, ipdict in enumerate(ip4s, start=1):
       ip4 = ipdict.get('addr', '0.0.0.0')
@@ -169,7 +169,7 @@ class IPInterfaceLinux26(CATA181IP.Interface):
   def IPv6AddressList(self):
     """Device.IP.Interface.{i}.IPv6Address.{i}."""
     ips = IFADDRESSES(self._ifname)
-    ip6s = ips.get(socket.AF_INET6, [])
+    ip6s = sorted(ips.get(socket.AF_INET6, []))
     result = {}
     for idx, ipdict in enumerate(ip6s, start=1):
       ip6 = ipdict.get('addr', '::0')
