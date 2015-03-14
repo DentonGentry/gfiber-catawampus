@@ -367,7 +367,7 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
 
     # And the call to _NewTimeoutSession should call through to
     # NewPingSession, and start a new session
-    GetMonotime()().AndReturn(1000 + cpe_machine.rate_limit_seconds)
+    GetMonotime()().AndReturn(1000 + cpe_machine.ping_rate_limit_seconds)
     ioloop_mock.add_timeout(mox.IsA(datetime.timedelta),
                             mox.IgnoreArg()).AndReturn(2)
     cpe_machine.ioloop = ioloop_mock
