@@ -175,16 +175,16 @@ def MockIfaddresses(iface):
     return {
         socket.AF_PACKET: [{'broadcast': 'ff:ff:ff:ff:ff:ff',
                             'addr': '00:11:22:33:44:55'}],
-        socket.AF_INET: [{'broadcast': '1.1.1.255',
-                          'netmask': '255.255.255.0',
-                          'addr': '1.1.1.3'},
-                         {'broadcast': '2.2.2.255',
+        socket.AF_INET: [{'broadcast': '2.2.2.255',
                           'netmask': '255.255.254.0',
-                          'addr': '2.2.2.3'}],
+                          'addr': '2.2.2.3'},
+                         {'broadcast': '1.1.1.255',
+                          'netmask': '255.255.255.0',
+                          'addr': '1.1.1.3'}],
         socket.AF_INET6: [{'netmask': 'ffff:ffff:ffff:ffff::',
-                           'addr': '1000:1000:1000:1000:0011:22ff:fe33:4455'},
+                           'addr': 'fe80::0011:22ff:fe33:4455%foo0'},
                           {'netmask': 'ffff:ffff:ffff:ffff::',
-                           'addr': 'fe80::0011:22ff:fe33:4455%foo0'}]
+                           'addr': '1000:1000:1000:1000:0011:22ff:fe33:4455'}]
     }
   if iface == 'foo1':
     return {
