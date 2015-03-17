@@ -182,7 +182,7 @@ class CPEStateMachine(object):
     self.session = None
     self.my_configured_ip = ip
     self.fetch_args = fetch_args or dict()
-    self.rate_limit_seconds = 60
+    self.ping_rate_limit_seconds = 2
     self.previous_ping_time = 0
     self.ping_timeout_pending = None
     self._changed_parameters = set()
@@ -479,7 +479,7 @@ class CPEStateMachine(object):
     current_time = monohelper.monotime()
     elapsed_time = current_time - self.previous_ping_time
     allow_ping = (elapsed_time < 0 or
-                  elapsed_time > self.rate_limit_seconds)
+                  elapsed_time > self.ping_rate_limit_seconds)
     if allow_ping:
       self.ping_timeout_pending = None
       self.previous_ping_time = current_time
@@ -491,7 +491,7 @@ class CPEStateMachine(object):
       self._NewSession('6 CONNECTION REQUEST')
     elif not self.ping_timeout_pending:
       # Queue up a new session via tornado.
-      callback_time = self.rate_limit_seconds - elapsed_time
+      callback_time = self.ping_rate_limit_seconds - elapsed_time
       if callback_time < 1:
         callback_time = 1
       self.ping_timeout_pending = self.ioloop.add_timeout(
