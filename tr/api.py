@@ -261,7 +261,7 @@ class ParameterAttributes(object):
 
   def CheckForTriggers(self):
     """Checks if a notification needs to be sent to the ACS."""
-    for paramname in self.params.keys():
+    for paramname in self.params:
       try:
         print 'Checking notifications for ' + str(paramname)
         start = tr.monohelper.monotime()
