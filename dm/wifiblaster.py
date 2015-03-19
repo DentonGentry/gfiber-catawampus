@@ -24,18 +24,25 @@ import errno
 import os
 import google3
 import tr.cwmptypes
+import tr.experiment
 import tr.x_catawampus_tr181_2_0
 
 
 CATA181DEVICE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device
 CATA181WIFIBLASTER = CATA181DEVICE.X_CATAWAMPUS_ORG.Wifiblaster
 
+
+@tr.experiment.Experiment
+def EnableWifiblaster(_):
+  yield ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Enable', True)
+
+
 # Unit tests can override these.
 BASEDIR = ['/tmp/waveguide']
-DURATION_FILE = [os.path.join(BASEDIR[0], 'wifiblaster.duration')]
-ENABLE_FILE = [os.path.join(BASEDIR[0], 'wifiblaster.enable')]
-INTERVAL_FILE = [os.path.join(BASEDIR[0], 'wifiblaster.interval')]
-SIZE_FILE = [os.path.join(BASEDIR[0], 'wifiblaster.size')]
+DURATION_FILE = ['/tmp/waveguide/wifiblaster.duration']
+ENABLE_FILE = ['/tmp/waveguide/wifiblaster.enable']
+INTERVAL_FILE = ['/tmp/waveguide/wifiblaster.interval']
+SIZE_FILE = ['/tmp/waveguide/wifiblaster.size']
 
 
 class Wifiblaster(CATA181WIFIBLASTER):
