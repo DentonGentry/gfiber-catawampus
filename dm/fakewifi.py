@@ -24,17 +24,17 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import dm.wifi
 import tr.cwmpbool
 import tr.session
-import tr.tr098_v1_4
+import tr.x_catawampus_tr098_1_0
 import tr.cwmptypes
 
-BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
-BASE98WIFI = BASE98IGD.LANDevice.WLANConfiguration
+CATA98 = tr.x_catawampus_tr098_1_0.X_CATAWAMPUS_ORG_InternetGatewayDevice_v1_0
+CATA98WIFI = CATA98.InternetGatewayDevice.LANDevice.WLANConfiguration
 POSSIBLECHANNELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 36, 40, 44, 48, 52, 56,
                     60, 64, 100, 104, 108, 112, 116, 120, 124, 128, 132, 136,
                     140, 149, 153, 157, 161, 165]
 
 
-class FakeWifiStats(BASE98WIFI.Stats):
+class FakeWifiStats(CATA98WIFI.Stats):
   """tr98 InternetGatewayDevice.LANDevice.WLANConfiguration.Stats."""
 
   ErrorsSent = tr.cwmptypes.ReadOnlyUnsigned(1)
@@ -50,9 +50,18 @@ class FakeWifiStats(BASE98WIFI.Stats):
   UnknownProtoPacketsReceived = tr.cwmptypes.ReadOnlyUnsigned(5)
 
 
-class FakeWifiAssociatedDevice(BASE98WIFI.AssociatedDevice):
+class FakeWifiAssociatedDevice(CATA98WIFI.AssociatedDevice):
+  """InternetGatewayDevice.LANDevice.WLANConfiguration.AssociatedDevice.{i}."""
+
   AssociatedDeviceMACAddress = tr.cwmptypes.ReadOnlyMacAddr('00:11:22:33:44:55')
   AssociatedDeviceAuthenticationState = tr.cwmptypes.ReadOnlyBool(True)
+  # tr-098-1-6 defines LastDataTransmitRate as a string(4). Bizarre.
+  LastDataTransmitRate = tr.cwmptypes.ReadOnlyString('1000')
+  X_CATAWAMPUS_ORG_Active = tr.cwmptypes.ReadOnlyBool(True)
+  X_CATAWAMPUS_ORG_LastDataDownlinkRate = tr.cwmptypes.ReadOnlyUnsigned(1000)
+  X_CATAWAMPUS_ORG_LastDataUplinkRate = tr.cwmptypes.ReadOnlyUnsigned(900)
+  X_CATAWAMPUS_ORG_SignalStrength = tr.cwmptypes.ReadOnlyInt(50)
+  X_CATAWAMPUS_ORG_SignalStrengthAverage = tr.cwmptypes.ReadOnlyInt(40)
 
   def __init__(self, mac=None, ip=None):
     super(FakeWifiAssociatedDevice, self).__init__()
@@ -63,7 +72,7 @@ class FakeWifiAssociatedDevice(BASE98WIFI.AssociatedDevice):
       type(self).AssociatedDeviceMACAddress.Set(self, mac)
 
 
-class FakeWifiWlanConfiguration(BASE98WIFI):
+class FakeWifiWlanConfiguration(CATA98WIFI):
   """An implementation of tr98 WLANConfiguration for FakeCPE."""
 
   AutoChannelEnable = tr.cwmptypes.Bool(True)
@@ -86,11 +95,13 @@ class FakeWifiWlanConfiguration(BASE98WIFI):
   Name = tr.cwmptypes.ReadOnlyString('fakewifi0')
   OperationalDataTransmitRates = tr.cwmptypes.ReadOnlyString(
       '1,2,5.5,6,9,11,12,18,24,36,48,54')
+  OperatingFrequencyBand = tr.cwmptypes.Enum(['2.4GHz', '5GHz'], '2.4GHz')
   PossibleChannels = tr.cwmptypes.ReadOnlyString(
       dm.wifi.ContiguousRanges(POSSIBLECHANNELS))
   RadioEnabled = tr.cwmptypes.Bool(False)
   SSIDAdvertisementEnabled = tr.cwmptypes.Bool(True)
   Standard = tr.cwmptypes.ReadOnlyString('n')
+  SupportedFrequencyBands = tr.cwmptypes.ReadOnlyString('2.4GHz,5GHz')
   TotalBytesSent = tr.cwmptypes.ReadOnlyUnsigned(1000000)
   TotalPacketsSent = tr.cwmptypes.ReadOnlyUnsigned(1000)
   TotalPacketsReceived = tr.cwmptypes.ReadOnlyUnsigned(2000)
@@ -105,6 +116,13 @@ class FakeWifiWlanConfiguration(BASE98WIFI):
       ['WEPEncryption', 'TKIPEncryption', 'WEPandTKIPEncryption',
        'AESEncryption', 'WEPandAESEncryption', 'TKIPandAESEncryption',
        'WEPandTKIPandAESEncryption'])
+  X_CATAWAMPUS_ORG_AllowAutoDisable = tr.cwmptypes.Bool(False)
+  X_CATAWAMPUS_ORG_AutoChannelAlgorithm = tr.cwmptypes.Enum(
+      ['LEGACY', 'INITIAL', 'DYNAMIC'], 'LEGACY')
+  X_CATAWAMPUS_ORG_AutoChanType = tr.cwmptypes.ReadOnlyString('NONDFS')
+  X_CATAWAMPUS_ORG_Width24G = tr.cwmptypes.ReadOnlyString('20')
+  X_CATAWAMPUS_ORG_Width5G = tr.cwmptypes.ReadOnlyString('40')
+  X_CATAWAMPUS_ORG_AutoDisableRecommended = tr.cwmptypes.ReadOnlyBool(False)
 
   def __init__(self):
     super(FakeWifiWlanConfiguration, self).__init__()
@@ -212,3 +230,17 @@ class FakeWifiWlanConfiguration(BASE98WIFI):
 
   TransmitPower = property(GetTransmitPower, SetTransmitPower, None,
                            'WLANConfiguration.TransmitPower')
+
+  @property
+  def X_CATAWAMPUS_ORG_InitiallyRecommendedChannel(self):
+    if self.OperatingFrequencyBand == '2.4GHz':
+      return 4
+    elif self.OperatingFrequencyBand == '5GHz':
+      return 149
+
+  @property
+  def X_CATAWAMPUS_ORG_RecommendedChannel(self):
+    if self.OperatingFrequencyBand == '2.4GHz':
+      return 8
+    elif self.OperatingFrequencyBand == '5GHz':
+      return 36

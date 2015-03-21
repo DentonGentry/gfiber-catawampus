@@ -32,6 +32,12 @@ class BrcmWifiTest(unittest.TestCase):
     wifi = fakewifi.FakeWifiWlanConfiguration()
     tr.handle.ValidateExports(wifi)
 
+  def testCorrectParentModel(self):
+    # We want the catawampus extension, not the base tr-98 model.
+    wifi = fakewifi.FakeWifiWlanConfiguration()
+    self.assertTrue(tr.handle.Handle.IsValidExport(
+        wifi, 'OperatingFrequencyBand'))
+
   def testChannel(self):
     wifi = fakewifi.FakeWifiWlanConfiguration()
     self.assertEqual(wifi.Channel, 1)
@@ -63,6 +69,7 @@ class BrcmWifiTest(unittest.TestCase):
                      '1,2,5.5,6,9,11,12,18,24,36,48,54')
     self.assertEqual(wifi.DeviceOperationMode, 'InfrastructureAccessPoint')
     self.assertEqual(wifi.Name, 'fakewifi0')
+    self.assertEqual(wifi.OperatingFrequencyBand, '2.4GHz')
     self.assertEqual(wifi.OperationalDataTransmitRates,
                      '1,2,5.5,6,9,11,12,18,24,36,48,54')
     self.assertEqual(wifi.PossibleChannels,

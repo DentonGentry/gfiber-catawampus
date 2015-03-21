@@ -68,6 +68,12 @@ class BinWifiTest(unittest.TestCase):
     bw = binwifi.WlanConfiguration('wifi0', '', 'br0')
     tr.handle.ValidateExports(bw)
 
+  def testCorrectParentModel(self):
+    # We want the catawampus extension, not the base tr-98 model.
+    bw = binwifi.WlanConfiguration('wifi0', '', 'br0')
+    self.assertTrue(tr.handle.Handle.IsValidExport(
+        bw, 'OperatingFrequencyBand'))
+
   def testWEPKeyIndex(self):
     bw = binwifi.WlanConfiguration('wifi0', '', 'br0')
     bw.StartTransaction()

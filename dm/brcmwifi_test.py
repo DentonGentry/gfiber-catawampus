@@ -109,6 +109,12 @@ class BrcmWifiTest(unittest.TestCase):
     stats = brcmwifi.BrcmWlanConfigurationStats('wifi0')
     tr.handle.ValidateExports(stats)
 
+  def testCorrectParentModel(self):
+    # We want the catawampus extension, not the base tr-98 model.
+    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    self.assertTrue(tr.handle.Handle.IsValidExport(
+        bw, 'OperatingFrequencyBand'))
+
   def testCounters(self):
     wl = brcmwifi.Wl('foo0')
     counters = wl.GetWlCounters()
