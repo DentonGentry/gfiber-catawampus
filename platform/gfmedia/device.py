@@ -437,8 +437,8 @@ class FanReadGpio(
       print 'Fan speed file %r: %s' % (self._speed_filename, e)
       return -1
     try:
-      rps2 = int(f.read())
-      return rps2 * 30
+      rps = int(f.read())
+      return rps * 60
     except ValueError as e:
       print 'FanReadGpio RPM %r: %s' % (self._speed_filename, e)
       return -1
