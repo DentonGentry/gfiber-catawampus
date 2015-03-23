@@ -141,7 +141,7 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
     fan = device.FanReadGpio(speed_filename='testdata/fanspeed',
                              percent_filename='testdata/fanpercent')
     tr.handle.ValidateExports(fan)
-    self.assertEqual(fan.RPM, 1800)
+    self.assertEqual(fan.RPM, 3600)
     self.assertEqual(fan.DesiredPercentage, 50)
     fan = device.FanReadGpio(speed_filename='foo',
                              percent_filename='bar')
