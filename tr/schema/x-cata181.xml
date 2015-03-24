@@ -854,6 +854,12 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
           <string/>
         </syntax>
       </parameter>
+      <parameter name="CueToneFiredAdRequests" access="readWrite">
+        <description>Turns on/off cuetone-triggered ad requests.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
       <parameter name="FetcherThrottlingIntervals" access="readWrite">
         <description>List of intervals for the fetcher to know the bandwidth limit and how many downloads can be performed in that timeframe.</description>
         <syntax>

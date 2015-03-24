@@ -50,6 +50,7 @@ class Hat(CATABASE.HAT):
   DiskSpaceCleanupIntervalSecs = tr.cwmptypes.TriggerUnsigned()
   HatCatalogPollingIntervalSecs = tr.cwmptypes.TriggerUnsigned()
   MinImpressionViewDurationPts = tr.cwmptypes.TriggerInt()
+  CueToneFiredAdRequests = tr.cwmptypes.TriggerBool()
 
   GFASUrl = tr.cwmptypes.TriggerString()
   FetcherThrottlingIntervals = tr.cwmptypes.TriggerString()
@@ -106,6 +107,8 @@ class Hat(CATABASE.HAT):
                               'hat_catalog_polling_interval_secs')
       self.printIfSetSigned(f, self.MinImpressionViewDurationPts,
                             'min_impression_view_duration_pts')
+      self.printIfSetBool(f, self.CueToneFiredAdRequests,
+                          'cue_tone_fired_ad_requests')
       self.printIfSetString(f, self.FetcherThrottlingIntervals,
                             'fetcher_throttling_intervals')
       self.printIfSetString(f, self.GFASUrl, 'gfas_url')
