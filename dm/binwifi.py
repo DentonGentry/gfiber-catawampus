@@ -726,7 +726,7 @@ class WlanConfiguration(CATA98WIFI):
     if self._ReallyWantWifi():
       (cmd, env) = self._MakeBinWifiCommand()
     else:
-      cmd = BINWIFI + ['off', '-P', '-b', self._band]
+      cmd = BINWIFI + ['stopap', '-P', '-b', self._band]
       if self._if_suffix:
         cmd += ['-S', self._if_suffix]
       env = None

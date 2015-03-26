@@ -177,7 +177,7 @@ class BinWifiTest(unittest.TestCase):
       self.loop.RunOnce(timeout=1)
       buf = open(self.wifioutfile).read()
       # testdata/binwifi/binwifi quotes every argument
-      exp = ['"off" "-P" "-b" "2.4"%s' % s_param, 'PSK=']
+      exp = ['"stopap" "-P" "-b" "2.4"%s' % s_param, 'PSK=']
       self.assertEqual(buf.strip().splitlines(), exp)
 
   def testPSK(self):
