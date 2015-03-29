@@ -1,4 +1,5 @@
 from __future__ import with_statement
+import re
 from StringIO import StringIO
 from xml.sax import saxutils
 from keyword import kwlist as PYTHON_KWORD_LIST
@@ -9,6 +10,11 @@ __version__ = '0.2.1'
 __author__ = "Jonas Galvez <http://jonasgalvez.com.br/>"
 __contributors__ = ["bbolli <http://github.com/bbolli/>",
                     "masklinn <http://github.com/masklinn/>"]
+
+# from http://en.wikipedia.org/wiki/Valid_characters_in_XML
+INVALID_XML_CHARS = (u'[\u0000-\u0008\u000b-\u000c\u000e-\u001f\u007f-\u0084'
+                     u'\u0086-\u009f\ud800-\udfff\ufffe-\uffff]')
+
 
 class Builder:
     
@@ -38,6 +44,7 @@ class Builder:
         """Write raw content to the document"""
         if type(content) is not unicode:
             content = content.decode(self._encoding)
+        content = re.sub(INVALID_XML_CHARS, u'?', content)
         self._document.write('%s' % content)
 
     def write_escaped(self, content):
