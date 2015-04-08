@@ -160,7 +160,7 @@ def main():
 
 
 if __name__ == '__main__':
-  sys.stdout = os.fdopen(1, 'w', 0)  # force line buffering even if redirected
+  sys.stdout = os.fdopen(1, 'w', 1)  # force line buffering even if redirected
   sys.stderr = os.fdopen(2, 'w', 1)  # force line buffering even if redirected
   print
   main()
