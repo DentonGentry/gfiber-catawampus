@@ -30,7 +30,6 @@ import tornado.httpclient
 import tornado.ioloop
 import tornado.web
 import core
-import helpers
 import http_download
 import persistobj
 import session
@@ -241,8 +240,10 @@ class Download(object):
 
     elif dlstate == self.INSTALLING:
       if event == self.EV_INSTALL_COMPLETE:
-        if self.downloaded_file:
-          helpers.Unlink(self.downloaded_file)
+        if self.downloaded_fileobj:
+          self.downloaded_fileobj.close()
+          self.downloaded_fileobj = None
+          self.downloaded_file = None
         if faultcode == 0:
           if must_reboot:
             self.stateobj.Update(dlstate=self.REBOOTING)

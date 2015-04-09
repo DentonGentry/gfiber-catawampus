@@ -129,6 +129,10 @@ class MockFile(object):
 
   def __init__(self, name):
     self.name = name
+    self.close_called = False
+
+  def close(self):
+    self.close_called = True
 
 
 def _Delta(t):
@@ -215,11 +219,13 @@ class DownloadTest(unittest.TestCase):
     self.assertEqual(inst.filename, dlfile.name)
     self.assertFalse(inst.did_reboot)
     self.assertEqual(self.QCheckBoring(dl, kwargs), 2)  # 2: In process
+    self.assertFalse(dlfile.close_called)
 
     # Step 4: Reboot
     inst.install_callback(0, '', must_reboot=True)
     self.assertTrue(inst.did_reboot)
     self.assertEqual(self.QCheckBoring(dl, kwargs), 2)  # 2: In process
+    self.assertTrue(dlfile.close_called)
 
     # Step 5: Send Transfer Complete
     dl.RebootCallback(0, '')
@@ -307,6 +313,7 @@ class DownloadTest(unittest.TestCase):
     self.assertTrue(inst.did_install)
     self.assertEqual(inst.filename, dlfile.name)
     self.assertFalse(inst.did_reboot)
+    self.assertFalse(dlfile.close_called)
 
     # Step 4: Install Failed
     inst.install_callback(101, 'TestInstallError', must_reboot=False)
@@ -317,6 +324,7 @@ class DownloadTest(unittest.TestCase):
     self.assertEqual(cmpl.starttime, 0.0)
     self.assertEqual(cmpl.endtime, 0.0)
     self.assertEqual(cmpl.event_code, 'M Download')
+    self.assertTrue(dlfile.close_called)
 
   def testInstallNoReboot(self):
     ioloop = MockIoloop()
