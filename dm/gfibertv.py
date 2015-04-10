@@ -59,11 +59,11 @@ HNVRAM = ['hnvram']
 MYNICKFILE = ['/config/nickname']
 NICKFILE = ['/tmp/nicknames']
 SAGEFILES = ['/app/sage/*.properties.default*', '/rw/sage/*.properties']
-UICONTROLURLFILE = ['/tmp/oregano_url']
 TCPALGORITHM = ['/config/tcp_congestion_control']
 TVBUFFERADDRESS = ['/tmp/tv_buffer_address']
 TVBUFFERKEY = ['/tmp/tv_buffer_key']
 UICONTROLURLFILE = ['/tmp/oregano_url']
+UI_IS_HTML = ['is-html-tv-ui']
 UITYPEFILE = ['/tmp/ui/uitype']
 
 
@@ -158,6 +158,17 @@ class GFiberTv(CATABASE.GFiberTV):
     self._CreateIfNotExist(UITYPEFILE[0], str(value))
 
   UiType = property(GetUiType, SetUiType, None, 'UiType')
+
+  @property
+  def UiChoice(self):
+    try:
+      if subprocess.call(UI_IS_HTML) == 0:
+        return 'oregano'
+      else:
+        return 'sage'
+    except OSError:
+      # This is not a TV platform.
+      return 'none'
 
   @property
   def DvrSpace(self):

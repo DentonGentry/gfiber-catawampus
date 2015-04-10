@@ -465,6 +465,15 @@ class GfiberTvTests(unittest.TestCase):
     gfibertv.HNVRAM[0] = 'testdata/gfibertv/hnvram_error'
     self.assertRaises(OSError, lambda: setattr(gftv, 'UiType', 'foo'))
 
+  def testUiChoice(self):
+    gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
+    gfibertv.UI_IS_HTML[0] = 'testdata/gfibertv/is-html-tv-ui-yes'
+    self.assertEqual('oregano', gftv.UiChoice)
+    gfibertv.UI_IS_HTML[0] = 'testdata/gfibertv/is-html-tv-ui-no'
+    self.assertEqual('sage', gftv.UiChoice)
+    gfibertv.UI_IS_HTML[0] = '/this/path/does/not/exist/please/do/not/create/it'
+    self.assertEqual('none', gftv.UiChoice)
+
 
 if __name__ == '__main__':
   unittest.main()
