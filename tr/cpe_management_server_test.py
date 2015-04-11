@@ -148,7 +148,7 @@ class CpeManagementServerTest(unittest.TestCase):
     self.assertEqual(len(periodic_callbacks), 1)
     cb = periodic_callbacks[0]
     self.assertTrue(cb.callback)
-    self.assertEqual(cb.callback_time, 15 * 1000)
+    self.assertGreater(cb.callback_time, 0)
 
   def testPeriodicLongInterval(self):
     ms.PERIODIC_CALLBACK = MockPeriodicCallback
@@ -162,6 +162,21 @@ class CpeManagementServerTest(unittest.TestCase):
 
     # Just check that the delay is reasonable
     self.assertNotEqual(io.timeout_time, datetime.timedelta(seconds=0))
+
+  def testStartupPeriodicInformInterval(self):
+    ms.PERIODIC_CALLBACK = MockPeriodicCallback
+    cpe_ms = ms.CpeManagementServer(
+        acs_config=FakeAcsConfig(), port=0, ping_path='/')
+    for _ in range(5):
+      self.assertEqual(60, cpe_ms.PeriodicInformInterval)
+      cpe_ms.SuccessfulSession()
+    self.assertEqual(15 * 60, cpe_ms.PeriodicInformInterval)
+    cpe_ms = ms.CpeManagementServer(
+        acs_config=FakeAcsConfig(), port=0, ping_path='/')
+    self.assertEqual(60, cpe_ms.PeriodicInformInterval)
+    cpe_ms.SuccessfulSession()
+    cpe_ms.PeriodicInformInterval = 900
+    self.assertEqual(900, cpe_ms.PeriodicInformInterval)
 
   def assertWithinRange(self, c, minr, maxr):
     self.assertTrue(minr <= c <= maxr)

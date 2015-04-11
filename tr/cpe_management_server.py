@@ -54,7 +54,6 @@ class CpeManagementServer(object):
   DefaultActiveNotificationThrottle = cwmptypes.TriggerUnsigned(0)
   EnableCWMP = cwmptypes.ReadOnlyBool(True)
   PeriodicInformEnable = cwmptypes.TriggerBool(True)
-  PeriodicInformInterval = cwmptypes.TriggerUnsigned(15 * 60)
   PeriodicInformTime = cwmptypes.TriggerDate(0)
   Password = cwmptypes.TriggerString('')
   STUNEnable = cwmptypes.ReadOnlyBool(False)
@@ -71,6 +70,8 @@ class CpeManagementServer(object):
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self.my_ip = None
     self._periodic_callback = None
+    self._periodic_interval = 0
+    self._periodic_intervals_startup = 5
     self.ping_path = ping_path
     self.port = port
     self.restrict_acs_hosts = restrict_acs_hosts
@@ -80,6 +81,26 @@ class CpeManagementServer(object):
 
   def Triggered(self):
     self.ConfigurePeriodicInform()
+
+  def SuccessfulSession(self):
+    """Called when we successfully terminate a CWMP session."""
+    if self._periodic_intervals_startup > 0:
+      self._periodic_intervals_startup -= 1
+
+  def GetPeriodicInformInterval(self):
+    if self._periodic_interval:
+      return self._periodic_interval
+    # checkin the first few times on a short interval, to give
+    # the ACS several opportunities to set PeriodicInformInterval.
+    return 60 if self._periodic_intervals_startup > 0 else (15 * 60)
+
+  def SetPeriodicInformInterval(self, value):
+    self._periodic_interval = int(value)
+
+  PeriodicInformInterval = property(
+      GetPeriodicInformInterval,
+      SetPeriodicInformInterval, None,
+      'tr-98/181 ManagementServer.PeriodicInformInterval')
 
   def ValidateAcsUrl(self, value):
     """Checks if the URL passed is acceptable.  If not raises an exception."""
