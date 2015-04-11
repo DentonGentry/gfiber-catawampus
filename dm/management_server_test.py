@@ -111,39 +111,13 @@ class ManagementServerTest(unittest.TestCase):
     mgmt98.CWMPRetryIntervalMultiplier = 2
     self.assertEqual(mgmt.CWMPRetryIntervalMultiplier, 2)
     self.assertEqual(mgmt98.CWMPRetryIntervalMultiplier, 2)
+    self.assertRaises(AttributeError, setattr, mgmt98,
+                      'ManageableDeviceNumberOfEntries', 1)
+    self.assertRaises(AttributeError, setattr, mgmt98,
+                      'EmbeddedDeviceNumberOfEntries', 2)
+    self.assertRaises(AttributeError, setattr, mgmt98,
+                      'VirtualDeviceNumberOfEntries', 4)
 
-  def TransactionTester(self, mgmt_server):
-    mgmt_server.StartTransaction()
-    mgmt_server.CommitTransaction()
-
-    mgmt_server.StartTransaction()
-    mgmt_server.AbandonTransaction()
-
-    save_pass = mgmt_server.ConnectionRequestPassword
-    save_user = mgmt_server.ConnectionRequestUsername
-    mgmt_server.StartTransaction()
-    mgmt_server.ConnectionRequestUsername = 'username'
-    mgmt_server.ConnectionRequestPassword = 'pass'
-    mgmt_server.AbandonTransaction()
-    self.assertEqual(save_pass, mgmt_server.ConnectionRequestPassword)
-    self.assertEqual(save_user, mgmt_server.ConnectionRequestUsername)
-
-    mgmt_server.StartTransaction()
-    mgmt_server.ConnectionRequestUsername = 'newname'
-    mgmt_server.ConnectionRequestPassword = 'newpass'
-    mgmt_server.CommitTransaction()
-    self.assertEqual('newpass', mgmt_server.ConnectionRequestPassword)
-    self.assertEqual('newname', mgmt_server.ConnectionRequestUsername)
-
-  def testTransactions181(self):
-    mgmt = MakeCpeManagementServer()
-    mgmt181 = management_server.ManagementServer181(mgmt)
-    self.TransactionTester(mgmt181)
-
-  def testTransactions98(self):
-    mgmt = MakeCpeManagementServer()
-    mgmt98 = management_server.ManagementServer98(mgmt)
-    self.TransactionTester(mgmt98)
 
 if __name__ == '__main__':
   unittest.main()

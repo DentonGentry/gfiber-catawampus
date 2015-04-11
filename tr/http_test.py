@@ -108,6 +108,9 @@ class MockAcsConfig(object):
   def GetAcsUrl(self):
     return 'http://127.0.0.1:%d/cwmp' % self.port
 
+  def SetAcsUrl(self, val):
+    pass
+
   def AcsAccessAttempt(self, unused_url):
     pass
 

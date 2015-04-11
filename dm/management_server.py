@@ -37,12 +37,17 @@ BASEMGMT98 = BASE98IGD.ManagementServer
 class ManagementServer181(BASEMGMT181):
   """Implementation of tr-181 Device.ManagementServer."""
 
+  ManageableDeviceNumberOfEntries = tr.cwmptypes.NumberOf(
+      'ManageableDeviceList')
+  URL = tr.cwmptypes.String()
+
   MGMTATTRS = frozenset([
       'CWMPRetryIntervalMultiplier', 'CWMPRetryMinimumWaitInterval',
       'ConnectionRequestPassword', 'ConnectionRequestURL',
       'ConnectionRequestUsername', 'DefaultActiveNotificationThrottle',
       'EnableCWMP', 'ParameterKey', 'Password', 'PeriodicInformEnable',
-      'PeriodicInformInterval', 'PeriodicInformTime', 'URL', 'Username'])
+      'PeriodicInformInterval', 'PeriodicInformTime', 'STUNEnable',
+      'UpgradesManaged', 'URL', 'Username'])
 
   def __init__(self, mgmt):
     """Proxy object for tr-181 ManagementServer support.
@@ -60,6 +65,7 @@ class ManagementServer181(BASEMGMT181):
     # changes.
     type(self.mgmt).MostRecentURL.callbacklist.append(self._URLChanged)
 
+    self.ManageableDeviceList = {}
     self.Unexport(['DownloadProgressURL', 'KickURL', 'NATDetected',
                    'STUNMaximumKeepAlivePeriod', 'STUNMinimumKeepAlivePeriod',
                    'STUNPassword', 'STUNServerAddress', 'STUNServerPort',
@@ -67,31 +73,6 @@ class ManagementServer181(BASEMGMT181):
                   objects=['DownloadAvailability',
                            'AutonomousTransferCompletePolicy',
                            'DUStateChangeComplPolicy'])
-
-    self.ManageableDeviceList = {}
-
-  def StartTransaction(self):
-    self.mgmt.StartTransaction()
-
-  def AbandonTransaction(self):
-    self.mgmt.AbandonTransaction()
-
-  def CommitTransaction(self):
-    self.mgmt.CommitTransaction()
-
-  @property
-  def ManageableDeviceNumberOfEntries(self):
-    return len(self.ManageableDeviceList)
-
-  @property
-  def STUNEnable(self):
-    return False
-
-  @property
-  def UpgradesManaged(self):
-    return True
-
-  URL = tr.cwmptypes.String()
 
   def _URLChanged(self, unused_obj):
     # This weird syntax is needed in order to bypass the self.__setattr__
@@ -120,12 +101,18 @@ class ManagementServer181(BASEMGMT181):
 class ManagementServer98(BASEMGMT98):
   """Implementation of tr-98 InternetGatewayDevice.ManagementServer."""
 
+  EmbeddedDeviceNumberOfEntries = tr.cwmptypes.NumberOf('EmbeddedDeviceList')
+  ManageableDeviceNumberOfEntries = tr.cwmptypes.NumberOf(
+      'ManageableDeviceList')
+  VirtualDeviceNumberOfEntries = tr.cwmptypes.NumberOf('VirtualDeviceList')
+
   MGMTATTRS = frozenset([
       'CWMPRetryIntervalMultiplier', 'CWMPRetryMinimumWaitInterval',
       'ConnectionRequestPassword', 'ConnectionRequestURL',
       'ConnectionRequestUsername', 'DefaultActiveNotificationThrottle',
       'EnableCWMP', 'ParameterKey', 'Password', 'PeriodicInformEnable',
-      'PeriodicInformInterval', 'PeriodicInformTime', 'URL', 'Username'])
+      'PeriodicInformInterval', 'PeriodicInformTime', 'STUNEnable',
+      'UpgradesManaged', 'URL', 'Username'])
 
   def __init__(self, mgmt):
     """Proxy object for tr-98 ManagementServer support.
@@ -138,6 +125,9 @@ class ManagementServer98(BASEMGMT98):
     """
     super(ManagementServer98, self).__init__()
     self.mgmt = mgmt
+    self.EmbeddedDeviceList = {}
+    self.ManageableDeviceList = {}
+    self.VirtualDeviceList = {}
     self.Unexport(['AliasBasedAddressing', 'AutoCreateInstances',
                    'DownloadProgressURL', 'InstanceMode', 'KickURL',
                    'ManageableDeviceNotificationLimit', 'NATDetected',
@@ -148,39 +138,6 @@ class ManagementServer98(BASEMGMT98):
                    'UDPConnectionRequestAddressNotificationLimit'],
                   objects=['DUStateChangeComplPolicy',
                            'AutonomousTransferCompletePolicy'])
-
-    self.EmbeddedDeviceList = {}
-    self.ManageableDeviceList = {}
-    self.VirtualDeviceList = {}
-
-  def StartTransaction(self):
-    self.mgmt.StartTransaction()
-
-  def AbandonTransaction(self):
-    self.mgmt.AbandonTransaction()
-
-  def CommitTransaction(self):
-    self.mgmt.CommitTransaction()
-
-  @property
-  def EmbeddedDeviceNumberOfEntries(self):
-    return len(self.EmbeddedDeviceList)
-
-  @property
-  def ManageableDeviceNumberOfEntries(self):
-    return len(self.ManageableDeviceList)
-
-  @property
-  def STUNEnable(self):
-    return False
-
-  @property
-  def UpgradesManaged(self):
-    return True
-
-  @property
-  def VirtualDeviceNumberOfEntries(self):
-    return len(self.VirtualDeviceList)
 
   def __getattr__(self, name):
     if name in self.MGMTATTRS:

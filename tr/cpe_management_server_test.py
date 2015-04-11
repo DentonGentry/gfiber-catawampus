@@ -21,11 +21,11 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import copy
 import datetime
 import google3
 import cpe_management_server as ms
 import cwmpdate
+import mainloop
 from wvtest import unittest
 
 
@@ -102,14 +102,6 @@ class CpeManagementServerTest(unittest.TestCase):
     self.start_session_called = False
     del periodic_callbacks[:]
 
-  def testIsIp6Address(self):
-    cpe_ms = ms.CpeManagementServer(acs_config=FakeAcsConfig(),
-                                    port=5, ping_path='/ping/path')
-    self.assertTrue(cpe_ms._isIp6Address('fe80::21d:9ff:fe11:f55f'))
-    self.assertTrue(cpe_ms._isIp6Address('2620:0:1000:5200:222:3ff:fe44:5555'))
-    self.assertFalse(cpe_ms._isIp6Address('1.2.3.4'))
-    self.assertFalse(cpe_ms._isIp6Address('foobar'))
-
   def testConnectionRequestURL(self):
     cpe_ms = ms.CpeManagementServer(acs_config=FakeAcsConfig(),
                                     port=5, ping_path='/ping/path')
@@ -145,23 +137,18 @@ class CpeManagementServerTest(unittest.TestCase):
 
   def testPeriodicEnable(self):
     ms.PERIODIC_CALLBACK = MockPeriodicCallback
-    io = MockIoloop()
     cpe_ms = ms.CpeManagementServer(
         acs_config=FakeAcsConfig(), port=0, ping_path='/',
-        start_periodic_session=self.start_session, ioloop=io)
+        start_periodic_session=self.start_session)
     cpe_ms.PeriodicInformEnable = 'true'
     cpe_ms.PeriodicInformInterval = '15'
+    loop = mainloop.MainLoop()
+    loop.RunOnce()
     # cpe_ms should schedule the callbacks when Enable and Interval both set
-
-    self.assertEqual(io.timeout_time, datetime.timedelta(0.0))
     self.assertEqual(len(periodic_callbacks), 1)
     cb = periodic_callbacks[0]
     self.assertTrue(cb.callback)
     self.assertEqual(cb.callback_time, 15 * 1000)
-    self.assertEqual(cb.io_loop, io)
-
-    io.timeout_callback()
-    self.assertTrue(cb.start_called)
 
   def testPeriodicLongInterval(self):
     ms.PERIODIC_CALLBACK = MockPeriodicCallback
@@ -303,36 +290,6 @@ class CpeManagementServerTest(unittest.TestCase):
     cpe_ms.PeriodicInformTime = '2012-08-22T15:50:14.725772Z'
     cpe_ms.Password = ' pass'
     cpe_ms.Username = ' user'
-
-  def testTransaction(self):
-    cpe_ms = ms.CpeManagementServer(
-        acs_config=None, port=5, ping_path='/',
-        restrict_acs_hosts='.gfsvc.com')
-    orig = copy.deepcopy(cpe_ms.config)
-    # sanity
-    self.assertEqual(orig.CWMPRetryMinimumWaitInterval,
-                     cpe_ms.CWMPRetryMinimumWaitInterval)
-    cpe_ms.StartTransaction()
-    cpe_ms.AbandonTransaction()
-    self.assertEqual(orig.CWMPRetryMinimumWaitInterval,
-                     cpe_ms.CWMPRetryMinimumWaitInterval)
-
-    cpe_ms.StartTransaction()
-    cpe_ms.CommitTransaction()
-    self.assertEqual(orig.CWMPRetryMinimumWaitInterval,
-                     cpe_ms.CWMPRetryMinimumWaitInterval)
-
-    cpe_ms.StartTransaction()
-    cpe_ms.CWMPRetryMinimumWaitInterval *= 2
-    cpe_ms.AbandonTransaction()
-    self.assertEqual(orig.CWMPRetryMinimumWaitInterval,
-                     cpe_ms.CWMPRetryMinimumWaitInterval)
-
-    cpe_ms.StartTransaction()
-    cpe_ms.CWMPRetryMinimumWaitInterval *= 2
-    cpe_ms.CommitTransaction()
-    self.assertEqual(orig.CWMPRetryMinimumWaitInterval * 2,
-                     cpe_ms.CWMPRetryMinimumWaitInterval)
 
   def testGetSessionTimeout(self):
     cpe_ms = ms.CpeManagementServer(
