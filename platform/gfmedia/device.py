@@ -515,6 +515,10 @@ class IP(BASE181.Device.IP):
       self.InterfaceList[10] = dm.ipinterface.IPInterfaceLinux26(
           ifname='wlan1_portal', lowerlayers='')
 
+    if _DoesInterfaceExist('wcli0'):
+      self.InterfaceList[11] = dm.ipinterface.IPInterfaceLinux26(
+          ifname='wcli0', lowerlayers='')
+
     self.ActivePortList = {}
     self.Diagnostics = IPDiagnostics()
 
