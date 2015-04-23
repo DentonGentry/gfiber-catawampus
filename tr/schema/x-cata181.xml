@@ -1125,6 +1125,10 @@ If both {{param|X_CATAWAMPUS-ORG_PortRangeSize}} and {{param|ExternalPortEndRang
         <description>Enable.</description>
         <syntax><boolean/></syntax>
       </parameter>
+      <parameter name="Fraction" access="readWrite">
+        <description>Number of samples per test.</description>
+        <syntax><unsignedInt/></syntax>
+      </parameter>
       <parameter name="Interval" access="readWrite">
         <description>Average time between tests in seconds.</description>
         <syntax><float/></syntax>

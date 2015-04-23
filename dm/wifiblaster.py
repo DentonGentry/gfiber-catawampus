@@ -41,6 +41,7 @@ def EnableWifiblaster(_):
 BASEDIR = ['/tmp/waveguide']
 DURATION_FILE = ['/tmp/waveguide/wifiblaster.duration']
 ENABLE_FILE = ['/tmp/waveguide/wifiblaster.enable']
+FRACTION_FILE = ['/tmp/waveguide/wifiblaster.fraction']
 INTERVAL_FILE = ['/tmp/waveguide/wifiblaster.interval']
 SIZE_FILE = ['/tmp/waveguide/wifiblaster.size']
 
@@ -49,6 +50,7 @@ class Wifiblaster(CATA181WIFIBLASTER):
   """Device.X_CATAWAMPUS-ORG.Wifiblaster."""
   Duration = tr.cwmptypes.FileBacked(DURATION_FILE, tr.cwmptypes.Float())
   Enable = tr.cwmptypes.FileBacked(ENABLE_FILE, tr.cwmptypes.Bool())
+  Fraction = tr.cwmptypes.FileBacked(FRACTION_FILE, tr.cwmptypes.Unsigned())
   Interval = tr.cwmptypes.FileBacked(INTERVAL_FILE, tr.cwmptypes.Float())
   Size = tr.cwmptypes.FileBacked(SIZE_FILE, tr.cwmptypes.Unsigned())
 
@@ -61,5 +63,6 @@ class Wifiblaster(CATA181WIFIBLASTER):
         raise
     self.Duration = .1
     self.Enable = False
+    self.Fraction = 10
     self.Interval = 3600
     self.Size = 64
