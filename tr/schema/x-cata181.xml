@@ -931,62 +931,6 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
       </parameter>
     </object>
 
-    <object name="Device.X_CATAWAMPUS-ORG.SSH." access="readOnly" minEntries="1" maxEntries="1">
-      <description>SSH remote access configuration.</description>
-      <parameter name="Enabled" access="readWrite">
-        <description>SSH daemon enabled and forwarded via remote tunnel.</description>
-        <syntax>
-          <boolean/>
-        </syntax>
-      </parameter>
-      <parameter name="AuthorizedKeys" access="readWrite">
-        <description>RSA public key(s) of permitted remote login, suitable for use by OpenSSHD.</description>
-        <syntax>
-          <string>
-            <size maxLength="65536"/> <!-- 64k should be enough for anyone -->
-          </string>
-        </syntax>
-      </parameter>
-      <parameter name="TunnelHost" access="readWrite">
-        <description>Hostname to connect for remote tunnel.</description>
-        <syntax>
-          <string>
-            <size maxLength="1024"/> <!-- 1k should be enough for a hostname -->
-          </string>
-        </syntax>
-      </parameter>
-      <parameter name="TunnelPort" access="readWrite">
-        <description>Port to connect for remote tunnel.</description>
-        <syntax>
-          <unsignedInt/>
-        </syntax>
-      </parameter>
-      <parameter name="TunnelKeyData" access="readWrite">
-        <description>Key (PEM encoded) for SSL certificate for tunnel</description>
-        <syntax>
-          <string>
-            <size maxLength="65536"/> <!-- 64k should be enough for anyone -->
-          </string>
-        </syntax>
-      </parameter>
-      <parameter name="TunnelCertData" access="readWrite">
-        <description>Certificate (PEM encoded) for SSL certificate for tunnel</description>
-        <syntax>
-          <string>
-            <size maxLength="65536"/> <!-- 64k should be enough for anyone -->
-          </string>
-        </syntax>
-      </parameter>
-      <parameter name="TunnelCAData" access="readWrite">
-        <description>CA data (PEM encoded) for SSL certificate for tunnel</description>
-        <syntax>
-          <string>
-            <size maxLength="65536"/> <!-- 64k should be enough for anyone -->
-          </string>
-        </syntax>
-      </parameter>
-    </object>
-
     <object name="Device.X_CATAWAMPUS-ORG.Speedtest." access="readOnly" minEntries="1" maxEntries="1">
       <description>This object provides access to an IP-layer performance test.</description>
       <parameter name="DiagnosticsState" access="readWrite" activeNotify="canDeny">

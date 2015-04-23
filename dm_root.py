@@ -35,7 +35,6 @@ import dm.isostream
 import dm.management_server
 import dm.ookla
 import dm.selftest
-import dm.ssh
 import dm.wifiblaster
 import tr.core
 import tr.experiment
@@ -106,7 +105,6 @@ class DeviceModelRoot(tr.core.Exporter):
     cata.HAT = dm.hat.Hat()
     cata.HttpDownload = dm.ip_diag_http.DiagHttpDownload()
     cata.Isostream = dm.isostream.Isostream()
-    cata.SSH = dm.ssh.Ssh()
     cata.SelfTest = dm.selftest.SelfTest()
     cata.Speedtest = dm.ookla.Speedtest()
     cata.Wifiblaster = dm.wifiblaster.Wifiblaster()
@@ -140,13 +138,11 @@ class DeviceModelRoot(tr.core.Exporter):
     self.Export(objects=['X_CATAWAMPUS-ORG_CATAWAMPUS',
                          'X_GOOGLE-COM_GFIBERTV',
                          'X_GOOGLE-COM_GVSB',
-                         'X_GOOGLE-COM_HAT',
-                         'X_GOOGLE-COM_SSH'])
+                         'X_GOOGLE-COM_HAT'])
     self.X_CATAWAMPUS_ORG_CATAWAMPUS = cata.Catawampus
     self.X_GOOGLE_COM_GFIBERTV = cata.GFiberTV
     self.X_GOOGLE_COM_GVSB = cata.GVSB
     self.X_GOOGLE_COM_HAT = cata.HAT
-    self.X_GOOGLE_COM_SSH = cata.SSH
 
   def add_management_server(self, mgmt):
     try:
