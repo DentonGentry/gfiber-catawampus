@@ -193,10 +193,7 @@ class Installer(tr.download.Installer):
       return False
     self._install_cb = callback
 
-    # TODO(jnewlin): Remove the --skiploadersig once the new version of ginstall
-    # is integrated down from the cpe2.0 branch.
-    cmd = [GINSTALL, '--tar=%s' % self.url, '--partition=other',
-           '--skiploadersig']
+    cmd = [GINSTALL, '--tar=%s' % self.url, '--partition=other']
     try:
       self._ginstall = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     except (OSError, subprocess.CalledProcessError):
