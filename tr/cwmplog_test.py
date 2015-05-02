@@ -119,6 +119,11 @@ class CwmpLogTest(unittest.TestCase):
     self.assertFalse('password' in log)
     self.assertTrue('ThisIsTheOtherValue' in log)
 
+  def testTruncate(self):
+    logger = cwmplog.Logger(full_logs=0)
+    log = logger.LogSoapXML(GPVResponseManyLinesXML)
+    self.assertLessThan(len(log.splitlines()), 10)
+
 
 InformXML = """<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
@@ -416,6 +421,79 @@ KeyPassphraseXML = """<?xml version="1.0" encoding="utf-8"?>
         <ParameterValueStruct>
           <Name>Foo.1.SomeOtherValue</Name>
           <Value xsi:type="xsd:string">ThisIsTheOtherValue</Value>
+        </ParameterValueStruct>
+      </ParameterList>
+    </cwmp:GetParameterValuesResponse>
+  </soap:Body>
+</soap:Envelope>"""
+
+GPVResponseManyLinesXML = """<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <soap:Header>
+    <cwmp:ID soap:mustUnderstand="1">google.acs.1370224916205.16224788</cwmp:ID>
+  </soap:Header>
+  <soap:Body>
+    <cwmp:GetParameterValuesResponse>
+      <ParameterList soap-enc:arrayType="cwmp:ParameterValueStruct[15]">
+        <ParameterValueStruct>
+          <Name>Foo1</Name>
+          <Value xsi:type="xsd:unsignedInt">1</Value>
+        </ParameterValueStruct>
+        <ParameterValueStruct>
+          <Name>Foo2</Name>
+          <Value xsi:type="xsd:unsignedInt">1</Value>
+        </ParameterValueStruct>
+        <ParameterValueStruct>
+          <Name>Foo3</Name>
+          <Value xsi:type="xsd:unsignedInt">1</Value>
+        </ParameterValueStruct>
+        <ParameterValueStruct>
+          <Name>Foo4</Name>
+          <Value xsi:type="xsd:unsignedInt">1</Value>
+        </ParameterValueStruct>
+        <ParameterValueStruct>
+          <Name>Foo5</Name>
+          <Value xsi:type="xsd:unsignedInt">1</Value>
+        </ParameterValueStruct>
+        <ParameterValueStruct>
+          <Name>Foo6</Name>
+          <Value xsi:type="xsd:unsignedInt">1</Value>
+        </ParameterValueStruct>
+        <ParameterValueStruct>
+          <Name>Foo7</Name>
+          <Value xsi:type="xsd:unsignedInt">1</Value>
+        </ParameterValueStruct>
+        <ParameterValueStruct>
+          <Name>Foo8</Name>
+          <Value xsi:type="xsd:unsignedInt">1</Value>
+        </ParameterValueStruct>
+        <ParameterValueStruct>
+          <Name>Foo9</Name>
+          <Value xsi:type="xsd:unsignedInt">1</Value>
+        </ParameterValueStruct>
+        <ParameterValueStruct>
+          <Name>Foo10</Name>
+          <Value xsi:type="xsd:unsignedInt">1</Value>
+        </ParameterValueStruct>
+          <ParameterValueStruct>
+          <Name>Foo11</Name>
+          <Value xsi:type="xsd:unsignedInt">1</Value>
+        </ParameterValueStruct>
+        <ParameterValueStruct>
+          <Name>Foo12</Name>
+          <Value xsi:type="xsd:unsignedInt">1</Value>
+        </ParameterValueStruct>
+        <ParameterValueStruct>
+          <Name>Foo13</Name>
+          <Value xsi:type="xsd:unsignedInt">1</Value>
+        </ParameterValueStruct>
+        <ParameterValueStruct>
+          <Name>Foo14</Name>
+          <Value xsi:type="xsd:unsignedInt">1</Value>
+        </ParameterValueStruct>
+        <ParameterValueStruct>
+          <Name>Foo15</Name>
+          <Value xsi:type="xsd:unsignedInt">1</Value>
         </ParameterValueStruct>
       </ParameterList>
     </cwmp:GetParameterValuesResponse>

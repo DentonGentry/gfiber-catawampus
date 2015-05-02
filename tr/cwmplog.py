@@ -30,6 +30,8 @@ SUPPRESSLIST = frozenset(['ParameterNames', 'string', 'ParameterList',
 PRUNELIST = frozenset(['MaxEnvelopes', 'ParameterKey', 'CommandKey',
                        'Manufacturer', 'OUI', 'ProductClass',
                        'HoldRequests'])
+TRUNCATELIST = frozenset(['GetParameterValues', 'GetParameterValuesResponse',
+                          'GetParameterNamesResponse'])
 
 
 def _Shorten(s, prefixofs, suffixofs, maxlen):
@@ -126,7 +128,15 @@ def _LogSoapETree(et, prefix=''):
       # Child is a leaf node; all on one line
       out += '%s%s: %s\n' % (prefix, tag, child.text.strip())
     else:
-      out += '%s%s:\n%s' % (prefix, tag, _LogSoapETree(child, prefix + '  '))
+      body = _LogSoapETree(child, prefix + '  ')
+      if tag in TRUNCATELIST:
+        lines = body.splitlines()
+        numlines = len(lines)
+        if numlines > 8:
+          lines = lines[0:3]
+          lines.append('%s...%d more lines...' % (prefix + '  ', numlines - 3))
+          body = '\n'.join(lines)
+      out += '%s%s:\n%s' % (prefix, tag, body)
   return out
 
 
