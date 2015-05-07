@@ -44,7 +44,6 @@ distutils.core.setup(
     version=version,
     packages = ["tornado", "tornado.test", "tornado.platform"],
     package_data = {
-        "tornado": ["ca-certificates.crt"],
         "tornado.test": ["README", "test.crt", "test.key", "static/robots.txt",
                          "templates/utf8.html"],
         },
