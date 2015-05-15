@@ -142,8 +142,12 @@ class AsyncHTTPClient(object):
             impl = AsyncHTTPClient._impl_class
         else:
             impl = cls
-        if io_loop in impl._async_clients() and not force_instance:
-            return impl._async_clients()[io_loop]
+        if force_instance:
+            instance_cache = None
+        else:
+            instance_cache = impl._async_clients()
+        if instance_cache is not None and io_loop in instance_cache:
+            return instance_cache[io_loop]
         else:
             instance = super(AsyncHTTPClient, cls).__new__(impl)
             args = {}
@@ -157,8 +161,13 @@ class AsyncHTTPClient(object):
             elif "max_clients" not in args:
                 args["max_clients"] = AsyncHTTPClient._DEFAULT_MAX_CLIENTS
             instance.initialize(io_loop, **args)
-            if not force_instance:
-                impl._async_clients()[io_loop] = instance
+            # Make sure the instance knows which cache to remove itself from.
+            # It can't simply call _async_clients() because we may be in
+            # __new__(AsyncHTTPClient) but instance.__class__ may be
+            # SimpleAsyncHTTPClient.
+            instance._instance_cache = instance_cache
+            if instance_cache is not None:
+                instance_cache[instance.io_loop] = instance
             return instance
 
     def close(self):
@@ -167,8 +176,10 @@ class AsyncHTTPClient(object):
         create and destroy http clients.  No other methods may be called
         on the AsyncHTTPClient after close().
         """
-        if self._async_clients().get(self.io_loop) is self:
-            del self._async_clients()[self.io_loop]
+        if self._instance_cache is not None:
+            if self._instance_cache.get(self.io_loop) is not self:
+                raise RuntimeError("inconsistent AsyncHTTPClient cache")
+            del self._instance_cache[self.io_loop]
 
     def fetch(self, request, callback, **kwargs):
         """Executes a request, calling callback with an `HTTPResponse`.
