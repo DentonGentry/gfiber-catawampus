@@ -49,12 +49,12 @@ PROC_NET_ARP = '/proc/net/arp'
 SYS_CLASS_NET_PATH = '/sys/class/net'
 TIMENOW = time.time
 
-# Fingerprinting files
+# Client identification files
 ASUS_HOSTNAMES = '/tmp/asus_hostnames'
-DHCP_FINGERPRINTS = '/config/dhcp.fingerprints'
+DHCP_TAXONOMY_FILE = '/config/dhcp.fingerprints'
 DNSSD_HOSTNAMES = '/tmp/dnssd_hostnames'
 NETBIOS_HOSTNAMES = '/tmp/netbios_hostnames'
-WIFI_FINGERPRINT_DIR = '/tmp/wifi/fingerprints'
+WIFI_TAXONOMY_DIR = '/tmp/wifi/fingerprints'
 
 
 def HexIntOrZero(arg):
@@ -456,60 +456,44 @@ class Hosts(BASE181HOSTS):
         host['Active'] = True
         hosts[mac] = host
 
-  def _PopulateDhcpFingerprints(self, hosts):
-    """Add DhcpFingerprint parameters wherever we can."""
+  def _PopulateDhcpTaxonomy(self, hosts):
+    """Add DHCP taxonomy wherever we can."""
     try:
-      f = open(DHCP_FINGERPRINTS)
+      f = open(DHCP_TAXONOMY_FILE)
     except IOError as e:
       if e.errno != errno.ENOENT:
-        print 'Populate DHCP fingerprints: %s' % e
+        print 'Populate DHCP taxonomy: %s' % e
       return
 
     for line in f:
       fields = line.split()
       if len(fields) != 2:
         continue
-      (mac, fingerprint) = fields
+      (mac, species) = fields
       mac = mac.strip().lower()
       host = hosts.get(mac, None)
       if host:
-        host['DhcpFingerprint'] = fingerprint.strip()
+        host['DhcpTaxonomy'] = species.strip()
     f.close()
 
-  def _ReadWifiFingerprint(self, host, fprintfile):
-    """Populate fields from fprintfile in host."""
-    path = os.path.join(WIFI_FINGERPRINT_DIR, fprintfile)
-    # Translate hostapd's file to tr-69 parameter names
-    lookup = {
-        'duration_assoc': 'WifiAssociationDuration',
-        'duration_auth': 'WifiAuthenticationDuration',
-        'duration_probe': 'WifiProbeDuration',
-        'duration_probe_bcast': 'WifiProbeBroadcastDuration',
-        'mlme_probe': 'WifiProbeElements',
-        'mlme_probe_bcast': 'WifiProbeBroadcastElements',
-        'mlme_assoc': 'WifiAssociationElements'
-    }
-    line = ''
+  def _ReadWifiTaxonomy(self, host, filename):
+    """Populate Wifi Taxonomy information in host."""
+    path = os.path.join(WIFI_TAXONOMY_DIR, filename)
     try:
       with open(path) as f:
-        for line in f:
-          (name, value) = line.split(':', 1)
-          if name in lookup:
-            host[lookup[name]] = value.strip()
-    except IOError:
+        host['WifiTaxonomy'] = str(f.read(4096))
+    except (IOError, OSError):
       # file not present means the feature isn't enabled
-      return
-    except ValueError:
-      print 'ReadWifiFingerprint malformed line: ' + line
+      return ''
 
-  def _PopulateWifiFingerprints(self, hosts):
-    """Add Wifi fingerprint parameters wherever we can."""
+  def _PopulateWifiTaxonomy(self, hosts):
+    """Add Wifi taxonomy wherever we can."""
     try:
-      for d in os.listdir(WIFI_FINGERPRINT_DIR):
+      for d in os.listdir(WIFI_TAXONOMY_DIR):
         mac = str(d).lower()
         host = hosts.get(mac, None)
         if host:
-          self._ReadWifiFingerprint(host, d)
+          self._ReadWifiTaxonomy(host, d)
     except (IOError, OSError):
       # File or directory not present means the feature isn't enabled.
       pass
@@ -606,10 +590,10 @@ class Hosts(BASE181HOSTS):
     self._GetHostsFromWifiAssociatedDevices(hosts=hosts)
     self._GetHostsFromMocaAssociatedDevices(hosts=hosts)
     self._GetHostsFromDhcpServers(hosts=hosts)
-    self._PopulateDhcpFingerprints(hosts=hosts)
+    self._PopulateDhcpTaxonomy(hosts=hosts)
     self._PopulateSsdpServers(hosts=hosts)
     self._PopulateDiscoveredHostnames(hosts=hosts)
-    self._PopulateWifiFingerprints(hosts=hosts)
+    self._PopulateWifiTaxonomy(hosts=hosts)
     host_list = dict()
     for idx, host in enumerate(hosts.values(), start=1):
       host_list[str(idx)] = Host(**host)
@@ -648,11 +632,8 @@ class Host(CATA181HOST):
                Layer1Interface='', Layer3Interface='', HostName='',
                LeaseTimeRemaining=0, VendorClassID='',
                ClientID='', UserClassID='',
-               DhcpFingerprint='', SsdpServer='', AsusModel='',
-               DnsSdName='', NetbiosName='', WifiAssociationDuration='',
-               WifiAuthenticationDuration='', WifiProbeDuration='',
-               WifiProbeBroadcastDuration='', WifiProbeElements='',
-               WifiProbeBroadcastElements='', WifiAssociationElements=''):
+               DhcpTaxonomy='', SsdpServer='', AsusModel='',
+               DnsSdName='', NetbiosName='', WifiTaxonomy=''):
     super(Host, self).__init__()
     self.Unexport(['Alias'])
 
@@ -673,17 +654,11 @@ class Host(CATA181HOST):
     cid = ClientIdentification()
     self.X_CATAWAMPUS_ORG_ClientIdentification = cid
     type(cid).AsusModel.Set(cid, AsusModel)
-    type(cid).DhcpFingerprint.Set(cid, DhcpFingerprint)
+    type(cid).DhcpTaxonomy.Set(cid, DhcpTaxonomy)
     type(cid).DnsSdName.Set(cid, DnsSdName)
     type(cid).NetbiosName.Set(cid, NetbiosName)
     type(cid).SsdpServer.Set(cid, SsdpServer)
-    type(cid).WifiAssociationDuration.Set(cid, WifiAssociationDuration)
-    type(cid).WifiAuthenticationDuration.Set(cid, WifiAuthenticationDuration)
-    type(cid).WifiProbeDuration.Set(cid, WifiProbeDuration)
-    type(cid).WifiProbeBroadcastDuration.Set(cid, WifiProbeBroadcastDuration)
-    type(cid).WifiProbeElements.Set(cid, WifiProbeElements)
-    type(cid).WifiProbeBroadcastElements.Set(cid, WifiProbeBroadcastElements)
-    type(cid).WifiAssociationElements.Set(cid, WifiAssociationElements)
+    type(cid).WifiTaxonomy.Set(cid, WifiTaxonomy)
 
   def _PopulateIpList(self, l, obj):
     """Return a dict with d[n] for each item in l."""
@@ -738,17 +713,11 @@ class HostIPv6Address(BASE181HOST.IPv6Address):
 
 
 class ClientIdentification(CATA181HOST.X_CATAWAMPUS_ORG_ClientIdentification):
-  """X_CATAWAMPUS-ORG_ClientIdentification, for client fingerprinting."""
+  """X_CATAWAMPUS-ORG_ClientIdentification, for client identification."""
 
   AsusModel = tr.cwmptypes.ReadOnlyString('')
-  DhcpFingerprint = tr.cwmptypes.ReadOnlyString('')
+  DhcpTaxonomy = tr.cwmptypes.ReadOnlyString('')
   DnsSdName = tr.cwmptypes.ReadOnlyString('')
   NetbiosName = tr.cwmptypes.ReadOnlyString('')
   SsdpServer = tr.cwmptypes.ReadOnlyString('')
-  WifiAssociationDuration = tr.cwmptypes.ReadOnlyString('')
-  WifiAuthenticationDuration = tr.cwmptypes.ReadOnlyString('')
-  WifiProbeDuration = tr.cwmptypes.ReadOnlyString('')
-  WifiProbeBroadcastDuration = tr.cwmptypes.ReadOnlyString('')
-  WifiProbeElements = tr.cwmptypes.ReadOnlyString('')
-  WifiProbeBroadcastElements = tr.cwmptypes.ReadOnlyString('')
-  WifiAssociationElements = tr.cwmptypes.ReadOnlyString('')
+  WifiTaxonomy = tr.cwmptypes.ReadOnlyString('')

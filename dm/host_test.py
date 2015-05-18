@@ -50,7 +50,7 @@ class HostTest(unittest.TestCase):
 
   def setUp(self):
     self.old_ASUS_HOSTNAMES = host.ASUS_HOSTNAMES
-    self.old_DHCP_FINGERPRINTS = host.DHCP_FINGERPRINTS
+    self.old_DHCP_TAXONOMY_FILE = host.DHCP_TAXONOMY_FILE
     self.old_DNSSD_HOSTNAMES = host.DNSSD_HOSTNAMES
     self.old_IP6NEIGH = host.IP6NEIGH[0]
     self.old_NETBIOS_HOSTNAMES = host.NETBIOS_HOSTNAMES
@@ -58,28 +58,28 @@ class HostTest(unittest.TestCase):
     self.old_POLL_CMD = miniupnp.POLL_CMD
     self.old_SYS_CLASS_NET_PATH = host.SYS_CLASS_NET_PATH
     self.old_TIMENOW = host.TIMENOW
-    self.old_WIFI_FINGERPRINT_DIR = host.WIFI_FINGERPRINT_DIR
+    self.old_WIFI_TAXONOMY_DIR = host.WIFI_TAXONOMY_DIR
     host.ASUS_HOSTNAMES = 'testdata/host/asus_hostnames'
-    host.DHCP_FINGERPRINTS = 'testdata/host/fingerprints-dhcp'
+    host.DHCP_TAXONOMY_FILE = 'testdata/host/dhcp-taxonomy'
     host.DNSSD_HOSTNAMES = 'testdata/host/dnssd_hostnames'
     host.IP6NEIGH[0] = 'testdata/host/ip6neigh_empty'
     host.NETBIOS_HOSTNAMES = 'testdata/host/netbios_hostnames'
     host.PROC_NET_ARP = '/dev/null'
     host.SYS_CLASS_NET_PATH = 'testdata/host/sys/class/net'
     host.TIMENOW = TimeNow
-    host.WIFI_FINGERPRINT_DIR = 'testdata/host/wifi-hostapd-fingerprints'
+    host.WIFI_TAXONOMY_DIR = 'testdata/host/wifi-taxonomy'
     miniupnp.POLL_CMD = ['testdata/host/ssdp_poll']
 
   def tearDown(self):
     host.ASUS_HOSTNAMES = self.old_ASUS_HOSTNAMES
-    host.DHCP_FINGERPRINTS = self.old_DHCP_FINGERPRINTS
+    host.DHCP_TAXONOMY_FILE = self.old_DHCP_TAXONOMY_FILE
     host.DNSSD_HOSTNAMES = self.old_DNSSD_HOSTNAMES
     host.IP6NEIGH[0] = self.old_IP6NEIGH
     host.NETBIOS_HOSTNAMES = self.old_NETBIOS_HOSTNAMES
     host.PROC_NET_ARP = self.old_PROC_NET_ARP
     host.SYS_CLASS_NET_PATH = self.old_SYS_CLASS_NET_PATH
     host.TIMENOW = self.old_TIMENOW
-    host.WIFI_FINGERPRINT_DIR = self.old_WIFI_FINGERPRINT_DIR
+    host.WIFI_TAXONOMY_DIR = self.old_WIFI_TAXONOMY_DIR
     miniupnp.POLL_CMD = self.old_POLL_CMD
 
   def testValidateExports(self):
@@ -209,7 +209,7 @@ class HostTest(unittest.TestCase):
         found |= 4
     self.assertEqual(7, found)
 
-  def testDhcpFingerprint(self):
+  def testDhcpTaxonomy(self):
     host.PROC_NET_ARP = 'testdata/host/proc_net_arp'
     iflookup = {'foo0': 'Device.Foo.Interface.1',
                 'foo1': 'Device.Foo.Interface.2'}
@@ -217,7 +217,7 @@ class HostTest(unittest.TestCase):
     self.assertEqual(3, len(hosts.HostList))
     found = 0
     for h in hosts.HostList.values():
-      fp = h.X_CATAWAMPUS_ORG_ClientIdentification.DhcpFingerprint
+      fp = h.X_CATAWAMPUS_ORG_ClientIdentification.DhcpTaxonomy
       if h.PhysAddress == 'f8:8f:ca:00:00:01':
         self.assertEqual('1,2,3', fp)
         found |= 1
@@ -229,31 +229,31 @@ class HostTest(unittest.TestCase):
         found |= 4
     self.assertEqual(7, found)
 
-  def testNoDhcpFingerprintFile(self):
+  def testNoDhcpTaxonomyFile(self):
     host.PROC_NET_ARP = 'testdata/host/proc_net_arp'
-    host.DHCP_FINGERPRINTS = '/nonexistent'
+    host.DHCP_TAXONOMY_FILE = '/nonexistent'
     hosts = host.Hosts()
     self.assertEqual(3, len(hosts.HostList))
     for h in hosts.HostList.values():
-      fp = h.X_CATAWAMPUS_ORG_ClientIdentification.DhcpFingerprint
+      fp = h.X_CATAWAMPUS_ORG_ClientIdentification.DhcpTaxonomy
       self.assertEqual('', fp)
 
-  def testCorruptDhcpFingerprintFile(self):
+  def testCorruptDhcpTaxonomyFile(self):
     host.PROC_NET_ARP = 'testdata/host/proc_net_arp'
-    host.DHCP_FINGERPRINTS = 'testdata/host/fingerprints-corrupt'
+    host.DHCP_TAXONOMY_FILE = 'testdata/host/dhcp-taxonomy-corrupt'
     hosts = host.Hosts()
     self.assertEqual(3, len(hosts.HostList))
     for h in hosts.HostList.values():
-      fp = h.X_CATAWAMPUS_ORG_ClientIdentification.DhcpFingerprint
+      fp = h.X_CATAWAMPUS_ORG_ClientIdentification.DhcpTaxonomy
       self.assertEqual('', fp)
 
-  def testEmptyDhcpFingerprintFile(self):
+  def testEmptyDhcpTaxonomyFile(self):
     host.PROC_NET_ARP = 'testdata/host/proc_net_arp'
-    host.DHCP_FINGERPRINTS = 'testdata/host/fingerprints-empty'
+    host.DHCP_TAXONOMY_FILE = 'testdata/host/dhcp-taxonomy-empty'
     hosts = host.Hosts()
     self.assertEqual(3, len(hosts.HostList))
     for h in hosts.HostList.values():
-      fp = h.X_CATAWAMPUS_ORG_ClientIdentification.DhcpFingerprint
+      fp = h.X_CATAWAMPUS_ORG_ClientIdentification.DhcpTaxonomy
       self.assertEqual('', fp)
 
   def testSsdpServers(self):
@@ -276,7 +276,7 @@ class HostTest(unittest.TestCase):
         found |= 4
     self.assertEqual(7, found)
 
-  def testWifiFingerprint(self):
+  def testWifiTaxonomy(self):
     host.PROC_NET_ARP = 'testdata/host/proc_net_arp'
     iflookup = {'foo0': 'Device.Foo.Interface.1',
                 'foo1': 'Device.Foo.Interface.2'}
@@ -286,15 +286,8 @@ class HostTest(unittest.TestCase):
     for h in hosts.HostList.values():
       ci = h.X_CATAWAMPUS_ORG_ClientIdentification
       if h.PhysAddress == 'f8:8f:ca:00:00:01':
-        self.assertEqual(ci.WifiAssociationDuration, '10,10,')
-        self.assertEqual(ci.WifiAuthenticationDuration, '20,20,')
-        self.assertEqual(ci.WifiProbeDuration, '30,30,')
-        self.assertEqual(ci.WifiProbeBroadcastDuration, '40,40,')
-        self.assertEqual(ci.WifiProbeElements, 'oui:001122,tag:1,2,3,4')
-        self.assertEqual(ci.WifiProbeBroadcastElements,
-                         'oui:001122,tag:5,6,7,8')
-        self.assertEqual(ci.WifiAssociationElements,
-                         'oui:001122,tag:9,10,11,12')
+        expected = 'wifi|probe:1,2,3,4|assoc:5,6,7,8'
+        self.assertEqual(ci.WifiTaxonomy.strip(), expected)
         found = 1
     self.assertEqual(1, found)
 

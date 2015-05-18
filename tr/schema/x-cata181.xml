@@ -318,8 +318,8 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
     </object>
 
     <object name="Device.Hosts.Host.{i}.X_CATAWAMPUS_ORG_ClientIdentification." access="readOnly" minEntries="1" maxEntries="1">
-      <description>Fingerprinting information to identify a client device.</description>
-      <parameter name="DhcpFingerprint" access="readOnly">
+      <description>Information to identify a client device.</description>
+      <parameter name="DhcpTaxonomy" access="readOnly">
         <description>A comma separated list of DHCP options requested by this client, in the order they were requested. Ex: 1,28,3,15,6,42</description>
         <syntax>
           <string>
@@ -359,59 +359,11 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
           </string>
         </syntax>
       </parameter>
-      <parameter name="WifiAssociationDuration" access="readOnly">
-        <description>A comma-separated list containing the Duration field from the last N Wifi Association frames.</description>
+      <parameter name="WifiTaxonomy" access="readOnly">
+        <description>The string of options present in the client's Probe and Association frames.</description>
         <syntax>
           <string>
-            <size maxLength="1024"/>
-          </string>
-        </syntax>
-      </parameter>
-      <parameter name="WifiAuthenticationDuration" access="readOnly">
-        <description>A comma-separated list containing the Duration field from the last N Wifi Authentication frames.</description>
-        <syntax>
-          <string>
-            <size maxLength="1024"/>
-          </string>
-        </syntax>
-      </parameter>
-      <parameter name="WifiProbeDuration" access="readOnly">
-        <description>A comma-separated list containing the Duration field from the last N Wifi Probe frames.</description>
-        <syntax>
-          <string>
-            <size maxLength="1024"/>
-          </string>
-        </syntax>
-      </parameter>
-      <parameter name="WifiProbeBroadcastDuration" access="readOnly">
-        <description>A comma-separated list containing the Duration field from the last N Wifi Probe frames sent to a NULL SSID (meaning Broadcast).</description>
-        <syntax>
-          <string>
-            <size maxLength="1024"/>
-          </string>
-        </syntax>
-      </parameter>
-      <parameter name="WifiProbeElements" access="readOnly">
-        <description>A string description of the Information Elements present in the most recent Probe frame from this station.</description>
-        <syntax>
-          <string>
-            <size maxLength="1024"/>
-          </string>
-        </syntax>
-      </parameter>
-      <parameter name="WifiProbeBroadcastElements" access="readOnly">
-        <description>A string description of the Information Elements present in the most recent Probe frame sent to a NULL SSID (meaning Broadcast).</description>
-        <syntax>
-          <string>
-            <size maxLength="1024"/>
-          </string>
-        </syntax>
-      </parameter>
-      <parameter name="WifiAssociationElements" access="readOnly">
-        <description>A string description of the Information Elements present in the most recent Association frame from this station.</description>
-        <syntax>
-          <string>
-            <size maxLength="1024"/>
+            <size maxLength="4096"/>
           </string>
         </syntax>
       </parameter>
