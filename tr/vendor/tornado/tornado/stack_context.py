@@ -129,6 +129,7 @@ class StackContext(object):
             return self.context.__exit__(type, value, traceback)
         finally:
             _state.contexts = self.old_contexts
+            self.old_contexts = None
 
 
 class ExceptionStackContext(object):
