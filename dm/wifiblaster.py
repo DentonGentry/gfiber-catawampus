@@ -33,7 +33,20 @@ CATA181WIFIBLASTER = CATA181DEVICE.X_CATAWAMPUS_ORG.Wifiblaster
 
 
 @tr.experiment.Experiment
-def EnableWifiblaster(_):
+def EnableWifiblaster1470(_):
+  yield ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Size', 1470)
+  yield ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Enable', True)
+
+
+@tr.experiment.Experiment
+def EnableWifiblaster800(_):
+  yield ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Size', 800)
+  yield ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Enable', True)
+
+
+@tr.experiment.Experiment
+def EnableWifiblaster60(_):
+  yield ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Size', 60)
   yield ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Enable', True)
 
 
