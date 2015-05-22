@@ -65,4 +65,4 @@ class Wifiblaster(CATA181WIFIBLASTER):
     self.Enable = False
     self.Fraction = 10
     self.Interval = 3600
-    self.Size = 64
+    self.Size = 1470
