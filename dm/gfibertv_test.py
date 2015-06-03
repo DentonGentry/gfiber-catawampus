@@ -145,6 +145,11 @@ class GfiberTvTests(unittest.TestCase):
     gfibertv.TVBUFFERADDRESS[0] = self.tvbufferadddress_fname
     self.tvbufferkey_fname = os.path.join(self.tmpdir, 'TVBUFFERKEY')
     gfibertv.TVBUFFERKEY[0] = self.tvbufferkey_fname
+    self.frobnicastaddress_fname = os.path.join(self.tmpdir,
+                                                'FROBNICASTADDRESS')
+    gfibertv.FROBNICASTADDRESS[0] = self.frobnicastaddress_fname
+    self.frobnicastkey_fname = os.path.join(self.tmpdir, 'FROBNICASTKEY')
+    gfibertv.FROBNICASTKEY[0] = self.frobnicastkey_fname
 
   def tearDown(self):
     xmlrpclib.ServerProxy('http://localhost:%d' % srv_port).Quit()
@@ -445,6 +450,19 @@ class GfiberTvTests(unittest.TestCase):
     self.loop.RunOnce()
     self.assertEqual(open(self.tvbufferadddress_fname).read(), '4.3.2.1:6666\n')
     self.assertEqual(open(self.tvbufferkey_fname).read(), 'monkeysaurus rex\n')
+
+  def testFrobnicast(self):
+    open(self.frobnicastaddress_fname, 'w').write('[2620:0:1003::a811]:9533')
+    open(self.frobnicastkey_fname, 'w').write('flying')
+    gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
+    self.assertEqual(gftv.FrobnicastAddress, '[2620:0:1003::a811]:9533')
+    self.assertEqual(gftv.FrobnicastKey, 'flying')
+    gftv.FrobnicastAddress = '[2620:0:1003::a812]:9633'
+    gftv.FrobnicastKey = 'swimming'
+    self.loop.RunOnce()
+    self.assertEqual(open(self.frobnicastaddress_fname).read(),
+                     '[2620:0:1003::a812]:9633\n')
+    self.assertEqual(open(self.frobnicastkey_fname).read(), 'swimming\n')
 
   def testHnvram(self):
     gfibertv.HNVRAM[0] = 'testdata/gfibertv/hnvram_read'

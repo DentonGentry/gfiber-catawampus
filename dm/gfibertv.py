@@ -62,6 +62,8 @@ SAGEFILES = ['/app/sage/*.properties.default*', '/rw/sage/*.properties']
 TCPALGORITHM = ['/config/tcp_congestion_control']
 TVBUFFERADDRESS = ['/tmp/tv_buffer_address']
 TVBUFFERKEY = ['/tmp/tv_buffer_key']
+FROBNICASTADDRESS = ['/tmp/frobnicast_address']
+FROBNICASTKEY = ['/tmp/frobnicast_key']
 UICONTROLURLFILE = ['/tmp/oregano_url']
 UI_IS_HTML = ['is-html-tv-ui']
 UITYPEFILE = ['/tmp/ui/uitype']
@@ -102,6 +104,9 @@ class GFiberTv(CATABASE.GFiberTV):
   TvBufferAddress = tr.cwmptypes.FileBacked(
       TVBUFFERADDRESS, tr.cwmptypes.String())
   TvBufferKey = tr.cwmptypes.FileBacked(TVBUFFERKEY, tr.cwmptypes.String())
+  FrobnicastAddress = tr.cwmptypes.FileBacked(FROBNICASTADDRESS,
+                                              tr.cwmptypes.String())
+  FrobnicastKey = tr.cwmptypes.FileBacked(FROBNICASTKEY, tr.cwmptypes.String())
 
   def __init__(self, mailbox_url, my_serial=None):
     """GFiberTV object.

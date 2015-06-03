@@ -619,6 +619,18 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
           <string/>
         </syntax>
       </parameter>
+      <parameter name="FrobnicastAddress" access="readWrite">
+        <description>The ip:port address of the Frobnicast service. Enables use of the service if present and non-empty</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="FrobnicastKey" access="readWrite">
+        <description>Key used to allow access to the Frobnicast service</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
 
       <object name="DvrSpace." access="readOnly" minEntries="1" maxEntries="1">
         <parameter name="PermanentFiles" access="readOnly">
