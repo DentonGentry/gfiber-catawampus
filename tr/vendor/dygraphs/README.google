@@ -1,0 +1,11 @@
+URL: http://dygraphs.com/1.1.1/dygraph-combined-dev.js
+URL: http://dygraphs.com/1.1.1/dygraph-combined.js
+Version: 1.1.1
+License: MIT
+License File: LICENSE.txt
+
+Description:
+dygraphs is a fast, flexible open source JavaScript charting library.
+
+Local Modifications:
+No modifications.
