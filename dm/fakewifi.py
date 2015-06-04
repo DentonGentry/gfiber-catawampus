@@ -26,6 +26,7 @@ import tr.cwmpbool
 import tr.session
 import tr.x_catawampus_tr098_1_0
 import tr.cwmptypes
+import datetime
 
 CATA98 = tr.x_catawampus_tr098_1_0.X_CATAWAMPUS_ORG_InternetGatewayDevice_v1_0
 CATA98WIFI = CATA98.InternetGatewayDevice.LANDevice.WLANConfiguration
@@ -60,7 +61,6 @@ class FakeWifiAssociatedDevice(CATA98WIFI.AssociatedDevice):
   X_CATAWAMPUS_ORG_Active = tr.cwmptypes.ReadOnlyBool(True)
   X_CATAWAMPUS_ORG_LastDataDownlinkRate = tr.cwmptypes.ReadOnlyUnsigned(1000)
   X_CATAWAMPUS_ORG_LastDataUplinkRate = tr.cwmptypes.ReadOnlyUnsigned(900)
-  X_CATAWAMPUS_ORG_SignalStrength = tr.cwmptypes.ReadOnlyInt(50)
   X_CATAWAMPUS_ORG_SignalStrengthAverage = tr.cwmptypes.ReadOnlyInt(40)
 
   def __init__(self, mac=None, ip=None):
@@ -70,6 +70,10 @@ class FakeWifiAssociatedDevice(CATA98WIFI.AssociatedDevice):
                    'LastDataTransmitRate'])
     if mac:
       type(self).AssociatedDeviceMACAddress.Set(self, mac)
+
+  @property
+  def X_CATAWAMPUS_ORG_SignalStrength(self):
+    return 42 + datetime.datetime.now().second
 
 
 class FakeWifiWlanConfiguration(CATA98WIFI):

@@ -190,6 +190,7 @@ class DiaguiSettings(tornado.web.Application):
 
     wlan = dict()
     devices = dict()
+    signal_strength = dict()
     wpa = dict()
     self.data['ssid5'] = ''
 
@@ -212,7 +213,9 @@ class DiaguiSettings(tornado.web.Application):
             devices[assoc.AssociatedDeviceMACAddress] = (
                 '(2.4 GHz) (Authentication state: %s)'
                 % assoc.AssociatedDeviceAuthenticationState)
-
+            signal_strength[assoc.AssociatedDeviceMACAddress] = (
+                assoc.X_CATAWAMPUS_ORG_SignalStrength
+            )
         else:
           self.data['ssid5'] = wlconf.SSID
           if wlconf.WPAAuthenticationMode == 'PSKAuthentication':
@@ -222,10 +225,14 @@ class DiaguiSettings(tornado.web.Application):
             devices[assoc.AssociatedDeviceMACAddress] = (
                 '(5 GHz) (Authentication state: %s)'
                 % assoc.AssociatedDeviceAuthenticationState)
+            signal_strength[assoc.AssociatedDeviceMACAddress] = (
+                assoc.X_CATAWAMPUS_ORG_SignalStrength
+            )
 
     self.data['wirelesslan'] = wlan
     self.data['wirelessdevices'] = devices
     self.data['wpa2'] = wpa
+    self.data['signal_strength'] = signal_strength
 
     if 'ssid24' in self.data and 'ssid5' in self.data:
       if self.data['ssid5'] == self.data['ssid24']:
