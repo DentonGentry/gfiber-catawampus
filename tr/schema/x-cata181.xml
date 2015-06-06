@@ -385,14 +385,75 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
           </string>
         </syntax>
       </parameter>
+      <parameter name="WifiChipset" access="readOnly">
+        <description>The chipset of the Wifi device if known, like 'BCM4334'</description>
+        <syntax>
+          <string>
+            <size maxLength="32"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="WifiDeviceModel" access="readOnly">
+        <description>The type of Wifi device if known, like 'Nexus 4'</description>
+        <syntax>
+          <string>
+            <size maxLength="128"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="WifiPerformance" access="readOnly">
+        <description>A string describing Wifi performance characteristics, like '802.11ac n:3,w:80'</description>
+        <syntax>
+          <string>
+            <size maxLength="64"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="WifiStandard" access="readOnly">
+        <description>A string describing the Wifi standard supported by the device, such as '802.11ac', '802.11n', or '802.11a/b/g'.</description>
+        <syntax>
+          <string>
+            <size maxLength="32"/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="WifiNumberOfStreams" access="readOnly">
+        <description>The number of spatial streams supported by this client, 0 for unknown.</description>
+        <syntax>
+          <string>
+            <unsignedInt/>
+          </string>
+        </syntax>
+      </parameter>
+      <parameter name="WifiChannelWidth" access="readOnly">
+        <description>A string describing the channel width supported by this client.</description>
+        <syntax>
+          <string>
+            <enumeration value="20"/>
+            <enumeration value="40"/>
+            <enumeration value="80"/>
+            <enumeration value="80+80"/>
+            <enumeration value="160"/>
+          </string>
+        </syntax>
+      </parameter>
       <parameter name="WifiTaxonomy" access="readOnly">
-        <description>The string of options present in the client's Probe and Association frames.</description>
+        <description>The signature of a Wifi device, the string of options present in the client's Probe and Association frames.</description>
         <syntax>
           <string>
             <size maxLength="4096"/>
           </string>
         </syntax>
       </parameter>
+      <parameter name="WifiBlasterResults" access="readOnly">
+        <description>The N most recent Wifi performance test results for this device, as a multiline string.</description>
+        <syntax>
+          <string>
+            <size maxLength="16384"/>
+          </string>
+        </syntax>
+      </parameter>
+
     </object>
 
     <object name="Device.IP.Interface.{i}." access="readWrite" numEntriesParameter="InterfaceNumberOfEntries" enableParameter="Enable" minEntries="0" maxEntries="unbounded">
@@ -1164,6 +1225,10 @@ If both {{param|X_CATAWAMPUS-ORG_PortRangeSize}} and {{param|ExternalPortEndRang
       <parameter name="Interval" access="readWrite">
         <description>Average time between tests in seconds.</description>
         <syntax><float/></syntax>
+      </parameter>
+      <parameter name="RapidPollingUntil" access="readWrite">
+        <description>Run Wifiblaster tests at an interval of ten seconds until reaching the timestamp, in seconds since the epoch UTC. This parameter is intended to allow temporary, frequent polling hile using interactive tools, but have it turn the rapid polling off automatically and not require those interactive tools to unerringly clean up after themselves.</description>
+        <syntax><unsignedInt/></syntax>
       </parameter>
       <parameter name="Size" access="readWrite">
         <description>Packet size.</description>

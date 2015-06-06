@@ -128,6 +128,16 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
         expiry=now + (86400 * 2), clientid='client_id2',
         hostname='hostname_2', userclassid='userclassid_2',
         vendorclassid='vendorclassid_2')
+    self.ClientList['3'] = dhcp.Client(
+        chaddr='f8:8f:ca:00:00:04', ipaddr='192.168.133.9',
+        expiry=now + (86400 * 2), clientid='client_id3',
+        hostname='android-6c65ffffffffffff')
+    self.ClientList['4'] = dhcp.Client(
+        chaddr='f8:8f:ca:00:00:05', ipaddr='192.168.133.10',
+        expiry=now + (86400 * 2), hostname='MyPhone')
+    self.ClientList['5'] = dhcp.Client(
+        chaddr='f8:8f:ca:00:00:06', ipaddr='192.168.133.11',
+        expiry=now + (86400 * 2), hostname='0123456789AbCdEf')
 
   @property
   def Status(self):

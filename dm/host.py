@@ -37,6 +37,25 @@ import tr.session
 import tr.tr181_v2_6
 import tr.cwmptypes
 
+
+def NullTaxonomy(unused_signature, unused_mac):
+  raise NotImplementedError('NullTaxonomy is not an implementation.')
+
+
+def NullCharacterize(unused_signature):
+  raise NotImplementedError('NullCharacterize is not an implementation.')
+
+
+# unit test machines won't have taxonomy module installed.
+try:
+  import taxonomy  # pylint: disable=g-import-not-at-top
+  TAXONOMIZE = taxonomy.identify_wifi_device
+  WIFICHARACTERIZE = taxonomy.performance_characteristics
+except ImportError:
+  TAXONOMIZE = NullTaxonomy
+  WIFICHARACTERIZE = NullCharacterize
+
+
 BASE181HOSTS = tr.tr181_v2_6.Device_v2_6.Device.Hosts
 BASE181HOST = tr.tr181_v2_6.Device_v2_6.Device.Hosts.Host
 CATA181 = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
@@ -54,6 +73,7 @@ ASUS_HOSTNAMES = '/tmp/asus_hostnames'
 DHCP_TAXONOMY_FILE = '/config/dhcp.fingerprints'
 DNSSD_HOSTNAMES = '/tmp/dnssd_hostnames'
 NETBIOS_HOSTNAMES = '/tmp/netbios_hostnames'
+WIFI_BLASTER_DIR = '/tmp/wifi/wifiblaster'
 WIFI_TAXONOMY_DIR = '/tmp/wifi/fingerprints'
 
 
@@ -476,27 +496,56 @@ class Hosts(BASE181HOSTS):
         host['DhcpTaxonomy'] = species.strip()
     f.close()
 
-  def _ReadWifiTaxonomy(self, host, filename):
-    """Populate Wifi Taxonomy information in host."""
-    path = os.path.join(WIFI_TAXONOMY_DIR, filename)
+  def _ReadWifiFile(self, host, directory, filename):
+    """Return contents of a file, or an empty string."""
+    path = os.path.join(directory, filename)
     try:
-      with open(path) as f:
-        host['WifiTaxonomy'] = str(f.read(4096))
-    except (IOError, OSError):
-      # file not present means the feature isn't enabled
+      return open(path).read(16384)
+    except (IOError, OSError) as e:
+      # file not present means the file was deleted before we
+      # managed to read it.
+      if e.errno != errno.ENOENT:
+        print 'ReadWifiFile: %s' % e
       return ''
+
+  def _GetListOfMacAddresses(self, directory):
+    """Return list of filenames (MAC addrs) from directory."""
+    try:
+      macs = os.listdir(directory)
+      return [m.lower() for m in macs]
+    except (IOError, OSError) as e:
+      # File or directory not present means the feature isn't enabled.
+      if e.errno != errno.ENOENT:
+        print '_GetListOfMacAddresses: %s' % e
+      return []
 
   def _PopulateWifiTaxonomy(self, hosts):
     """Add Wifi taxonomy wherever we can."""
-    try:
-      for d in os.listdir(WIFI_TAXONOMY_DIR):
-        mac = str(d).lower()
-        host = hosts.get(mac, None)
-        if host:
-          self._ReadWifiTaxonomy(host, d)
-    except (IOError, OSError):
-      # File or directory not present means the feature isn't enabled.
-      pass
+    macs = self._GetListOfMacAddresses(WIFI_TAXONOMY_DIR)
+    for mac in macs:
+      host = hosts.get(mac, None)
+      if not host:
+        continue
+      tax = self._ReadWifiFile(host, WIFI_TAXONOMY_DIR, mac)
+      host['WifiTaxonomy'] = tax
+      (chipset, model, perf) = TAXONOMIZE(tax, mac)
+      host['WifiChipset'] = chipset
+      host['WifiDeviceModel'] = model
+      host['WifiPerformance'] = perf
+      (standard, nss, width) = WIFICHARACTERIZE(tax)
+      host['WifiStandard'] = standard
+      host['WifiNumberOfStreams'] = nss
+      host['WifiChannelWidth'] = width
+
+  def _PopulateWifiBlaster(self, hosts):
+    """Add Wifi performance test results wherever we can."""
+    macs = self._GetListOfMacAddresses(WIFI_BLASTER_DIR)
+    for mac in macs:
+      host = hosts.get(mac, None)
+      if not host:
+        continue
+      blast = self._ReadWifiFile(host, WIFI_BLASTER_DIR, mac)
+      host['WifiBlasterResults'] = blast
 
   def _PopulateSsdpServers(self, hosts):
     """Add SsdpServer parameters wherever we can."""
@@ -594,6 +643,7 @@ class Hosts(BASE181HOSTS):
     self._PopulateSsdpServers(hosts=hosts)
     self._PopulateDiscoveredHostnames(hosts=hosts)
     self._PopulateWifiTaxonomy(hosts=hosts)
+    self._PopulateWifiBlaster(hosts=hosts)
     host_list = dict()
     for idx, host in enumerate(hosts.values(), start=1):
       host_list[str(idx)] = Host(**host)
@@ -633,7 +683,10 @@ class Host(CATA181HOST):
                LeaseTimeRemaining=0, VendorClassID='',
                ClientID='', UserClassID='',
                DhcpTaxonomy='', SsdpServer='', AsusModel='',
-               DnsSdName='', NetbiosName='', WifiTaxonomy=''):
+               DnsSdName='', NetbiosName='', WifiBlasterResults='',
+               WifiChannelWidth='', WifiChipset='', WifiDeviceModel='',
+               WifiNumberOfStreams=0, WifiPerformance='', WifiStandard='',
+               WifiTaxonomy=''):
     super(Host, self).__init__()
     self.Unexport(['Alias'])
 
@@ -658,6 +711,13 @@ class Host(CATA181HOST):
     type(cid).DnsSdName.Set(cid, DnsSdName)
     type(cid).NetbiosName.Set(cid, NetbiosName)
     type(cid).SsdpServer.Set(cid, SsdpServer)
+    type(cid).WifiBlasterResults.Set(cid, WifiBlasterResults)
+    type(cid).WifiChannelWidth.Set(cid, WifiChannelWidth)
+    type(cid).WifiChipset.Set(cid, WifiChipset)
+    type(cid).WifiDeviceModel.Set(cid, WifiDeviceModel)
+    type(cid).WifiNumberOfStreams.Set(cid, WifiNumberOfStreams)
+    type(cid).WifiPerformance.Set(cid, WifiPerformance)
+    type(cid).WifiStandard.Set(cid, WifiStandard)
     type(cid).WifiTaxonomy.Set(cid, WifiTaxonomy)
 
   def _PopulateIpList(self, l, obj):
@@ -720,4 +780,11 @@ class ClientIdentification(CATA181HOST.X_CATAWAMPUS_ORG_ClientIdentification):
   DnsSdName = tr.cwmptypes.ReadOnlyString('')
   NetbiosName = tr.cwmptypes.ReadOnlyString('')
   SsdpServer = tr.cwmptypes.ReadOnlyString('')
+  WifiBlasterResults = tr.cwmptypes.ReadOnlyString('')
+  WifiChannelWidth = tr.cwmptypes.ReadOnlyString('')
+  WifiChipset = tr.cwmptypes.ReadOnlyString('')
+  WifiDeviceModel = tr.cwmptypes.ReadOnlyString('')
+  WifiNumberOfStreams = tr.cwmptypes.ReadOnlyUnsigned(0)
+  WifiPerformance = tr.cwmptypes.ReadOnlyString('')
+  WifiStandard = tr.cwmptypes.ReadOnlyString('')
   WifiTaxonomy = tr.cwmptypes.ReadOnlyString('')

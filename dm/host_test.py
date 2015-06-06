@@ -46,6 +46,16 @@ class TestDeviceModelRoot(tr.core.Exporter):
       self.Export(['Device'])
 
 
+def FakeWifiTaxonomy(unused_signature, mac):
+  if mac in ['f8:8f:ca:00:00:04', 'f8:8f:ca:00:00:05']:
+    return ('chipset', 'model', '802.11ac n:4,w:80')
+  return ('', '', '')
+
+
+def FakeWifiCharacterization(unused_signature):
+  return ('802.11ac', 4, '80')
+
+
 class HostTest(unittest.TestCase):
 
   def setUp(self):
@@ -57,8 +67,11 @@ class HostTest(unittest.TestCase):
     self.old_PROC_NET_ARP = host.PROC_NET_ARP
     self.old_POLL_CMD = miniupnp.POLL_CMD
     self.old_SYS_CLASS_NET_PATH = host.SYS_CLASS_NET_PATH
+    self.old_TAXONOMIZE = host.TAXONOMIZE
+    self.old_WIFICHARACTERIZE = host.WIFICHARACTERIZE
     self.old_TIMENOW = host.TIMENOW
     self.old_WIFI_TAXONOMY_DIR = host.WIFI_TAXONOMY_DIR
+    self.old_WIFI_BLASTER_DIR = host.WIFI_BLASTER_DIR
     host.ASUS_HOSTNAMES = 'testdata/host/asus_hostnames'
     host.DHCP_TAXONOMY_FILE = 'testdata/host/dhcp-taxonomy'
     host.DNSSD_HOSTNAMES = 'testdata/host/dnssd_hostnames'
@@ -66,8 +79,11 @@ class HostTest(unittest.TestCase):
     host.NETBIOS_HOSTNAMES = 'testdata/host/netbios_hostnames'
     host.PROC_NET_ARP = '/dev/null'
     host.SYS_CLASS_NET_PATH = 'testdata/host/sys/class/net'
+    host.TAXONOMIZE = FakeWifiTaxonomy
+    host.WIFICHARACTERIZE = FakeWifiCharacterization
     host.TIMENOW = TimeNow
     host.WIFI_TAXONOMY_DIR = 'testdata/host/wifi-taxonomy'
+    host.WIFI_BLASTER_DIR = 'testdata/host/wifi-blaster'
     miniupnp.POLL_CMD = ['testdata/host/ssdp_poll']
 
   def tearDown(self):
@@ -78,8 +94,11 @@ class HostTest(unittest.TestCase):
     host.NETBIOS_HOSTNAMES = self.old_NETBIOS_HOSTNAMES
     host.PROC_NET_ARP = self.old_PROC_NET_ARP
     host.SYS_CLASS_NET_PATH = self.old_SYS_CLASS_NET_PATH
+    host.TAXONOMIZE = self.old_TAXONOMIZE
+    host.WIFICHARACTERIZE = self.old_WIFICHARACTERIZE
     host.TIMENOW = self.old_TIMENOW
     host.WIFI_TAXONOMY_DIR = self.old_WIFI_TAXONOMY_DIR
+    host.WIFI_BLASTER_DIR = self.old_WIFI_BLASTER_DIR
     miniupnp.POLL_CMD = self.old_POLL_CMD
 
   def testValidateExports(self):
@@ -276,20 +295,42 @@ class HostTest(unittest.TestCase):
         found |= 4
     self.assertEqual(7, found)
 
-  def testWifiTaxonomy(self):
-    host.PROC_NET_ARP = 'testdata/host/proc_net_arp'
-    iflookup = {'foo0': 'Device.Foo.Interface.1',
-                'foo1': 'Device.Foo.Interface.2'}
-    hosts = host.Hosts(iflookup)
-    self.assertEqual(3, len(hosts.HostList))
+  def testWifiTaxonomyAndBlaster(self):
+    host.PROC_NET_ARP = 'testdata/host/proc_net_arp2'
+    dmroot = self._GetFakeCPE(tr98=False, tr181=True)
+    hosts = host.Hosts(dmroot=dmroot)
     found = 0
     for h in hosts.HostList.values():
+      # Note that there are several more hosts in the list, supplied
+      # by the fake_dhcp_server.py, but not relevant to this test case.
       ci = h.X_CATAWAMPUS_ORG_ClientIdentification
-      if h.PhysAddress == 'f8:8f:ca:00:00:01':
+      if h.PhysAddress == 'f8:8f:ca:00:00:04':
         expected = 'wifi|probe:1,2,3,4|assoc:5,6,7,8'
         self.assertEqual(ci.WifiTaxonomy.strip(), expected)
-        found = 1
-    self.assertEqual(1, found)
+        self.assertEqual(ci.WifiChipset.strip(), 'chipset')
+        self.assertEqual(ci.WifiDeviceModel.strip(), 'model')
+        self.assertEqual(ci.WifiPerformance.strip(), '802.11ac n:4,w:80')
+        self.assertEqual(ci.WifiStandard.strip(), '802.11ac')
+        self.assertEqual(ci.WifiNumberOfStreams, 4)
+        self.assertEqual(ci.WifiChannelWidth.strip(), '80')
+        expected = 'blaster result f8:8f:ca:00:00:04\nand line 2 as well'
+        self.assertEqual(ci.WifiBlasterResults.strip(), expected)
+        found |= 1
+      elif h.PhysAddress == 'f8:8f:ca:00:00:05':
+        expected = 'wifi|probe:1,2,3,4|assoc:5,6,7,8'
+        self.assertEqual(ci.WifiTaxonomy.strip(), expected)
+        self.assertEqual(ci.WifiChipset.strip(), 'chipset')
+        self.assertEqual(ci.WifiDeviceModel.strip(), 'model')
+        self.assertEqual(ci.WifiPerformance.strip(), '802.11ac n:4,w:80')
+        self.assertEqual(ci.WifiStandard.strip(), '802.11ac')
+        self.assertEqual(ci.WifiNumberOfStreams, 4)
+        self.assertEqual(ci.WifiChannelWidth.strip(), '80')
+        # fake_dhcp_server.py says this is MyPhone, which is fine.
+        self.assertEqual(h.HostName, 'MyPhone')
+        found |= 2
+      elif h.PhysAddress == 'f8:8f:ca:00:00:06':
+        found |= 4
+    self.assertEqual(7, found)
 
   def testHostnames4(self):
     host.PROC_NET_ARP = 'testdata/host/proc_net_arp'
@@ -304,6 +345,7 @@ class HostTest(unittest.TestCase):
         self.assertEqual('dnssd_hostname4_1.local', cid.DnsSdName)
         self.assertEqual('NETBIOS_HOSTNAME4_1', cid.NetbiosName)
         self.assertEqual('ASUS model4_1', h.HostName)
+        cid = h.X_CATAWAMPUS_ORG_ClientIdentification
         found |= 1
       elif h.PhysAddress == 'f8:8f:ca:00:00:02':
         self.assertEqual('192.168.1.2', h.IPAddress)
@@ -397,7 +439,7 @@ class HostTest(unittest.TestCase):
   def testTr181(self):
     dmroot = self._GetFakeCPE(tr98=False, tr181=True)
     hosts = host.Hosts(dmroot=dmroot)
-    self.assertEqual(3, len(hosts.HostList))
+    self.assertEqual(6, len(hosts.HostList))
     found = 0
     for h in hosts.HostList.values():
       l1interface = 'Device.MoCA.Interface.1'
@@ -431,7 +473,13 @@ class HostTest(unittest.TestCase):
         self.assertEqual('hostname_2', h.HostName)
         self.assertEqual(1, h.IPv4AddressNumberOfEntries)
         self.assertEqual('192.168.133.8', h.IPv4AddressList['1'].IPAddress)
-    self.assertEqual(0x7, found)
+      elif h.PhysAddress == 'f8:8f:ca:00:00:04':
+        found |= 0x8
+      elif h.PhysAddress == 'f8:8f:ca:00:00:05':
+        found |= 0x10
+      elif h.PhysAddress == 'f8:8f:ca:00:00:06':
+        found |= 0x20
+    self.assertEqual(0x3f, found)
 
 
 if __name__ == '__main__':
