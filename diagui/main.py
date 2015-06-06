@@ -73,10 +73,11 @@ class RestartHandler(tornado.web.RequestHandler):
 class DiaguiSettings(tornado.web.Application):
   """Defines settings for the server and notifier."""
 
-  def __init__(self, root, cpemach):
+  def __init__(self, root, cpemach, run_techui=False):
     self.data = {}
     self.root = root
     self.cpemach = cpemach
+
     if self.root:
       tr.cwmptypes.AddNotifier(type(self.root.Device.Ethernet),
                                'InterfaceNumberOfEntries', self.AlertNotifiers)
@@ -89,11 +90,21 @@ class DiaguiSettings(tornado.web.Application):
         'template_path': self.pathname,
         'xsrf_cookies': True,
     }
-    super(DiaguiSettings, self).__init__([
+
+    handlers = [
         (r'/', DiagnosticsHandler),
         (r'/content.json', JsonHandler),
         (r'/restart', RestartHandler),
-    ], **self.settings)
+    ]
+
+    if run_techui:
+      handlers += [
+          (r'/tech/(.*)', tornado.web.StaticFileHandler,
+           {'path': os.path.join(self.pathname, 'techui_static')}),
+          (r'/tech', tornado.web.RedirectHandler, {'url': '/tech/index.html'}),
+      ]
+
+    super(DiaguiSettings, self).__init__(handlers, **self.settings)
     mimetypes.add_type('font/ttf', '.ttf')
 
     self.ioloop = tornado.ioloop.IOLoop.instance()
