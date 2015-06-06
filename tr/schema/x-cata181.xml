@@ -806,6 +806,12 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
           <unsignedLong/>
         </syntax>
       </parameter>
+      <parameter name="AdFetchMaxLeadTimeSecs" access="readWrite">
+        <description>At most how long before an ad is needed to fetch its creative file.</description>
+        <syntax>
+          <unsignedLong/>
+        </syntax>
+      </parameter>
       <parameter name="MinImpressionViewDurationPts" access="readWrite">
         <description>Duration (in pts) of an ad viewing that turns it into an impression.</description>
         <syntax>
