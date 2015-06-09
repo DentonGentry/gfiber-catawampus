@@ -55,6 +55,7 @@ SignalStrengthChart.prototype.addPoint = function(time, sig_point) {
         this.signalStrengths[point].push(null);
       }
     }
+    this.initializeDygraph();
   }
   this.signalStrengths.push(pointToAdd);
   console.log(this.signalStrengths);

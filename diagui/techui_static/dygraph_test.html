@@ -1,0 +1,30 @@
+<html>
+<head>
+  <script src="jquery-2.1.4.min.js"></script>
+  <script src="dygraph-combined.js"></script>
+  <script src="deviceList.js"></script>
+  <script src="tech.js"></script>
+</head>
+<body>
+  <div id="graph"></div>
+  <script type="text/javascript">
+    var wifi = new SignalStrengthChart('RSSI', 'signal_strength', 'graph');
+    wifi.addPoint(0, {});
+    wifi.addPoint(1, {});
+    wifi.addPoint(2, {'mac1': 5});
+    wifi.addPoint(3, {'mac1': 6});
+    wifi.addPoint(4, {'mac1': 7, 'mac2': 1});
+    wifi.addPoint(5, {'mac1': 6, 'mac2': 2});
+    wifi.addPoint(6, {'mac1': 5, 'mac2': 3});
+    wifi.addPoint(7, {'mac1': 4, 'mac2': 4, 'mac3': 9});
+    wifi.addPoint(8, {'mac1': 3, 'mac2': 5, 'mac3': 8});
+    wifi.addPoint(9, {'mac2': 4, 'mac3': 9});
+    wifi.addPoint(10, {'mac2': 3, 'mac3': 10});
+    wifi.addPoint(11, {'mac3': 10});
+    wifi.addPoint(12, {'mac1': 3, 'mac3': 10});
+    wifi.addPoint(13, {'mac1': 4, 'mac2': 3});
+    wifi.addPoint(14, {'mac1': 4, 'mac2': 3});
+    wifi.initializeDygraph();
+  </script>
+</body>
+</html>
