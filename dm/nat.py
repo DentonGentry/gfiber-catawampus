@@ -25,6 +25,7 @@ in http://www.broadband-forum.org/cwmp/tr-181-2-6-0.html
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import binascii
+import re
 import subprocess
 import traceback
 import tr.cwmptypes
@@ -72,21 +73,22 @@ class NAT(BASENAT):
     except (AttributeError, KeyError):
       return None
 
-  def _PrefixLines(self, lines, outidx):
-    """Return prefixed lines.
+  def _EscapeFields(self, fields):
+    """Return escaped fields.
 
     Args:
-      lines: an array of lines of text
-      outidx: the index to prefix
+      fields: an array of fields of text
     Returns:
       a string.
     """
 
-    if not lines:
+    if not fields:
       return ''
-    prefix = 'CWMP_%d_' % outidx
-    prefixed = [prefix + x for x in lines]
-    return '\n'.join(prefixed) + '\n\n'
+    blacklist = re.compile(r'[^a-zA-Z0-9./:_\-]')
+    out_fields = []
+    for field in fields:
+      out_fields.append(re.sub(blacklist, '.', field))
+    return ','.join(out_fields) + '\n'
 
   @tr.mainloop.WaitUntilIdle
   def WriteConfigs(self):
@@ -118,20 +120,17 @@ class NAT(BASENAT):
     for (idx, mapping) in self.X_CATAWAMPUS_ORG_DmzMappingList.iteritems():
       if mapping.LanAddress and mapping.WanAddress:
         dmz4.append('%s %s' % (mapping.LanAddress, mapping.WanAddress))
-    outidx = 1
     try:
       with tr.helpers.AtomicFile(OUTPUTFILE4) as f:
         for i in range(1, 5):
-          for lines in ip4configs[i]:
-            if lines:
-              f.write(self._PrefixLines(lines=lines, outidx=outidx))
-              outidx += 1
+          for fields in ip4configs[i]:
+            if fields:
+              f.write(self._EscapeFields(fields))
       with tr.helpers.AtomicFile(OUTPUTFILE6) as f:
         for i in range(1, 5):
-          for lines in ip6configs[i]:
-            if lines:
-              f.write(self._PrefixLines(lines=lines, outidx=outidx))
-              outidx += 1
+          for fields in ip6configs[i]:
+            if fields:
+              f.write(self._EscapeFields(fields))
       if dmz4:
         with tr.helpers.AtomicFile(DMZFILE4) as f:
           f.write('\n'.join(dmz4))
@@ -263,10 +262,10 @@ class PortMapping(CATANAT.PortMapping):
   def _CommonConfigLines(self, idx):
     """Add configuration with identical handling for IPv4 and IPv6."""
     encoded = binascii.hexlify(self.Description)
-    lines = ['COMMENT=IDX_%s:%s' % (str(idx), encoded)]
-    lines.append('PROTOCOL=' + self.Protocol)
-
-    lines.append('DEST=' + self.InternalClient)
+    fields = []
+    fields.append('IDX_%s:%s' % (str(idx), encoded))
+    fields.append(self.Protocol)
+    fields.append(self.InternalClient)
     # TODO(dgentry) ExternalPort=0 should become a dmzhost instead
     if self.X_CATAWAMPUS_ORG_PortRangeSize:
       end = self.ExternalPort + self.X_CATAWAMPUS_ORG_PortRangeSize - 1
@@ -275,16 +274,16 @@ class PortMapping(CATANAT.PortMapping):
       sport = '%d:%d' % (self.ExternalPort, self.ExternalPortEndRange)
     else:
       sport = '%d' % self.ExternalPort
-    lines.append('SPORT=' + sport)
+    fields.append(sport)
     if self.X_CATAWAMPUS_ORG_PortRangeSize:
       end = self.InternalPort + self.X_CATAWAMPUS_ORG_PortRangeSize - 1
       dport = '%d:%d' % (self.InternalPort, end)
     else:
       dport = '%d' % self.InternalPort
-    lines.append('DPORT=' + dport)
-    lines.append('ENABLE=%d' % (1 if self.Enable else 0))
+    fields.append(dport)
+    fields.append('1' if self.Enable else '0')
 
-    return lines
+    return fields
 
   def ConfigLinesIP4(self, idx):
     """Return the configuration lines for update-acs-iptables IP4 rules.
@@ -293,7 +292,9 @@ class PortMapping(CATANAT.PortMapping):
       idx: the {i} in Device.NAT.PortMapping.{i}
 
     Returns:
-      a list of text lines for update-acs-iptables
+      a list of text lines for update-acs-iptables in the following order:
+
+      COMMENT, PROTOCOL, DEST, SPORT, DPORT, ENABLE, SOURCE, GATEWAY
     """
 
     if not self._IsNatComplete() or not self.Enable:
@@ -305,7 +306,7 @@ class PortMapping(CATANAT.PortMapping):
 
     lines = self._CommonConfigLines(idx=idx)
     src = '0/0' if not self.RemoteHost else self.RemoteHost
-    lines.append('SOURCE=%s' % src)
+    lines.append(src)
     if self.AllInterfaces:
       gw = '0/0'
     else:
@@ -314,7 +315,7 @@ class PortMapping(CATANAT.PortMapping):
         return []
       key = ip.IPv4AddressList.keys()[0]
       gw = ip.IPv4AddressList[key].IPAddress
-    lines.append('GATEWAY=%s' % gw)
+    lines.append(gw)
     return lines
 
   def ConfigLinesIP6(self, idx):
@@ -324,7 +325,9 @@ class PortMapping(CATANAT.PortMapping):
       idx: the {i} in Device.NAT.PortMapping.{i}
 
     Returns:
-      a list of text lines for update-acs-iptables
+      a list of text lines for update-acs-iptables in the following order:
+
+      COMMENT, PROTOCOL, DEST, SPORT, DPORT, ENABLE, SOURCE, GATEWAY
     """
 
     if not self._IsNatComplete() or not self.Enable:
@@ -336,7 +339,7 @@ class PortMapping(CATANAT.PortMapping):
 
     lines = self._CommonConfigLines(idx=idx)
     src = '::/0' if not self.RemoteHost else self.RemoteHost
-    lines.append('SOURCE=%s' % src)
+    lines.append(src)
     if self.AllInterfaces:
       gw = '::/0'
     else:
@@ -345,7 +348,7 @@ class PortMapping(CATANAT.PortMapping):
         return []
       key = ip.IPv6AddressList.keys()[0]
       gw = ip.IPv6AddressList[key].IPAddress
-    lines.append('GATEWAY=%s' % gw)
+    lines.append(gw)
     return lines
 
   def DmzIP4(self):
