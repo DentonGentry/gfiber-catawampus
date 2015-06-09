@@ -8,28 +8,29 @@ console.log = function(string) {
 };
 
 wvtest('test adding points', function() {
-  //console.log(signal_strengths);
-  addPoint(1, {'mac1': 1});
-  //console.log(signal_strengths);
-  WVPASSEQ(signal_strengths.length, 1);
-  WVPASSEQ(signal_strengths[0].length, 2);
-  WVPASSEQ(signal_strengths[0][1] , 1);
+  //console.log(chart.signalStrengths);
+  var chart = new SignalStrengthChart();
+  chart.addPoint(1, {'mac1': 1});
+  //console.log(chart.signalStrengths);
+  WVPASSEQ(chart.signalStrengths.length, 1);
+  WVPASSEQ(chart.signalStrengths[0].length, 2);
+  WVPASSEQ(chart.signalStrengths[0][1] , 1);
 
-  addPoint(2, {'mac1': 2});
-  WVPASSEQ(signal_strengths.length, 2);
-  WVPASSEQ(signal_strengths[1].length, 2);
-  WVPASSEQ(signal_strengths[1][1] , 2);
+  chart.addPoint(2, {'mac1': 2});
+  WVPASSEQ(chart.signalStrengths.length, 2);
+  WVPASSEQ(chart.signalStrengths[1].length, 2);
+  WVPASSEQ(chart.signalStrengths[1][1] , 2);
 
-  addPoint(3, {'mac2': 3});
-  WVPASSEQ(signal_strengths.length, 3);
-  WVPASSEQ(signal_strengths[2].length, 3);
-  WVPASSEQ(signal_strengths[2][1] , undefined);
-  WVPASSEQ(signal_strengths[2][2] , 3);
+  chart.addPoint(3, {'mac2': 3});
+  WVPASSEQ(chart.signalStrengths.length, 3);
+  WVPASSEQ(chart.signalStrengths[2].length, 3);
+  WVPASSEQ(chart.signalStrengths[2][1] , undefined);
+  WVPASSEQ(chart.signalStrengths[2][2] , 3);
 
   //undefined was populated into the previous array elements
-  console.log(signal_strengths[0].length);
-  WVPASSEQ(signal_strengths[0].length, 3);
-  WVPASSEQ(signal_strengths[1].length, 3);
-  WVPASSEQ(signal_strengths[0][2] , null);
-  WVPASSEQ(signal_strengths[1][2] , undefined);
+  console.log(chart.signalStrengths[0].length);
+  WVPASSEQ(chart.signalStrengths[0].length, 3);
+  WVPASSEQ(chart.signalStrengths[1].length, 3);
+  WVPASSEQ(chart.signalStrengths[0][2] , null);
+  WVPASSEQ(chart.signalStrengths[1][2] , undefined);
 });

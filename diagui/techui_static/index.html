@@ -7,6 +7,11 @@
 </head>
 <body>
   <div id="graph"></div>
-  <script type="text/javascript">$(document).ready(getData);</script>
+  <div id="moca_graph"></div>
+  <script type="text/javascript">
+    var wifi = new SignalStrengthChart('RSSI', 'signal_strength', 'graph');
+    var moca = new SignalStrengthChart('MOCA', 'moca_signal_strength', 'moca_graph');
+    $(document).ready(function() {wifi.getData(); moca.getData();});
+  </script>
 </body>
 </html>
