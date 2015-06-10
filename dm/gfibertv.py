@@ -68,6 +68,8 @@ UICONTROLURLFILE = ['/tmp/oregano_url']
 UI_IS_HTML = ['is-html-tv-ui']
 UITYPEFILE = ['/tmp/ui/uitype']
 
+RESTARTFROBCMD = ['restart', 'frobnicast']
+
 
 def _SageEscape(s):
   """Encode a string so it's safe to include in a SageTV config file."""
@@ -103,10 +105,12 @@ class GFiberTv(CATABASE.GFiberTV):
       UICONTROLURLFILE, tr.cwmptypes.String())
   TvBufferAddress = tr.cwmptypes.FileBacked(
       TVBUFFERADDRESS, tr.cwmptypes.String())
-  TvBufferKey = tr.cwmptypes.FileBacked(TVBUFFERKEY, tr.cwmptypes.String())
-  FrobnicastAddress = tr.cwmptypes.FileBacked(FROBNICASTADDRESS,
-                                              tr.cwmptypes.String())
-  FrobnicastKey = tr.cwmptypes.FileBacked(FROBNICASTKEY, tr.cwmptypes.String())
+  TvBufferKey = tr.cwmptypes.Trigger(
+    tr.cwmptypes.FileBacked(TVBUFFERKEY, tr.cwmptypes.String()))
+  FrobnicastAddress = tr.cwmptypes.Trigger(
+    tr.cwmptypes.FileBacked(FROBNICASTADDRESS, tr.cwmptypes.String()))
+  FrobnicastKey = tr.cwmptypes.Trigger(
+    tr.cwmptypes.FileBacked(FROBNICASTKEY, tr.cwmptypes.String()))
 
   def __init__(self, mailbox_url, my_serial=None):
     """GFiberTV object.
@@ -121,6 +125,7 @@ class GFiberTv(CATABASE.GFiberTV):
     self.DevicePropertiesList = {}
     self._rpcclient = xmlrpclib.ServerProxy(mailbox_url)
     self.Export(objects=['Config'])
+    self._frobstatus = (False, None)
 
   def GetUiType(self):
     cmd = HNVRAM + ['-q', '-r', 'UITYPE']
@@ -230,6 +235,12 @@ class GFiberTv(CATABASE.GFiberTV):
               sf.write(device.NickName.encode('utf-8'))
           serials.append(device.SerialNumber)
       f.write('serials=%s\n' % ','.join(_SageEscape(i) for i in serials))
+
+    # Start frobnicast if necessary
+    status = (self.FrobnicastKey and self.TvBufferKey, self.FrobnicastAddress)
+    if status != self._frobstatus:
+      subprocess.call(RESTARTFROBCMD, close_fds=True)
+      self._frobstatus = status
 
 
 class DvrSpace(CATABASE.GFiberTV.DvrSpace):
