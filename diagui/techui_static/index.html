@@ -9,8 +9,8 @@
   <div id="graph"></div>
   <div id="moca_graph"></div>
   <script type="text/javascript">
-    var wifi = new SignalStrengthChart('RSSI', 'signal_strength', 'graph');
-    var moca = new SignalStrengthChart('MOCA', 'moca_signal_strength', 'moca_graph');
+    var wifi = new SignalStrengthChart('Signal Strength (dBm)', 'RSSI', 'signal_strength', 'graph');
+    var moca = new SignalStrengthChart('Signal Strength (dB)', 'MOCA', 'moca_signal_strength', 'moca_graph');
     $(document).ready(function() {wifi.getData(); moca.getData();});
   </script>
 </body>

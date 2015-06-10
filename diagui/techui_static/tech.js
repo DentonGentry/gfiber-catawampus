@@ -1,5 +1,6 @@
-var SignalStrengthChart = function(title, key, div_id) {
+var SignalStrengthChart = function(ylabel, title, key, div_id) {
   this.title = title;
+  this.ylabel = ylabel;
   this.key = key;
   this.element = div_id;
   this.signalStrengths = [];
@@ -24,9 +25,11 @@ SignalStrengthChart.prototype.initializeDygraph = function() {
        // options go here. See http://dygraphs.com/options.html
        legend: 'always',
        animatedZooms: true,
-       title: this.title
+       title: this.title,
+       labels: ['time'].concat(Object.keys(this.listOfDevices.devices)),
+       xlabel: 'Time (s)',
+       ylabel: this.ylabel
    });
-
 };
 
 /** Adds a point on the graph (with a time and an object that maps
@@ -55,7 +58,9 @@ SignalStrengthChart.prototype.addPoint = function(time, sig_point) {
         this.signalStrengths[point].push(null);
       }
     }
-    this.initializeDygraph();
+    if (this.initialized) {
+      this.initializeDygraph();
+    }
   }
   this.signalStrengths.push(pointToAdd);
   console.log(this.signalStrengths);
