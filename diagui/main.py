@@ -99,7 +99,8 @@ class DiaguiSettings(tornado.web.Application):
 
     if run_techui:
       handlers += [
-          (r'/tech/?', tornado.web.RedirectHandler, {'url': '/tech/index.html'}),
+          (r'/tech/?', tornado.web.RedirectHandler,
+           {'url': '/tech/index.html'}),
           (r'/tech/(.*)', tornado.web.StaticFileHandler,
            {'path': os.path.join(self.pathname, 'techui_static')}),
       ]
