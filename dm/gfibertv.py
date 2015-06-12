@@ -106,11 +106,11 @@ class GFiberTv(CATABASE.GFiberTV):
   TvBufferAddress = tr.cwmptypes.FileBacked(
       TVBUFFERADDRESS, tr.cwmptypes.String())
   TvBufferKey = tr.cwmptypes.Trigger(
-    tr.cwmptypes.FileBacked(TVBUFFERKEY, tr.cwmptypes.String()))
+      tr.cwmptypes.FileBacked(TVBUFFERKEY, tr.cwmptypes.String()))
   FrobnicastAddress = tr.cwmptypes.Trigger(
-    tr.cwmptypes.FileBacked(FROBNICASTADDRESS, tr.cwmptypes.String()))
+      tr.cwmptypes.FileBacked(FROBNICASTADDRESS, tr.cwmptypes.String()))
   FrobnicastKey = tr.cwmptypes.Trigger(
-    tr.cwmptypes.FileBacked(FROBNICASTKEY, tr.cwmptypes.String()))
+      tr.cwmptypes.FileBacked(FROBNICASTKEY, tr.cwmptypes.String()))
 
   def __init__(self, mailbox_url, my_serial=None):
     """GFiberTV object.
