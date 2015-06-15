@@ -99,7 +99,8 @@ class DiaguiSettings(tornado.web.Application):
 
     if run_techui:
       handlers += [
-          (r'/tech/?', tornado.web.RedirectHandler, {'url': '/tech/index.html'}),
+          (r'/tech/?', tornado.web.RedirectHandler,
+           {'url': '/tech/index.html'}),
           (r'/tech/(.*)', tornado.web.StaticFileHandler,
            {'path': os.path.join(self.pathname, 'techui_static')}),
       ]
@@ -136,6 +137,7 @@ class DiaguiSettings(tornado.web.Application):
     self.data['subnetmask'] = ''
 
     deviceinfo = self.root.Device.DeviceInfo
+    hostinfo = self.root.Device.Hosts.HostList
     tempstatus = deviceinfo.TemperatureStatus
     landevlist = self.root.InternetGatewayDevice.LANDeviceList
     etherlist = self.root.Device.Ethernet.InterfaceList
@@ -181,6 +183,11 @@ class DiaguiSettings(tornado.web.Application):
         lan_mac[interface.MACAddress] = '(%s)' % interface.Status
     self.data['lanmac'] = lan_mac
     self.data['wanmac'] = wan_mac
+
+    host_names = dict()
+    for _, host in hostinfo.iteritems():
+      host_names[host.PhysAddress] = host.HostName
+    self.data['host_names'] = host_names
 
     t = dict()
     moca_signal_strength = dict()
