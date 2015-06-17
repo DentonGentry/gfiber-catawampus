@@ -191,12 +191,15 @@ class DiaguiSettings(tornado.web.Application):
 
     t = dict()
     moca_signal_strength = dict()
+    moca_bitloading = dict()
     for unused_i, inter in self.root.Device.MoCA.InterfaceList.iteritems():
       for unused_j, dev in inter.AssociatedDeviceList.iteritems():
         t[dev.NodeID] = dev.MACAddress
-        moca_signal_strength[dev.MACAddress] = dev.RxSNR
+        moca_signal_strength[dev.MACAddress] = dev.X_CATAWAMPUS_ORG_RxSNR_dB
+        moca_bitloading[dev.MACAddress] = dev.X_CATAWAMPUS_ORG_RxBitloading
     self.data['wireddevices'] = t
     self.data['moca_signal_strength'] = moca_signal_strength
+    self.data['moca_bitloading'] = moca_bitloading
 
     wlan = dict()
     devices = dict()

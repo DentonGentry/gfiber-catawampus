@@ -23,7 +23,12 @@ deviceList.prototype.get = function(mac_addr) {
 deviceList.prototype.hostNames = function(host_data) {
   var host_names = [];
   for (var mac_addr in this.devices) {
-     host_names.push(host_data[mac_addr]);
+    if (host_data[mac_addr] == '' ||
+    typeof host_data[mac_addr] == 'undefined') {
+      host_names.push(mac_addr);
+    } else {
+      host_names.push(host_data[mac_addr]);
+    }
   }
   return host_names;
 }

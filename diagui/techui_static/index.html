@@ -6,12 +6,13 @@
   <script src="tech.js"></script>
 </head>
 <body>
-  <div id="graph"></div>
-  <div id="moca_graph"></div>
+  <div id="graph"></div><div id="rssi_labels"></div>
+  <div id="moca_graph"></div><div id="moca_labels"></div>
   <div id="host_names"></div>
+  <div id="bitloading"></div>
   <script type="text/javascript">
-    var wifi = new SignalStrengthChart('Signal Strength (dBm)', 'RSSI', 'signal_strength', 'graph');
-    var moca = new SignalStrengthChart('Signal Strength (dB)', 'MOCA', 'moca_signal_strength', 'moca_graph');
+    var wifi = new SignalStrengthChart('Signal Strength (dBm)', 'RSSI', 'signal_strength', 'graph', 'rssi_labels');
+    var moca = new SignalStrengthChart('Signal Strength (dB)', 'MOCA', 'moca_signal_strength', 'moca_graph', 'moca_labels');
     $(document).ready(function() {wifi.getData(); moca.getData();});
   </script>
 </body>

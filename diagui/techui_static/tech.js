@@ -1,8 +1,9 @@
-var SignalStrengthChart = function(ylabel, title, key, div_id) {
+var SignalStrengthChart = function(ylabel, title, key, div_id, labels_div) {
   this.title = title;
   this.ylabel = ylabel;
   this.key = key;
   this.element = div_id;
+  this.labels_div = labels_div;
   this.signalStrengths = [];
   this.listOfDevices = new deviceList();
   this.g = null; /* The actual graph, initialized by
@@ -29,6 +30,7 @@ SignalStrengthChart.prototype.initializeDygraph = function() {
        /* labels initialized with mac addr because host names may not be
        immediately available */
        labels: ['time'].concat(Object.keys(this.listOfDevices.devices)),
+       labelsDiv: this.labels_div,
        xlabel: 'Time (s)',
        ylabel: this.ylabel
    });
@@ -54,8 +56,7 @@ SignalStrengthChart.prototype.addPoint = function(time, sig_point) {
 
   if (this.signalStrengths.length > 0 &&
     pointToAdd.length > this.signalStrengths[0].length) {
-    for (var i = 0; i < pointToAdd.length -
-      this.signalStrengths[0].length; i++) {
+    while (this.signalStrengths[0].length < pointToAdd.length) {
       for (var point = 0; point < this.signalStrengths.length; point++) {
         this.signalStrengths[point].push(null);
       }
@@ -83,7 +84,8 @@ SignalStrengthChart.prototype.getData = function() {
     }
     else {
       self.g.updateOptions({file: self.signalStrengths,
-        labels: ['time'].concat(host_names)});
+        labels: ['time'].concat(host_names)
+        });
     }
     // prints the mac address -> host name mappings
     var nameString = '';
@@ -99,6 +101,19 @@ SignalStrengthChart.prototype.getData = function() {
       }
     }
     $('#host_names').html(nameString);
+    var bitString = '';
+    for (var mac_addr in data['moca_bitloading']) {
+      if (data['moca_bitloading'][mac_addr] != '') {
+        bitString += '<p> MAC Address: ' +
+         $('<div/>').text(mac_addr).html() + ', Bitloading: ' +
+         $('<div/>').text(data['moca_bitloading'][mac_addr]).html() + '</p>';
+      }
+      else {
+        nameString += '<p> MAC Address: ' +
+         $('<div/>').text(mac_addr).html() + '</p>';
+      }
+    }
+    $('#bitloading').html(bitString);
   });
   setTimeout(function() {
     self.getData();
