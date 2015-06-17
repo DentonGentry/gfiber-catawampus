@@ -29,6 +29,7 @@ import time
 import google3
 import tornado.ioloop
 import tr.cwmptypes
+import tr.experiment
 import tr.handle
 import tr.mainloop
 import tr.x_catawampus_tr181_2_0
@@ -36,6 +37,18 @@ import tr.x_catawampus_tr181_2_0
 
 CATA181DEVICE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device
 ISOSTREAM = CATA181DEVICE.X_CATAWAMPUS_ORG.Isostream
+
+
+@tr.experiment.Experiment
+def IsostreamSerial(_):
+  yield (ISOSTREAM + '.ServerEnable', True)
+  yield (ISOSTREAM + '.ServerConcurrentConnections', 1)
+
+
+@tr.experiment.Experiment
+def IsostreamParallel(_):
+  yield (ISOSTREAM + '.ServerEnable', True)
+  yield (ISOSTREAM + '.ServerConcurrentConnections', 8)
 
 
 def _KillWait(proc):
@@ -52,6 +65,7 @@ def _KillWait(proc):
 class Isostream(ISOSTREAM):
   """Implementation of the Isostream vendor extension for TR-181."""
   ServerEnable = tr.cwmptypes.TriggerBool(False)
+  ServerConcurrentConnections = tr.cwmptypes.Unsigned(0)
   ServerTimeLimit = tr.cwmptypes.Unsigned(60)
   ClientEnable = tr.cwmptypes.TriggerBool(False)
   ClientDisableIfPortActive = tr.cwmptypes.Unsigned(0)
@@ -101,6 +115,8 @@ class Isostream(ISOSTREAM):
         self.serverproc = None
       if self.ServerEnable:
         argv = ['run-isostream-server']
+        if self.ServerConcurrentConnections:
+          argv += ['-P', self.ServerConcurrentConnections]
         self.serverproc = subprocess.Popen(argv, close_fds=True)
         if self.ServerTimeLimit:
           def _DisableServer():
