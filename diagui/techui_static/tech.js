@@ -26,6 +26,8 @@ SignalStrengthChart.prototype.initializeDygraph = function() {
        legend: 'always',
        animatedZooms: true,
        title: this.title,
+       /* labels initialized with mac addr because host names may not be
+       immediately available */
        labels: ['time'].concat(Object.keys(this.listOfDevices.devices)),
        xlabel: 'Time (s)',
        ylabel: this.ylabel
@@ -74,13 +76,29 @@ SignalStrengthChart.prototype.getData = function() {
     var d = new Date();
     var time = d.getTime() / 1000 - self.curTime / 1000; // so it's not big
     self.addPoint(time, data[self.key]);
+    var host_names = self.listOfDevices.hostNames(data['host_names']);
     if (!self.initialized) {
       self.initializeDygraph();
       self.initialized = true;
     }
     else {
-      self.g.updateOptions({file: self.signalStrengths});
+      self.g.updateOptions({file: self.signalStrengths,
+        labels: ['time'].concat(host_names)});
     }
+    // prints the mac address -> host name mappings
+    var nameString = '';
+    for (var mac_addr in data['host_names']) {
+      if (data['host_names'][mac_addr] != '') {
+        nameString += '<p> MAC Address: ' +
+         $('<div/>').text(mac_addr).html() + ', Host Name: ' +
+         $('<div/>').text(data['host_names'][mac_addr]).html() + '</p>';
+      }
+      else {
+        nameString += '<p> MAC Address: ' +
+         $('<div/>').text(mac_addr).html() + '</p>';
+      }
+    }
+    $('#host_names').html(nameString);
   });
   setTimeout(function() {
     self.getData();
