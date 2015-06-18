@@ -78,44 +78,64 @@ SignalStrengthChart.prototype.getData = function() {
     var time = d.getTime() / 1000 - self.curTime / 1000; // so it's not big
     self.addPoint(time, data[self.key]);
     var host_names = self.listOfDevices.hostNames(data['host_names']);
+    var host_names_array = [];
+    for (var mac_addr in host_names) {
+      host_names_array.push(host_names[mac_addr]);
+    }
     if (!self.initialized) {
       self.initializeDygraph();
       self.initialized = true;
     }
     else {
       self.g.updateOptions({file: self.signalStrengths,
-        labels: ['time'].concat(host_names)
+        labels: ['time'].concat(host_names_array)
         });
     }
-    // prints the mac address -> host name mappings
-    var nameString = '';
-    for (var mac_addr in data['host_names']) {
-      if (data['host_names'][mac_addr] != '') {
-        nameString += '<p> MAC Address: ' +
-         $('<div/>').text(mac_addr).html() + ', Host Name: ' +
-         $('<div/>').text(data['host_names'][mac_addr]).html() + '</p>';
-      }
-      else {
-        nameString += '<p> MAC Address: ' +
-         $('<div/>').text(mac_addr).html() + '</p>';
-      }
-    }
-    $('#host_names').html(nameString);
-    var bitString = '';
-    for (var mac_addr in data['moca_bitloading']) {
-      if (data['moca_bitloading'][mac_addr] != '') {
-        bitString += '<p> MAC Address: ' +
-         $('<div/>').text(mac_addr).html() + ', Bitloading: ' +
-         $('<div/>').text(data['moca_bitloading'][mac_addr]).html() + '</p>';
-      }
-      else {
-        nameString += '<p> MAC Address: ' +
-         $('<div/>').text(mac_addr).html() + '</p>';
-      }
-    }
-    $('#bitloading').html(bitString);
+    showData('#host_names', data['host_names'], 'Host Name');
+    showData('#bitloading', data['moca_bitloading'], 'Bitloading');
+    showBitloading(data['moca_bitloading']);
+    $('#softversion').html($('<div/>').text(data['softversion']).html());
   });
   setTimeout(function() {
     self.getData();
   }, 1000);
 };
+
+function showData(div, data, dataName) {
+  var nameString = '';
+  for (var mac_addr in data) {
+    if (data[mac_addr] != '') {
+      nameString += '<p> MAC Address: ' +
+       $('<div/>').text(mac_addr).html() + ', ' + dataName + ': ' +
+       $('<div/>').text(data[mac_addr]).html() + '</p>';
+    }
+    else {
+      nameString += '<p> MAC Address: ' +
+       $('<div/>').text(mac_addr).html() + '</p>';
+    }
+  }
+  $(div).html(nameString);
+}
+
+function showBitloading(data) {
+  var prefix = '$BRCM2$';
+  $('#bit_table').html('');
+  for (var mac_addr in data) {
+    var bitloading = data[mac_addr];
+    for (var i = prefix.length; i < bitloading.length; i++) {
+      if (bitloading[i] < 5) {
+        $('#bit_table').append('<a style="background-color:#FF4136">' +
+        bitloading[i] + '</a>');
+      }
+      else if (bitloading[i] < 7) {
+        $('#bit_table').append('<a style="background-color:#FFDC00">' +
+        bitloading[i] + '</a>');
+      }
+      else {
+        $('#bit_table').append('<a style="background-color:#2ECC40">' +
+        bitloading[i] + '</a>');
+      }
+    }
+    $('#bit_table').append('<br style="clear:both"><br>');
+  }
+}

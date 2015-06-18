@@ -1,6 +1,7 @@
 var deviceList = function() {
   this.devices = {};
   this.next = 0;
+  this.host_names = {};
 };
 
 /** Takes a mac addr and returns the index.
@@ -21,14 +22,13 @@ deviceList.prototype.get = function(mac_addr) {
  * @return {array} returns array of device host names
 */
 deviceList.prototype.hostNames = function(host_data) {
-  var host_names = [];
   for (var mac_addr in this.devices) {
     if (host_data[mac_addr] == '' ||
     typeof host_data[mac_addr] == 'undefined') {
-      host_names.push(mac_addr);
+      this.host_names[mac_addr] = mac_addr;
     } else {
-      host_names.push(host_data[mac_addr]);
+      this.host_names[mac_addr] = host_data[mac_addr];
     }
   }
-  return host_names;
+  return this.host_names;
 }
