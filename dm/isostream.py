@@ -51,6 +51,26 @@ def IsostreamParallel(_):
   yield (ISOSTREAM + '.ServerConcurrentConnections', 8)
 
 
+@tr.experiment.Experiment
+def Isostream5(_):
+  yield (ISOSTREAM + '.ClientMbps', 5)
+
+
+@tr.experiment.Experiment
+def Isostream10(_):
+  yield (ISOSTREAM + '.ClientMbps', 10)
+
+
+@tr.experiment.Experiment
+def Isostream14(_):
+  yield (ISOSTREAM + '.ClientMbps', 14)
+
+
+@tr.experiment.Experiment
+def Isostream20(_):
+  yield (ISOSTREAM + '.ClientMbps', 20)
+
+
 def _KillWait(proc):
   proc.send_signal(signal.SIGTERM)
   for _ in xrange(30):
