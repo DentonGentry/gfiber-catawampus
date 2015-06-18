@@ -78,13 +78,17 @@ SignalStrengthChart.prototype.getData = function() {
     var time = d.getTime() / 1000 - self.curTime / 1000; // so it's not big
     self.addPoint(time, data[self.key]);
     var host_names = self.listOfDevices.hostNames(data['host_names']);
+    var host_names_array = [];
+    for (var mac_addr in host_names) {
+      host_names_array.push(host_names[mac_addr]);
+    }
     if (!self.initialized) {
       self.initializeDygraph();
       self.initialized = true;
     }
     else {
       self.g.updateOptions({file: self.signalStrengths,
-        labels: ['time'].concat(host_names)
+        labels: ['time'].concat(host_names_array)
         });
     }
     showData('#host_names', data['host_names'], 'Host Name');
