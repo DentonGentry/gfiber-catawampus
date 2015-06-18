@@ -24,11 +24,11 @@ import os
 import shutil
 import tempfile
 import google3
-from tr.wvtest import unittest
 import nat
 import tr.core
 import tr.handle
 import tr.mainloop
+from tr.wvtest import unittest
 
 
 class NatTest(unittest.TestCase):
@@ -147,14 +147,8 @@ class NatTest(unittest.TestCase):
 
     self.loop.RunOnce(timeout=1)
     config4 = open(self.outputfile4).read()
-    expected = ['CWMP_1_COMMENT=IDX_2:', 'CWMP_1_PROTOCOL=UDP',
-                'CWMP_1_SOURCE=2.2.2.2', 'CWMP_1_GATEWAY=9.9.9.9',
-                'CWMP_1_DEST=3.3.3.3', 'CWMP_1_SPORT=1:9', 'CWMP_1_DPORT=90',
-                'CWMP_1_ENABLE=1',
-                'CWMP_2_COMMENT=IDX_1:4465736372697074696f6e',
-                'CWMP_2_PROTOCOL=TCP', 'CWMP_2_SOURCE=0/0',
-                'CWMP_2_GATEWAY=0/0', 'CWMP_2_DEST=1.1.1.1', 'CWMP_2_SPORT=0',
-                'CWMP_2_DPORT=80', 'CWMP_2_ENABLE=1']
+    expected = ['IDX_2:,UDP,3.3.3.3,1:9,90,1,2.2.2.2,9.9.9.9',
+                'IDX_1:4465736372697074696f6e,TCP,1.1.1.1,0,80,1,0/0,0/0']
     for line in config4.splitlines():
       line = line.strip()
       if line and not line.startswith('#'):
@@ -179,10 +173,7 @@ class NatTest(unittest.TestCase):
     config4 = open(self.outputfile4).read()
     self.assertEqual(config4, '')
     config6 = open(self.outputfile6).read()
-    expected = ['CWMP_1_COMMENT=IDX_1:', 'CWMP_1_PROTOCOL=TCP',
-                'CWMP_1_SOURCE=::/0', 'CWMP_1_GATEWAY=::/0',
-                'CWMP_1_DEST=fe80::fa8f:caff:fe11:1111',
-                'CWMP_1_SPORT=0', 'CWMP_1_DPORT=80', 'CWMP_1_ENABLE=1']
+    expected = ['IDX_1:,TCP,fe80::fa8f:caff:fe11:1111,0,80,1,::/0,::/0']
     for line in config6.splitlines():
       line = line.strip()
       if line and not line.startswith('#'):
@@ -242,10 +233,7 @@ class NatTest(unittest.TestCase):
 
     self.loop.RunOnce(timeout=1)
     config4 = open(self.outputfile4).read()
-    expected = ['CWMP_1_COMMENT=IDX_1:', 'CWMP_1_PROTOCOL=UDP',
-                'CWMP_1_SOURCE=5.5.5.5', 'CWMP_1_GATEWAY=9.9.9.9',
-                'CWMP_1_DEST=4.4.4.4', 'CWMP_1_SPORT=1:100',
-                'CWMP_1_DPORT=90:189', 'CWMP_1_ENABLE=1']
+    expected = ['IDX_1:,UDP,4.4.4.4,1:100,90:189,1,5.5.5.5,9.9.9.9']
     for line in config4.splitlines():
       line = line.strip()
       if line and not line.startswith('#'):
@@ -254,10 +242,9 @@ class NatTest(unittest.TestCase):
     self.assertEqual(len(expected), 0)
 
     config6 = open(self.outputfile6).read()
-    expected = ['CWMP_2_COMMENT=IDX_2:', 'CWMP_2_PROTOCOL=TCP',
-                'CWMP_2_SOURCE=::/0', 'CWMP_2_GATEWAY=1000::0001',
-                'CWMP_2_DEST=fe80::fa8f:caff:fe11:1111',
-                'CWMP_2_SPORT=10:60', 'CWMP_2_DPORT=91:141', 'CWMP_2_ENABLE=1']
+    expected = [
+        'IDX_2:,TCP,fe80::fa8f:caff:fe11:1111,10:60,91:141,1,::/0,1000::0001'
+    ]
     for line in config6.splitlines():
       line = line.strip()
       if line and not line.startswith('#'):
