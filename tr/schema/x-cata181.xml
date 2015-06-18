@@ -964,6 +964,12 @@ While the test is in progress, setting this parameter to {{enum|Requested}} (and
           <boolean/>
         </syntax>
       </parameter>
+      <parameter name="ServerConcurrentConnections" access="readWrite">
+        <description>Limit the isostream server to this many parallel connections. If zero, the only limit is the one compiled into isostream.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
       <parameter name="ServerTimeLimit" access="readWrite">
         <description>Automatically disable the server if it runs for more than this many seconds. If zero, there is no limit.</description>
         <syntax>
