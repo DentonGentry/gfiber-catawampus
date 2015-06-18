@@ -33,4 +33,17 @@ wvtest('test adding points', function() {
   WVPASSEQ(chart.signalStrengths[1].length, 3);
   WVPASSEQ(chart.signalStrengths[0][2] , null);
   WVPASSEQ(chart.signalStrengths[1][2] , undefined);
+
+  chart.addPoint(4, {'mac3': 3, 'mac4': 4});
+  WVPASSEQ(chart.signalStrengths[0].length, 5);
+  WVPASSEQ(chart.signalStrengths[1].length, 5);
+  WVPASSEQ(chart.signalStrengths[2].length, 5);
+  WVPASSEQ(chart.signalStrengths[3].length, 5);
+
+  chart.addPoint(5, {'mac3': 3, 'mac4': 4});
+  WVPASSEQ(chart.signalStrengths[0].length, 5);
+  WVPASSEQ(chart.signalStrengths[1].length, 5);
+  WVPASSEQ(chart.signalStrengths[2].length, 5);
+  WVPASSEQ(chart.signalStrengths[3].length, 5);
+  WVPASSEQ(chart.signalStrengths[4].length, 5);
 });
