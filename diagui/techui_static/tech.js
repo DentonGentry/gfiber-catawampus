@@ -70,14 +70,15 @@ SignalStrengthChart.prototype.addPoint = function(time, sig_point) {
 };
 
 /** Gets data from JSON page and updates dygraph.
+ * @param {boolean} is_moca - if graph displays moca devices
 */
-SignalStrengthChart.prototype.getData = function() {
+SignalStrengthChart.prototype.getData = function(is_moca) {
   var self = this;
   $.getJSON('/content.json?checksum=42', function(data) {
     var d = new Date();
     var time = d.getTime() / 1000 - self.curTime / 1000; // so it's not big
     self.addPoint(time, data[self.key]);
-    var host_names = self.listOfDevices.hostNames(data['host_names']);
+    var host_names = self.listOfDevices.hostNames(data['host_names'], is_moca);
     var host_names_array = [];
     for (var mac_addr in host_names) {
       host_names_array.push(host_names[mac_addr]);
@@ -97,7 +98,7 @@ SignalStrengthChart.prototype.getData = function() {
     $('#softversion').html($('<div/>').text(data['softversion']).html());
   });
   setTimeout(function() {
-    self.getData();
+    self.getData(is_moca);
   }, 1000);
 };
 
