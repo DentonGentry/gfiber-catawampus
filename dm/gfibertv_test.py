@@ -150,6 +150,8 @@ class GfiberTvTests(unittest.TestCase):
     gfibertv.FROBNICASTADDRESS[0] = self.frobnicastaddress_fname
     self.frobnicastkey_fname = os.path.join(self.tmpdir, 'FROBNICASTKEY')
     gfibertv.FROBNICASTKEY[0] = self.frobnicastkey_fname
+    self.old_RESTARTFROBCMD = gfibertv.RESTARTFROBCMD
+    gfibertv.RESTARTFROBCMD = ['testdata/gfibertv/restart', 'frobnicast']
 
   def tearDown(self):
     xmlrpclib.ServerProxy('http://localhost:%d' % srv_port).Quit()
@@ -157,6 +159,7 @@ class GfiberTvTests(unittest.TestCase):
     shutil.rmtree(self.tmpdir, ignore_errors=True)
     gfibertv.DISK_SPACE_FILE = self.old_DISK_SPACE_FILE
     gfibertv.HNVRAM = self.old_HNVRAM
+    gfibertv.RESTARTFROBCMD = self.old_RESTARTFROBCMD
     gfibertv.SAGEFILES = self.old_SAGEFILES
 
   def testValidate(self):
