@@ -672,8 +672,8 @@ class WlanConfiguration(CATA98WIFI):
                      '-e', self._GetEncryptionMode()]
     if self._if_suffix:
       cmd += ['-S', self._if_suffix]
-    if self._bridge:
-      cmd += ['-B', self._bridge]
+    bridge = self._bridge or ' '
+    cmd += ['-B', bridge]
 
     if not self.SSIDAdvertisementEnabled:
       cmd += ['-H']

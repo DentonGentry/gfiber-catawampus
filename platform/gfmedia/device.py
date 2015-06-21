@@ -636,7 +636,7 @@ class LANDevice(BASE98IGD.LANDevice):
       self.WLANConfigurationList['2'] = wifi
     elif _DoesInterfaceExist('wlan0' + if_suffix):
       # One radio, allow switching bands
-      wifi = dm.binwifi.WlanConfiguration('wlan0', if_suffix, 'br0',
+      wifi = dm.binwifi.WlanConfiguration('wlan0', if_suffix, bridge,
                                           width_5g=40, autochan='LOW')
       self.WLANConfigurationList['1'] = wifi
 
