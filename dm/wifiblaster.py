@@ -34,20 +34,38 @@ CATA181WIFIBLASTER = CATA181DEVICE.X_CATAWAMPUS_ORG.Wifiblaster
 
 @tr.experiment.Experiment
 def EnableWifiblaster1470(_):
-  yield ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Size', 1470)
-  yield ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Enable', True)
+  return [('Device.X_CATAWAMPUS-ORG.Wifiblaster.Duration', .1),
+          ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Fraction', 10),
+          ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Interval', 3600),
+          ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Size', 1470),
+          ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Enable', True)]
 
 
 @tr.experiment.Experiment
 def EnableWifiblaster800(_):
-  yield ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Size', 800)
-  yield ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Enable', True)
+  return [('Device.X_CATAWAMPUS-ORG.Wifiblaster.Duration', .1),
+          ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Fraction', 10),
+          ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Interval', 3600),
+          ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Size', 800),
+          ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Enable', True)]
 
 
 @tr.experiment.Experiment
 def EnableWifiblaster60(_):
-  yield ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Size', 60)
-  yield ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Enable', True)
+  return [('Device.X_CATAWAMPUS-ORG.Wifiblaster.Duration', .1),
+          ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Fraction', 10),
+          ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Interval', 3600),
+          ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Size', 60),
+          ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Enable', True)]
+
+
+@tr.experiment.Experiment
+def EnableWifiblasterDebug(_):
+  return [('Device.X_CATAWAMPUS-ORG.Wifiblaster.Duration', 1),
+          ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Fraction', 10),
+          ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Interval', 3600),
+          ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Size', 1470),
+          ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Enable', True)]
 
 
 # Unit tests can override these.
