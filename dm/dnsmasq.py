@@ -137,8 +137,9 @@ def UpdateDnsmasqConfig():
     lines.extend([
         '# Set flag cwmp, when vendor-class contains dslform.org\n',
         'dhcp-vendorclass=set:cwmp,enterprise:3561,dslforum.org\n',
-        '# Sends option 1 with option space cwmp if the flag cwmp is set\n',
+        '# Sends ACS_URL if the client requested it\n',
         'dhcp-option=tag:cwmp,vi-encap:3561,option6:1,"%s"\n' % url,
+        'dhcp-option=vi-encap:3561,11,"%s"\n' % url,
         '\n',
     ])
 

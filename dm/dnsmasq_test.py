@@ -108,18 +108,17 @@ class DnsmasqTest(unittest.TestCase):
     # now it should be updated.
     cfg = dnsmasq._ReadFileActiveLines(dnsmasq.DNSMASQCONFIG[0])
     self.assertNotEqual(cfg, [])
-    cfg = [i for i in cfg if 'tag:cwmp' in i]
-    self.assertNotEqual(cfg, [])
-    self.assertEqual(len(cfg), 1)
-    self.assertTrue('option6:1,"http://localhost"' in cfg[0])
+    cfg = '|'.join(cfg)
+    self.assertTrue('option6:1,"http://localhost"' in cfg)
+    self.assertTrue('11,"http://localhost"' in cfg)
 
     mgmt.URL = 'http://localh"ost\\2'
     self.loop.RunOnce()
     cfg = dnsmasq._ReadFileActiveLines(dnsmasq.DNSMASQCONFIG[0])
-    cfg = [i for i in cfg if 'tag:cwmp' in i]
     self.assertNotEqual(cfg, [])
-    self.assertEqual(len(cfg), 1)
-    self.assertTrue('option6:1,"http://localhost2"' in cfg[0])
+    cfg = '|'.join(cfg)
+    self.assertTrue('option6:1,"http://localhost2"' in cfg)
+    self.assertTrue('11,"http://localhost2"' in cfg)
 
   def testAtomicWrite(self):
     dh4p = self.dh4p
