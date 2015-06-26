@@ -32,9 +32,9 @@ import binwifi
 import netdev
 
 BRIDGE_PARAMS = [
-    ('', ' "-B" " "'),
-    ('br0', ' "-B" "br0"'),
-    ('br1', ' "-B" "br1"'),
+    ('', ' "--bridge="'),
+    ('br0', ' "--bridge=br0"'),
+    ('br1', ' "--bridge=br1"'),
 ]
 
 SUFFIX_PARAMS = [
