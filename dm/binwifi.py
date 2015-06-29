@@ -27,13 +27,16 @@ import errno
 import os
 import subprocess
 import traceback
-import netdev
+import tornado.ioloop
 import tr.cwmpbool
+import tr.cwmptypes
 import tr.experiment
 import tr.mainloop
+import tr.pyinotify
 import tr.session
 import tr.tr098_v1_6
 import tr.x_catawampus_tr098_1_0
+import netdev
 
 BASE98IGD = tr.tr098_v1_6.InternetGatewayDevice_v1_12.InternetGatewayDevice
 BASE98WIFI = BASE98IGD.LANDevice.WLANConfiguration
@@ -193,6 +196,8 @@ class WlanConfiguration(CATA98WIFI):
       ['PSKAuthentication'], init='PSKAuthentication')
   WPAEncryptionModes = tr.cwmptypes.TriggerEnum(
       encryption_modes, init='AESEncryption')
+  AssociatedDeviceList = {}
+  StationsWatchManager = tr.pyinotify.WatchManager()
 
   def __init__(self, ifname, if_suffix, bridge, band=None, standard='n',
                width_2_4g=0, width_5g=0, autochan=None):
@@ -274,6 +279,14 @@ class WlanConfiguration(CATA98WIFI):
         self, TMPWAVEGUIDE[0] + '/%s.autochan_5g.init' % self.Name)
     type(self)._InitiallyRecommendedChannel_Free.attr.attr.SetFileName(
         self, TMPWAVEGUIDE[0] + '/%s.autochan_free.init' % self.Name)
+
+    # Watcher/Notifier for files being created or deleted in /tmp/stations
+    if not os.path.isdir('/tmp/stations'):
+      os.mkdir('/tmp/stations')
+    ioloop = tornado.ioloop.IOLoop.instance()
+    mask = tr.pyinotify.IN_CREATE | tr.pyinotify.IN_DELETE
+    self.Notifier = tr.pyinotify.TornadoAsyncNotifier(self.StationsWatchManager, ioloop, callback=self.AssociatedDeviceListMaker)
+    self.StationsWatchManager.add_watch('/tmp/stations', mask)
 
   def _ParseBinwifiOutput(self, lines):
     """Parse output of /bin/wifi show.
@@ -367,15 +380,39 @@ class WlanConfiguration(CATA98WIFI):
     self.new_config.Channel = self.Channel
     self.new_config.SSID = self.SSID
 
-  @property
-  @tr.session.cache
-  def AssociatedDeviceList(self):
-    show = self._BinwifiShow()
-    alist = show.get('AssociatedDevices', [])
-    result = {}
-    for idx, device in enumerate(alist, start=1):
-      result[str(idx)] = AssociatedDevice(device)
-    return result
+  def AssociatedDeviceListMaker(self, obj):
+    directory = '/tmp/stations'
+    stations = []
+    valid_stations = []
+    stations_dict = {}
+    if os.path.isdir(directory):
+      for dirfile in os.listdir(directory):
+        with open(os.path.join(directory, dirfile)) as f:
+          device_data = f.read()
+          for line in device_data.splitlines():
+            if line.startswith('Station '):
+              stations.append(dict())
+              fields = line.split(' ')
+              stations[-1]['PhysAddr'] = fields[1]
+            else:
+              param, val = line.split(':', 1)
+              stations[-1][param.strip()] = val.strip()
+    for station in stations:
+      if (('authorized' in station and station['authorized'] != 'yes') or
+          ('authenticated' in station and station['authenticated'] != 'yes')):
+        continue
+      valid_stations.append(station)
+    stations = valid_stations
+    AssociatedDeviceMACs = []
+    for device in self.AssociatedDeviceList.values():
+      AssociatedDeviceMACs.append(device.AssociatedDeviceMACAddress)
+    for idx, device in enumerate(sorted(stations), start=1):
+      stations_dict[str(idx)] = device['PhysAddr']
+      if device['PhysAddr'] not in AssociatedDeviceMACs:
+        self.AssociatedDeviceList[str(idx)] = AssociatedDevice(device)
+    for idx in self.AssociatedDeviceList.keys():
+      if self.AssociatedDeviceList[idx].AssociatedDeviceMACAddress not in stations_dict.values():
+        del self.AssociatedDeviceList[idx]
 
   def GetAutoChannelEnable(self):
     acalg = self.X_CATAWAMPUS_ORG_AutoChannelAlgorithm
