@@ -60,6 +60,7 @@ DOWNLOADDIR = '/tmp'
 SYSVAR = 'sysvar_cmd'
 SYSVAR_ERROR = '<<ERROR CODE>>'
 GINSTALL = 'ginstall.py'
+LEDSTATUS = '/tmp/gpio/ledstate'
 REBOOT = 'tr69_reboot'
 MODELNAMEFILE = '/etc/platform'
 HWVERSIONFILE = '/sys/devices/platform/board/hw_ver'
@@ -311,11 +312,9 @@ class Device(tr181.Device_v2_4.Device):
     # not tr181.Device_v2_4.Device, so still need to Export here
     self.Export(objects=['DeviceInfo'])
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
-    self.DeviceInfo.Unexport(lists=['X_CATAWAMPUS-ORG_LedStatus', 'Processor',
-                                    'SupportedDataModel', 'VendorConfigFile',
-                                    'VendorLogFile'])
-    self.DeviceInfo.Unexport(['X_CATAWAMPUS-ORG_LedStatusNumberOfEntries',
-                              'LocationNumberOfEntries',
+    self.DeviceInfo.Unexport(lists=['Processor', 'SupportedDataModel',
+                                    'VendorConfigFile', 'VendorLogFile'])
+    self.DeviceInfo.Unexport(['LocationNumberOfEntries',
                               'ProcessorNumberOfEntries',
                               'VendorLogFileNumberOfEntries',
                               'VendorConfigFileNumberOfEntries',
@@ -325,6 +324,8 @@ class Device(tr181.Device_v2_4.Device):
 
     self.Export(objects=['PeriodicStatistics'])
     self.PeriodicStatistics = periodic_stats
+    led = dm.device_info.LedStatusReadFromFile('LED', LEDSTATUS)
+    self.DeviceInfo.AddLedStatus(led)
     self.DeviceInfo.TemperatureStatus.AddSensor(
         name='CPU temperature',
         # KW2 thermal sensor reports milli-degrees C.
