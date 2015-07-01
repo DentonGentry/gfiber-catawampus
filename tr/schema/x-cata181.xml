@@ -976,10 +976,28 @@ While the test is in progress, setting this parameter to {{enum|Requested}} (and
           <unsignedInt/>
         </syntax>
       </parameter>
-      <parameter name="ClientEnable" access="readWrite">
-        <description>True if this device should be running a client right now.</description>
+      <parameter name="ClientRunning" access="readOnly">
+        <description>True if this device is running an isostream client right now.</description>
         <syntax>
           <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="ClientEnable" access="readWrite">
+        <description>True if this device should schedule a daily test run in the half-open interval [ClientStartAtOrAfter, ClientEndBefore).</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="ClientStartAtOrAfter" access="readWrite">
+        <description>Earliest time of day, in seconds after midnight local time, when clients will try to connect to isostream.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="ClientEndBefore" access="readWrite">
+        <description>Latest time of day, in seconds after midnight local time, when clients will try to connect to isostream.</description>
+        <syntax>
+          <unsignedInt/>
         </syntax>
       </parameter>
       <parameter name="ClientDisableIfPortActive" access="readWrite">
