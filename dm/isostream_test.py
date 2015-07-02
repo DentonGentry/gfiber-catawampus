@@ -21,6 +21,8 @@
 import datetime
 import itertools
 import os
+import shutil
+import tempfile
 import time
 import google3
 import isostream
@@ -38,7 +40,16 @@ class IsostreamTest(unittest.TestCase):
     self.logfile = 'isos.out.%d.tmp' % os.getpid()
     tr.helpers.Unlink(self.logfile)
     tr.helpers.Unlink(self.readyfile)
-    tr.helpers.WriteFileAtomic(isostream.CONSENSUS_KEY_FILE, '1CatawampusRocks')
+
+    self.old_basedir = isostream.BASEDIR[0]
+    self.old_consensus_key_file = isostream.CONSENSUS_KEY_FILE[0]
+    self.basedir = tempfile.mkdtemp()
+    self.consensus_key_file = os.path.join(self.basedir, 'consensus_key')
+    isostream.BASEDIR[0] = self.basedir
+    isostream.CONSENSUS_KEY_FILE[0] = self.consensus_key_file
+
+    tr.helpers.WriteFileAtomic(isostream.CONSENSUS_KEY_FILE[0],
+                               '1CatawampusRocks')
     self.oldpath = os.environ['PATH']
     os.environ['PATH'] = '%s/testdata/isostream:%s' % (os.getcwd(),
                                                        os.environ['PATH'])
@@ -48,7 +59,9 @@ class IsostreamTest(unittest.TestCase):
     os.environ['PATH'] = self.oldpath
     tr.helpers.Unlink(self.logfile)
     tr.helpers.Unlink(self.readyfile)
-    tr.helpers.Unlink(isostream.CONSENSUS_KEY_FILE)
+    shutil.rmtree(self.basedir)
+    isostream.BASEDIR[0] = self.old_basedir
+    isostream.CONSENSUS_KEY_FILE[0] = self.old_consensus_key_file
 
   def _WaitReady(self):
     for _ in xrange(1000):
@@ -121,7 +134,8 @@ class IsostreamTest(unittest.TestCase):
 
   def testClientRekey(self):
     isos = isostream.Isostream()
-    tr.helpers.WriteFileAtomic(isostream.CONSENSUS_KEY_FILE, '1Catawampus4ever')
+    tr.helpers.WriteFileAtomic(isostream.CONSENSUS_KEY_FILE[0],
+                               '1Catawampus4ever')
     self.loop.RunOnce()
     self.assertEqual(isos.clientkey, '1Catawampus4ever')
 

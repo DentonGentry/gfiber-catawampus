@@ -22,6 +22,7 @@ Using the isostream program and run-isostream helper script.
 """
 
 import datetime
+import errno
 import hmac
 import logging
 import os
@@ -39,7 +40,8 @@ import tr.x_catawampus_tr181_2_0
 
 CATA181DEVICE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device
 ISOSTREAM = CATA181DEVICE.X_CATAWAMPUS_ORG.Isostream
-CONSENSUS_KEY_FILE = '/tmp/waveguide/consensus_key'
+BASEDIR = ['/tmp/waveguide']
+CONSENSUS_KEY_FILE = ['/tmp/waveguide/consensus_key']
 
 
 @tr.experiment.Experiment
@@ -140,10 +142,16 @@ class Isostream(ISOSTREAM):
     self.clientsettings = None
     self.clientscheduletimer = None
     self.clientstarttime = None
-    self.clientkey = None
+    self.clientkey = os.urandom(16)
+
+    try:
+      os.makedirs(BASEDIR[0], 0755)
+    except OSError as e:
+      if e.errno != errno.EEXIST:
+        raise
 
     notifier = tr.filenotifier.FileNotifier(mainloop)
-    self.watch = notifier.WatchObj(CONSENSUS_KEY_FILE, self._Rekey)
+    self.watch = notifier.WatchObj(CONSENSUS_KEY_FILE[0], self._Rekey)
     self._Rekey()
 
   @ClientMbps.validator
@@ -168,14 +176,14 @@ class Isostream(ISOSTREAM):
 
   def _Rekey(self):
     try:
-      with open(CONSENSUS_KEY_FILE) as f:
-        clientkey = f.read()
-        if self.clientkey != clientkey:
-          self.clientkey = clientkey
+      clientkey = open(CONSENSUS_KEY_FILE[0]).read()
     except IOError:
       logging.warning('Isostream: Could not read consensus key file "%s"',
-                      CONSENSUS_KEY_FILE)
-    self.Triggered()
+                      CONSENSUS_KEY_FILE[0])
+    else:
+      if self.clientkey != clientkey:
+        self.clientkey = clientkey
+        self.Triggered()
 
   def _GetNextDeadline(self):
     """Figure out the next deadline for a scheduled isostream test.
