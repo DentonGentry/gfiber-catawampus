@@ -573,6 +573,9 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
 
     self.LocationDescription = ''
 
+    # No support for acting as a client, could be added later.
+    self.Unexport(['ClientEnable'])
+
     # No RADIUS support, could be added later.
     self.Unexport(['AuthenticationServiceMode'])
 

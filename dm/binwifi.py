@@ -134,6 +134,29 @@ def ForceNoTvBoxWifi(roothandle):
     yield wlankey + 'RadioEnabled', False
 
 
+@tr.experiment.Experiment
+def ForceTvBoxWifiClient(roothandle):
+  """Force join the wireless network provided by the InternetGatewayDevice."""
+  try:
+    model_name = roothandle.obj.Device.DeviceInfo.ModelName
+  except AttributeError as e:
+    print 'ForceTvBoxWifiClient: %r' % e
+    return
+
+  if not model_name.startswith('GFHD'):
+    print 'ForceTvBoxWifiClient: %r is not a TV box. Skipping.' % model_name
+    return
+
+  for wlankey, wlan in _WifiConfigs(roothandle):
+    if hasattr(wlan, 'ClientEnable'):
+      yield wlankey + 'RadioEnabled', True
+      yield wlankey + 'Enable', False
+      yield wlankey + 'ClientEnable', True
+      return  # ensure we only try to associate with one WLAN
+
+  print 'ForceTvBoxWifiClient: %r does not support .ClientEnable' % model_name
+
+
 def _FreqToChan(mhz):
   if mhz / 100 == 24:
     return 1 + (mhz - 2412) / 5
@@ -197,6 +220,7 @@ class WlanConfiguration(CATA98WIFI):
   BeaconType = tr.cwmptypes.TriggerEnum(
       ['None', 'Basic', 'WPA', '11i', 'BasicandWPA', 'Basicand11i', 'WPAand11i',
        'BasicandWPAand11i'], init='11i')
+  ClientEnable = tr.cwmptypes.TriggerBool(False)
   DeviceOperationMode = tr.cwmptypes.ReadOnlyString('InfrastructureAccessPoint')
   Enable = tr.cwmptypes.TriggerBool(False)
   IEEE11iAuthenticationMode = tr.cwmptypes.TriggerEnum(
@@ -235,8 +259,7 @@ class WlanConfiguration(CATA98WIFI):
     self.X_CATAWAMPUS_ORG_Width5G = str(width_5g) if width_5g else ''
     self._autochan = autochan
     self.new_config = None
-    self.last_bin_wifi = None
-    self.last_env = None
+    self.last_action = None
     self._Stats = WlanConfigurationStats(ifname=self._ifname)
     self._initialized = True
     self.AssociatedDeviceList = {}
@@ -404,12 +427,13 @@ class WlanConfiguration(CATA98WIFI):
 
   def StartTransaction(self):
     """Returns a dict of config updates to be applied."""
-    self.new_config = WifiConfig()
-    atype = self.X_CATAWAMPUS_ORG_AutoChanType
-    self.new_config.AutoChannelType = self._autochan or atype
-    self.new_config.AutoChannelEnable = self.AutoChannelEnable
-    self.new_config.Channel = self.Channel
-    self.new_config.SSID = self.SSID
+    if self.new_config is None:
+      self.new_config = WifiConfig()
+      atype = self.X_CATAWAMPUS_ORG_AutoChanType
+      self.new_config.AutoChannelType = self._autochan or atype
+      self.new_config.AutoChannelEnable = self.AutoChannelEnable
+      self.new_config.Channel = self.Channel
+      self.new_config.SSID = self.SSID
 
   @property
   def signals(self):
@@ -802,31 +826,74 @@ class WlanConfiguration(CATA98WIFI):
         break
     return (cmd, env)
 
+  def _MakeBinWifiClientCommand(self):
+    """Return (arglist, env) to run /bin/wifi."""
+    env = os.environ.copy()
+    cmd = BINWIFI + ['setclient', '-P']
+
+    ssid = self.new_config.SSID
+    if ssid:
+      cmd += ['-s', ssid]
+    else:
+      return None, None
+
+    sl = sorted(self.PreSharedKeyList.iteritems(), key=lambda x: int(x[0]))
+    for (_, psk) in sl:
+      key = psk.GetKey()
+      if key:
+        env['WIFI_CLIENT_PSK'] = key
+        break
+    return cmd, env
+
   @tr.mainloop.WaitUntilIdle
   def UpdateBinWifi(self):
     """Apply config to device by running /bin/wifi."""
-    if self._ReallyWantWifi():
-      (cmd, env) = self._MakeBinWifiCommand()
+    def RunCmdWithEnv(cmd, env):
+      try:
+        print 'Running %s' % str(cmd)
+        subprocess.check_call(cmd, env=env, close_fds=True, shell=False)
+      except (IOError, OSError, subprocess.CalledProcessError):
+        print 'Unable to configure Wifi.'
+        traceback.print_exc()
+
+    print 'UpdateBinWifi clientenable=%r radioenabled=%r reallywantwifi=%r' % (
+        self.ClientEnable, self.RadioEnabled, self._ReallyWantWifi())
+
+    if self.ClientEnable and self.RadioEnabled:
+      action = 'setclient'
+      cmd, env = self._MakeBinWifiClientCommand()
+      if cmd is None:
+        print 'UpdateBinWifi: missing information required for client mode.'
+        return
+    elif self._ReallyWantWifi():
+      action = 'set'
+      cmd, env = self._MakeBinWifiCommand()
     else:
-      cmd = BINWIFI + ['stopap', '-P', '-b', self._band]
+      action = None
+      cmd, env = None, None
+
+    verb = None
+    if self.last_action == action:
+      # just an update; no need to run a `wifi stop[client]` command
+      pass
+    elif self.last_action == 'set':
+      verb = 'stopap'
+    elif self.last_action == 'setclient':
+      verb = 'stopclient'
+    else:
+      print ('UpdateBinWifi: last action was %s, nothing to stop' %
+             self.last_action)
+
+    if verb:
+      stop_cmd = BINWIFI + [verb, '-P', '-b', self._band]
       if self._if_suffix:
-        cmd += ['-S', self._if_suffix]
-      env = None
+        stop_cmd += ['-S', self._if_suffix]
+      RunCmdWithEnv(stop_cmd, None)
 
-    if cmd == self.last_bin_wifi and env == self.last_env:
-      print 'No change in wifi configuration, not executing.'
-      return
+    if cmd is not None:
+      RunCmdWithEnv(cmd, env)
 
-    try:
-      print 'Running %s' % str(cmd)
-      child = subprocess.Popen(cmd, env=env, close_fds=True, shell=False)
-      child.wait()
-    except (IOError, OSError, subprocess.CalledProcessError):
-      print 'Unable to configure Wifi.'
-      traceback.print_exc()
-
-    self.last_bin_wifi = cmd
-    self.last_env = env
+    self.last_action = action
 
 
 class PreSharedKey(BASE98WIFI.PreSharedKey):

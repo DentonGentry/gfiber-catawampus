@@ -27,6 +27,12 @@
           </string>
         </syntax>
       </parameter>
+      <parameter name="ClientEnable" access="readWrite">
+        <description>If set to True, causes the host to try to connect to the wireless network configured on an InternetGatewayDevice it knows about.</description>
+        <syntax>
+          <boolean />
+        </syntax>
+      </parameter>
       <parameter name="OperatingFrequencyBand" access="readWrite">
         <description>Indicates the frequency band at which the radio is operating.
 If the radio supports multiple bands, and {{param}} is changed, then all parameters whose value is not valid for the new frequency band (e.g. {{param|Channel}}) MUST be set to a valid value (according to some CPE vendor-specific behavior).</description>

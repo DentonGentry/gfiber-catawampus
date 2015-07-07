@@ -140,6 +140,9 @@ class FakeWifiWlanConfiguration(CATA98WIFI):
                    'MaxBitRate', 'PossibleDataTransmitRates',
                    'TotalIntegrityFailures', 'TotalPSKFailures'])
 
+    # No support for acting as a client, could be added later.
+    self.Unexport(['ClientEnable'])
+
     # No RADIUS support, could be added later.
     self.Unexport(['AuthenticationServiceMode'])
 

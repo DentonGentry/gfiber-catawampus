@@ -95,7 +95,13 @@ else
   for arg in "$@"; do
     quoted="$quoted \"$arg\""
   done
-  (echo "$quoted"; echo "PSK=$WIFI_PSK") >$out
+  if [ "$cmd" = "restore" ]; then
+    (echo "$quoted"; echo "PSK=$WIFI_PSK"; echo "CLIENT_PSK=$WIFI_CLIENT_PSK") >>$out
+  elif [ "$cmd" = "setclient" ]; then
+    (echo "$quoted"; echo "CLIENT_PSK=$WIFI_CLIENT_PSK") >>$out
+  else
+    (echo "$quoted"; echo "PSK=$WIFI_PSK") >>$out
+  fi
 fi
 
 exit 0

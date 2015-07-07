@@ -79,7 +79,7 @@ def Isostream20(_):
 
 
 @tr.experiment.Experiment
-def WhatIfWirelessTV(_):
+def WhatIfTV(_):
   return [(ISOSTREAM + '.ClientEnable', True),
           (ISOSTREAM + '.ClientStartAtOrAfter', 1*60*60),
           (ISOSTREAM + '.ClientEndBefore', 6*60*60),
@@ -87,7 +87,7 @@ def WhatIfWirelessTV(_):
 
 
 @tr.experiment.Experiment
-def WhatIfWirelessTVSwarm(_):
+def WhatIfTVSwarm(_):
   return [(ISOSTREAM + '.ClientEnable', True),
           (ISOSTREAM + '.ClientStartAtOrAfter', 1*60*60),
           (ISOSTREAM + '.ClientEndBefore', 1*60*60+1*60),
