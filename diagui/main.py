@@ -18,6 +18,29 @@ import tr.pyinotify
 # For unit test overrides.
 ONU_STAT_FILE = '/tmp/cwmp/monitoring/onu/onustats.json'
 ACTIVEWAN = 'activewan'
+WIFISIGNAL_FILE = '/tmp/wifisignal'
+
+
+class TechUIJsonHandler(tornado.web.RequestHandler):
+  """Provides JSON-formatted content to be displayed in the TechUI."""
+
+  def get(self):
+    info = ''
+    signal_strengths = {}
+    if os.path.isfile(WIFISIGNAL_FILE):
+      if not os.listdir('/tmp/stations'):
+        signal_strengths['signal_strength'] = {}
+        tr.helpers.WriteFileAtomic(WIFISIGNAL_FILE,
+                                   json.dumps(signal_strengths))
+      else:
+        with open(WIFISIGNAL_FILE) as f:
+          info = f.read()
+    try:
+      self.set_header('Content-Type', 'application/json')
+      self.write(info)
+      self.finish()
+    except IOError:
+      pass
 
 
 class DiagnosticsHandler(tornado.web.RequestHandler):
@@ -81,7 +104,8 @@ class DiaguiSettings(tornado.web.Application):
     if self.root:
       tr.cwmptypes.AddNotifier(type(self.root.Device.Ethernet),
                                'InterfaceNumberOfEntries', self.AlertNotifiers)
-
+    #   for each associated device
+    #   tr.cwmptypes.AddNotifier(, self.hola)
       # TODO(anandkhare): Add notifiers on more parameters using the same format
       # as above, as and when they are implemented using types.py.
     self.pathname = os.path.dirname(__file__)
@@ -104,6 +128,7 @@ class DiaguiSettings(tornado.web.Application):
            {'url': '/tech/index.html'}),
           (r'/tech/(.*)', tornado.web.StaticFileHandler,
            {'path': os.path.join(self.pathname, 'techui_static')}),
+          (r'/signal.json', TechUIJsonHandler),
       ]
 
     super(DiaguiSettings, self).__init__(handlers, **self.settings)
@@ -117,6 +142,9 @@ class DiaguiSettings(tornado.web.Application):
         self.wm, self.ioloop, callback=self.AlertNotifiers)
     self.wdd = self.wm.add_watch(
         os.path.join(self.pathname, 'Testdata'), self.mask)
+
+  def hola():
+    print '******************HOLA*******************************'
 
   def AlertNotifiers(self, obj):
     self.UpdateLatestDict()

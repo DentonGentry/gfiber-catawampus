@@ -62,6 +62,9 @@ class FakeWifiAssociatedDevice(CATA98WIFI.AssociatedDevice):
   X_CATAWAMPUS_ORG_LastDataDownlinkRate = tr.cwmptypes.ReadOnlyUnsigned(1000)
   X_CATAWAMPUS_ORG_LastDataUplinkRate = tr.cwmptypes.ReadOnlyUnsigned(900)
   X_CATAWAMPUS_ORG_SignalStrengthAverage = tr.cwmptypes.ReadOnlyInt(40)
+  X_CATAWAMPUS_ORG_StationInfo = tr.cwmptypes.FileBacked([''],
+                                                         tr.cwmptypes.String(),
+                                                         delete_if_empty=False)
 
   def __init__(self, mac=None, ip=None):
     super(FakeWifiAssociatedDevice, self).__init__()

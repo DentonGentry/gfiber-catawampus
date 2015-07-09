@@ -3,11 +3,11 @@
   TR-181 catawampus.org vendor extension
 -->
 
-<dm:document xmlns:dm="urn:broadband-forum-org:cwmp:datamodel-1-3" 
-    xmlns:dmr="urn:broadband-forum-org:cwmp:datamodel-report-0-1" 
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-    xsi:schemaLocation="urn:broadband-forum-org:cwmp:datamodel-1-3 cwmp-datamodel-1-3.xsd 
-                        urn:broadband-forum-org:cwmp:datamodel-report-0-1 cwmp-datamodel-report.xsd" 
+<dm:document xmlns:dm="urn:broadband-forum-org:cwmp:datamodel-1-3"
+    xmlns:dmr="urn:broadband-forum-org:cwmp:datamodel-report-0-1"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="urn:broadband-forum-org:cwmp:datamodel-1-3 cwmp-datamodel-1-3.xsd
+                        urn:broadband-forum-org:cwmp:datamodel-report-0-1 cwmp-datamodel-report.xsd"
     spec="urn:catawampus-org:x-catawampus-tr098-1-0">
   <description>InternetGatewayDevice data model (Catawampus additions).</description>
 
@@ -28,7 +28,7 @@
         </syntax>
       </parameter>
       <parameter name="OperatingFrequencyBand" access="readWrite">
-        <description>Indicates the frequency band at which the radio is operating. 
+        <description>Indicates the frequency band at which the radio is operating.
 If the radio supports multiple bands, and {{param}} is changed, then all parameters whose value is not valid for the new frequency band (e.g. {{param|Channel}}) MUST be set to a valid value (according to some CPE vendor-specific behavior).</description>
         <syntax>
           <string>
@@ -131,6 +131,12 @@ The ability to list inactive nodes is OPTIONAL. If the CPE includes inactive nod
           <int>
             <units value="dBm"/>
           </int>
+        </syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_StationInfo" access="readOnly" activeNotify="canDeny">
+        <description>Station information reported by the wireless network driver.</description>
+        <syntax>
+          <string/>
         </syntax>
       </parameter>
       <parameter name="X_CATAWAMPUS-ORG_SignalStrengthAverage" access="readOnly" activeNotify="canDeny">

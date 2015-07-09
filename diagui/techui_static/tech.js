@@ -44,7 +44,6 @@ SignalStrengthChart.prototype.initializeDygraph = function() {
 SignalStrengthChart.prototype.addPoint = function(time, sig_point) {
   var numNewKeys = Object.keys(sig_point).length;
   console.log('num new keys ' + numNewKeys);
-
   var pointToAdd = [time];
   for (var mac_addr_index in Object.keys(sig_point)) {
     var mac_addr = (Object.keys(sig_point))[mac_addr_index];
@@ -74,10 +73,25 @@ SignalStrengthChart.prototype.addPoint = function(time, sig_point) {
 */
 SignalStrengthChart.prototype.getData = function(is_moca) {
   var self = this;
+  var time_scale_factor = 1/1000;
+  var wifi_signal_data = {}
+  if (!is_moca) {
+    $.getJSON('/signal.json', function(data) {
+      var d = new Date();
+      var time = (d.getTime() - self.curTime) * time_scale_factor;
+      wifi_signal_data = data[self.key]
+      self.addPoint(time, wifi_signal_data);
+    });
+  }
   $.getJSON('/content.json?checksum=42', function(data) {
     var d = new Date();
-    var time = d.getTime() / 1000 - self.curTime / 1000; // so it's not big
-    self.addPoint(time, data[self.key]);
+    var time = (d.getTime() - self.curTime) * time_scale_factor;
+    if (is_moca) {
+      self.addPoint(time, data[self.key]);
+    }
+    else {
+      self.addPoint(time, wifi_signal_data);
+    }
     var host_names = self.listOfDevices.hostNames(data['host_names'], is_moca);
     var host_names_array = [];
     for (var mac_addr in host_names) {

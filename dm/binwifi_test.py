@@ -258,6 +258,8 @@ class BinWifiTest(unittest.TestCase):
                       '0123456789abcdef0123456789abcdef0')
     self.loop.RunOnce(timeout=1)
 
+  # TODO(theannielin): Allow tests to use station files outside of /tmp/stations
+  # TODO(theannielin): Consume data from mocked /bin/wifi in this test
   def testAssociatedDevices(self):
     bw = binwifi.WlanConfiguration('wifi0', '', 'br0')
     if os.path.isdir('/tmp/stations'):
@@ -309,9 +311,9 @@ class BinWifiTest(unittest.TestCase):
                                       '\tsignal avg: -31 dBm\n'
                                       '\tauthorized: yes\n'),}
     for mac_addr in stations:
-      with open(os.path.join('/tmp/stations', mac_addr), 'w+') as f:
+      with open(os.path.join('/tmp/stations', mac_addr), 'w') as f:
         f.write(stations[mac_addr])
-    bw.AssociatedDeviceListMaker(bw.Notifier)
+    bw.AssocDeviceListMaker(bw.Notifier)
     self.assertEqual(bw.TotalAssociations, 3)
     found = 0
     for c in bw.AssociatedDeviceList.values():

@@ -23,8 +23,10 @@ The platform code is expected to set the BSSID (which is really a MAC address).
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import copy
 import errno
 import os
+import json
 import subprocess
 import traceback
 import tornado.ioloop
@@ -34,6 +36,7 @@ import tr.experiment
 import tr.mainloop
 import tr.pyinotify
 import tr.session
+import tr.helpers
 import tr.tr098_v1_6
 import tr.x_catawampus_tr098_1_0
 import netdev
@@ -42,7 +45,6 @@ BASE98IGD = tr.tr098_v1_6.InternetGatewayDevice_v1_12.InternetGatewayDevice
 BASE98WIFI = BASE98IGD.LANDevice.WLANConfiguration
 CATA98 = tr.x_catawampus_tr098_1_0.X_CATAWAMPUS_ORG_InternetGatewayDevice_v1_0
 CATA98WIFI = CATA98.InternetGatewayDevice.LANDevice.WLANConfiguration
-
 
 # Unit tests can override these.
 BINWIFI = ['wifi']
@@ -197,6 +199,7 @@ class WlanConfiguration(CATA98WIFI):
   WPAEncryptionModes = tr.cwmptypes.TriggerEnum(
       encryption_modes, init='AESEncryption')
   AssociatedDeviceList = {}
+  SigDict = {}
   StationsWatchManager = tr.pyinotify.WatchManager()
 
   def __init__(self, ifname, if_suffix, bridge, band=None, standard='n',
@@ -285,9 +288,10 @@ class WlanConfiguration(CATA98WIFI):
       os.mkdir('/tmp/stations')
     ioloop = tornado.ioloop.IOLoop.instance()
     mask = tr.pyinotify.IN_CREATE | tr.pyinotify.IN_DELETE
-    self.Notifier = tr.pyinotify.TornadoAsyncNotifier(
-        self.StationsWatchManager,
-        ioloop, callback=self.AssociatedDeviceListMaker)
+    cb_function = self.AssocDeviceListMaker
+    self.Notifier = tr.pyinotify.TornadoAsyncNotifier(self.StationsWatchManager,
+                                                      ioloop,
+                                                      callback=cb_function)
     self.StationsWatchManager.add_watch('/tmp/stations', mask)
 
   def _ParseBinwifiOutput(self, lines):
@@ -382,23 +386,25 @@ class WlanConfiguration(CATA98WIFI):
     self.new_config.Channel = self.Channel
     self.new_config.SSID = self.SSID
 
-  def AssociatedDeviceListMaker(self, obj):
+  def AssocDeviceListMaker(self, obj):
     directory = '/tmp/stations'
     stations = []
     valid_stations = []
     stations_dict = {}
     if os.path.isdir(directory):
       for dirfile in os.listdir(directory):
-        with open(os.path.join(directory, dirfile)) as f:
-          device_data = f.read()
-          for line in device_data.splitlines():
-            if line.startswith('Station '):
-              stations.append(dict())
-              fields = line.split(' ')
-              stations[-1]['PhysAddr'] = fields[1]
-            else:
-              param, val = line.split(':', 1)
-              stations[-1][param.strip()] = val.strip()
+        if os.path.isfile(os.path.join(directory, dirfile)):
+          if not dirfile.endswith('.new'):
+            with open(os.path.join(directory, dirfile)) as f:
+              device_data = f.read()
+              for line in device_data.splitlines():
+                if line.startswith('Station '):
+                  stations.append(dict())
+                  fields = line.split(' ')
+                  stations[-1]['PhysAddr'] = fields[1]
+                else:
+                  param, val = line.split(':', 1)
+                  stations[-1][param.strip()] = val.strip()
     for station in stations:
       if (('authorized' in station and station['authorized'] != 'yes') or
           ('authenticated' in station and station['authenticated'] != 'yes')):
@@ -411,10 +417,13 @@ class WlanConfiguration(CATA98WIFI):
     for idx, device in enumerate(sorted(stations), start=1):
       stations_dict[str(idx)] = device['PhysAddr']
       if device['PhysAddr'] not in AssociatedDeviceMACs:
-        self.AssociatedDeviceList[str(idx)] = AssociatedDevice(device)
-    for idx in self.AssociatedDeviceList:
-      addr = self.AssociatedDeviceList[idx].AssociatedDeviceMACAddress
-      if addr not in stations_dict.values():
+        ad = AssociatedDevice(device,
+                              os.path.join(directory, device['PhysAddr']),
+                              self.SigDict)
+        self.AssociatedDeviceList[str(idx)] = ad
+    for idx in self.AssociatedDeviceList.keys():  # pylint: disable=g-builtin-op
+      mac_addr = self.AssociatedDeviceList[idx].AssociatedDeviceMACAddress
+      if mac_addr not in stations_dict.values():
         del self.AssociatedDeviceList[idx]
 
   def GetAutoChannelEnable(self):
@@ -838,6 +847,35 @@ class WlanConfigurationStats(netdev.NetdevStatsLinux26, BASE98WIFI.Stats):
     BASE98WIFI.Stats.__init__(self)
 
 
+def UpdateTechUI(device):
+  """Update the dictionary and creates a file for signal strengths.
+
+  Args:
+    device: The Associated Device we need information for.
+  """
+  mac_addr = device.AssociatedDeviceMACAddress
+  directory = '/tmp/stations'
+  filename = os.path.join('/tmp', 'wifisignal')
+  station = {}
+  signal_strengths = {}
+  last_sigdict = copy.copy(device.SigDict)
+  # Check if file still exists if it is being deleted.
+  if os.path.isfile(os.path.join(directory, mac_addr)):
+    with open(os.path.join(directory, mac_addr)) as f:
+      device_data = f.read()
+      for line in device_data.splitlines():
+        param, val = line.split(':', 1)
+        station[param.strip()] = val.strip()
+    value = (station['signal']).split()[0]
+    device.SigDict[mac_addr] = float(value)
+  for mac_addr in device.SigDict.keys():  # pylint: disable=g-builtin-op
+    if mac_addr not in os.listdir(directory):
+      del device.SigDict[mac_addr]
+  signal_strengths['signal_strength'] = device.SigDict
+  if device.SigDict != last_sigdict:
+    tr.helpers.WriteFileAtomic(filename, json.dumps(signal_strengths))
+
+
 class AssociatedDevice(CATA98WIFI.AssociatedDevice):
   """InternetGatewayDevice.LANDevice.WLANConfiguration.AssociatedDevice."""
 
@@ -850,8 +888,11 @@ class AssociatedDevice(CATA98WIFI.AssociatedDevice):
   X_CATAWAMPUS_ORG_LastDataUplinkRate = tr.cwmptypes.ReadOnlyUnsigned()
   X_CATAWAMPUS_ORG_SignalStrength = tr.cwmptypes.ReadOnlyInt()
   X_CATAWAMPUS_ORG_SignalStrengthAverage = tr.cwmptypes.ReadOnlyInt()
+  X_CATAWAMPUS_ORG_StationInfo = tr.cwmptypes.FileBacked([''],
+                                                         tr.cwmptypes.String(),
+                                                         delete_if_empty=False)
 
-  def __init__(self, device):
+  def __init__(self, device, filename, sigdict):
     super(AssociatedDevice, self).__init__()
     type(self).AssociatedDeviceMACAddress.Set(self, device.get('PhysAddr', ''))
     idle_ms = int(device.get('inactive time', '0 ms').split()[0])
@@ -870,9 +911,14 @@ class AssociatedDevice(CATA98WIFI.AssociatedDevice):
 
     dbm = int(device.get('signal', '0 dBm').split()[0])
     type(self).X_CATAWAMPUS_ORG_SignalStrength.Set(self, dbm)
-    dbm = int(device.get('signal avg', '0 dBm').split()[0])
-    type(self).X_CATAWAMPUS_ORG_SignalStrengthAverage.Set(self, dbm)
+    dbm_avg = int(device.get('signal avg', '0 dBm').split()[0])
+    type(self).X_CATAWAMPUS_ORG_SignalStrengthAverage.Set(self, dbm_avg)
 
     self.Unexport(['AssociatedDeviceIPAddress', 'LastPMKId',
                    'LastRequestedUnicastCipher',
                    'LastRequestedMulticastCipher'])
+
+    type(self).X_CATAWAMPUS_ORG_StationInfo.SetFileName(self, filename)
+    self.SigDict = sigdict
+    tr.cwmptypes.AddNotifier(type(self), 'X_CATAWAMPUS_ORG_StationInfo',
+                             UpdateTechUI)
