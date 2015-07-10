@@ -8,13 +8,13 @@ wvtest('tests indexes of added devices', function() {
   hostHelper(list.hostNames(data), {'01:02:03:04:05:06': '01:02:03:04:05:06',
     '01:02:03:04:05:07': '01:02:03:04:05:07'});
   data['01:02:03:04:05:06'] = 'iPhone';
-  hostHelper(list.hostNames(data) , {'01:02:03:04:05:06': 'iPhone',
+  hostHelper(list.hostNames(data, false) , {'01:02:03:04:05:06': 'iPhone',
     '01:02:03:04:05:07': '01:02:03:04:05:07'});
   data['01:02:03:04:05:07'] = '';
-  hostHelper(list.hostNames(data) , {'01:02:03:04:05:06': 'iPhone',
+  hostHelper(list.hostNames(data, false) , {'01:02:03:04:05:06': 'iPhone',
   '01:02:03:04:05:07': '01:02:03:04:05:07'});
   data = {'01:02:03:04:05:06': 'iPhone'};
-  hostHelper(list.hostNames(data) , {'01:02:03:04:05:06': 'iPhone',
+  hostHelper(list.hostNames(data, false) , {'01:02:03:04:05:06': 'iPhone',
   '01:02:03:04:05:07': '01:02:03:04:05:07'});
 });
 

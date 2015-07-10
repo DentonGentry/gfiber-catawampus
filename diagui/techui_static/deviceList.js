@@ -19,10 +19,16 @@ deviceList.prototype.get = function(mac_addr) {
 /** Takes an array of host names and returns the ones in
  *  the device list.
  * @param {array} host_data - host names data (could have empty fields)
+ * @param {boolean} is_moca - if the device is a moca device
  * @return {array} returns array of device host names
 */
-deviceList.prototype.hostNames = function(host_data) {
+deviceList.prototype.hostNames = function(host_data, is_moca) {
   for (var mac_addr in this.devices) {
+    if (is_moca) {
+      var res = mac_addr.slice(0, (mac_addr.length - 1));
+      var last_thing = parseInt(mac_addr.slice(-1)) - 1;
+      mac_addr = res.concat(last_thing.toString());
+    }
     if (host_data[mac_addr] == '' ||
     typeof host_data[mac_addr] == 'undefined') {
       this.host_names[mac_addr] = mac_addr;

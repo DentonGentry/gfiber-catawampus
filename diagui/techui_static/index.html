@@ -1,5 +1,6 @@
 <html>
 <head>
+  <meta charset="UTF-8">
   <script src="jquery-2.1.4.min.js"></script>
   <script src="dygraph-combined.js"></script>
   <script src="deviceList.js"></script>
@@ -16,7 +17,7 @@
   <script type="text/javascript">
     var wifi = new SignalStrengthChart('Signal Strength (dBm)', 'RSSI', 'signal_strength', 'graph', 'rssi_labels');
     var moca = new SignalStrengthChart('Signal Strength (dB)', 'MOCA', 'moca_signal_strength', 'moca_graph', 'moca_labels');
-    $(document).ready(function() {wifi.getData(); moca.getData();});
+    $(document).ready(function() {wifi.getData(false); moca.getData(true);});
   </script>
 </body>
 </html>
