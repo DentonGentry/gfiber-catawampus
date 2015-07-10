@@ -25,9 +25,9 @@ import shutil
 import tempfile
 
 import google3
-from tr.wvtest import unittest
 import tr.handle
 import tr.session
+from tr.wvtest import unittest
 import binwifi
 import netdev
 
@@ -260,6 +260,58 @@ class BinWifiTest(unittest.TestCase):
 
   def testAssociatedDevices(self):
     bw = binwifi.WlanConfiguration('wifi0', '', 'br0')
+    if os.path.isdir('/tmp/stations'):
+      shutil.rmtree('/tmp/stations')
+    os.mkdir('/tmp/stations')
+    stations = {'00:00:01:00:00:01': ('Station 00:00:01:00:00:01 (on wlan0)\n'
+                                      '\tinactive time: 1 ms\n'
+                                      '\tauthenticated: yes\n'
+                                      '\ttx packets: 5\n'
+                                      '\tPhysAddr: 00:00:01:00:00:01\n'
+                                      '\ttx failed: 7\n'
+                                      '\ttx bitrate: 10.0 MBit/s\n'
+                                      '\trx packets: 3\n'
+                                      '\trx bitrate: 11.0 MBit/s\n'
+                                      '\ttx bytes: 4\n'
+                                      '\ttx retries: 6\n'
+                                      '\trx bytes: 2\n'
+                                      '\tsignal:  -8 dBm\n'
+                                      '\tsignal avg: -9 dBm\n'
+                                      '\tauthorized: yes\n'),
+                '00:00:01:00:00:02': ('Station 00:00:01:00:00:02 (on wlan0)\n'
+                                      '\tinactive time: 12 ms\n'
+                                      '\tauthenticated: yes\n'
+                                      '\ttx packets: 16\n'
+                                      '\tPhysAddr: 00:00:01:00:00:02\n'
+                                      '\ttx failed: 18\n'
+                                      '\ttx bitrate: 21.0 MBit/s\n'
+                                      '\trx packets: 14\n'
+                                      '\trx bitrate: 22.0 MBit/s\n'
+                                      '\ttx bytes: 15\n'
+                                      '\ttx retries: 17\n'
+                                      '\trx bytes: 13\n'
+                                      '\tsignal:  -19 dBm\n'
+                                      '\tsignal avg: -20 dBm\n'
+                                      '\tauthorized: yes\n'),
+                '00:00:01:00:00:03': ('Station 00:00:01:00:00:03 (on wlan0)\n'
+                                      '\tinactive time: 2300000000 ms\n'
+                                      '\tauthenticated: yes\n'
+                                      '\ttx packets: 27\n'
+                                      '\tPhysAddr: 00:00:01:00:00:03\n'
+                                      '\ttx failed: 29\n'
+                                      '\ttx bitrate: 32.0 MBit/s\n'
+                                      '\trx packets: 25\n'
+                                      '\trx bitrate: 33.0 MBit/s\n'
+                                      '\ttx bytes: 26\n'
+                                      '\ttx retries: 28\n'
+                                      '\trx bytes: 24\n'
+                                      '\tsignal:  -30 dBm\n'
+                                      '\tsignal avg: -31 dBm\n'
+                                      '\tauthorized: yes\n'),}
+    for mac_addr in stations:
+      with open(os.path.join('/tmp/stations', mac_addr), 'w+') as f:
+        f.write(stations[mac_addr])
+    bw.AssociatedDeviceListMaker(bw.Notifier)
     self.assertEqual(bw.TotalAssociations, 3)
     found = 0
     for c in bw.AssociatedDeviceList.values():
@@ -288,6 +340,8 @@ class BinWifiTest(unittest.TestCase):
         self.assertEqual(c.X_CATAWAMPUS_ORG_SignalStrengthAverage, -31)
         found |= 4
     self.assertEqual(found, 0x7)
+    if os.path.isdir('/tmp/stations'):
+      shutil.rmtree('/tmp/stations')
 
   def testConfigNotChanged(self):
     bw = binwifi.WlanConfiguration('wifi0', '', 'br0', band='5')
