@@ -285,7 +285,9 @@ class WlanConfiguration(CATA98WIFI):
       os.mkdir('/tmp/stations')
     ioloop = tornado.ioloop.IOLoop.instance()
     mask = tr.pyinotify.IN_CREATE | tr.pyinotify.IN_DELETE
-    self.Notifier = tr.pyinotify.TornadoAsyncNotifier(self.StationsWatchManager, ioloop, callback=self.AssociatedDeviceListMaker)
+    self.Notifier = tr.pyinotify.TornadoAsyncNotifier(
+        self.StationsWatchManager,
+        ioloop, callback=self.AssociatedDeviceListMaker)
     self.StationsWatchManager.add_watch('/tmp/stations', mask)
 
   def _ParseBinwifiOutput(self, lines):
@@ -410,8 +412,9 @@ class WlanConfiguration(CATA98WIFI):
       stations_dict[str(idx)] = device['PhysAddr']
       if device['PhysAddr'] not in AssociatedDeviceMACs:
         self.AssociatedDeviceList[str(idx)] = AssociatedDevice(device)
-    for idx in self.AssociatedDeviceList.keys():
-      if self.AssociatedDeviceList[idx].AssociatedDeviceMACAddress not in stations_dict.values():
+    for idx in self.AssociatedDeviceList:
+      addr = self.AssociatedDeviceList[idx].AssociatedDeviceMACAddress
+      if addr not in stations_dict.values():
         del self.AssociatedDeviceList[idx]
 
   def GetAutoChannelEnable(self):
