@@ -104,8 +104,7 @@ class DiaguiSettings(tornado.web.Application):
     if self.root:
       tr.cwmptypes.AddNotifier(type(self.root.Device.Ethernet),
                                'InterfaceNumberOfEntries', self.AlertNotifiers)
-    #   for each associated device
-    #   tr.cwmptypes.AddNotifier(, self.hola)
+
       # TODO(anandkhare): Add notifiers on more parameters using the same format
       # as above, as and when they are implemented using types.py.
     self.pathname = os.path.dirname(__file__)
@@ -142,9 +141,6 @@ class DiaguiSettings(tornado.web.Application):
         self.wm, self.ioloop, callback=self.AlertNotifiers)
     self.wdd = self.wm.add_watch(
         os.path.join(self.pathname, 'Testdata'), self.mask)
-
-  def hola():
-    print '******************HOLA*******************************'
 
   def AlertNotifiers(self, obj):
     self.UpdateLatestDict()
