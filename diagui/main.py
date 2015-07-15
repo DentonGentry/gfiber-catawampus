@@ -18,6 +18,29 @@ import tr.pyinotify
 # For unit test overrides.
 ONU_STAT_FILE = '/tmp/cwmp/monitoring/onu/onustats.json'
 ACTIVEWAN = 'activewan'
+WIFISIGNAL_FILE = '/tmp/wifisignal'
+
+
+class TechUIJsonHandler(tornado.web.RequestHandler):
+  """Provides JSON-formatted content to be displayed in the TechUI."""
+
+  def get(self):
+    info = ''
+    signal_strengths = {}
+    if os.path.isfile(WIFISIGNAL_FILE):
+      if not os.listdir('/tmp/stations'):
+        signal_strengths['signal_strength'] = {}
+        tr.helpers.WriteFileAtomic(WIFISIGNAL_FILE,
+                                   json.dumps(signal_strengths))
+      else:
+        with open(WIFISIGNAL_FILE) as f:
+          info = f.read()
+    try:
+      self.set_header('Content-Type', 'application/json')
+      self.write(info)
+      self.finish()
+    except IOError:
+      pass
 
 
 class DiagnosticsHandler(tornado.web.RequestHandler):
@@ -104,6 +127,7 @@ class DiaguiSettings(tornado.web.Application):
            {'url': '/tech/index.html'}),
           (r'/tech/(.*)', tornado.web.StaticFileHandler,
            {'path': os.path.join(self.pathname, 'techui_static')}),
+          (r'/signal.json', TechUIJsonHandler),
       ]
 
     super(DiaguiSettings, self).__init__(handlers, **self.settings)

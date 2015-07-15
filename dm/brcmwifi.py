@@ -1068,7 +1068,8 @@ class BrcmWlanAssociatedDevice(CATA98WIFI.AssociatedDevice):
                    'LastRequestedUnicastCipher',
                    'LastRequestedMulticastCipher',
                    'X_CATAWAMPUS-ORG_SignalStrength',
-                   'X_CATAWAMPUS-ORG_SignalStrengthAverage'])
+                   'X_CATAWAMPUS-ORG_SignalStrengthAverage',
+                   'X_CATAWAMPUS-ORG_StationInfo'])
 
   @property
   def AssociatedDeviceMACAddress(self):

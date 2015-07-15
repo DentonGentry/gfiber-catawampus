@@ -31,8 +31,9 @@ SignalStrengthChart.prototype.initializeDygraph = function() {
        immediately available */
        labels: ['time'].concat(Object.keys(this.listOfDevices.devices)),
        labelsDiv: this.labels_div,
-       xlabel: 'Time (s)',
-       ylabel: this.ylabel
+       xlabel: 'Time',
+       ylabel: this.ylabel,
+       axisLabelFontSize: 12
    });
 };
 
@@ -44,7 +45,6 @@ SignalStrengthChart.prototype.initializeDygraph = function() {
 SignalStrengthChart.prototype.addPoint = function(time, sig_point) {
   var numNewKeys = Object.keys(sig_point).length;
   console.log('num new keys ' + numNewKeys);
-
   var pointToAdd = [time];
   for (var mac_addr_index in Object.keys(sig_point)) {
     var mac_addr = (Object.keys(sig_point))[mac_addr_index];
@@ -74,16 +74,26 @@ SignalStrengthChart.prototype.addPoint = function(time, sig_point) {
 */
 SignalStrengthChart.prototype.getData = function(is_moca) {
   var self = this;
+  if (!is_moca) {
+    $.getJSON('/signal.json', function(signal_data) {
+      var time = new Date();
+      self.addPoint(time, signal_data[self.key]);
+    });
+  }
   $.getJSON('/content.json?checksum=42', function(data) {
-    var d = new Date();
-    var time = d.getTime() / 1000 - self.curTime / 1000; // so it's not big
-    self.addPoint(time, data[self.key]);
+    var time = new Date();
+    if (is_moca) {
+      self.addPoint(time, data[self.key]);
+    }
     var host_names = self.listOfDevices.hostNames(data['host_names'], is_moca);
     var host_names_array = [];
     for (var mac_addr in host_names) {
       host_names_array.push(host_names[mac_addr]);
     }
     if (!self.initialized) {
+      if (self.signalStrengths.length == 0) {
+        self.addPoint(time, {});
+      }
       self.initializeDygraph();
       self.initialized = true;
     }
@@ -121,22 +131,36 @@ function showData(div, data, dataName) {
 function showBitloading(data) {
   var prefix = '$BRCM2$';
   $('#bit_table').html('');
+  $('#nbas').html('');
+  var nbas_dict = {};
   for (var mac_addr in data) {
+    var nbas = 0;
     var bitloading = data[mac_addr];
     for (var i = prefix.length; i < bitloading.length; i++) {
-      if (bitloading[i] < 5) {
-        $('#bit_table').append('<a style="background-color:#FF4136">' +
-        bitloading[i] + '</a>');
+      var bl = parseInt(bitloading[i], 16)
+      if (isNaN(bl)) {
+        console.log('Could not parse', bitloading[i], 'as a number.');
+        continue;
       }
-      else if (bitloading[i] < 7) {
-        $('#bit_table').append('<a style="background-color:#FFDC00">' +
-        bitloading[i] + '</a>');
+      nbas += bl;
+      if (bl < 5) {
+        $('#bit_table').append('<span class="bit" ' +
+        'style="background-color:#FF4136">' + bitloading[i] + '</span>');
+      }
+      else if (bl < 7) {
+        $('#bit_table').append('<span class="bit" ' +
+        'style="background-color:#FFDC00">' + bitloading[i] + '</span>');
       }
       else {
-        $('#bit_table').append('<a style="background-color:#2ECC40">' +
-        bitloading[i] + '</a>');
+        $('#bit_table').append('<span class="bit" ' +
+        'style="background-color:#2ECC40">' + bitloading[i] + '</span>');
       }
     }
     $('#bit_table').append('<br style="clear:both"><br>');
+    nbas_dict[mac_addr] = nbas;
   }
+  for (var mac_addr in nbas_dict) {
+    $('#nbas').append(mac_addr + ' NBAS: ' + nbas_dict[mac_addr] + '<br>');
+  }
+  $('#nbas').append('<br>');
 }
