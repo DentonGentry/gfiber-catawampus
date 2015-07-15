@@ -8,7 +8,8 @@ GPYLINT=$(shell \
       echo gpylint \
           --disable=g-bad-import-order \
           --disable=g-unknown-interpreter \
-          --disable=super-init-not-called; \
+          --disable=super-init-not-called \
+          --disable=g-tzinfo-datetime; \
     else \
       echo 'echo "(gpylint-missing)" >&2'; \
     fi \

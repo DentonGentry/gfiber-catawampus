@@ -270,19 +270,11 @@ class MainLoop(object):
     self.ioloop.remove_timeout(self.loop_timeout)
     self.loop_timeout = None
 
-  def _IsIPv4Addr(self, address):
-    try:
-      socket.inet_aton(address[0])
-    except socket.error:
-      return False
-    else:
-      return True
-
   def Listen(self, family, address, onaccept_func):
     return ListenSocket(family, address, onaccept_func)
 
   def ListenInet(self, address, onaccept_func):
-    if self._IsIPv4Addr(address):
+    if helpers.IsIP4Addr(address):
       return self.Listen(socket.AF_INET, address, onaccept_func)
     else:
       return self.Listen(socket.AF_INET6, address, onaccept_func)
@@ -299,7 +291,7 @@ class MainLoop(object):
     return stream
 
   def ConnectInet(self, address, onconnect_func):
-    if self._IsIPv4Addr(address):
+    if helpers.IsIP4Addr(address):
       return self.Connect(socket.AF_INET, address, onconnect_func)
     else:
       return self.Connect(socket.AF_INET6, address, onconnect_func)

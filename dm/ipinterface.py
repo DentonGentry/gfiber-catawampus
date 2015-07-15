@@ -52,7 +52,7 @@ PYNETIFCONF = pynetlinux.ifconfig.Interface
 
 def _ConvertMaskToCIDR(mask):
   """Convert a netmask like 255.255.255.0 to a CIDR length like /24."""
-  bits = int(struct.unpack('!I', socket.inet_aton(mask))[0])
+  bits = int(struct.unpack('!I', socket.inet_pton(socket.AF_INET, mask))[0])
   found_one_bit = False
   maskbits = 0
   for i in range(32):
