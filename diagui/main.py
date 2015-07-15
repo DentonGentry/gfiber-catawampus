@@ -217,14 +217,29 @@ class DiaguiSettings(tornado.web.Application):
     t = dict()
     moca_signal_strength = dict()
     moca_bitloading = dict()
+    moca_codewords = dict()
     for unused_i, inter in self.root.Device.MoCA.InterfaceList.iteritems():
       for unused_j, dev in inter.AssociatedDeviceList.iteritems():
         t[dev.NodeID] = dev.MACAddress
         moca_signal_strength[dev.MACAddress] = dev.X_CATAWAMPUS_ORG_RxSNR_dB
         moca_bitloading[dev.MACAddress] = dev.X_CATAWAMPUS_ORG_RxBitloading
+        corrected = (dev.X_CATAWAMPUS_ORG_RxPrimaryCwCorrected +
+                     dev.X_CATAWAMPUS_ORG_RxSecondaryCwCorrected)
+        uncorrected = (dev.X_CATAWAMPUS_ORG_RxPrimaryCwUncorrected +
+                       dev.X_CATAWAMPUS_ORG_RxSecondaryCwUncorrected)
+        no_errors = (dev.X_CATAWAMPUS_ORG_RxPrimaryCwNoErrors +
+                     dev.X_CATAWAMPUS_ORG_RxSecondaryCwNoErrors)
+        total = corrected + uncorrected + no_errors
+        try:
+          moca_codewords['corrected' + dev.MACAddress] = corrected/total
+          moca_codewords['uncorrected' + dev.MACAddress] = uncorrected/total
+        except ZeroDivisionError:
+          moca_codewords['corrected' + dev.MACAddress] = 0
+          moca_codewords['uncorrected' + dev.MACAddress] = 0
     self.data['wireddevices'] = t
     self.data['moca_signal_strength'] = moca_signal_strength
     self.data['moca_bitloading'] = moca_bitloading
+    self.data['moca_codewords'] = moca_codewords
 
     wlan = dict()
     devices = dict()

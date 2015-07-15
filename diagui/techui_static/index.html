@@ -10,15 +10,24 @@
 <body>
   <div id="graph"></div><div id="rssi_labels"></div>
   <div id="moca_graph"></div><div id="moca_labels"></div>
+  <div id="moca_codewords_graph"></div><div id="moca_codewords_labels"></div>
   <div id="host_names"></div>
   <div id="bitloading" style="width: 600px; word-wrap:break-word;"></div>
   <div id="bit_table"></div>
   <div id="nbas"></div>
   <div id="softversion"></div>
   <script type="text/javascript">
-    var wifi = new SignalStrengthChart('Signal Strength (dBm)', 'RSSI', 'signal_strength', 'graph', 'rssi_labels');
-    var moca = new SignalStrengthChart('Signal Strength (dB)', 'MOCA', 'moca_signal_strength', 'moca_graph', 'moca_labels');
-    $(document).ready(function() {wifi.getData(false); moca.getData(true);});
+    var wifi = new SignalStrengthChart('Signal Strength (dBm)', 'RSSI',
+                                       'signal_strength', 'graph',
+                                       'rssi_labels');
+    var moca = new SignalStrengthChart('Signal Strength (dB)', 'MOCA',
+                                       'moca_signal_strength', 'moca_graph',
+                                       'moca_labels');
+    var moca_codewords = new SignalStrengthChart('Ratio of Erroneous Codewords to Total',
+                                                 'Codewords on the link', 'moca_codewords',
+                                                 'moca_codewords_graph',
+                                                 'moca_codewords_labels');
+    $(document).ready(function() {wifi.getData(false); moca.getData(true); moca_codewords.getData(true);});
   </script>
 </body>
 </html>
