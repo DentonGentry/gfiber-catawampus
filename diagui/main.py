@@ -19,10 +19,12 @@ import tr.pyinotify
 ONU_STAT_FILE = '/tmp/cwmp/monitoring/onu/onustats.json'
 ACTIVEWAN = 'activewan'
 WIFISIGNAL_FILE = '/tmp/wifisignal'
+MOCA_FILE = '/tmp/techuimocainfo'
+MOCA_NODES_DIR = '/tmp/cwmp/monitoring/moca2'
 
 
-class TechUIJsonHandler(tornado.web.RequestHandler):
-  """Provides JSON-formatted content to be displayed in the TechUI."""
+class TechUIWifiJsonHandler(tornado.web.RequestHandler):
+  """Provides JSON-formatted wifi content to be displayed in the TechUI."""
 
   def get(self):
     info = ''
@@ -38,6 +40,54 @@ class TechUIJsonHandler(tornado.web.RequestHandler):
     try:
       self.set_header('Content-Type', 'application/json')
       self.write(info)
+      self.finish()
+    except IOError:
+      pass
+
+
+class TechUIMoCAJsonHandler(tornado.web.RequestHandler):
+  """Provides JSON-formatted MoCA content to be displayed in the TechUI."""
+
+  def get(self):
+    data = {}
+    snr = {}
+    bitloading = {}
+    codewords = {}
+    nbas = {}
+    for node in os.listdir(MOCA_NODES_DIR):
+      nodefile = os.path.join(MOCA_NODES_DIR, node)
+      if os.path.isfile(nodefile) and node.startswith('node'):
+        with open(nodefile) as f:
+          node_content = json.loads(f.read())
+          try:
+            mac_addr = node_content['MACAddress']
+            if mac_addr != '00:00:00:00:00:00':
+              snr[mac_addr] = node_content['RxSNR']
+              bitloading[mac_addr] = node_content['RxBitloading']
+              nbas[mac_addr] = node_content['RxNBAS']
+              corrected = (node_content['RxPrimaryCwCorrected'] +
+                           node_content['RxSecondaryCwCorrected'])
+              uncorrected = (node_content['RxPrimaryCwUncorrected'] +
+                             node_content['RxSecondaryCwUncorrected'])
+              no_errors = (node_content['RxPrimaryCwNoErrors'] +
+                           node_content['RxSecondaryCwNoErrors'])
+              total = corrected + uncorrected + no_errors
+              try:
+                codewords['corrected' + mac_addr] = corrected/total
+                codewords['uncorrected' + mac_addr] = uncorrected/total
+              except ZeroDivisionError:
+                codewords['corrected' + mac_addr] = 0
+                codewords['uncorrected' + mac_addr] = 0
+          except KeyError:
+            pass
+    data['moca_signal_strength'] = snr
+    data['moca_codewords'] = codewords
+    data['moca_bitloading'] = bitloading
+    data['moca_nbas'] = nbas
+    tr.helpers.WriteFileAtomic(MOCA_FILE, json.dumps(data))
+    try:
+      self.set_header('Content-Type', 'application/json')
+      self.write(json.dumps(data))
       self.finish()
     except IOError:
       pass
@@ -127,7 +177,8 @@ class DiaguiSettings(tornado.web.Application):
            {'url': '/tech/index.html'}),
           (r'/tech/(.*)', tornado.web.StaticFileHandler,
            {'path': os.path.join(self.pathname, 'techui_static')}),
-          (r'/signal.json', TechUIJsonHandler),
+          (r'/signal.json', TechUIWifiJsonHandler),
+          (r'/moca.json', TechUIMoCAJsonHandler),
       ]
 
     super(DiaguiSettings, self).__init__(handlers, **self.settings)

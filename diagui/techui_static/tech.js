@@ -80,11 +80,17 @@ SignalStrengthChart.prototype.getData = function(is_moca) {
       self.addPoint(time, signal_data[self.key]);
     });
   }
+  if (is_moca) {
+    $.getJSON('/moca.json', function(moca_data) {
+      var time = new Date();
+      self.addPoint(time, moca_data[self.key]);
+      showData('#bitloading', moca_data['moca_bitloading'], 'Bitloading');
+      showData('#nbas2', moca_data['moca_nbas'], 'NBAS (from moca2)');
+      showBitloading(moca_data['moca_bitloading']);
+    });
+  }
   $.getJSON('/content.json?checksum=42', function(data) {
     var time = new Date();
-    if (is_moca) {
-      self.addPoint(time, data[self.key]);
-    }
     var host_names = self.listOfDevices.hostNames(data['host_names'], is_moca);
     var host_names_array = [];
     for (var mac_addr in host_names) {
@@ -103,8 +109,6 @@ SignalStrengthChart.prototype.getData = function(is_moca) {
         });
     }
     showData('#host_names', data['host_names'], 'Host Name');
-    showData('#bitloading', data['moca_bitloading'], 'Bitloading');
-    showBitloading(data['moca_bitloading']);
     $('#softversion').html($('<div/>').text(data['softversion']).html());
   });
   setTimeout(function() {
