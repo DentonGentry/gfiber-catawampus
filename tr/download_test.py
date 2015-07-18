@@ -33,23 +33,8 @@ from wvtest import unittest
 
 
 mock_http_clients = []
-mock_http_downloads = []
 mock_installers = []
 mock_downloads = []
-
-
-class MockHttpClient(object):
-
-  def __init__(self, io_loop=None):
-    self.did_fetch = False
-    self.request = None
-    self.callback = None
-    mock_http_clients.append(self)
-
-  def fetch(self, request, callback):
-    self.did_fetch = True
-    self.request = request
-    self.callback = callback
 
 
 class MockIoloop(object):
@@ -63,31 +48,14 @@ class MockIoloop(object):
     self.callback = callback
 
 
-class MockHttpDownload(object):
-
-  def __init__(self, url, username=None, password=None,
-               download_complete_cb=None, download_dir=None, ioloop=None):
-    self.url = url
-    self.username = username
-    self.password = password
-    self.download_complete_cb = download_complete_cb
-    self.download_dir = download_dir
-    self.ioloop = ioloop
-    self.did_fetch = False
-    mock_http_downloads.append(self)
-
-  def fetch(self):
-    self.did_fetch = True
-
-
 class MockInstaller(object):
 
-  def __init__(self, filename):
-    self.filename = filename
+  def __init__(self, url):
+    self.url = url
     self.did_install = False
     self.did_reboot = False
     self.file_type = None
-    self.targe_filename = None
+    self.target_filename = None
     self.install_callback = None
     mock_installers.append(self)
 
@@ -147,9 +115,6 @@ class DownloadTest(unittest.TestCase):
     self.done_command_key = None
     self.old_time = time.time
     del mock_installers[:]
-    del mock_http_downloads[:]
-    download.DOWNLOAD_CLIENT['http'] = MockHttpDownload
-    download.DOWNLOAD_CLIENT['https'] = MockHttpDownload
 
   def tearDown(self):
     time.time = self.old_time
@@ -197,35 +162,21 @@ class DownloadTest(unittest.TestCase):
     self.assertEqual(ioloop.timeout, _Delta(kwargs['delay_seconds']))
     self.assertEqual(self.QCheckBoring(dl, kwargs), 1)  # 1: Not Yet Started
 
-    # Step 2: HTTP Download
+    # Step 2: Download & Install
     dl.TimerCallback()
-    self.assertEqual(len(mock_http_downloads), 1)
-    http = mock_http_downloads[0]
-    self.assertEqual(http.url, kwargs['url'])
-    self.assertEqual(http.username, kwargs['username'])
-    self.assertEqual(http.password, kwargs['password'])
-    self.assertTrue(http.download_complete_cb)
-    self.assertTrue(http.did_fetch)
-    self.assertEqual(self.QCheckBoring(dl, kwargs), 2)  # 2: In process
-
-    # Step 3: Install
-    dlfile = MockFile('/path/to/downloaded/file')
-    http.download_complete_cb(0, '', dlfile)
     self.assertEqual(len(mock_installers), 1)
     inst = mock_installers[0]
+    self.assertEqual(inst.url, kwargs['url'])
     self.assertTrue(inst.did_install)
     self.assertEqual(inst.file_type, kwargs['file_type'])
     self.assertEqual(inst.target_filename, kwargs['target_filename'])
-    self.assertEqual(inst.filename, dlfile.name)
     self.assertFalse(inst.did_reboot)
     self.assertEqual(self.QCheckBoring(dl, kwargs), 2)  # 2: In process
-    self.assertFalse(dlfile.close_called)
 
     # Step 4: Reboot
     inst.install_callback(0, '', must_reboot=True)
     self.assertTrue(inst.did_reboot)
     self.assertEqual(self.QCheckBoring(dl, kwargs), 2)  # 2: In process
-    self.assertTrue(dlfile.close_called)
 
     # Step 5: Send Transfer Complete
     dl.RebootCallback(0, '')
@@ -241,43 +192,6 @@ class DownloadTest(unittest.TestCase):
     # Step 6: Wait for Transfer Complete Response
     self.assertFalse(dl.Cleanup())
     self.assertEqual(self.QCheckBoring(dl, kwargs), 3)  # 3: Cleaning up
-
-  def testDownloadFailed(self):
-    ioloop = MockIoloop()
-    cmpl = MockTransferComplete()
-    time.time = self.mockTime
-
-    kwargs = dict(command_key='testCommandKey',
-                  url='http://example.com/foo',
-                  delay_seconds=1)
-    stateobj = persistobj.PersistentObject(objdir=self.tmpdir,
-                                           rootname='testObj',
-                                           filename=None, **kwargs)
-
-    dl = download.Download(stateobj=stateobj,
-                           transfer_complete_cb=cmpl.SendTransferComplete,
-                           ioloop=ioloop)
-
-    # Step 1: Wait delay_seconds
-    dl.DoStart()
-    self.assertEqual(ioloop.timeout, _Delta(kwargs['delay_seconds']))
-
-    # Step 2: HTTP Download
-    dl.TimerCallback()
-    self.assertEqual(len(mock_http_downloads), 1)
-    http = mock_http_downloads[0]
-    self.assertEqual(http.url, kwargs['url'])
-
-    # Step 3: Download fails
-    http.download_complete_cb(100, 'TestDownloadError', None)
-    self.assertEqual(len(mock_installers), 0)
-    self.assertTrue(cmpl.transfer_complete_called)
-    self.assertEqual(cmpl.command_key, kwargs['command_key'])
-    self.assertEqual(cmpl.faultcode, 100)
-    self.assertEqual(cmpl.faultstring, 'TestDownloadError')
-    self.assertEqual(cmpl.starttime, 0.0)
-    self.assertEqual(cmpl.endtime, 0.0)
-    self.assertEqual(cmpl.event_code, 'M Download')
 
   def testInstallFailed(self):
     ioloop = MockIoloop()
@@ -299,21 +213,13 @@ class DownloadTest(unittest.TestCase):
     dl.DoStart()
     self.assertEqual(ioloop.timeout, _Delta(kwargs['delay_seconds']))
 
-    # Step 2: HTTP Download
+    # Step 2: Download & Install
     dl.TimerCallback()
-    self.assertEqual(len(mock_http_downloads), 1)
-    http = mock_http_downloads[0]
-    self.assertEqual(http.url, kwargs['url'])
-
-    # Step 3: Install
-    dlfile = MockFile('/path/to/downloaded/file')
-    http.download_complete_cb(0, '', dlfile)
     self.assertEqual(len(mock_installers), 1)
     inst = mock_installers[0]
+    self.assertEqual(inst.url, kwargs['url'])
     self.assertTrue(inst.did_install)
-    self.assertEqual(inst.filename, dlfile.name)
     self.assertFalse(inst.did_reboot)
-    self.assertFalse(dlfile.close_called)
 
     # Step 4: Install Failed
     inst.install_callback(101, 'TestInstallError', must_reboot=False)
@@ -324,7 +230,6 @@ class DownloadTest(unittest.TestCase):
     self.assertEqual(cmpl.starttime, 0.0)
     self.assertEqual(cmpl.endtime, 0.0)
     self.assertEqual(cmpl.event_code, 'M Download')
-    self.assertTrue(dlfile.close_called)
 
   def testInstallNoReboot(self):
     ioloop = MockIoloop()
@@ -346,22 +251,15 @@ class DownloadTest(unittest.TestCase):
     dl.DoStart()
     self.assertEqual(ioloop.timeout, _Delta(kwargs['delay_seconds']))
 
-    # Step 2: HTTP Download
+    # Step 2: Download & Install
     dl.TimerCallback()
-    self.assertEqual(len(mock_http_downloads), 1)
-    http = mock_http_downloads[0]
-    self.assertEqual(http.url, kwargs['url'])
-
-    # Step 3: Install
-    dlfile = MockFile('/path/to/downloaded/file')
-    http.download_complete_cb(0, '', dlfile)
     self.assertEqual(len(mock_installers), 1)
     inst = mock_installers[0]
+    self.assertEqual(inst.url, kwargs['url'])
     self.assertTrue(inst.did_install)
-    self.assertEqual(inst.filename, dlfile.name)
     self.assertFalse(inst.did_reboot)
 
-    # Step 4: Install Succeeded, no reboot
+    # Step 3: Install Succeeded, no reboot
     inst.install_callback(0, '', must_reboot=False)
     self.assertTrue(cmpl.transfer_complete_called)
     self.assertEqual(cmpl.command_key, kwargs['command_key'])

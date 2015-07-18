@@ -30,7 +30,6 @@ import tornado.httpclient
 import tornado.ioloop
 import tornado.web
 import core
-import http_download
 import persistobj
 import session
 
@@ -62,13 +61,6 @@ class Installer(object):
 INSTALLER = Installer
 
 
-# Unit tests can substitute mock objects here
-DOWNLOAD_CLIENT = {
-    'http': http_download.HttpDownload,
-    'https': http_download.HttpDownload
-}
-
-
 # State machine description. Generate a diagram using Graphviz:
 # ./download.py
 graphviz = r"""
@@ -77,16 +69,14 @@ digraph DLstates {
 
   START [label="START"]
   WAITING [label="WAITING\nstart timer"]
-  DOWNLOADING [label="DOWNLOADING\nstart download"]
   INSTALLING [label="INSTALLING\nstart install"]
   REBOOTING [label="REBOOTING\ninitiate reboot"]
   EXITING [label="EXITING\nsend TransferComplete"]
   DONE [label="DONE\ncleanup, not a\nreal state"]
 
   START -> WAITING
-  WAITING -> DOWNLOADING [label="timer\nexpired"]
-  DOWNLOADING -> INSTALLING [label="download\ncomplete"]
-  DOWNLOADING -> EXITING [label="download\nfailed"]
+  WAITING -> INSTALLING [label="timer\nexpired"]
+  INSTALLING -> EXITING [label="download\nfailed"]
   INSTALLING -> REBOOTING [label="install\ncomplete"]
   INSTALLING -> EXITING [label="install\nfailed"]
   INSTALLING -> EXITING [label="must_reboot=False"]
@@ -103,7 +93,6 @@ class Download(object):
   # States in the state machine. See docs/download.dot for details
   START = 'START'
   WAITING = 'WAITING'
-  DOWNLOADING = 'DOWNLOADING'
   INSTALLING = 'INSTALLING'
   REBOOTING = 'REBOOTING'
   EXITING = 'EXITING'
@@ -131,9 +120,6 @@ class Download(object):
     self.transfer_complete_cb = transfer_complete_cb
     self.download_dir = download_dir
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
-    self.download = None
-    self.downloaded_fileobj = None
-    self.downloaded_file = None
     self.wait_handle = None
     # the delay_seconds started when we received the RPC, even if we have
     # downloaded other files and rebooted since then.
@@ -188,16 +174,6 @@ class Download(object):
         datetime.timedelta(seconds=when - now),
         self.TimerCallback)
 
-  def _NewDownloadObject(self, stateobj):
-    url = getattr(stateobj, 'url', '')
-    username = getattr(stateobj, 'username', None)
-    password = getattr(stateobj, 'password', None)
-    o = urlparse.urlparse(url)
-    client = DOWNLOAD_CLIENT[o.scheme]
-    return client(url=url, username=username, password=password,
-                  download_complete_cb=self.DownloadCompleteCallback,
-                  download_dir=self.download_dir)
-
   def _SendTransferComplete(self, faultcode, faultstring, start=0.0, end=0.0):
     event_code = getattr(self.stateobj, 'event_code', 'M Download')
     self.transfer_complete_cb(dl=self,
@@ -217,33 +193,19 @@ class Download(object):
 
     elif dlstate == self.WAITING:
       if event == self.EV_TIMER:
-        self.download = self._NewDownloadObject(self.stateobj)
-        self.stateobj.Update(dlstate=self.DOWNLOADING,
+        self.stateobj.Update(dlstate=self.INSTALLING,
                              download_start_time=time.time())
-        self.download.fetch()
-        # TODO(dgentry) : need a timeout, in case download never finishes.
-
-    elif dlstate == self.DOWNLOADING:
-      if event == self.EV_DOWNLOAD_COMPLETE:
-        self.download = None  # no longer needed
-        if faultcode == 0:
-          self.installer = INSTALLER(downloaded_file)
-          self.stateobj.Update(dlstate=self.INSTALLING)
-          file_type = getattr(self.stateobj, 'file_type', None)
-          target_filename = getattr(self.stateobj, 'target_filename', None)
-          self.installer.Install(file_type=file_type,
-                                 target_filename=target_filename,
-                                 callback=self.InstallerCallback)
-        else:
-          self.stateobj.Update(dlstate=self.EXITING)
-          self._SendTransferComplete(faultcode, faultstring)
+        self.installer = INSTALLER(url=self.stateobj.url)
+        file_type = getattr(self.stateobj, 'file_type', None)
+        target_filename = getattr(self.stateobj, 'target_filename', None)
+        self.installer.Install(file_type=file_type,
+                               target_filename=target_filename,
+                               callback=self.InstallerCallback)
+        # It is up to installer.Install to either install the image, or
+        # callback with an error in case of timeout or failure.
 
     elif dlstate == self.INSTALLING:
       if event == self.EV_INSTALL_COMPLETE:
-        if self.downloaded_fileobj:
-          self.downloaded_fileobj.close()
-          self.downloaded_fileobj = None
-          self.downloaded_file = None
         if faultcode == 0:
           if must_reboot:
             self.stateobj.Update(dlstate=self.REBOOTING)
@@ -261,7 +223,6 @@ class Download(object):
 
     elif dlstate == self.REBOOTING:
       if event == self.EV_REBOOT_COMPLETE:
-        # TODO(dgentry) check version, whether image was actually installed
         end = time.time()
         self.stateobj.Update(dlstate=self.EXITING, download_complete_time=end)
         if faultcode == 0:
@@ -284,8 +245,6 @@ class Download(object):
   def DownloadCompleteCallback(self, faultcode, faultstring, tmpfile):
     print 'Download complete callback.'
     name = tmpfile and tmpfile.name or None
-    self.downloaded_fileobj = tmpfile  # keep this around or it auto-deletes
-    self.downloaded_file = name
     return self.StateMachine(self.EV_DOWNLOAD_COMPLETE,
                              faultcode, faultstring,
                              downloaded_file=name)
@@ -312,9 +271,6 @@ class Download(object):
     if self.wait_handle:
       self.ioloop.remove_timeout(self.wait_handle)
       self.wait_handle = None
-    if self.download:
-      self.download.close()
-      self.download = None
     self.stateobj.Delete()
 
   def GetQueueState(self):
@@ -362,7 +318,6 @@ class DownloadManager(object):
     self._downloads = list()
     self._pending_complete = list()
     self.config_dir = '/tmp/'
-    self.download_dir = '/tmp/'
     # Function to send RPCs, to be filled in by parent object.
     self.send_transfer_complete = None
 
@@ -392,14 +347,12 @@ class DownloadManager(object):
         StartTime and CompleteTime of the DownloadResponse.
     """
 
-    # TODO(dgentry) check free space?
-
     if len(self._downloads) >= self.MAXDOWNLOADS:
       faultstring = 'Max downloads (%d) reached.' % self.MAXDOWNLOADS
       raise core.ResourcesExceededError(faultstring)
 
     o = urlparse.urlparse(url)
-    if o.scheme not in DOWNLOAD_CLIENT:
+    if o.scheme not in ['http', 'https']:
       raise core.FileTransferProtocolError(
           'Unsupported URL scheme %s' % o.scheme)
 
@@ -418,8 +371,7 @@ class DownloadManager(object):
                                        ignore_errors=True,
                                        **kwargs)
     dl = DOWNLOADOBJ(stateobj=pobj,
-                     transfer_complete_cb=self.TransferCompleteCallback,
-                     download_dir=self.download_dir)
+                     transfer_complete_cb=self.TransferCompleteCallback)
     self._downloads.append(dl)
     dl.DoStart()
 
@@ -443,8 +395,7 @@ class DownloadManager(object):
         pobj.Delete()
         continue
       dl = DOWNLOADOBJ(stateobj=pobj,
-                       transfer_complete_cb=self.TransferCompleteCallback,
-                       download_dir=self.download_dir)
+                       transfer_complete_cb=self.TransferCompleteCallback)
       self._downloads.append(dl)
       dl.RebootCallback(0, None)
 

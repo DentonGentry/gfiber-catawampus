@@ -27,6 +27,7 @@ __author__ = 'zixia@google.com (Ted Huang)'
 import fcntl
 import os
 import subprocess
+import traceback
 import google3
 import dm.device_info
 import dm.ds6923_optical
@@ -172,9 +173,9 @@ class DeviceId(dm.device_info.DeviceIdMeta):
 class Installer(tr.download.Installer):
   """Control install of new software on device."""
 
-  def __init__(self, filename, ioloop=None):
+  def __init__(self, url, ioloop=None):
     tr.download.Installer.__init__(self)
-    self.filename = filename
+    self.url = url
     self._install_cb = None
     self._ioloop = ioloop or tornado.ioloop.IOLoop.instance()
 
@@ -183,7 +184,7 @@ class Installer(tr.download.Installer):
       self._install_cb(faultcode, faultstring, must_reboot=True)
 
   def Install(self, file_type, target_filename, callback):
-    """Install self.filename to disk, then call callback."""
+    """Install self.url to system, then call callback."""
     print 'Installing: %r %r' % (file_type, target_filename)
     ftype = file_type.split()
     if ftype and ftype[0] != '1':
@@ -192,19 +193,16 @@ class Installer(tr.download.Installer):
       return False
     self._install_cb = callback
 
-    if not os.path.exists(self.filename):
-      self._call_callback(INTERNAL_ERROR,
-                          'Installer: file %r does not exist.' % self.filename)
-      return False
-
     # TODO(jnewlin): Remove the --skiploadersig once the new version of ginstall
     # is integrated down from the cpe2.0 branch.
-    cmd = [GINSTALL, '--tar={0}'.format(self.filename), '--partition=other',
+    cmd = [GINSTALL, '--tar=%s' % self.url, '--partition=other',
            '--skiploadersig']
     try:
       self._ginstall = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-    except OSError:
+    except (OSError, subprocess.CalledProcessError):
       self._call_callback(INTERNAL_ERROR, 'Unable to start installer process')
+      print 'Failed to start ginstall: %s' % str(cmd)
+      traceback.print_exc()
       return False
 
     fd = self._ginstall.stdout.fileno()
