@@ -263,7 +263,6 @@ class ParameterAttributes(object):
     """Checks if a notification needs to be sent to the ACS."""
     for paramname in self.params:
       try:
-        print 'Checking notifications for ' + str(paramname)
         start = tr.monohelper.monotime()
         value = self.root.GetExport(paramname)
         end = tr.monohelper.monotime()

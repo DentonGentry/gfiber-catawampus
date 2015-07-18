@@ -31,7 +31,7 @@ PRUNELIST = frozenset(['MaxEnvelopes', 'ParameterKey', 'CommandKey',
                        'Manufacturer', 'OUI', 'ProductClass',
                        'HoldRequests'])
 TRUNCATELIST = frozenset(['GetParameterValues', 'GetParameterValuesResponse',
-                          'GetParameterNamesResponse',
+                          'GetParameterNamesResponse', 'SetParameterAttributes',
                           'X_CATAWAMPUS_ORG_AddObjects',
                           'X_CATAWAMPUS_ORG_AddObjectsResponse'])
 
