@@ -28,6 +28,7 @@ import google3
 from tr.wvtest import unittest
 import bluetooth
 import tr.handle
+import tr.helpers
 import tr.mainloop
 
 
@@ -39,18 +40,22 @@ class iBeaconTest(unittest.TestCase):
     self.outfile = os.path.join(self.tmpdir, 'out')
     self.old_IBEACONCMD = bluetooth.IBEACONCMD
     bluetooth.IBEACONCMD = ['testdata/bluetooth/ibeacon', self.outfile]
+    self.old_EDDYSTONECMD = bluetooth.EDDYSTONECMD
+    bluetooth.EDDYSTONECMD = ['testdata/bluetooth/eddystone', self.outfile]
     self.loop = tr.mainloop.MainLoop()
 
   def tearDown(self):
     super(iBeaconTest, self).tearDown()
     shutil.rmtree(self.tmpdir)
     bluetooth.IBEACONCMD = self.old_IBEACONCMD
+    bluetooth.EDDYSTONECMD = self.old_EDDYSTONECMD
+    tr.helpers.Unlink(self.outfile)
 
   def testValidateExports(self):
     b = bluetooth.Bluetooth()
     tr.handle.ValidateExports(b)
 
-  def testWriteConfigSimple(self):
+  def testIBeacon(self):
     i = bluetooth.iBeacon()
     i.UUID = '95b224d2-8e27-45d5-80c9-69b59df330e5'
     i.Major = 1
@@ -72,6 +77,34 @@ class iBeaconTest(unittest.TestCase):
     os.unlink(self.outfile)
 
     i.Enable = False
+    self.loop.RunOnce()
+    for _ in range(1, 5):
+      if not os.path.exists(self.outfile):
+        time.sleep(0.2)
+    self.assertTrue(os.path.exists(self.outfile))
+    buf = open(self.outfile).read()
+    self.assertTrue('-d' in buf)
+
+  def testEddystone(self):
+    b = bluetooth.Eddystone()
+    b.Namespace = '00112233445566778899'
+    b.Instance = 'aabbccddeeff'
+    b.TxPower = 3
+    b.Enable = True
+    self.loop.RunOnce()
+    for _ in range(1, 5):
+      # give the script time to run
+      if not os.path.exists(self.outfile):
+        time.sleep(0.2)
+    self.assertTrue(os.path.exists(self.outfile))
+    buf = open(self.outfile).read()
+    self.assertTrue('-n 00112233445566778899' in buf)
+    self.assertTrue('-i aabbccddeeff' in buf)
+    self.assertTrue('-t 3' in buf)
+    self.assertFalse('-d' in buf)
+    os.unlink(self.outfile)
+
+    b.Enable = False
     self.loop.RunOnce()
     for _ in range(1, 5):
       if not os.path.exists(self.outfile):

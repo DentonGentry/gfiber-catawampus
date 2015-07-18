@@ -1,0 +1,4 @@
+#!/bin/sh
+outfile="$1"
+
+echo "$@" >>"$outfile"

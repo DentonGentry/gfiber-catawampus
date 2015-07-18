@@ -164,6 +164,32 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
         </syntax>
       </parameter>
     </object>
+    <object base="Device.X_CATAWAMPUS-ORG.Bluetooth.Eddystone." access="readOnly" minEntries="1" maxEntries="1" enableParameter="Enable">
+      <parameter name="Enable" access="readWrite">
+        <description>Enables or disables Eddystone beacon advertisements.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="Namespace" access="readWrite">
+        <description>Namespace ID to send in beacons. This should be a 10 byte hex string like '00112233445566778899'.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="Instance" access="readWrite">
+        <description>Instance number to send in beacons. This should be a 6 byte hex string like 'aabbccddeeff'.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
+      <parameter name="TxPower" access="readWrite">
+        <description>Transmit power to populate in beacons. This is not the amount of TX Power to use, it is a field in the beacon which tells the recipient what power to expect to see at 0 meters distance from the device. This allows the recipient to calculate how far away the beacon must therefore be.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+    </object>
 
 
     <object base="Device.Ethernet." access="readOnly" minEntries="1" maxEntries="1"/>

@@ -28,6 +28,7 @@ import tr.x_catawampus_tr181_2_0
 
 
 IBEACONCMD = ['ibeacon']
+EDDYSTONECMD = ['eddystone']
 CATA181DEVICE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device
 
 
@@ -37,6 +38,7 @@ class Bluetooth(CATA181DEVICE.X_CATAWAMPUS_ORG.Bluetooth):
   def __init__(self):
     super(Bluetooth, self).__init__()
     self.iBeacon = iBeacon()
+    self.Eddystone = Eddystone()
 
 
 class iBeacon(CATA181DEVICE.X_CATAWAMPUS_ORG.Bluetooth.iBeacon):
@@ -59,6 +61,30 @@ class iBeacon(CATA181DEVICE.X_CATAWAMPUS_ORG.Bluetooth.iBeacon):
       rc = subprocess.call(IBEACONCMD + ['-d'])
       if rc != 0:
         print 'iBeacon disable failed rc=%d' % rc
+
+  def Triggered(self):
+    self.StartStop()
+
+
+class Eddystone(CATA181DEVICE.X_CATAWAMPUS_ORG.Bluetooth.Eddystone):
+  """Implementation of X_CATAWAMPUS-ORG.Bluetooth.Eddystone."""
+  Enable = tr.cwmptypes.TriggerBool(False)
+  Namespace = tr.cwmptypes.TriggerString('')
+  Instance = tr.cwmptypes.TriggerString('')
+  TxPower = tr.cwmptypes.TriggerInt(0)
+
+  @tr.mainloop.WaitUntilIdle
+  def StartStop(self):
+    if self.Namespace and self.Instance and self.Enable:
+      args = EDDYSTONECMD + ['-n', self.Namespace, '-i', self.Instance,
+                             '-t', str(self.TxPower)]
+      rc = subprocess.call(args)
+      if rc != 0:
+        print 'Eddystone config failed rc=%d' % rc
+    else:
+      rc = subprocess.call(EDDYSTONECMD + ['-d'])
+      if rc != 0:
+        print 'Eddystone disable failed rc=%d' % rc
 
   def Triggered(self):
     self.StartStop()
