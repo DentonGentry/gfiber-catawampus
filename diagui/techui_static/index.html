@@ -1,6 +1,7 @@
 <html>
 <head>
-  <meta charset="UTF-8">
+  <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+  <meta content="utf-8" http-equiv="encoding">
   <script src="jquery-2.1.4.min.js"></script>
   <script src="dygraph-combined.js"></script>
   <script src="deviceList.js"></script>
@@ -8,27 +9,46 @@
   <link rel="stylesheet" type="text/css" href="tech.css">
 </head>
 <body>
-  <div id="graph"></div><div id="rssi_labels"></div>
-  <div id="moca_graph"></div><div id="moca_labels"></div>
-  <div id="moca_codewords_graph"></div><div id="moca_codewords_labels"></div>
-  <div id="host_names"></div>
-  <div id="bitloading" style="width: 600px; word-wrap:break-word;"></div>
-  <div id="bit_table"></div>
-  <div id="nbas"></div>
-  <div id="nbas2"></div>
-  <div id="softversion"></div>
-  <script type="text/javascript">
-    var wifi = new SignalStrengthChart('Signal Strength (dBm)', 'RSSI',
-                                       'signal_strength', 'graph',
-                                       'rssi_labels');
-    var moca = new SignalStrengthChart('Signal Strength (dB)', 'MOCA',
-                                       'moca_signal_strength', 'moca_graph',
-                                       'moca_labels');
-    var moca_codewords = new SignalStrengthChart('Ratio of Erroneous Codewords to Total',
-                                                 'Codewords on the link', 'moca_codewords',
-                                                 'moca_codewords_graph',
-                                                 'moca_codewords_labels');
-    $(document).ready(function() {wifi.getData(false); moca.getData(true); moca_codewords.getData(true);});
-  </script>
+  <div class="tabs">
+    <div class="tab">
+      <input type="radio" id="tab-1" name="tab-group-1" checked>
+      <label for="tab-1">System</label>
+      <div class="content">
+        <div id="softversion"></div>
+        <div id="host_names"></div>
+      </div>
+    </div>
+    <div class="tab">
+      <input type="radio" id="tab-2" name="tab-group-1">
+      <label for="tab-2">MoCA</label>
+      <div class="content">
+        <div id="moca_graph"></div><div id="moca_labels"></div>
+        <br>
+        <div id="corrected_codewords"></div><div id="cor_cw_labels"></div>
+        <br>
+        <div id="uncorrected_codewords"></div><div id="uncor_cw_labels"></div>
+        <br>
+        <div id="nbas"></div>
+        <div id="bitloading"></div>
+      </div>
+    </div>
+    <div class="tab">
+      <input type="radio" id="tab-3" name="tab-group-1">
+      <label for="tab-3">Wifi Clients</label>
+      <div class="content">
+        <div id="wifi_graph"></div><div id="rssi_labels"></div>
+      </div>
+    </div>
+    <div class="tab">
+      <input type="radio" id="tab-4" name="tab-group-1">
+      <label for="tab-4">Wifi APs</label>
+      <div class="content">
+        <div id="aps_graph"></div><div id="ap_labels"></div>
+        <br>
+        <div id="me_ap_graph"></div><div id="me_ap_labels"></div>
+      </div>
+    </div>
+  </div>
+  <script src="tech_static.js"></script>
 </body>
 </html>

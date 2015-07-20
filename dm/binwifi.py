@@ -23,10 +23,8 @@ The platform code is expected to set the BSSID (which is really a MAC address).
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import copy
 import errno
 import os
-import json
 import subprocess
 import traceback
 import tornado.ioloop
@@ -855,10 +853,7 @@ def UpdateTechUI(device):
   """
   mac_addr = device.AssociatedDeviceMACAddress
   directory = '/tmp/stations'
-  filename = os.path.join('/tmp', 'wifisignal')
   station = {}
-  signal_strengths = {}
-  last_sigdict = copy.copy(device.SigDict)
   # Check if file still exists if it is being deleted.
   if os.path.isfile(os.path.join(directory, mac_addr)):
     with open(os.path.join(directory, mac_addr)) as f:
@@ -871,9 +866,6 @@ def UpdateTechUI(device):
   for mac_addr in device.SigDict.keys():  # pylint: disable=g-builtin-op
     if mac_addr not in os.listdir(directory):
       del device.SigDict[mac_addr]
-  signal_strengths['signal_strength'] = device.SigDict
-  if device.SigDict != last_sigdict:
-    tr.helpers.WriteFileAtomic(filename, json.dumps(signal_strengths))
 
 
 class AssociatedDevice(CATA98WIFI.AssociatedDevice):

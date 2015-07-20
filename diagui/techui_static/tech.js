@@ -39,7 +39,7 @@ SignalStrengthChart.prototype.initializeDygraph = function() {
 
 /** Adds a point on the graph (with a time and an object that maps
   MAC addresses with signal strengths).
- * @param {int} time - we need time for the x axis of the dygraph, in seconds
+ * @param {Object} time - we need time (a date object) for the x axis of the dygraph
  * @param {Object} sig_point - MAC addresses and signal strengths mapping
 */
 SignalStrengthChart.prototype.addPoint = function(time, sig_point) {
@@ -70,27 +70,13 @@ SignalStrengthChart.prototype.addPoint = function(time, sig_point) {
 };
 
 /** Gets data from JSON page and updates dygraph.
- * @param {boolean} is_moca - if graph displays moca devices
+ * @param {boolean} is_moca - if graph displays moca devices, for host names
 */
 SignalStrengthChart.prototype.getData = function(is_moca) {
   var self = this;
-  if (!is_moca) {
-    $.getJSON('/signal.json', function(signal_data) {
-      var time = new Date();
-      self.addPoint(time, signal_data[self.key]);
-    });
-  }
-  if (is_moca) {
-    $.getJSON('/moca.json', function(moca_data) {
-      var time = new Date();
-      self.addPoint(time, moca_data[self.key]);
-      showData('#bitloading', moca_data['moca_bitloading'], 'Bitloading');
-      showData('#nbas2', moca_data['moca_nbas'], 'NBAS (from moca2)');
-      showBitloading(moca_data['moca_bitloading']);
-    });
-  }
-  $.getJSON('/content.json?checksum=42', function(data) {
+  $.getJSON('/techui.json', function(data) {
     var time = new Date();
+    self.addPoint(time, data[self.key]);
     var host_names = self.listOfDevices.hostNames(data['host_names'], is_moca);
     var host_names_array = [];
     for (var mac_addr in host_names) {
@@ -108,7 +94,9 @@ SignalStrengthChart.prototype.getData = function(is_moca) {
         labels: ['time'].concat(host_names_array)
         });
     }
+    showData('#nbas', data['moca_nbas'], 'NBAS');
     showData('#host_names', data['host_names'], 'Host Name');
+    showBitloading(data['moca_bitloading']);
     $('#softversion').html($('<div/>').text(data['softversion']).html());
   });
   setTimeout(function() {
@@ -134,37 +122,29 @@ function showData(div, data, dataName) {
 
 function showBitloading(data) {
   var prefix = '$BRCM2$';
-  $('#bit_table').html('');
-  $('#nbas').html('');
-  var nbas_dict = {};
+  $('#bitloading').html('');
   for (var mac_addr in data) {
-    var nbas = 0;
+    $('#bitloading').append('<span>Bitloading: ' + mac_addr + '</span><br>');
     var bitloading = data[mac_addr];
     for (var i = prefix.length; i < bitloading.length; i++) {
-      var bl = parseInt(bitloading[i], 16)
+      var bl = parseInt(bitloading[i], 16);
       if (isNaN(bl)) {
         console.log('Could not parse', bitloading[i], 'as a number.');
         continue;
       }
-      nbas += bl;
       if (bl < 5) {
-        $('#bit_table').append('<span class="bit" ' +
+        $('#bitloading').append('<span class="bit" ' +
         'style="background-color:#FF4136">' + bitloading[i] + '</span>');
       }
       else if (bl < 7) {
-        $('#bit_table').append('<span class="bit" ' +
+        $('#bitloading').append('<span class="bit" ' +
         'style="background-color:#FFDC00">' + bitloading[i] + '</span>');
       }
       else {
-        $('#bit_table').append('<span class="bit" ' +
+        $('#bitloading').append('<span class="bit" ' +
         'style="background-color:#2ECC40">' + bitloading[i] + '</span>');
       }
     }
-    $('#bit_table').append('<br style="clear:both"><br>');
-    nbas_dict[mac_addr] = nbas;
+    $('#bitloading').append('<br style="clear:both"><br>');
   }
-  for (var mac_addr in nbas_dict) {
-    $('#nbas').append(mac_addr + ' NBAS: ' + nbas_dict[mac_addr] + '<br>');
-  }
-  $('#nbas').append('<br>');
 }
