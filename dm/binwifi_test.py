@@ -20,9 +20,11 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import json
 import os
 import shutil
 import tempfile
+import time
 
 import google3
 import tr.handle
@@ -265,54 +267,49 @@ class BinWifiTest(unittest.TestCase):
     if os.path.isdir('/tmp/stations'):
       shutil.rmtree('/tmp/stations')
     os.mkdir('/tmp/stations')
-    stations = {'00:00:01:00:00:01': ('Station 00:00:01:00:00:01 (on wlan0)\n'
-                                      '\tinactive time: 1 ms\n'
-                                      '\tauthenticated: yes\n'
-                                      '\ttx packets: 5\n'
-                                      '\tPhysAddr: 00:00:01:00:00:01\n'
-                                      '\ttx failed: 7\n'
-                                      '\ttx bitrate: 10.0 MBit/s\n'
-                                      '\trx packets: 3\n'
-                                      '\trx bitrate: 11.0 MBit/s\n'
-                                      '\ttx bytes: 4\n'
-                                      '\ttx retries: 6\n'
-                                      '\trx bytes: 2\n'
-                                      '\tsignal:  -8 dBm\n'
-                                      '\tsignal avg: -9 dBm\n'
-                                      '\tauthorized: yes\n'),
-                '00:00:01:00:00:02': ('Station 00:00:01:00:00:02 (on wlan0)\n'
-                                      '\tinactive time: 12 ms\n'
-                                      '\tauthenticated: yes\n'
-                                      '\ttx packets: 16\n'
-                                      '\tPhysAddr: 00:00:01:00:00:02\n'
-                                      '\ttx failed: 18\n'
-                                      '\ttx bitrate: 21.0 MBit/s\n'
-                                      '\trx packets: 14\n'
-                                      '\trx bitrate: 22.0 MBit/s\n'
-                                      '\ttx bytes: 15\n'
-                                      '\ttx retries: 17\n'
-                                      '\trx bytes: 13\n'
-                                      '\tsignal:  -19 dBm\n'
-                                      '\tsignal avg: -20 dBm\n'
-                                      '\tauthorized: yes\n'),
-                '00:00:01:00:00:03': ('Station 00:00:01:00:00:03 (on wlan0)\n'
-                                      '\tinactive time: 2300000000 ms\n'
-                                      '\tauthenticated: yes\n'
-                                      '\ttx packets: 27\n'
-                                      '\tPhysAddr: 00:00:01:00:00:03\n'
-                                      '\ttx failed: 29\n'
-                                      '\ttx bitrate: 32.0 MBit/s\n'
-                                      '\trx packets: 25\n'
-                                      '\trx bitrate: 33.0 MBit/s\n'
-                                      '\ttx bytes: 26\n'
-                                      '\ttx retries: 28\n'
-                                      '\trx bytes: 24\n'
-                                      '\tsignal:  -30 dBm\n'
-                                      '\tsignal avg: -31 dBm\n'
-                                      '\tauthorized: yes\n'),}
+    stations = {'00:00:01:00:00:01': {'inactive since': 900,
+                                      'authenticated': 'yes',
+                                      'tx packets': 5,
+                                      'tx failed': 7,
+                                      'tx bitrate': 10.0,
+                                      'rx packets': 3,
+                                      'rx bitrate': 11.0,
+                                      'tx bytes': 4,
+                                      'tx retries': 6,
+                                      'rx bytes': 2,
+                                      'signal': -8,
+                                      'signal avg': -9,
+                                      'authorized': 'yes'},
+                '00:00:01:00:00:02': {'inactive since': 1000,
+                                      'authenticated': 'yes',
+                                      'tx packets': 16,
+                                      'tx failed': 18,
+                                      'tx bitrate': 21.0,
+                                      'rx packets': 14,
+                                      'rx bitrate': 22.0,
+                                      'tx bytes': 15,
+                                      'tx retries': 17,
+                                      'rx bytes': 13,
+                                      'signal': -19,
+                                      'signal avg': -20,
+                                      'authorized': 'yes'},
+                '00:00:01:00:00:03': {'inactive since': 500,
+                                      'authenticated': 'yes',
+                                      'tx packets': 27,
+                                      'tx failed': 29,
+                                      'tx bitrate': 32.0,
+                                      'rx packets': 25,
+                                      'rx bitrate': 33.0,
+                                      'tx bytes': 26,
+                                      'tx retries': 28,
+                                      'rx bytes': 24,
+                                      'signal': -30,
+                                      'signal avg': -31,
+                                      'authorized': 'yes'}}
+    time.time = lambda: 1000  # return 1000 in binwifi to make testing easier
     for mac_addr in stations:
       with open(os.path.join('/tmp/stations', mac_addr), 'w') as f:
-        f.write(stations[mac_addr])
+        f.write(json.dumps(stations[mac_addr]))
     bw.AssocDeviceListMaker(bw.Notifier)
     self.assertEqual(bw.TotalAssociations, 3)
     found = 0

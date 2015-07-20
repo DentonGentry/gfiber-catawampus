@@ -24,20 +24,22 @@ The platform code is expected to set the BSSID (which is really a MAC address).
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import errno
+import json
 import os
 import subprocess
+import time
 import traceback
+import netdev
 import tornado.ioloop
 import tr.cwmpbool
 import tr.cwmptypes
 import tr.experiment
+import tr.helpers
 import tr.mainloop
 import tr.pyinotify
 import tr.session
-import tr.helpers
 import tr.tr098_v1_6
 import tr.x_catawampus_tr098_1_0
-import netdev
 
 BASE98IGD = tr.tr098_v1_6.InternetGatewayDevice_v1_12.InternetGatewayDevice
 BASE98WIFI = BASE98IGD.LANDevice.WLANConfiguration
@@ -393,16 +395,11 @@ class WlanConfiguration(CATA98WIFI):
       for dirfile in os.listdir(directory):
         if os.path.isfile(os.path.join(directory, dirfile)):
           if not dirfile.endswith('.new'):
-            with open(os.path.join(directory, dirfile)) as f:
-              device_data = f.read()
-              for line in device_data.splitlines():
-                if line.startswith('Station '):
-                  stations.append(dict())
-                  fields = line.split(' ')
-                  stations[-1]['PhysAddr'] = fields[1]
-                else:
-                  param, val = line.split(':', 1)
-                  stations[-1][param.strip()] = val.strip()
+            device_data = json.load(open(os.path.join(directory, dirfile)))
+            station = dict(PhysAddr=dirfile)
+            for key, value in device_data.iteritems():
+              station[key] = value
+            stations.append(station)
     for station in stations:
       if (('authorized' in station and station['authorized'] != 'yes') or
           ('authenticated' in station and station['authenticated'] != 'yes')):
@@ -845,24 +842,18 @@ class WlanConfigurationStats(netdev.NetdevStatsLinux26, BASE98WIFI.Stats):
     BASE98WIFI.Stats.__init__(self)
 
 
-def UpdateTechUI(device):
-  """Update the dictionary and creates a file for signal strengths.
+def CollectSignalStrength(device):
+  """Update the dictionary of signal strengths for each WlanConfiguration.
 
   Args:
     device: The Associated Device we need information for.
   """
   mac_addr = device.AssociatedDeviceMACAddress
   directory = '/tmp/stations'
-  station = {}
   # Check if file still exists if it is being deleted.
   if os.path.isfile(os.path.join(directory, mac_addr)):
-    with open(os.path.join(directory, mac_addr)) as f:
-      device_data = f.read()
-      for line in device_data.splitlines():
-        param, val = line.split(':', 1)
-        station[param.strip()] = val.strip()
-    value = (station['signal']).split()[0]
-    device.SigDict[mac_addr] = float(value)
+    device_data = json.load(open(os.path.join(directory, mac_addr)))
+    device.SigDict[mac_addr] = device_data['signal']
   for mac_addr in device.SigDict.keys():  # pylint: disable=g-builtin-op
     if mac_addr not in os.listdir(directory):
       del device.SigDict[mac_addr]
@@ -887,23 +878,26 @@ class AssociatedDevice(CATA98WIFI.AssociatedDevice):
   def __init__(self, device, filename, sigdict):
     super(AssociatedDevice, self).__init__()
     type(self).AssociatedDeviceMACAddress.Set(self, device.get('PhysAddr', ''))
-    idle_ms = int(device.get('inactive time', '0 ms').split()[0])
-    if idle_ms < 120000:
-      type(self).X_CATAWAMPUS_ORG_Active.Set(self, True)
+    idle_since = device.get('inactive since', 0.0)
+    # this operation is safe from clock jumps:
+    # if the system clock jumps, the file will be rewritten with the new local
+    # time, so the comparison with time.time() will still be valid
+    idle_sec = time.time() - idle_since
+    type(self).X_CATAWAMPUS_ORG_Active.Set(self, idle_sec < 120)
 
-    bitrate = float(device.get('tx bitrate', '0.0 MBit/s').split()[0])
+    bitrate = device.get('tx bitrate', 0.0)
     kbps = int(bitrate * 1000.0)
     type(self).X_CATAWAMPUS_ORG_LastDataUplinkRate.Set(self, kbps)
 
-    bitrate = float(device.get('rx bitrate', '0.0 MBit/s').split()[0])
+    bitrate = device.get('rx bitrate', 0.0)
     kbps = int(bitrate * 1000.0)
     mbps = int(bitrate)
     type(self).X_CATAWAMPUS_ORG_LastDataDownlinkRate.Set(self, kbps)
     type(self).LastDataTransmitRate.Set(self, mbps)
 
-    dbm = int(device.get('signal', '0 dBm').split()[0])
+    dbm = device.get('signal', 0)
     type(self).X_CATAWAMPUS_ORG_SignalStrength.Set(self, dbm)
-    dbm_avg = int(device.get('signal avg', '0 dBm').split()[0])
+    dbm_avg = device.get('signal avg', 0)
     type(self).X_CATAWAMPUS_ORG_SignalStrengthAverage.Set(self, dbm_avg)
 
     self.Unexport(['AssociatedDeviceIPAddress', 'LastPMKId',
@@ -913,4 +907,4 @@ class AssociatedDevice(CATA98WIFI.AssociatedDevice):
     type(self).X_CATAWAMPUS_ORG_StationInfo.SetFileName(self, filename)
     self.SigDict = sigdict
     tr.cwmptypes.AddNotifier(type(self), 'X_CATAWAMPUS_ORG_StationInfo',
-                             UpdateTechUI)
+                             CollectSignalStrength)
