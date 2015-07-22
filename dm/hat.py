@@ -49,7 +49,6 @@ class Hat(CATABASE.HAT):
   DiskSpaceHighWatermarkPercent = tr.cwmptypes.TriggerUnsigned()
   DiskSpaceCleanupIntervalSecs = tr.cwmptypes.TriggerUnsigned()
   HatCatalogPollingIntervalSecs = tr.cwmptypes.TriggerUnsigned()
-  AdFetchMaxLeadTimeSecs = tr.cwmptypes.TriggerUnsigned()
   MinImpressionViewDurationPts = tr.cwmptypes.TriggerInt()
   CueToneFiredAdRequests = tr.cwmptypes.TriggerBool()
 
@@ -106,8 +105,6 @@ class Hat(CATABASE.HAT):
                               'disk_space_cleanup_interval_secs')
       self.printIfSetUnsigned(f, self.HatCatalogPollingIntervalSecs,
                               'hat_catalog_polling_interval_secs')
-      self.printIfSetUnsigned(f, self.AdFetchMaxLeadTimeSecs,
-                              'ad_fetch_max_lead_time_secs')
       self.printIfSetSigned(f, self.MinImpressionViewDurationPts,
                             'min_impression_view_duration_pts')
       self.printIfSetBool(f, self.CueToneFiredAdRequests,
