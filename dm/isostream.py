@@ -21,11 +21,13 @@
 Using the isostream program and run-isostream helper script.
 """
 
+import collections
 import datetime
 import errno
 import hmac
 import logging
 import os
+import re
 import signal
 import subprocess
 import time
@@ -143,6 +145,8 @@ class Isostream(ISOSTREAM):
     self.clientscheduletimer = None
     self.clientstarttime = None
     self.clientkey = os.urandom(16)
+    self.buffer = ''
+    self.last_log = None
 
     try:
       os.makedirs(BASEDIR[0], 0755)
@@ -242,6 +246,7 @@ class Isostream(ISOSTREAM):
         self.ioloop.remove_timeout(self.clienttimer)
         self.clienttimer = None
       if self.clientproc:
+        self.ioloop.remove_handler(self.clientproc.stdout.fileno())
         _KillWait(self.clientproc)
         self.clientproc = None
       if self.clientscheduletimer:
@@ -264,7 +269,11 @@ class Isostream(ISOSTREAM):
         else:
           argv += ['--use-storage-box']
         argv += ['-b', str(self.ClientMbps)]
-        self.clientproc = subprocess.Popen(argv, env=env, close_fds=True)
+        self.clientproc = subprocess.Popen(argv, env=env,
+                                           stdout=subprocess.PIPE,
+                                           close_fds=True)
+        self.ioloop.add_handler(self.clientproc.stdout.fileno(), self.GetLines,
+                                self.ioloop.READ)
         if self.ClientTimeLimit:
           def _DisableClient():
             self.ClientRunning = False
@@ -272,6 +281,24 @@ class Isostream(ISOSTREAM):
               deadline=datetime.timedelta(seconds=self.ClientTimeLimit),
               callback=_DisableClient)
 
+  def GetLines(self, fd, events):
+    data = os.read(fd, 4096)
+    self.buffer += data
+    while '\n' in self.buffer:
+      before, after = self.buffer.split('\n', 1)
+      self.buffer = after
+      self.ParseLineToTuple(before)
+
+  def ParseLineToTuple(self, line):
+    log_line = collections.namedtuple('log_line', ['timestamp', 'offset',
+                                                   'disconn', 'drops'])
+    line = line.strip()
+    values = re.match(
+        r'(\d*\.?\d*).*offset=(\d*\.?\d*).*disconn=(\d*).*drops=(\d*)',
+        line)
+    if values:
+      timestamp, offset, disconn, drops = values.groups()
+      self.last_log = log_line(timestamp, offset, disconn, drops)
 
 if __name__ == '__main__':
   isos = Isostream()
