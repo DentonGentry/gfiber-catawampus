@@ -36,8 +36,8 @@ jstest: ../tr/vendor/wvtest/wvtestrun
 
 jsruntests: deviceList_test tech_test
 
-jslint: techui_static/deviceList.js techui_static/deviceList_test.js techui_static/tech.js techui_static/tech_test.js
-	gjslint techui_static/deviceList.js techui_static/deviceList_test.js techui_static/tech.js techui_static/tech_test.js
+jslint: techui_static/deviceList.js techui_static/deviceList_test.js techui_static/tech.js techui_static/tech_test.js techui_static/tech_static.js
+	gjslint techui_static/deviceList.js techui_static/deviceList_test.js techui_static/tech.js techui_static/tech_test.js techui_static/tech_static.js
 
 clean:
 	rm -f *~ *.pyc .*~

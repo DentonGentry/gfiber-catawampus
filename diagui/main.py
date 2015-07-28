@@ -8,6 +8,8 @@ import hashlib
 import json
 import mimetypes
 import os
+import errno
+import glob
 import google3
 import tornado.ioloop
 import tornado.web
@@ -18,79 +20,118 @@ import tr.pyinotify
 # For unit test overrides.
 ONU_STAT_FILE = '/tmp/cwmp/monitoring/onu/onustats.json'
 ACTIVEWAN = 'activewan'
-WIFISIGNAL_FILE = '/tmp/wifisignal'
-MOCA_FILE = '/tmp/techuimocainfo'
+APSIGNAL_FILE = '/tmp/waveguide/self_signals'
 MOCA_NODES_DIR = '/tmp/cwmp/monitoring/moca2'
+SOFTWARE_VERSION_FILE = '/etc/version'
+MOCAGLOBALJSON = '/tmp/cwmp/monitoring/moca2/globals'
 
 
-class TechUIWifiJsonHandler(tornado.web.RequestHandler):
-  """Provides JSON-formatted wifi content to be displayed in the TechUI."""
-
-  def get(self):
-    info = ''
-    signal_strengths = {}
-    if os.path.isfile(WIFISIGNAL_FILE):
-      if not os.listdir('/tmp/stations'):
-        signal_strengths['signal_strength'] = {}
-        tr.helpers.WriteFileAtomic(WIFISIGNAL_FILE,
-                                   json.dumps(signal_strengths))
-      else:
-        with open(WIFISIGNAL_FILE) as f:
-          info = f.read()
-    try:
-      self.set_header('Content-Type', 'application/json')
-      self.write(info)
-      self.finish()
-    except IOError:
-      pass
-
-
-class TechUIMoCAJsonHandler(tornado.web.RequestHandler):
-  """Provides JSON-formatted MoCA content to be displayed in the TechUI."""
+class TechUIJsonHandler(tornado.web.RequestHandler):
+  """Provides JSON-formatted info for the TechUI."""
 
   def get(self):
+    landevlist = self.application.root.InternetGatewayDevice.LANDeviceList
+    hostinfo = self.application.root.Device.Hosts.HostList
     data = {}
+    other_aps = {}
+    self_signals = {}
+    wifi_signal_strengths = {}
     snr = {}
     bitloading = {}
-    codewords = {}
+    corrected_cw = {}
+    uncorrected_cw = {}
     nbas = {}
+    host_names = {}
+
+    for ap_file in glob.glob('/tmp/waveguide/APs.*'):
+      try:
+        file_str = open(ap_file).read()
+      except IOError as e:
+        if e.errno == errno.ENOENT:
+          file_str = ''  # file doesn't exist, harmless
+        else:
+          raise
+      for info in file_str.splitlines():
+        if 'rssi' in info and 'bssid' in info:
+          node_info = {}
+          for sp in info.split('|'):
+            key, value = sp.split(':', 1)
+            node_info[key] = value
+          other_aps[node_info['bssid']] = float(node_info['rssi'])
+
     for node in os.listdir(MOCA_NODES_DIR):
       nodefile = os.path.join(MOCA_NODES_DIR, node)
-      if os.path.isfile(nodefile) and node.startswith('node'):
-        with open(nodefile) as f:
-          node_content = json.loads(f.read())
+      global_content = self.LoadJson(MOCAGLOBALJSON)
+      global_node_id = global_content['NodeId']
+      # so connection info about self is not displayed
+      if node.startswith('node') and not node.endswith(str(global_node_id)):
+        node_content = self.LoadJson(nodefile)
+        mac_addr = node_content['MACAddress']
+        if mac_addr != '00:00:00:00:00:00':
+          snr[mac_addr] = node_content['RxSNR']
+          bitloading[mac_addr] = node_content['RxBitloading']
+          nbas[mac_addr] = node_content['RxNBAS']
+          corrected = (node_content['RxPrimaryCwCorrected'] +
+                       node_content['RxSecondaryCwCorrected'])
+          uncorrected = (node_content['RxPrimaryCwUncorrected'] +
+                         node_content['RxSecondaryCwUncorrected'])
+          no_errors = (node_content['RxPrimaryCwNoErrors'] +
+                       node_content['RxSecondaryCwNoErrors'])
+          total = corrected + uncorrected + no_errors
           try:
-            mac_addr = node_content['MACAddress']
-            if mac_addr != '00:00:00:00:00:00':
-              snr[mac_addr] = node_content['RxSNR']
-              bitloading[mac_addr] = node_content['RxBitloading']
-              nbas[mac_addr] = node_content['RxNBAS']
-              corrected = (node_content['RxPrimaryCwCorrected'] +
-                           node_content['RxSecondaryCwCorrected'])
-              uncorrected = (node_content['RxPrimaryCwUncorrected'] +
-                             node_content['RxSecondaryCwUncorrected'])
-              no_errors = (node_content['RxPrimaryCwNoErrors'] +
-                           node_content['RxSecondaryCwNoErrors'])
-              total = corrected + uncorrected + no_errors
-              try:
-                codewords['corrected' + mac_addr] = corrected/total
-                codewords['uncorrected' + mac_addr] = uncorrected/total
-              except ZeroDivisionError:
-                codewords['corrected' + mac_addr] = 0
-                codewords['uncorrected' + mac_addr] = 0
-          except KeyError:
-            pass
+            corrected_cw[mac_addr] = corrected/total
+            uncorrected_cw[mac_addr] = uncorrected/total
+          except ZeroDivisionError:
+            corrected_cw[mac_addr] = 0
+            uncorrected_cw[mac_addr] = 0
+
+    if not os.listdir('/tmp/stations'):
+      wifi_signal_strengths = {}
+    else:
+      for unused_i, dev in landevlist.iteritems():
+        for unused_j, wlconf in dev.WLANConfigurationList.iteritems():
+          wifi_signal_strengths = wlconf.SigDict
+
+    for host in hostinfo.itervalues():
+      host_names[host.PhysAddress] = host.HostName
+
+    self_signals = self.LoadJson(APSIGNAL_FILE)
+
+    try:
+      data['softversion'] = open(SOFTWARE_VERSION_FILE).read().rstrip()
+    except IOError as e:
+      if e.errno == errno.ENOENT:
+        pass  # file doesn't exist, harmless
+      else:
+        raise
+
     data['moca_signal_strength'] = snr
-    data['moca_codewords'] = codewords
+    data['moca_corrected_codewords'] = corrected_cw
+    data['moca_uncorrected_codewords'] = uncorrected_cw
     data['moca_bitloading'] = bitloading
     data['moca_nbas'] = nbas
-    tr.helpers.WriteFileAtomic(MOCA_FILE, json.dumps(data))
+    data['wifi_signal_strength'] = wifi_signal_strengths
+    data['other_aps'] = other_aps
+    data['self_signals'] = self_signals
+    data['host_names'] = host_names
+
     try:
       self.set_header('Content-Type', 'application/json')
       self.write(json.dumps(data))
       self.finish()
     except IOError:
       pass
+
+  def LoadJson(self, filename):
+    try:
+      return json.loads(open(filename).read())
+    except ValueError:
+      return {}  # No json to read
+    except IOError as e:
+      if e.errno == errno.ENOENT:
+        return {}  # file doesn't exist, harmless
+      else:
+        raise
 
 
 class DiagnosticsHandler(tornado.web.RequestHandler):
@@ -177,8 +218,7 @@ class DiaguiSettings(tornado.web.Application):
            {'url': '/tech/index.html'}),
           (r'/tech/(.*)', tornado.web.StaticFileHandler,
            {'path': os.path.join(self.pathname, 'techui_static')}),
-          (r'/signal.json', TechUIWifiJsonHandler),
-          (r'/moca.json', TechUIMoCAJsonHandler),
+          (r'/techui.json', TechUIJsonHandler),
       ]
 
     super(DiaguiSettings, self).__init__(handlers, **self.settings)
