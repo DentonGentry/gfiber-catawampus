@@ -130,6 +130,7 @@ class FakeWifiWlanConfiguration(CATA98WIFI):
   X_CATAWAMPUS_ORG_Width24G = tr.cwmptypes.ReadOnlyString('20')
   X_CATAWAMPUS_ORG_Width5G = tr.cwmptypes.ReadOnlyString('40')
   X_CATAWAMPUS_ORG_AutoDisableRecommended = tr.cwmptypes.ReadOnlyBool(False)
+  SignalsStr = tr.cwmptypes.ReadOnlyString('')
 
   def __init__(self):
     super(FakeWifiWlanConfiguration, self).__init__()
@@ -179,10 +180,16 @@ class FakeWifiWlanConfiguration(CATA98WIFI):
         2: FakeWifiAssociatedDevice(mac='00:01:02:03:04:06'),
     }
     self.Stats = FakeWifiStats()
+    self._sig_dict = {'11:22:33:44:55:66': -45, '11:22:33:44:55:67': -60}
 
   @property
   def TotalAssociations(self):
     return len(self.AssociatedDeviceList)
+
+  @property
+  def signals(self):
+    type(self).SignalsStr.Set(self, str(self._sig_dict))
+    return self._sig_dict
 
   def GetChannel(self):
     return self.channel

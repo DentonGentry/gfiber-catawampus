@@ -119,6 +119,7 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
   MAX_NODES_MOCA1 = 8
   MAX_NODES_MOCA2 = 16
   MaxNodes = tr.cwmptypes.ReadOnlyInt(0)
+  AssociatedDeviceCount = tr.cwmptypes.ReadOnlyUnsigned(0)
 
   Upstream = tr.cwmptypes.ReadOnlyBool(False)
 
@@ -304,7 +305,11 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
       node = NODE_RE.search(line)
       if node is not None:
         nodes.add(int(node.group(1)))
-    return list(nodes)
+    node_list = list(nodes)
+    length = len(node_list)
+    if int(self.AssociatedDeviceCount) != length:
+      type(self).AssociatedDeviceCount.Set(self, length)
+    return node_list
 
   @property
   @tr.session.cache
@@ -349,6 +354,7 @@ class BrcmMocaAssociatedDevice(CATA181MOCA.Interface.AssociatedDevice):
   X_CATAWAMPUS_ORG_RxBcastPowerLevel_dBm = tr.cwmptypes.ReadOnlyFloat(0.0)
   X_CATAWAMPUS_ORG_RxPowerLevel_dBm = tr.cwmptypes.ReadOnlyFloat(0.0)
   X_CATAWAMPUS_ORG_RxSNR_dB = tr.cwmptypes.ReadOnlyFloat(0.0)
+  X_CATAWAMPUS_ORG_RxNBAS = tr.cwmptypes.ReadOnlyFloat(0.0)
   X_CATAWAMPUS_ORG_RxBitloading = tr.cwmptypes.ReadOnlyString('')
   X_CATAWAMPUS_ORG_TxBitloading = tr.cwmptypes.ReadOnlyString('')
 

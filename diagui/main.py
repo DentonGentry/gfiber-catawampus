@@ -9,7 +9,6 @@ import json
 import mimetypes
 import os
 import errno
-import glob
 import google3
 import tornado.ioloop
 import tornado.web
@@ -20,8 +19,9 @@ import tr.pyinotify
 # For unit test overrides.
 ONU_STAT_FILE = '/tmp/cwmp/monitoring/onu/onustats.json'
 ACTIVEWAN = 'activewan'
-APSIGNAL_FILE = '/tmp/waveguide/self_signals'
-MOCA_NODES_DIR = '/tmp/cwmp/monitoring/moca2'
+AP_DIR = '/tmp/waveguide/signals_json'
+SELFSIGNALS_FILE = '/tmp/waveguide/signals_json/self_signals'
+APSIGNAL_FILE = '/tmp/waveguide/signals_json/ap_signals'
 SOFTWARE_VERSION_FILE = '/etc/version'
 MOCAGLOBALJSON = '/tmp/cwmp/monitoring/moca2/globals'
 
@@ -29,149 +29,57 @@ MOCAGLOBALJSON = '/tmp/cwmp/monitoring/moca2/globals'
 class TechUIJsonHandler(tornado.web.RequestHandler):
   """Provides JSON-formatted info for the TechUI."""
 
+  @tornado.web.asynchronous
   def get(self):
-    landevlist = self.application.root.InternetGatewayDevice.LANDeviceList
-    hostinfo = self.application.root.Device.Hosts.HostList
-    data = {}
-    other_aps = {}
-    self_signals = {}
-    wifi_signal_strengths = {}
-    snr = {}
-    bitloading = {}
-    corrected_cw = {}
-    uncorrected_cw = {}
-    nbas = {}
-    host_names = {}
-
-    for ap_file in glob.glob('/tmp/waveguide/APs.*'):
-      try:
-        file_str = open(ap_file).read()
-      except IOError as e:
-        if e.errno == errno.ENOENT:
-          file_str = ''  # file doesn't exist, harmless
-        else:
-          raise
-      for info in file_str.splitlines():
-        if 'rssi' in info and 'bssid' in info:
-          node_info = {}
-          for sp in info.split('|'):
-            key, value = sp.split(':', 1)
-            node_info[key] = value
-          other_aps[node_info['bssid']] = float(node_info['rssi'])
-
-    for node in os.listdir(MOCA_NODES_DIR):
-      nodefile = os.path.join(MOCA_NODES_DIR, node)
-      global_content = self.LoadJson(MOCAGLOBALJSON)
-      global_node_id = global_content['NodeId']
-      # so connection info about self is not displayed
-      if node.startswith('node') and not node.endswith(str(global_node_id)):
-        node_content = self.LoadJson(nodefile)
-        mac_addr = node_content['MACAddress']
-        if mac_addr != '00:00:00:00:00:00':
-          snr[mac_addr] = node_content['RxSNR']
-          bitloading[mac_addr] = node_content['RxBitloading']
-          nbas[mac_addr] = node_content['RxNBAS']
-          corrected = (node_content['RxPrimaryCwCorrected'] +
-                       node_content['RxSecondaryCwCorrected'])
-          uncorrected = (node_content['RxPrimaryCwUncorrected'] +
-                         node_content['RxSecondaryCwUncorrected'])
-          no_errors = (node_content['RxPrimaryCwNoErrors'] +
-                       node_content['RxSecondaryCwNoErrors'])
-          total = corrected + uncorrected + no_errors
-          try:
-            corrected_cw[mac_addr] = corrected/total
-            uncorrected_cw[mac_addr] = uncorrected/total
-          except ZeroDivisionError:
-            corrected_cw[mac_addr] = 0
-            uncorrected_cw[mac_addr] = 0
-
-    if not os.listdir('/tmp/stations'):
-      wifi_signal_strengths = {}
-    else:
-      for unused_i, dev in landevlist.iteritems():
-        for unused_j, wlconf in dev.WLANConfigurationList.iteritems():
-          wifi_signal_strengths = wlconf.SigDict
-
-    for host in hostinfo.itervalues():
-      host_names[host.PhysAddress] = host.HostName
-
-    self_signals = self.LoadJson(APSIGNAL_FILE)
-
-    try:
-      data['softversion'] = open(SOFTWARE_VERSION_FILE).read().rstrip()
-    except IOError as e:
-      if e.errno == errno.ENOENT:
-        pass  # file doesn't exist, harmless
-      else:
-        raise
-
-    data['moca_signal_strength'] = snr
-    data['moca_corrected_codewords'] = corrected_cw
-    data['moca_uncorrected_codewords'] = uncorrected_cw
-    data['moca_bitloading'] = bitloading
-    data['moca_nbas'] = nbas
-    data['wifi_signal_strength'] = wifi_signal_strengths
-    data['other_aps'] = other_aps
-    data['self_signals'] = self_signals
-    data['host_names'] = host_names
-
+    print 'techui GET JSON data for diagnostics page'
+    self.application.techui.UpdateTechUIDict()
     try:
       self.set_header('Content-Type', 'application/json')
-      self.write(json.dumps(data))
+      self.write(json.dumps(self.application.techui.data))
       self.finish()
     except IOError:
       pass
 
-  def LoadJson(self, filename):
-    try:
-      return json.loads(open(filename).read())
-    except ValueError:
-      return {}  # No json to read
-    except IOError as e:
-      if e.errno == errno.ENOENT:
-        return {}  # file doesn't exist, harmless
-      else:
-        raise
-
 
 class DiagnosticsHandler(tornado.web.RequestHandler):
-  """If no connectivity, display local diagnostics UI."""
+  """Displays the diagnostics UI."""
 
-  def get(self):    # pylint: disable=g-bad-name
+  def get(self):
     print 'diagui GET diagnostics HTML page'
     self.render('template.html')
 
 
-class JsonHandler(tornado.web.RequestHandler):
+class DiagUIJsonHandler(tornado.web.RequestHandler):
   """Provides JSON-formatted content to be displayed in the UI."""
 
   @tornado.web.asynchronous
   def get(self):    # pylint: disable=g-bad-name
     print 'diagui GET JSON data for diagnostics page'
-    self.application.UpdateLatestDict()
+    self.application.diagui.UpdateDiagUIDict()
     if (self.get_argument('checksum') !=
-        self.application.data.get('checksum', None)):
+        self.application.diagui.data.get('checksum', None)):
       try:
         self.set_header('Content-Type', 'text/javascript')
-        self.write(tornado.escape.json_encode(self.application.data))
+        self.write(tornado.escape.json_encode(self.application.diagui.data))
         self.finish()
       except IOError:
         pass
     else:
-      self.application.callbacklist.append(self.ReturnData)
+      self.application.diagui.callbacklist.append(self.ReturnData)
 
   def ReturnData(self):
-    if self.get_argument('checksum') != self.application.data['checksum']:
-      self.application.callbacklist.remove(self.ReturnData)
+    diagui = self.application.diagui
+    if self.get_argument('checksum') != diagui.data['checksum']:
+      self.application.diagui.callbacklist.remove(self.ReturnData)
       try:
         self.set_header('Content-Type', 'text/javascript')
-        self.write(tornado.escape.json_encode(self.application.data))
+        self.write(tornado.escape.json_encode(diagui.data))
         self.finish()
       except IOError:
         pass
 
 
-class RestartHandler(tornado.web.RequestHandler):
+class DiagUIRestartHandler(tornado.web.RequestHandler):
   """Restart the network box."""
 
   def get(self):    # pylint: disable=g-bad-name
@@ -184,46 +92,135 @@ class RestartHandler(tornado.web.RequestHandler):
     os.system('(sleep 5; reboot) &')
 
 
-class DiaguiSettings(tornado.web.Application):
-  """Defines settings for the server and notifier."""
+def LoadJson(filename):
+  try:
+    return json.loads(open(filename).read())
+  except ValueError:
+    return {}  # No json to read
+  except IOError as e:
+    if e.errno == errno.ENOENT:
+      return {}  # file doesn't exist, harmless
+    raise
 
-  def __init__(self, root, cpemach, run_techui=False):
+
+class TechUI(object):
+  """Class for the technical UI."""
+
+  def __init__(self, root):
+    self.data = {}
+    self.root = root
+    if self.root:
+      for unused_i, inter in self.root.Device.MoCA.InterfaceList.iteritems():
+        tr.cwmptypes.AddNotifier(type(inter),
+                                 'AssociatedDeviceCount',
+                                 lambda unused_obj: self.UpdateMocaDict)
+      landevlist = self.root.InternetGatewayDevice.LANDeviceList
+      for unused_i, dev in landevlist.iteritems():
+        for unused_j, wlconf in dev.WLANConfigurationList.iteritems():
+          tr.cwmptypes.AddNotifier(type(wlconf),
+                                   'SignalsStr',
+                                   lambda unused_obj: self.UpdateWifiDict)
+    ioloop = tornado.ioloop.IOLoop.instance()
+    mask = tr.pyinotify.IN_MODIFY
+    self.ap_wm = tr.pyinotify.WatchManager()
+    self.ap_notifier = tr.pyinotify.TornadoAsyncNotifier(
+        self.ap_wm, ioloop, callback=lambda unused_obj: self.UpdateAPDict)
+    if os.path.exists(AP_DIR):
+      self.ap_wm.add_watch(AP_DIR, mask)
+
+  def UpdateMocaDict(self):
+    """Updates the dictionary with Moca data from catawampus."""
+    snr = {}
+    bitloading = {}
+    corrected_cw = {}
+    uncorrected_cw = {}
+    nbas = {}
+
+    global_content = LoadJson(MOCAGLOBALJSON)
+    try:
+      global_node_id = global_content['NodeId']
+    except KeyError:
+      global_node_id = 17  # max number of nodes is 16
+    for unused_i, inter in self.root.Device.MoCA.InterfaceList.iteritems():
+      for unused_j, dev in inter.AssociatedDeviceList.iteritems():
+        if dev.NodeID != global_node_id:  #  to avoid getting info about self
+          snr[dev.MACAddress] = dev.X_CATAWAMPUS_ORG_RxSNR_dB
+          bitloading[dev.MACAddress] = dev.X_CATAWAMPUS_ORG_RxBitloading
+          nbas[dev.MACAddress] = dev.X_CATAWAMPUS_ORG_RxNBAS
+          corrected = (dev.X_CATAWAMPUS_ORG_RxPrimaryCwCorrected +
+                       dev.X_CATAWAMPUS_ORG_RxSecondaryCwCorrected)
+          uncorrected = (dev.X_CATAWAMPUS_ORG_RxPrimaryCwUncorrected +
+                         dev.X_CATAWAMPUS_ORG_RxSecondaryCwUncorrected)
+          no_errors = (dev.X_CATAWAMPUS_ORG_RxPrimaryCwNoErrors +
+                       dev.X_CATAWAMPUS_ORG_RxSecondaryCwNoErrors)
+          total = corrected + uncorrected + no_errors
+          try:
+            corrected_cw[dev.MACAddress] = corrected/total
+            uncorrected_cw[dev.MACAddress] = uncorrected/total
+          except ZeroDivisionError:
+            corrected_cw[dev.MACAddress] = 0
+            uncorrected_cw[dev.MACAddress] = 0
+    self.data['moca_signal_strength'] = snr
+    self.data['moca_corrected_codewords'] = corrected_cw
+    self.data['moca_uncorrected_codewords'] = uncorrected_cw
+    self.data['moca_bitloading'] = bitloading
+    self.data['moca_nbas'] = nbas
+
+  def UpdateWifiDict(self):
+    """Updates the wifi signal strength dict using catawampus."""
+    wifi_signal_strengths = {}
+    landevlist = self.root.InternetGatewayDevice.LANDeviceList
+    for unused_i, dev in landevlist.iteritems():
+      for unused_j, wlconf in dev.WLANConfigurationList.iteritems():
+        wifi_signal_strengths = wlconf.signals
+
+    self.data['wifi_signal_strength'] = wifi_signal_strengths
+
+  def UpdateAPDict(self):
+    """Reads JSON from the access points files and updates the dict."""
+    # TODO(theannielin): waveguide data should be in cwmp, but it's not,
+    # so we read it here
+    self.data['other_aps'] = LoadJson(APSIGNAL_FILE)
+    self.data['self_signals'] = LoadJson(SELFSIGNALS_FILE)
+
+  def UpdateTechUIDict(self):
+    """Updates the data dictionary."""
+
+    if not self.root:
+      return
+
+    self.data = {}
+
+    host_names = {}
+    try:
+      hostinfo = self.root.Device.Hosts.HostList
+    except AttributeError:
+      hostinfo = {}
+    for host in hostinfo.itervalues():
+      host_names[host.PhysAddress] = host.HostName
+    self.data['host_names'] = host_names
+
+    deviceinfo = self.root.Device.DeviceInfo
+    self.data['softversion'] = deviceinfo.SoftwareVersion
+
+    self.UpdateMocaDict()
+    self.UpdateWifiDict()
+    self.UpdateAPDict()
+
+
+class DiagUI(object):
+  """Class for the diagnostics UI."""
+
+  def __init__(self, root, cpemach):
     self.data = {}
     self.root = root
     self.cpemach = cpemach
-
+    self.pathname = os.path.dirname(__file__)
     if self.root:
+      # TODO(anandkhare): Add notifiers on more parameters using the same format
+      # as below, as and when they are implemented using types.py.
       tr.cwmptypes.AddNotifier(type(self.root.Device.Ethernet),
                                'InterfaceNumberOfEntries', self.AlertNotifiers)
-
-      # TODO(anandkhare): Add notifiers on more parameters using the same format
-      # as above, as and when they are implemented using types.py.
-    self.pathname = os.path.dirname(__file__)
-    staticpath = os.path.join(self.pathname, 'static')
-    self.settings = {
-        'static_path': staticpath,
-        'template_path': self.pathname,
-        'xsrf_cookies': True,
-    }
-
-    handlers = [
-        (r'/', DiagnosticsHandler),
-        (r'/content.json', JsonHandler),
-        (r'/restart', RestartHandler),
-    ]
-
-    if run_techui:
-      handlers += [
-          (r'/tech/?', tornado.web.RedirectHandler,
-           {'url': '/tech/index.html'}),
-          (r'/tech/(.*)', tornado.web.StaticFileHandler,
-           {'path': os.path.join(self.pathname, 'techui_static')}),
-          (r'/techui.json', TechUIJsonHandler),
-      ]
-
-    super(DiaguiSettings, self).__init__(handlers, **self.settings)
-    mimetypes.add_type('font/ttf', '.ttf')
-
     self.ioloop = tornado.ioloop.IOLoop.instance()
     self.wm = tr.pyinotify.WatchManager()
     self.mask = tr.pyinotify.IN_CLOSE_WRITE
@@ -233,8 +230,8 @@ class DiaguiSettings(tornado.web.Application):
     self.wdd = self.wm.add_watch(
         os.path.join(self.pathname, 'Testdata'), self.mask)
 
-  def AlertNotifiers(self, obj):
-    self.UpdateLatestDict()
+  def AlertNotifiers(self, unused_obj):
+    self.UpdateDiagUIDict()
     for i in self.callbacklist[:]:
       i()
 
@@ -243,7 +240,7 @@ class DiaguiSettings(tornado.web.Application):
         sorted(list(self.data.items()))).encode('utf-8')).hexdigest()
     self.data['checksum'] = newchecksum
 
-  def UpdateLatestDict(self):
+  def UpdateDiagUIDict(self):
     """Updates the dictionary and checksum value."""
 
     if not self.root:
@@ -253,7 +250,6 @@ class DiaguiSettings(tornado.web.Application):
     self.data['subnetmask'] = ''
 
     deviceinfo = self.root.Device.DeviceInfo
-    hostinfo = self.root.Device.Hosts.HostList
     tempstatus = deviceinfo.TemperatureStatus
     landevlist = self.root.InternetGatewayDevice.LANDeviceList
     etherlist = self.root.Device.Ethernet.InterfaceList
@@ -300,41 +296,14 @@ class DiaguiSettings(tornado.web.Application):
     self.data['lanmac'] = lan_mac
     self.data['wanmac'] = wan_mac
 
-    host_names = dict()
-    for _, host in hostinfo.iteritems():
-      host_names[host.PhysAddress] = host.HostName
-    self.data['host_names'] = host_names
-
     t = dict()
-    moca_signal_strength = dict()
-    moca_bitloading = dict()
-    moca_codewords = dict()
     for unused_i, inter in self.root.Device.MoCA.InterfaceList.iteritems():
       for unused_j, dev in inter.AssociatedDeviceList.iteritems():
         t[dev.NodeID] = dev.MACAddress
-        moca_signal_strength[dev.MACAddress] = dev.X_CATAWAMPUS_ORG_RxSNR_dB
-        moca_bitloading[dev.MACAddress] = dev.X_CATAWAMPUS_ORG_RxBitloading
-        corrected = (dev.X_CATAWAMPUS_ORG_RxPrimaryCwCorrected +
-                     dev.X_CATAWAMPUS_ORG_RxSecondaryCwCorrected)
-        uncorrected = (dev.X_CATAWAMPUS_ORG_RxPrimaryCwUncorrected +
-                       dev.X_CATAWAMPUS_ORG_RxSecondaryCwUncorrected)
-        no_errors = (dev.X_CATAWAMPUS_ORG_RxPrimaryCwNoErrors +
-                     dev.X_CATAWAMPUS_ORG_RxSecondaryCwNoErrors)
-        total = corrected + uncorrected + no_errors
-        try:
-          moca_codewords['corrected' + dev.MACAddress] = corrected/total
-          moca_codewords['uncorrected' + dev.MACAddress] = uncorrected/total
-        except ZeroDivisionError:
-          moca_codewords['corrected' + dev.MACAddress] = 0
-          moca_codewords['uncorrected' + dev.MACAddress] = 0
     self.data['wireddevices'] = t
-    self.data['moca_signal_strength'] = moca_signal_strength
-    self.data['moca_bitloading'] = moca_bitloading
-    self.data['moca_codewords'] = moca_codewords
 
     wlan = dict()
     devices = dict()
-    signal_strength = dict()
     wpa = dict()
     self.data['ssid5'] = ''
 
@@ -357,9 +326,6 @@ class DiaguiSettings(tornado.web.Application):
             devices[assoc.AssociatedDeviceMACAddress] = (
                 '(2.4 GHz) (Authentication state: %s)'
                 % assoc.AssociatedDeviceAuthenticationState)
-            signal_strength[assoc.AssociatedDeviceMACAddress] = (
-                assoc.X_CATAWAMPUS_ORG_SignalStrength
-            )
         else:
           self.data['ssid5'] = wlconf.SSID
           if wlconf.WPAAuthenticationMode == 'PSKAuthentication':
@@ -369,14 +335,10 @@ class DiaguiSettings(tornado.web.Application):
             devices[assoc.AssociatedDeviceMACAddress] = (
                 '(5 GHz) (Authentication state: %s)'
                 % assoc.AssociatedDeviceAuthenticationState)
-            signal_strength[assoc.AssociatedDeviceMACAddress] = (
-                assoc.X_CATAWAMPUS_ORG_SignalStrength
-            )
 
     self.data['wirelesslan'] = wlan
     self.data['wirelessdevices'] = devices
     self.data['wpa2'] = wpa
-    self.data['signal_strength'] = signal_strength
 
     if 'ssid24' in self.data and 'ssid5' in self.data:
       if self.data['ssid5'] == self.data['ssid24']:
@@ -418,3 +380,36 @@ class DiaguiSettings(tornado.web.Application):
       return
 
     self.data.update(json_stats)
+
+
+class MainApplication(tornado.web.Application):
+  """Defines settings for the server and notifier."""
+
+  def __init__(self, root, cpemach, run_techui=False):
+    self.diagui = DiagUI(root, cpemach)
+    self.techui = TechUI(root)
+    self.pathname = os.path.dirname(__file__)
+    staticpath = os.path.join(self.pathname, 'static')
+    self.settings = {
+        'static_path': staticpath,
+        'template_path': self.pathname,
+        'xsrf_cookies': True,
+    }
+
+    handlers = [
+        (r'/', DiagnosticsHandler),
+        (r'/content.json', DiagUIJsonHandler),
+        (r'/restart', DiagUIRestartHandler),
+    ]
+
+    if run_techui:
+      handlers += [
+          (r'/tech/?', tornado.web.RedirectHandler,
+           {'url': '/tech/index.html'}),
+          (r'/tech/(.*)', tornado.web.StaticFileHandler,
+           {'path': os.path.join(self.pathname, 'techui_static')}),
+          (r'/techui.json', TechUIJsonHandler),
+      ]
+
+    super(MainApplication, self).__init__(handlers, **self.settings)
+    mimetypes.add_type('font/ttf', '.ttf')

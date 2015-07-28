@@ -66,6 +66,7 @@ class BrcmMocaInterface(CATA181MOCA.Interface):
   MAX_NODES_MOCA1 = 8
   MAX_NODES_MOCA2 = 16
   MaxNodes = tr.cwmptypes.ReadOnlyInt(0)
+  AssociatedDeviceCount = tr.cwmptypes.ReadOnlyUnsigned(0)
 
   Upstream = tr.cwmptypes.ReadOnlyBool(False)
 
@@ -189,6 +190,9 @@ class BrcmMocaInterface(CATA181MOCA.Interface):
       if mac is not None and mac != u'00:00:00:00:00:00':
         result[str(idx)] = BrcmMocaAssociatedDevice(node)
         idx += 1
+    length = len(result)
+    if int(self.AssociatedDeviceCount) != length:
+      type(self).AssociatedDeviceCount.Set(self, length)
     return result
 
   def GetExtraTracing(self):
@@ -242,6 +246,7 @@ class BrcmMocaAssociatedDevice(CATA181MOCA.Interface.AssociatedDevice):
   X_CATAWAMPUS_ORG_RxBcastPowerLevel_dBm = tr.cwmptypes.ReadOnlyFloat(0.0)
   X_CATAWAMPUS_ORG_RxPowerLevel_dBm = tr.cwmptypes.ReadOnlyFloat(0.0)
   X_CATAWAMPUS_ORG_RxSNR_dB = tr.cwmptypes.ReadOnlyFloat(0.0)
+  X_CATAWAMPUS_ORG_RxNBAS = tr.cwmptypes.ReadOnlyFloat(0.0)
   X_CATAWAMPUS_ORG_TxBitloading = tr.cwmptypes.ReadOnlyString('')
   X_CATAWAMPUS_ORG_RxBitloading = tr.cwmptypes.ReadOnlyString('')
   X_CATAWAMPUS_ORG_RxPrimaryCwCorrected = tr.cwmptypes.ReadOnlyUnsigned(0)
@@ -277,6 +282,7 @@ class BrcmMocaAssociatedDevice(CATA181MOCA.Interface.AssociatedDevice):
     type(self).X_CATAWAMPUS_ORG_RxBcastPowerLevel_dBm.Set(self, rxbcast)
     type(self).X_CATAWAMPUS_ORG_RxPowerLevel_dBm.Set(self, rxpower)
     type(self).X_CATAWAMPUS_ORG_RxSNR_dB.Set(self, node.get(u'RxSNR', 0.0))
+    type(self).X_CATAWAMPUS_ORG_RxNBAS.Set(self, node.get(u'RxNBAS', 0.0))
     bitl = node.get(u'TxBitloading', '')
     type(self).X_CATAWAMPUS_ORG_TxBitloading.Set(self, bitl)
     bitl = node.get(u'RxBitloading', '')

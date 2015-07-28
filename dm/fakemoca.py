@@ -98,6 +98,7 @@ class FakeMocaInterface(BASE181MOCA.Interface):
   TxPowerLimit = tr.cwmptypes.ReadOnlyUnsigned(4)
   TxBcastPowerReduction = tr.cwmptypes.ReadOnlyUnsigned(5)
   Upstream = tr.cwmptypes.ReadOnlyBool(False)
+  AssociatedDeviceCount = tr.cwmptypes.ReadOnlyUnsigned(2)
 
   def __init__(self):
     super(FakeMocaInterface, self).__init__()
@@ -144,6 +145,17 @@ class FakeMocaAssociatedDevice(BASE181MOCA.Interface.AssociatedDevice):
   TxBcastRate = tr.cwmptypes.ReadOnlyUnsigned(75)
   TxPackets = tr.cwmptypes.ReadOnlyUnsigned(3000)
   TxPowerControlReduction = tr.cwmptypes.ReadOnlyUnsigned(3)
+  X_CATAWAMPUS_ORG_RxSNR_dB = tr.cwmptypes.ReadOnlyFloat(0.0)
+  X_CATAWAMPUS_ORG_RxBitloading = tr.cwmptypes.ReadOnlyString('')
+  X_CATAWAMPUS_ORG_RxNBAS = tr.cwmptypes.ReadOnlyFloat(0.0)
+  X_CATAWAMPUS_ORG_RxPrimaryCwCorrected = tr.cwmptypes.ReadOnlyUnsigned(0)
+  X_CATAWAMPUS_ORG_RxPrimaryCwUncorrected = tr.cwmptypes.ReadOnlyUnsigned(0)
+  X_CATAWAMPUS_ORG_RxPrimaryCwNoErrors = tr.cwmptypes.ReadOnlyUnsigned(0)
+  X_CATAWAMPUS_ORG_RxPrimaryCwNoSync = tr.cwmptypes.ReadOnlyUnsigned(0)
+  X_CATAWAMPUS_ORG_RxSecondaryCwCorrected = tr.cwmptypes.ReadOnlyUnsigned(0)
+  X_CATAWAMPUS_ORG_RxSecondaryCwUncorrected = tr.cwmptypes.ReadOnlyUnsigned(0)
+  X_CATAWAMPUS_ORG_RxSecondaryCwNoErrors = tr.cwmptypes.ReadOnlyUnsigned(0)
+  X_CATAWAMPUS_ORG_RxSecondaryCwNoSync = tr.cwmptypes.ReadOnlyUnsigned(0)
 
   def __init__(self, nodeid=None, mac=None):
     super(FakeMocaAssociatedDevice, self).__init__()

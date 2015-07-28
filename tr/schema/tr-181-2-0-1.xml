@@ -6592,6 +6592,12 @@ This parameter is based on ''mocaIfPacketsAggrCapability'' from {{bibref|MOCA11-
           </unsignedInt>
         </syntax>
       </parameter>
+      <parameter name="AssociatedDeviceCount" access="readOnly">
+        <description>The number of associated MoCA devices as a catawampus unsigned integer.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
       <parameter name="AssociatedDeviceNumberOfEntries" access="readOnly">
         <description>{{numentries}}</description>
         <syntax>

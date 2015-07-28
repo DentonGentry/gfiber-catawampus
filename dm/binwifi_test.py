@@ -310,7 +310,7 @@ class BinWifiTest(unittest.TestCase):
     for mac_addr in stations:
       with open(os.path.join('/tmp/stations', mac_addr), 'w') as f:
         f.write(json.dumps(stations[mac_addr]))
-    bw.AssocDeviceListMaker(bw.Notifier)
+    bw.AssocDeviceListMaker()
     self.assertEqual(bw.TotalAssociations, 3)
     found = 0
     for c in bw.AssociatedDeviceList.values():

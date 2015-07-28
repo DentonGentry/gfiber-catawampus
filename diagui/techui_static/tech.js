@@ -1,4 +1,5 @@
-var SignalStrengthChart = function(ylabel, title, key, div_id, labels_div) {
+var SignalStrengthChart = function(ylabel, title, key, div_id,
+                                   labels_div, is_moca) {
   this.title = title;
   this.ylabel = ylabel;
   this.key = key;
@@ -12,6 +13,7 @@ var SignalStrengthChart = function(ylabel, title, key, div_id, labels_div) {
   var dStart = new Date();
   this.curTime = dStart.getTime();
   this.initialized = false;
+  this.is_moca = is_moca;
   return this;
 };
 
@@ -39,19 +41,16 @@ SignalStrengthChart.prototype.initializeDygraph = function() {
 
 /** Adds a point on the graph (with a time and an object that maps
   MAC addresses with signal strengths).
- * @param {Object} time - we need time (a date object) for the x axis of the dygraph
+ * @param {Object} time - we need time (a date object) for the x axis
  * @param {Object} sig_point - MAC addresses and signal strengths mapping
 */
 SignalStrengthChart.prototype.addPoint = function(time, sig_point) {
   var numNewKeys = Object.keys(sig_point).length;
-  console.log('num new keys ' + numNewKeys);
   var pointToAdd = [time];
   for (var mac_addr_index in Object.keys(sig_point)) {
     var mac_addr = (Object.keys(sig_point))[mac_addr_index];
     var index = this.listOfDevices.get(mac_addr);
-    console.log('mac_addr=' + mac_addr + ' --> index=' + index);
     pointToAdd[index + 1] = sig_point[mac_addr];
-    console.log(sig_point[mac_addr]);
   }
 
   if (this.signalStrengths.length > 0 &&
@@ -66,33 +65,39 @@ SignalStrengthChart.prototype.addPoint = function(time, sig_point) {
     }
   }
   this.signalStrengths.push(pointToAdd);
-  console.log(this.signalStrengths);
 };
 
 /** Gets data from JSON page and updates dygraph.
- * @param {boolean} is_moca - if graph displays moca devices, for host names
+ * @param {array} graph_array - graphs that need updates
 */
-SignalStrengthChart.prototype.getData = function(is_moca) {
-  var self = this;
+function getData(graph_array) {
   $.getJSON('/techui.json', function(data) {
-    var time = new Date();
-    self.addPoint(time, data[self.key]);
-    var host_names = self.listOfDevices.hostNames(data['host_names'], is_moca);
-    var host_names_array = [];
-    for (var mac_addr in host_names) {
-      host_names_array.push(host_names[mac_addr]);
-    }
-    if (!self.initialized) {
-      if (self.signalStrengths.length == 0) {
-        self.addPoint(time, {});
+    for (var i = 0; i < graph_array.length; i++) {
+      graph = graph_array[i];
+      var time = new Date();
+      graph.addPoint(time, data[graph.key]);
+      if (graph.is_moca) {
+        var host_names = graph.listOfDevices.mocaHostNames(data['host_names']);
+      } else {
+        var host_names = graph.listOfDevices.hostNames(data['host_names']);
       }
-      self.initializeDygraph();
-      self.initialized = true;
-    }
-    else {
-      self.g.updateOptions({file: self.signalStrengths,
-        labels: ['time'].concat(host_names_array)
-        });
+
+      var host_names_array = [];
+      for (var mac_addr in host_names) {
+        host_names_array.push(host_names[mac_addr]);
+      }
+      if (!graph.initialized) {
+        if (graph.signalStrengths.length == 0) {
+          self.addPoint(time, {});
+        }
+        graph.initializeDygraph();
+        graph.initialized = true;
+      }
+      else {
+        graph.g.updateOptions({file: graph.signalStrengths,
+          labels: ['time'].concat(host_names_array)
+          });
+      }
     }
     showData('#nbas', data['moca_nbas'], 'NBAS');
     showData('#host_names', data['host_names'], 'Host Name');
@@ -100,9 +105,9 @@ SignalStrengthChart.prototype.getData = function(is_moca) {
     $('#softversion').html($('<div/>').text(data['softversion']).html());
   });
   setTimeout(function() {
-    self.getData(is_moca);
+    getData(graph_array);
   }, 1000);
-};
+}
 
 function showData(div, data, dataName) {
   var nameString = '';
