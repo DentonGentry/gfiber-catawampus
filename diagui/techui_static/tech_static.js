@@ -1,7 +1,7 @@
 var wifi = new SignalStrengthChart('Signal Strength (dBm)', 'RSSI',
                                    'wifi_signal_strength', 'wifi_graph',
                                    'rssi_labels', false);
-var moca = new SignalStrengthChart('Signal Strength (dB)', 'MOCA',
+var moca = new SignalStrengthChart('Signal Strength (dB)', 'MOCA Signal',
                                    'moca_signal_strength', 'moca_graph',
                                    'moca_labels', true);
 var corrected_cwrds = new SignalStrengthChart('Erroneous Codewords to Total',

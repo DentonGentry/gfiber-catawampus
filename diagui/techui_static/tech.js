@@ -35,7 +35,7 @@ SignalStrengthChart.prototype.initializeDygraph = function() {
        labelsDiv: this.labels_div,
        xlabel: 'Time',
        ylabel: this.ylabel,
-       axisLabelFontSize: 12
+       axisLabelFontSize: 10
    });
 };
 
@@ -99,9 +99,8 @@ function getData(graph_array) {
           });
       }
     }
-    showData('#nbas', data['moca_nbas'], 'NBAS');
-    showData('#host_names', data['host_names'], 'Host Name');
-    showBitloading(data['moca_bitloading']);
+    showDeviceTable('#device_info', data['host_names'], data['ip_addr']);
+    showBitloading(data);
     $('#softversion').html($('<div/>').text(data['softversion']).html());
   });
   setTimeout(function() {
@@ -109,28 +108,38 @@ function getData(graph_array) {
   }, 1000);
 }
 
-function showData(div, data, dataName) {
-  var nameString = '';
-  for (var mac_addr in data) {
-    if (data[mac_addr] != '') {
-      nameString += '<p> MAC Address: ' +
-       $('<div/>').text(mac_addr).html() + ', ' + dataName + ': ' +
-       $('<div/>').text(data[mac_addr]).html() + '</p>';
+function showDeviceTable(div, host_names, ip_addr) {
+  var infoString = ('<table><tr><td><b>MAC Address</b></td><td><b>Host Name' +
+                    '</b></td><td><b>IP Address</b></td></tr>');
+  for (var mac_addr in host_names) {
+    infoString += '<tr><td>' + mac_addr + '</td>';
+    if (host_names[mac_addr] != '') {
+      infoString += '<td>' + host_names[mac_addr] + '</td>';
     }
     else {
-      nameString += '<p> MAC Address: ' +
-       $('<div/>').text(mac_addr).html() + '</p>';
+      infoString += '<td></td>';
     }
+    if (ip_addr[mac_addr] != '') {
+      infoString += '<td>' + ip_addr[mac_addr] + '</td>';
+    }
+    else {
+      infoString += '<td></td>';
+    }
+    infoString += '</tr>';
   }
-  $(div).html(nameString);
+  infoString += '</table>';
+  $(div).html(infoString);
 }
 
 function showBitloading(data) {
+  var bit_data = data['moca_bitloading'];
+  var nbas = data['moca_nbas'];
   var prefix = '$BRCM2$';
   $('#bitloading').html('');
-  for (var mac_addr in data) {
+  for (var mac_addr in bit_data) {
     $('#bitloading').append('<span>Bitloading: ' + mac_addr + '</span><br>');
-    var bitloading = data[mac_addr];
+    $('#bitloading').append('<span>NBAS: ' + nbas[mac_addr] + '</span><br>');
+    var bitloading = bit_data[mac_addr];
     for (var i = prefix.length; i < bitloading.length; i++) {
       var bl = parseInt(bitloading[i], 16);
       if (isNaN(bl)) {

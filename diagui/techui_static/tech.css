@@ -1,3 +1,12 @@
+table, th, td {
+  border: 1px solid #ccc;
+  font-size:12px;
+}
+
+td {
+    padding: 5px;
+}
+
 .bit {
    outline-style:solid;
    outline-width:thin;
@@ -13,7 +22,7 @@
   position: relative;
   clear: both;
   margin: 35px 0 25px;
-  background: white;
+  background: #56616d;
 }
 
 .tab {

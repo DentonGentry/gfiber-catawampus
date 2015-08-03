@@ -10,7 +10,12 @@
   <section>
     <h1><a href=https://fiber.google.com/myfiber/><img src=static/logo.png alt="Google Fiber"></a></h1>
     <nav>
-      <ul><li class=active>Network Box</ul>
+      <ul>
+        <li class=active><a href=/>Network Box</a></li>
+        {% if run_techui %}
+        <li><a href=/tech>Technical Diagnostics</a></li>
+        {% end %}
+      </ul>
     </nav>
     <a id=help href=tel:+18667777550 aria-label="Call Google Fiber Customer Support on (866) 777-7550">(866) 777-7550</a>
   </section>

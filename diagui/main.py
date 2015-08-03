@@ -46,7 +46,7 @@ class DiagnosticsHandler(tornado.web.RequestHandler):
 
   def get(self):
     print 'diagui GET diagnostics HTML page'
-    self.render('template.html')
+    self.render('template.html', run_techui=self.application.run_techui)
 
 
 class DiagUIJsonHandler(tornado.web.RequestHandler):
@@ -192,13 +192,16 @@ class TechUI(object):
     self.data = {}
 
     host_names = {}
+    ip_addr = {}
     try:
       hostinfo = self.root.Device.Hosts.HostList
     except AttributeError:
       hostinfo = {}
     for host in hostinfo.itervalues():
       host_names[host.PhysAddress] = host.HostName
+      ip_addr[host.PhysAddress] = host.IPAddress
     self.data['host_names'] = host_names
+    self.data['ip_addr'] = ip_addr
 
     deviceinfo = self.root.Device.DeviceInfo
     self.data['softversion'] = deviceinfo.SoftwareVersion
@@ -387,6 +390,7 @@ class MainApplication(tornado.web.Application):
 
   def __init__(self, root, cpemach, run_techui=False):
     self.diagui = DiagUI(root, cpemach)
+    self.run_techui = run_techui
     self.techui = TechUI(root)
     self.pathname = os.path.dirname(__file__)
     staticpath = os.path.join(self.pathname, 'static')
