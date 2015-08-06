@@ -237,7 +237,8 @@ class GFiberTv(CATABASE.GFiberTV):
       f.write('serials=%s\n' % ','.join(_SageEscape(i) for i in serials))
 
     # Start frobnicast if necessary
-    status = (self.FrobnicastKey and self.TvBufferKey, self.FrobnicastAddress)
+    status = (bool(self.FrobnicastKey and self.TvBufferKey),
+              self.FrobnicastAddress)
     if status != self._frobstatus:
       subprocess.call(RESTARTFROBCMD, close_fds=True)
       self._frobstatus = status
