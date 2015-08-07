@@ -154,6 +154,7 @@ class TechuiTest(unittest.TestCase):
   """Tests the data gathering functions for the TechUI."""
 
   def testMainApp(self):
+    url = 'http://localhost:8880/techui.json?checksum=0'
     app = diagui.main.MainApplication(None, None, True)
     fake_data = {'moca_bitloading': {},
                  'wifi_signal_strength': {},
@@ -164,15 +165,58 @@ class TechuiTest(unittest.TestCase):
                  'moca_uncorrected_codewords': {},
                  'moca_signal_strength': {},
                  'self_signals': {'f4:f5:e8:83:01:94': -25},
-                 'moca_nbas': {}}
+                 'moca_nbas': {},
+                 'checksum': 0}
     app.techui.data = fake_data
     app.listen(8880)
     main_loop = tr.mainloop.MainLoop()
-    response = AsynchFetch('http://localhost:8880/techui.json')
+    response1 = AsynchFetch(url)
     main_loop.Start(1)
-    result = json.loads(response.ReturnResponseBody())
-    self.assertNotEqual(result, None)
-    self.assertEqual(result, fake_data)
+    result1 = json.loads(response1.ReturnResponseBody())
+    self.assertNotEqual(result1, None)
+    self.assertEqual(result1, fake_data)
+
+    # Send another request, update the data, and call callbacks.
+    # Should update the checksum.
+    result1_checksum = result1['checksum']
+    response2 = AsynchFetch(url)
+    app.techui.data['other_aps'] = {'f4:f5:e8:80:58:d7': -50.0}
+    app.techui.NotifyUpdatedDict()
+    main_loop.Start(1)
+    result2 = json.loads(response2.ReturnResponseBody())
+
+    # Set fake data to expected output and compare.
+    fake_data['other_aps'] = {'f4:f5:e8:80:58:d7': -50.0}
+    fake_data['checksum'] = app.techui.data['checksum']
+    result2_checksum = result2['checksum']
+    self.assertNotEqual(result2, None)
+    self.assertEqual(result2, fake_data)
+    self.assertNotEqual(result1_checksum, result2_checksum)
+
+    # Update the url to have the new checksum, update data, and check for
+    # correct response.
+    url = 'http://localhost:8880/techui.json?checksum=' + result2_checksum
+    response3 = AsynchFetch(url)
+    app.techui.data['other_aps'] = {'f4:f5:e8:80:58:d7': -40.0}
+    app.techui.NotifyUpdatedDict()
+    main_loop.Start(1)
+    result3 = json.loads(response3.ReturnResponseBody())
+
+    # Set fake data to expected output and compare.
+    fake_data['other_aps'] = {'f4:f5:e8:80:58:d7': -40.0}
+    fake_data['checksum'] = app.techui.data['checksum']
+    result3_checksum = result3['checksum']
+    self.assertNotEqual(result3, None)
+    self.assertEqual(result3, fake_data)
+    self.assertNotEqual(result2_checksum, result3_checksum)
+
+  def testSetTechUIDict(self):
+    techui = diagui.main.TechUI(None)
+    techui.SetTechUIDict('fake', {})
+    self.assertEqual(techui.data['fake'], {})
+    test_dict = {'11:22:33:44:55:66': 1, '11:22:33:44:55:67': 2}
+    techui.SetTechUIDict('fake', test_dict)
+    self.assertEqual(techui.data['fake'], test_dict)
 
   def testLoadJson(self):
     dne = '/tmp/does_not_exist'

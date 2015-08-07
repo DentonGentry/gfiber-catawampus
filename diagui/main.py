@@ -26,27 +26,40 @@ SOFTWARE_VERSION_FILE = '/etc/version'
 MOCAGLOBALJSON = '/tmp/cwmp/monitoring/moca2/globals'
 
 
+def JsonGet(page, ui, update_dictionary):
+  update_dictionary()
+  if (page.get_argument('checksum') !=
+      ui.data.get('checksum', None)):
+    try:
+      page.set_header('Content-Type', 'application/json')
+      page.write(json.dumps(ui.data))
+      page.finish()
+    except IOError:
+      print 'Could not write to JSON page'
+  else:
+    page.callback = lambda: JsonReturnData(page, ui)
+    ui.callbacklist.append(page.callback)
+
+
+def JsonReturnData(page, ui):
+  if page.get_argument('checksum') != ui.data['checksum']:
+    ui.callbacklist.remove(page.callback)
+    try:
+      page.set_header('Content-Type', 'application/json')
+      page.write(json.dumps(ui.data))
+      page.finish()
+    except IOError:
+      print 'Could not write to JSON page'
+
+
 class TechUIJsonHandler(tornado.web.RequestHandler):
   """Provides JSON-formatted info for the TechUI."""
 
   @tornado.web.asynchronous
   def get(self):
     print 'techui GET JSON data for diagnostics page'
-    self.application.techui.UpdateTechUIDict()
-    try:
-      self.set_header('Content-Type', 'application/json')
-      self.write(json.dumps(self.application.techui.data))
-      self.finish()
-    except IOError:
-      pass
-
-
-class DiagnosticsHandler(tornado.web.RequestHandler):
-  """Displays the diagnostics UI."""
-
-  def get(self):
-    print 'diagui GET diagnostics HTML page'
-    self.render('template.html', run_techui=self.application.run_techui)
+    JsonGet(self, self.application.techui,
+            self.application.techui.UpdateTechUIDict)
 
 
 class DiagUIJsonHandler(tornado.web.RequestHandler):
@@ -55,28 +68,16 @@ class DiagUIJsonHandler(tornado.web.RequestHandler):
   @tornado.web.asynchronous
   def get(self):    # pylint: disable=g-bad-name
     print 'diagui GET JSON data for diagnostics page'
-    self.application.diagui.UpdateDiagUIDict()
-    if (self.get_argument('checksum') !=
-        self.application.diagui.data.get('checksum', None)):
-      try:
-        self.set_header('Content-Type', 'text/javascript')
-        self.write(tornado.escape.json_encode(self.application.diagui.data))
-        self.finish()
-      except IOError:
-        pass
-    else:
-      self.application.diagui.callbacklist.append(self.ReturnData)
+    JsonGet(self, self.application.diagui,
+            self.application.diagui.UpdateDiagUIDict)
 
-  def ReturnData(self):
-    diagui = self.application.diagui
-    if self.get_argument('checksum') != diagui.data['checksum']:
-      self.application.diagui.callbacklist.remove(self.ReturnData)
-      try:
-        self.set_header('Content-Type', 'text/javascript')
-        self.write(tornado.escape.json_encode(diagui.data))
-        self.finish()
-      except IOError:
-        pass
+
+class DiagnosticsHandler(tornado.web.RequestHandler):
+  """Displays the diagnostics UI."""
+
+  def get(self):
+    print 'diagui GET diagnostics HTML page'
+    self.render('template.html', run_techui=self.application.run_techui)
 
 
 class DiagUIRestartHandler(tornado.web.RequestHandler):
@@ -107,29 +108,52 @@ class TechUI(object):
   """Class for the technical UI."""
 
   def __init__(self, root):
-    self.data = {}
+    self.data = {'wifi_signal_strength': {},
+                 'moca_signal_strength': {},
+                 'moca_corrected_codewords': {},
+                 'moca_uncorrected_codewords': {},
+                 'moca_bitloading': {},
+                 'moca_nbas': {},
+                 'other_aps': {},
+                 'self_signals': {},
+                 'host_names': {},
+                 'ip_addr': {},
+                 'softversion': '',
+                 'checksum': 0}
+
+    self.callbacklist = []
     self.root = root
     if self.root:
       for unused_i, inter in self.root.Device.MoCA.InterfaceList.iteritems():
         tr.cwmptypes.AddNotifier(type(inter),
                                  'AssociatedDeviceCount',
-                                 lambda unused_obj: self.UpdateMocaDict)
+                                 lambda unused_obj: self.UpdateMocaDict())
       landevlist = self.root.InternetGatewayDevice.LANDeviceList
       for unused_i, dev in landevlist.iteritems():
         for unused_j, wlconf in dev.WLANConfigurationList.iteritems():
           tr.cwmptypes.AddNotifier(type(wlconf),
                                    'SignalsStr',
-                                   lambda unused_obj: self.UpdateWifiDict)
+                                   lambda unused_obj: self.UpdateWifiDict())
     ioloop = tornado.ioloop.IOLoop.instance()
     mask = tr.pyinotify.IN_MODIFY
     self.ap_wm = tr.pyinotify.WatchManager()
     self.ap_notifier = tr.pyinotify.TornadoAsyncNotifier(
-        self.ap_wm, ioloop, callback=lambda unused_obj: self.UpdateAPDict)
+        self.ap_wm, ioloop, callback=lambda unused_obj: self.UpdateAPDict())
     if os.path.exists(AP_DIR):
       self.ap_wm.add_watch(AP_DIR, mask)
 
+  def SetTechUIDict(self, key, new_dict):
+    if key not in self.data:
+      self.data[key] = new_dict
+      return True
+    if self.data[key] != new_dict:
+      self.data[key] = new_dict
+      return True
+    return False
+
   def UpdateMocaDict(self):
     """Updates the dictionary with Moca data from catawampus."""
+    updated = False
     snr = {}
     bitloading = {}
     corrected_cw = {}
@@ -160,11 +184,15 @@ class TechUI(object):
           except ZeroDivisionError:
             corrected_cw[dev.MACAddress] = 0
             uncorrected_cw[dev.MACAddress] = 0
-    self.data['moca_signal_strength'] = snr
-    self.data['moca_corrected_codewords'] = corrected_cw
-    self.data['moca_uncorrected_codewords'] = uncorrected_cw
-    self.data['moca_bitloading'] = bitloading
-    self.data['moca_nbas'] = nbas
+    updated = self.SetTechUIDict('moca_signal_strength', snr)
+    updated = self.SetTechUIDict('moca_corrected_codewords',
+                                 corrected_cw) or updated
+    updated = self.SetTechUIDict('moca_uncorrected_codewords',
+                                 uncorrected_cw) or updated
+    updated = self.SetTechUIDict('moca_bitloading', bitloading) or updated
+    updated = self.SetTechUIDict('moca_nbas', nbas) or updated
+    if updated:
+      self.NotifyUpdatedDict()
 
   def UpdateWifiDict(self):
     """Updates the wifi signal strength dict using catawampus."""
@@ -173,23 +201,26 @@ class TechUI(object):
     for unused_i, dev in landevlist.iteritems():
       for unused_j, wlconf in dev.WLANConfigurationList.iteritems():
         wifi_signal_strengths = wlconf.signals
-
-    self.data['wifi_signal_strength'] = wifi_signal_strengths
+    if self.SetTechUIDict('wifi_signal_strength', wifi_signal_strengths):
+      self.NotifyUpdatedDict()
 
   def UpdateAPDict(self):
     """Reads JSON from the access points files and updates the dict."""
     # TODO(theannielin): waveguide data should be in cwmp, but it's not,
     # so we read it here
-    self.data['other_aps'] = LoadJson(APSIGNAL_FILE)
-    self.data['self_signals'] = LoadJson(SELFSIGNALS_FILE)
+    updated = False
+    other_aps = LoadJson(APSIGNAL_FILE)
+    self_signals = LoadJson(SELFSIGNALS_FILE)
+    updated = self.SetTechUIDict('other_aps', other_aps)
+    updated = self.SetTechUIDict('self_signals', self_signals) or updated
+    if updated:
+      self.NotifyUpdatedDict()
 
   def UpdateTechUIDict(self):
     """Updates the data dictionary."""
 
     if not self.root:
       return
-
-    self.data = {}
 
     host_names = {}
     ip_addr = {}
@@ -206,9 +237,21 @@ class TechUI(object):
     deviceinfo = self.root.Device.DeviceInfo
     self.data['softversion'] = deviceinfo.SoftwareVersion
 
+    if self.data['checksum'] == 0:
+      self.UpdateCheckSum()
     self.UpdateMocaDict()
     self.UpdateWifiDict()
     self.UpdateAPDict()
+
+  def NotifyUpdatedDict(self):
+    self.UpdateCheckSum()
+    for i in self.callbacklist[:]:
+      i()
+
+  def UpdateCheckSum(self):
+    newchecksum = hashlib.sha1(unicode(
+        sorted(list(self.data.items()))).encode('utf-8')).hexdigest()
+    self.data['checksum'] = 'sha1%s' % newchecksum
 
 
 class DiagUI(object):

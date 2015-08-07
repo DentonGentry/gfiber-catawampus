@@ -188,8 +188,12 @@ class FakeWifiWlanConfiguration(CATA98WIFI):
 
   @property
   def signals(self):
-    type(self).SignalsStr.Set(self, str(self._sig_dict))
     return self._sig_dict
+
+  @signals.setter
+  def signals(self, new_dict):
+    self._sig_dict = new_dict
+    type(self).SignalsStr.Set(self, str(self._sig_dict))
 
   def GetChannel(self):
     return self.channel

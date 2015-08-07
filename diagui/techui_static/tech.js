@@ -10,8 +10,6 @@ var SignalStrengthChart = function(ylabel, title, key, div_id,
   this.g = null; /* The actual graph, initialized by
    initializeDygraph so that the chart doesn't have
    data until data is retrieved from the server. */
-  var dStart = new Date();
-  this.curTime = dStart.getTime();
   this.initialized = false;
   this.is_moca = is_moca;
   return this;
@@ -67,19 +65,46 @@ SignalStrengthChart.prototype.addPoint = function(time, sig_point) {
   this.signalStrengths.push(pointToAdd);
 };
 
+var checksum = 0;
+
+function checkData(data) {
+  keys = ['wifi_signal_strength', 'moca_signal_strength',
+          'moca_corrected_codewords', 'moca_uncorrected_codewords',
+          'moca_bitloading', 'moca_nbas', 'other_aps', 'self_signals',
+          'host_names', 'ip_addr'];
+  for (var index in keys) {
+    key = keys[index];
+    if (!(key in data)) {
+      data[keys[index]] = {};
+    }
+  }
+  if (!('checksum' in data)) {
+    data['checksum'] = 0;
+  }
+  if (!('softversion' in data)) {
+    data['softversion'] = '';
+  }
+}
+
 /** Gets data from JSON page and updates dygraph.
  * @param {array} graph_array - graphs that need updates
 */
 function getData(graph_array) {
-  $.getJSON('/techui.json', function(data) {
+  var payload = [];
+  payload.push('checksum=' + encodeURIComponent(checksum));
+  url = '/techui.json?' + payload.join('&');
+  $.getJSON(url, function(data) {
+    checkData(data);
+    checksum = data['checksum'];
     for (var i = 0; i < graph_array.length; i++) {
       graph = graph_array[i];
       var time = new Date();
       graph.addPoint(time, data[graph.key]);
+      var host_names = {};
       if (graph.is_moca) {
-        var host_names = graph.listOfDevices.mocaHostNames(data['host_names']);
+        host_names = graph.listOfDevices.mocaHostNames(data['host_names']);
       } else {
-        var host_names = graph.listOfDevices.hostNames(data['host_names']);
+        host_names = graph.listOfDevices.hostNames(data['host_names']);
       }
 
       var host_names_array = [];
@@ -88,7 +113,7 @@ function getData(graph_array) {
       }
       if (!graph.initialized) {
         if (graph.signalStrengths.length == 0) {
-          self.addPoint(time, {});
+          graph.addPoint(time, {});
         }
         graph.initializeDygraph();
         graph.initialized = true;
@@ -102,10 +127,9 @@ function getData(graph_array) {
     showDeviceTable('#device_info', data['host_names'], data['ip_addr']);
     showBitloading(data);
     $('#softversion').html($('<div/>').text(data['softversion']).html());
-  });
-  setTimeout(function() {
+    // Send another request when the request succeeds
     getData(graph_array);
-  }, 1000);
+  });
 }
 
 function showDeviceTable(div, host_names, ip_addr) {
