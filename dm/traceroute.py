@@ -117,7 +117,7 @@ class TraceRoute(BASE_TRACEROUTE):
       self.ioloop.remove_handler(self.subproc.stdout.fileno())
       if self.subproc.poll() is None:
         self.subproc.kill()
-      rv = self.subproc.poll()
+      rv = self.subproc.wait()
       print 'traceroute: return code was %d' % rv
       if rv == 2 or not self.RouteHopsList:
         self.error = State.ERROR_CANNOT_RESOLVE_HOSTNAME
