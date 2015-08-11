@@ -26,6 +26,7 @@ import weakref
 import google3
 from wvtest import unittest
 import tr.filenotifier
+import tr.garbage
 import tr.mainloop
 import tr.pyinotify
 
@@ -33,10 +34,12 @@ import tr.pyinotify
 class FileNotifierTest(unittest.TestCase):
 
   def setUp(self):
+    self.gccheck = tr.garbage.GcChecker()
     self.tmpdir = tempfile.mkdtemp()
 
   def tearDown(self):
     shutil.rmtree(self.tmpdir)
+    self.gccheck.Done()
 
   def testFileNotifier(self):
     count = [0]

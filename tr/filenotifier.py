@@ -19,6 +19,7 @@
 
 import os
 import os.path
+import garbage
 import mainloop
 import pyinotify
 
@@ -43,9 +44,12 @@ class FileNotifier(object):
         self.wm, self.loop.ioloop)
 
   def __del__(self):
-    n = getattr(self, 'tornado_notifier', None)
-    if n:
-      self.tornado_notifier.stop()
+    with garbage.GcIgnorer():
+      self.wm = None
+      self.loop = None
+      if getattr(self, 'tornado_notifier', None):
+        self.tornado_notifier.stop()
+        self.tornado_notifier = None
 
   def WatchObj(self, filename, callback):
     """Returns a filenotifier.Watch object, which calls Add() and Del()."""
@@ -69,14 +73,15 @@ class FileNotifier(object):
     else:
       files = {}
 
-      wddict = self.wm.add_watch(
-          path,
-          (pyinotify.IN_CLOSE_WRITE |
-           pyinotify.IN_MOVED_FROM |
-           pyinotify.IN_MOVED_TO |
-           pyinotify.IN_DELETE),
-          lambda ev: self._Notified(ev, files),
-          quiet=False)
+      with garbage.GcIgnorer():
+        wddict = self.wm.add_watch(
+            path,
+            (pyinotify.IN_CLOSE_WRITE |
+             pyinotify.IN_MOVED_FROM |
+             pyinotify.IN_MOVED_TO |
+             pyinotify.IN_DELETE),
+            lambda ev: self._Notified(ev, files),
+            quiet=False)
       wd = wddict[path]
       self.watches[path] = (wd, files)
     filecalls = files.get(name, None)
@@ -92,8 +97,9 @@ class FileNotifier(object):
     if not filecalls:
       del files[name]
     if not files:
-      self.wm.rm_watch(wd, quiet=False)
-      del self.watches[path]
+      with garbage.GcIgnorer():
+        self.wm.rm_watch(wd, quiet=False)
+        del self.watches[path]
 
   def _Notified(self, ev, files):
     filecalls = files.get(ev.name, None)

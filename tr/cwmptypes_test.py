@@ -29,6 +29,7 @@ import mainloop
 from wvtest import unittest
 import tr.cwmptypes
 import tr.filenotifier
+import tr.garbage
 
 
 TEST_FILE = 'testobject.tmp'
@@ -148,10 +149,14 @@ class NumberOfObject(object):
 class TypesTest(unittest.TestCase):
 
   def setUp(self):
+    self.gccheck = tr.garbage.GcChecker()
     # If one of these is left over from a previous failed test, strange
     # things can ensue.  It holds a ref to the mainloop, so you could get
     # more than one of them.
     tr.cwmptypes.SetFileBackedNotifier(None)
+
+  def tearDown(self):
+    self.gccheck.Done()
 
   def testTypes(self):
     obj = TestObject()
