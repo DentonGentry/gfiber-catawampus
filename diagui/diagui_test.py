@@ -157,10 +157,13 @@ class TechuiTest(unittest.TestCase):
     url = 'http://localhost:8880/techui.json?checksum=0'
     app = diagui.main.MainApplication(None, None, True)
     fake_data = {'moca_bitloading': {},
+                 'ip_addr': {'ec:88:92:91:3d:67': '111.111.11.1',
+                             'aa:aa:aa:aa:aa:aa': '123.456.78.90'},
                  'wifi_signal_strength': {},
                  'softversion': 'gfrg200-46-pre0-39-g056a912-th',
                  'other_aps': {'f4:f5:e8:80:58:d7': -67.0},
-                 'host_names': {'ec:88:92:91:3d:67': 'android'},
+                 'host_names': {'ec:88:92:91:3d:67': 'android',
+                                'aa:aa:aa:aa:aa:aa': 'GFiberTV'},
                  'moca_corrected_codewords': {},
                  'moca_uncorrected_codewords': {},
                  'moca_signal_strength': {},
@@ -192,6 +195,7 @@ class TechuiTest(unittest.TestCase):
     self.assertNotEqual(result2, None)
     self.assertEqual(result2, fake_data)
     self.assertNotEqual(result1_checksum, result2_checksum)
+    self.assertEqual(app.techui.FindTVBoxes(), ['123.456.78.90'])
 
     # Update the url to have the new checksum, update data, and check for
     # correct response.

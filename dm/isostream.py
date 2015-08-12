@@ -118,6 +118,10 @@ def _Unif(key):
   return int(h.hexdigest(), base=16) / float(1 << 128)
 
 
+LogLine = collections.namedtuple('LogLine', ['timestamp', 'offset',
+                                             'disconn', 'drops'])
+
+
 class Isostream(ISOSTREAM):
   """Implementation of the Isostream vendor extension for TR-181."""
   ServerEnable = tr.cwmptypes.TriggerBool(False)
@@ -290,15 +294,14 @@ class Isostream(ISOSTREAM):
       self.ParseLineToTuple(before)
 
   def ParseLineToTuple(self, line):
-    log_line = collections.namedtuple('log_line', ['timestamp', 'offset',
-                                                   'disconn', 'drops'])
     line = line.strip()
     values = re.match(
         r'(\d*\.?\d*).*offset=(\d*\.?\d*).*disconn=(\d*).*drops=(\d*)',
         line)
     if values:
       timestamp, offset, disconn, drops = values.groups()
-      self.last_log = log_line(timestamp, offset, disconn, drops)
+      self.last_log = LogLine(float(timestamp), float(offset),
+                              int(disconn), int(drops))
 
 if __name__ == '__main__':
   isos = Isostream()

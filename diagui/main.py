@@ -4,17 +4,20 @@
 
 __author__ = 'anandkhare@google.com (Anand Khare)'
 
+import errno
 import hashlib
 import json
 import mimetypes
 import os
-import errno
+
 import google3
+
 import tornado.ioloop
 import tornado.web
 import tr.cwmptypes
 import tr.helpers
 import tr.pyinotify
+
 
 # For unit test overrides.
 ONU_STAT_FILE = '/tmp/cwmp/monitoring/onu/onustats.json'
@@ -60,6 +63,134 @@ class TechUIJsonHandler(tornado.web.RequestHandler):
     print 'techui GET JSON data for diagnostics page'
     JsonGet(self, self.application.techui,
             self.application.techui.UpdateTechUIDict)
+
+
+class TechUIHandler(tornado.web.RequestHandler):
+  """Display technical UI."""
+
+  def get(self):
+    self.render('techui_static/index.html')
+
+
+class StartIsostreamHandler(tornado.web.RequestHandler):
+  """Sends requests to start isostream client on all TV boxes."""
+
+  @tornado.web.asynchronous
+  def post(self):
+    self.outstanding_requests = 0
+    self.request_results = {}
+    tv_ip_addrs = self.application.techui.FindTVBoxes()
+    for ip_addr in tv_ip_addrs:
+      http_client = tornado.httpclient.AsyncHTTPClient()
+      request = tornado.httpclient.HTTPRequest(
+          url=ip_addr + '/isostream',
+          method='POST', body='',
+          request_timeout=2,
+          headers={
+              'Cookie': '_xsrf=q',
+              'X-Csrftoken': 'q'
+          })
+      http_client.fetch(
+          request, self.make_request_handler(ip_addr))
+      self.outstanding_requests += 1
+
+  def make_request_handler(self, ip_addr):
+    return lambda response: self.handle_request(ip_addr, response)
+
+  def handle_request(self, host, response):
+    try:
+      response.rethrow()
+      self.request_results[host] = 'SUCCESS'
+    except tornado.httpclient.HTTPError as e:
+      self.request_results[host] = (
+          'ERROR: %s' % e.code)
+    finally:
+      self.outstanding_requests -= 1
+      if self.outstanding_requests == 0:
+        self.write(self.request_results)
+        self.finish()
+
+
+class IsostreamHandler(tornado.web.RequestHandler):
+  """Starts isostream client (usually on TV box)."""
+
+  def post(self):
+    print ('Starting isostream due to incoming request from %s'
+           % self.request.remote_ip)
+    isostreaminfo = (self.application.root.Device.IP.Diagnostics
+                     .X_CATAWAMPUS_ORG_Isostream)
+    isostreaminfo.last_log = None
+    isostreaminfo.ClientRemoteIP = self.request.remote_ip
+    isostreaminfo.ClientRunning = True
+
+
+class IsostreamJsonHandler(tornado.web.RequestHandler):
+  """Provides JSON of the last line of the isostream log (usually on TV box)."""
+
+  @tornado.web.asynchronous
+  def get(self):
+    try:
+      self.set_header('Content-Type', 'application/json')
+      isostreaminfo = (self.application.root.Device.IP.Diagnostics
+                       .X_CATAWAMPUS_ORG_Isostream)
+      isos_dict = {}
+      last_log_dict = {}
+      if isostreaminfo.last_log:
+        last_log_dict = vars(isostreaminfo.last_log)
+      isos_dict['last_log'] = last_log_dict
+      isos_dict['ClientRunning'] = isostreaminfo.ClientRunning
+      self.write(json.dumps(isos_dict))
+      self.finish()
+    except IOError:
+      pass
+
+
+class IsostreamCombinedHandler(tornado.web.RequestHandler):
+  """Gathers isostream JSON data from each connected TV box.
+
+  This is usually run on the network box.
+  """
+
+  @tornado.web.asynchronous
+  def get(self):
+    self.outstanding_requests = 0
+    self.combined_data = {}
+    tv_ip_addrs = self.application.techui.FindTVBoxes()
+    for ip_addr in tv_ip_addrs:
+      http_client = tornado.httpclient.AsyncHTTPClient()
+      request = tornado.httpclient.HTTPRequest(
+          url=ip_addr + '/isostream.json',
+          method='GET',
+          request_timeout=1
+          )
+      http_client.fetch(
+          request, self.make_request_handler(ip_addr))
+      self.outstanding_requests += 1
+
+  def make_request_handler(self, ip_addr):
+    return lambda response: self.handle_request(ip_addr, response)
+
+  def handle_request(self, host, response):
+    try:
+      response.rethrow()
+      self.combined_data[host] = (
+          json.loads(response.body))
+    except tornado.httpclient.HTTPError as he:
+      self.combined_data[host] = {
+          'Error': 'HTTPError: %s' % str(he)
+      }
+    except TypeError as te:
+      self.combined_data[host] = {
+          'Error': 'TypeError: %s unable to parse %s' % (str(te), response.body)
+      }
+    finally:
+      self.outstanding_requests -= 1
+      if self.outstanding_requests == 0:
+        try:
+          self.write(self.combined_data)
+          self.finish()
+        except IOError:
+          pass
 
 
 class DiagUIJsonHandler(tornado.web.RequestHandler):
@@ -253,6 +384,14 @@ class TechUI(object):
         sorted(list(self.data.items()))).encode('utf-8')).hexdigest()
     self.data['checksum'] = 'sha1%s' % newchecksum
 
+  def FindTVBoxes(self):
+    tv_ip_addrs = []
+    if 'host_names' in self.data:
+      for mac_addr, host_name in self.data['host_names'].iteritems():
+        if host_name.startswith('GFiberTV'):
+          tv_ip_addrs.append(self.data['ip_addr'][mac_addr])
+    return tv_ip_addrs
+
 
 class DiagUI(object):
   """Class for the diagnostics UI."""
@@ -432,6 +571,7 @@ class MainApplication(tornado.web.Application):
   """Defines settings for the server and notifier."""
 
   def __init__(self, root, cpemach, run_techui=False):
+    self.root = root
     self.diagui = DiagUI(root, cpemach)
     self.run_techui = run_techui
     self.techui = TechUI(root)
@@ -453,9 +593,14 @@ class MainApplication(tornado.web.Application):
       handlers += [
           (r'/tech/?', tornado.web.RedirectHandler,
            {'url': '/tech/index.html'}),
+          (r'/tech/index.html', TechUIHandler),
           (r'/tech/(.*)', tornado.web.StaticFileHandler,
            {'path': os.path.join(self.pathname, 'techui_static')}),
           (r'/techui.json', TechUIJsonHandler),
+          (r'/startisostream', StartIsostreamHandler),
+          (r'/isostream', IsostreamHandler),
+          (r'/isostream.json', IsostreamJsonHandler),
+          (r'/isostreamcombined.json', IsostreamCombinedHandler),
       ]
 
     super(MainApplication, self).__init__(handlers, **self.settings)

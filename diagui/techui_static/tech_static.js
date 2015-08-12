@@ -22,6 +22,46 @@ var me_ap = new SignalStrengthChart('Signal Strength (dBm)',
                                     'self_signals', 'me_ap_graph',
                                     'me_ap_labels', false);
 
+/* Isostream graphs */
+var offset = new SignalStrengthChart('Offset (seconds)',
+                                     'Isostream Offset',
+                                     'isostream_last_log', 'isos_offset',
+                                     'offset_labels', false);
+var disconn = new SignalStrengthChart('Disconnects',
+                                      'Isostream Disconnects',
+                                      'isostream_last_log', 'isos_disconn',
+                                      'disconn_labels', false);
+var drops = new SignalStrengthChart('Drops',
+                                    'Isostream Drops',
+                                    'isostream_last_log', 'isos_drops',
+                                    'drops_labels', false);
+
 var graph_array = [wifi, moca, corrected_cwrds, uncorrected_cwrds, aps, me_ap];
 
-$(document).ready(function() {getData(graph_array);});
+$(document).ready(function() {
+  getData(graph_array);
+});
+
+$('#isostream_button').click(function(e) {
+  e.preventDefault();
+  $('#isos_status').html('');
+  var token = document.querySelector('input[name="_xsrf"]').value;
+  $.ajax({
+    type: 'POST',
+    url: '/startisostream',
+    beforeSend: function(request) {
+      request.setRequestHeader('X-CSRFToken', token);
+    },
+    success: function(data) {
+      $('#isos_status').html('');
+      for (var ipAddr in data) {
+        var text = $('<span></span>').text(
+          'Starting isostream client on ' +
+          ipAddr + ': ' + data[ipAddr]);
+        $('#isos_status').append(text);
+        $('#isos_status').append('<br>');
+      }
+      getIsostreamData(false);
+    }
+  });
+});

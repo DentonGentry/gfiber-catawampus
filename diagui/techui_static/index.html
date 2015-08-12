@@ -65,6 +65,23 @@
         <div id="me_ap_graph"></div><div id="me_ap_labels"></div>
       </div>
     </div>
+    <div class="tab">
+      <input type="radio" id="tab-5" name="tab-group-1">
+      <label for="tab-5">Isostream</label>
+      <div class="content">
+        <form action=/startisostream method=post>
+          {% module xsrf_form_html() %}
+          <button id="isostream_button">Run Test</button>
+        </form>
+        <div id="isos_status"></div>
+        <div id="isos_offset"></div><div id="offset_labels"></div>
+        <br>
+        <div id="isos_disconn"></div><div id="disconn_labels"></div>
+        <br>
+        <div id="isos_drops"></div><div id="drops_labels"></div>
+        <br>
+      </div>
+    </div>
   </div>
   <script src="tech_static.js"></script>
 </body>

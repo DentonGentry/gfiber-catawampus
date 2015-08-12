@@ -45,10 +45,10 @@ SignalStrengthChart.prototype.initializeDygraph = function() {
 SignalStrengthChart.prototype.addPoint = function(time, sig_point) {
   var numNewKeys = Object.keys(sig_point).length;
   var pointToAdd = [time];
-  for (var mac_addr_index in Object.keys(sig_point)) {
-    var mac_addr = (Object.keys(sig_point))[mac_addr_index];
-    var index = this.listOfDevices.get(mac_addr);
-    pointToAdd[index + 1] = sig_point[mac_addr];
+  for (var macAddr_index in Object.keys(sig_point)) {
+    var macAddr = (Object.keys(sig_point))[macAddr_index];
+    var index = this.listOfDevices.get(macAddr);
+    pointToAdd[index + 1] = sig_point[macAddr];
   }
 
   if (this.signalStrengths.length > 0 &&
@@ -100,16 +100,16 @@ function getData(graph_array) {
       graph = graph_array[i];
       var time = new Date();
       graph.addPoint(time, data[graph.key]);
-      var host_names = {};
+      var hostNames = {};
       if (graph.is_moca) {
-        host_names = graph.listOfDevices.mocaHostNames(data['host_names']);
+        hostNames = graph.listOfDevices.mocaHostNames(data['host_names']);
       } else {
-        host_names = graph.listOfDevices.hostNames(data['host_names']);
+        hostNames = graph.listOfDevices.hostNames(data['host_names']);
       }
 
-      var host_names_array = [];
-      for (var mac_addr in host_names) {
-        host_names_array.push(host_names[mac_addr]);
+      var hostNamesArray = [];
+      for (var macAddr in hostNames) {
+        hostNamesArray.push(hostNames[macAddr]);
       }
       if (!graph.initialized) {
         if (graph.signalStrengths.length == 0) {
@@ -120,8 +120,7 @@ function getData(graph_array) {
       }
       else {
         graph.g.updateOptions({file: graph.signalStrengths,
-          labels: ['time'].concat(host_names_array)
-          });
+          labels: ['time'].concat(hostNamesArray)});
       }
     }
     showDeviceTable('#device_info', data['host_names'], data['ip_addr']);
@@ -132,19 +131,87 @@ function getData(graph_array) {
   });
 }
 
-function showDeviceTable(div, host_names, ip_addr) {
+function getIsostreamData(clientRunning) {
+  var graphs = [offset, drops, disconn];
+  if (!clientRunning) {
+    for (var i in graphs) {
+      graph = graphs[i];
+      graph.signalStrengths = [];
+    }
+  }
+
+  $.getJSON('/isostreamcombined.json', function(data) {
+    var timestamp = 0;
+    var offsetPoint = {};
+    var dropsPoint = {};
+    var disconnPoint = {};
+    var ipAddrs = [];
+    for (var ipAddr in data) {
+      ipAddrs.push(ipAddr);
+      if ('Error' in data[ipAddr]) {
+          console.error(ipAddr + ': ' + data[ipAddr]['Error']);
+      }
+      if ('ClientRunning' in data[ipAddr]) {
+        clientRunning = data[ipAddr]['ClientRunning'];
+      }
+      if ('last_log' in data[ipAddr] &&
+          'timestamp' in data[ipAddr]['last_log']) {
+        timestamp = Math.max(
+          timestamp, data[ipAddr]['last_log']['timestamp']);
+        offsetPoint[ipAddr] = data[ipAddr]['last_log']['offset'];
+        dropsPoint[ipAddr] = data[ipAddr]['last_log']['drops'];
+        disconnPoint[ipAddr] = data[ipAddr]['last_log']['disconn'];
+      } else {
+        offsetPoint[ipAddr] = null;
+        dropsPoint[ipAddr] = null;
+        disconnPoint[ipAddr] = null;
+      }
+    }
+
+    offset.addPoint(timestamp, offsetPoint);
+    drops.addPoint(timestamp, dropsPoint);
+    disconn.addPoint(timestamp, disconnPoint);
+    for (var i in graphs) {
+      graph = graphs[i];
+      if (!graph.initialized) {
+        if (graph.signalStrengths.length == 0) {
+          graph.addPoint(time, {});
+        }
+        graph.initializeDygraph();
+        graph.initialized = true;
+      } else {
+        if (timestamp != 0) {
+          graph.g.updateOptions({file: graph.signalStrengths,
+            labels: ['time'].concat(ipAddrs)});
+        }
+      }
+    }
+    setTimeout(function() {
+      if (clientRunning) {
+        getIsostreamData(clientRunning);
+      } else {
+        $('#isos_status').append('Finished running tests.');
+      }
+    }, 1000);
+  });
+}
+
+function showDeviceTable(div, hostNames, ipAddr) {
   var infoString = ('<table><tr><td><b>MAC Address</b></td><td><b>Host Name' +
                     '</b></td><td><b>IP Address</b></td></tr>');
-  for (var mac_addr in host_names) {
-    infoString += '<tr><td>' + mac_addr + '</td>';
-    if (host_names[mac_addr] != '') {
-      infoString += '<td>' + host_names[mac_addr] + '</td>';
+  for (var macAddr in hostNames) {
+    escapedMacAddr = $('<div/>').text(macAddr).html();
+    infoString += '<tr><td>' + escapedMacAddr + '</td>';
+    if (hostNames[macAddr] != '') {
+      escapedHostName = $('<div/>').text(hostNames[macAddr]).html();
+      infoString += '<td>' + escapedHostName + '</td>';
     }
     else {
       infoString += '<td></td>';
     }
-    if (ip_addr[mac_addr] != '') {
-      infoString += '<td>' + ip_addr[mac_addr] + '</td>';
+    if (ipAddr[macAddr] != '') {
+      escapedIpAddr = $('<div/>').text(ipAddr[macAddr]).html();
+      infoString += '<td>' + escapedIpAddr + '</td>';
     }
     else {
       infoString += '<td></td>';
@@ -160,10 +227,10 @@ function showBitloading(data) {
   var nbas = data['moca_nbas'];
   var prefix = '$BRCM2$';
   $('#bitloading').html('');
-  for (var mac_addr in bit_data) {
-    $('#bitloading').append('<span>Bitloading: ' + mac_addr + '</span><br>');
-    $('#bitloading').append('<span>NBAS: ' + nbas[mac_addr] + '</span><br>');
-    var bitloading = bit_data[mac_addr];
+  for (var macAddr in bit_data) {
+    $('#bitloading').append('<span>Bitloading: ' + macAddr + '</span><br>');
+    $('#bitloading').append('<span>NBAS: ' + nbas[macAddr] + '</span><br>');
+    var bitloading = bit_data[macAddr];
     for (var i = prefix.length; i < bitloading.length; i++) {
       var bl = parseInt(bitloading[i], 16);
       if (isNaN(bl)) {
