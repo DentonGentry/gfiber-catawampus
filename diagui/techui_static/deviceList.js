@@ -41,8 +41,8 @@ deviceList.prototype.hostNames = function(host_data) {
 deviceList.prototype.mocaHostNames = function(host_data) {
   for (var mac_addr in this.devices) {
     var res = mac_addr.slice(0, (mac_addr.length - 1));
-    var last_thing = parseInt(mac_addr.slice(-1)) - 1;
-    mac_addr = res.concat(last_thing.toString());
+    var last_thing = parseInt(mac_addr.slice(-1), 16) - 1;
+    mac_addr = res.concat(last_thing.toString(16));
     if (host_data[mac_addr] == '' ||
     typeof host_data[mac_addr] == 'undefined') {
       this.host_names[mac_addr] = mac_addr;
