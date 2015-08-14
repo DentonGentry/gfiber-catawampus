@@ -1227,7 +1227,7 @@ If both {{param|X_CATAWAMPUS-ORG_PortRangeSize}} and {{param|ExternalPortEndRang
         <syntax><float/></syntax>
       </parameter>
       <parameter name="RapidPollingUntil" access="readWrite">
-        <description>Run Wifiblaster tests at an interval of ten seconds until reaching the timestamp, in seconds since the epoch UTC. This parameter is intended to allow temporary, frequent polling hile using interactive tools, but have it turn the rapid polling off automatically and not require those interactive tools to unerringly clean up after themselves.</description>
+        <description>Run Wifiblaster tests at an interval of ten seconds until reaching the timestamp, in seconds since the epoch UTC. This parameter is intended to allow temporary, frequent polling while using interactive tools, but have it turn the rapid polling off automatically and not require those interactive tools to unerringly clean up after themselves.</description>
         <syntax><unsignedInt/></syntax>
       </parameter>
       <parameter name="Size" access="readWrite">
