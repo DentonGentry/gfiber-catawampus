@@ -73,7 +73,7 @@ ASUS_HOSTNAMES = '/tmp/asus_hostnames'
 DHCP_TAXONOMY_FILE = '/config/dhcp.fingerprints'
 DNSSD_HOSTNAMES = '/tmp/dnssd_hostnames'
 NETBIOS_HOSTNAMES = '/tmp/netbios_hostnames'
-WIFI_BLASTER_DIR = '/tmp/wifi/wifiblaster'
+WIFIBLASTER_DIR = '/tmp/wifi/wifiblaster'
 WIFI_TAXONOMY_DIR = '/tmp/wifi/fingerprints'
 
 
@@ -537,15 +537,15 @@ class Hosts(BASE181HOSTS):
       host['WifiNumberOfStreams'] = nss
       host['WifiChannelWidth'] = width
 
-  def _PopulateWifiBlaster(self, hosts):
+  def _PopulateWifiblaster(self, hosts):
     """Add Wifi performance test results wherever we can."""
-    macs = self._GetListOfMacAddresses(WIFI_BLASTER_DIR)
+    macs = self._GetListOfMacAddresses(WIFIBLASTER_DIR)
     for mac in macs:
       host = hosts.get(mac, None)
       if not host:
         continue
-      blast = self._ReadWifiFile(host, WIFI_BLASTER_DIR, mac)
-      host['WifiBlasterResults'] = blast
+      blast = self._ReadWifiFile(host, WIFIBLASTER_DIR, mac)
+      host['WifiblasterResults'] = blast
 
   def _PopulateSsdpServers(self, hosts):
     """Add SsdpServer parameters wherever we can."""
@@ -643,7 +643,7 @@ class Hosts(BASE181HOSTS):
     self._PopulateSsdpServers(hosts=hosts)
     self._PopulateDiscoveredHostnames(hosts=hosts)
     self._PopulateWifiTaxonomy(hosts=hosts)
-    self._PopulateWifiBlaster(hosts=hosts)
+    self._PopulateWifiblaster(hosts=hosts)
     host_list = dict()
     for idx, host in enumerate(hosts.values(), start=1):
       host_list[str(idx)] = Host(**host)
@@ -683,7 +683,7 @@ class Host(CATA181HOST):
                LeaseTimeRemaining=0, VendorClassID='',
                ClientID='', UserClassID='',
                DhcpTaxonomy='', SsdpServer='', AsusModel='',
-               DnsSdName='', NetbiosName='', WifiBlasterResults='',
+               DnsSdName='', NetbiosName='', WifiblasterResults='',
                WifiChannelWidth='', WifiChipset='', WifiDeviceModel='',
                WifiNumberOfStreams=0, WifiPerformance='', WifiStandard='',
                WifiTaxonomy=''):
@@ -711,7 +711,7 @@ class Host(CATA181HOST):
     type(cid).DnsSdName.Set(cid, DnsSdName)
     type(cid).NetbiosName.Set(cid, NetbiosName)
     type(cid).SsdpServer.Set(cid, SsdpServer)
-    type(cid).WifiBlasterResults.Set(cid, WifiBlasterResults)
+    type(cid).WifiblasterResults.Set(cid, WifiblasterResults)
     type(cid).WifiChannelWidth.Set(cid, WifiChannelWidth)
     type(cid).WifiChipset.Set(cid, WifiChipset)
     type(cid).WifiDeviceModel.Set(cid, WifiDeviceModel)
@@ -780,7 +780,7 @@ class ClientIdentification(CATA181HOST.X_CATAWAMPUS_ORG_ClientIdentification):
   DnsSdName = tr.cwmptypes.ReadOnlyString('')
   NetbiosName = tr.cwmptypes.ReadOnlyString('')
   SsdpServer = tr.cwmptypes.ReadOnlyString('')
-  WifiBlasterResults = tr.cwmptypes.ReadOnlyString('')
+  WifiblasterResults = tr.cwmptypes.ReadOnlyString('')
   WifiChannelWidth = tr.cwmptypes.ReadOnlyString('')
   WifiChipset = tr.cwmptypes.ReadOnlyString('')
   WifiDeviceModel = tr.cwmptypes.ReadOnlyString('')

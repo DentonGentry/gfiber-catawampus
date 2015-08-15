@@ -71,7 +71,7 @@ class HostTest(unittest.TestCase):
     self.old_WIFICHARACTERIZE = host.WIFICHARACTERIZE
     self.old_TIMENOW = host.TIMENOW
     self.old_WIFI_TAXONOMY_DIR = host.WIFI_TAXONOMY_DIR
-    self.old_WIFI_BLASTER_DIR = host.WIFI_BLASTER_DIR
+    self.old_WIFIBLASTER_DIR = host.WIFIBLASTER_DIR
     host.ASUS_HOSTNAMES = 'testdata/host/asus_hostnames'
     host.DHCP_TAXONOMY_FILE = 'testdata/host/dhcp-taxonomy'
     host.DNSSD_HOSTNAMES = 'testdata/host/dnssd_hostnames'
@@ -83,7 +83,7 @@ class HostTest(unittest.TestCase):
     host.WIFICHARACTERIZE = FakeWifiCharacterization
     host.TIMENOW = TimeNow
     host.WIFI_TAXONOMY_DIR = 'testdata/host/wifi-taxonomy'
-    host.WIFI_BLASTER_DIR = 'testdata/host/wifi-blaster'
+    host.WIFIBLASTER_DIR = 'testdata/host/wifiblaster'
     miniupnp.POLL_CMD = ['testdata/host/ssdp_poll']
 
   def tearDown(self):
@@ -98,7 +98,7 @@ class HostTest(unittest.TestCase):
     host.WIFICHARACTERIZE = self.old_WIFICHARACTERIZE
     host.TIMENOW = self.old_TIMENOW
     host.WIFI_TAXONOMY_DIR = self.old_WIFI_TAXONOMY_DIR
-    host.WIFI_BLASTER_DIR = self.old_WIFI_BLASTER_DIR
+    host.WIFIBLASTER_DIR = self.old_WIFIBLASTER_DIR
     miniupnp.POLL_CMD = self.old_POLL_CMD
 
   def testValidateExports(self):
@@ -314,7 +314,7 @@ class HostTest(unittest.TestCase):
         self.assertEqual(ci.WifiNumberOfStreams, 4)
         self.assertEqual(ci.WifiChannelWidth.strip(), '80')
         expected = 'blaster result f8:8f:ca:00:00:04\nand line 2 as well'
-        self.assertEqual(ci.WifiBlasterResults.strip(), expected)
+        self.assertEqual(ci.WifiblasterResults.strip(), expected)
         found |= 1
       elif h.PhysAddress == 'f8:8f:ca:00:00:05':
         expected = 'wifi|probe:1,2,3,4|assoc:5,6,7,8'

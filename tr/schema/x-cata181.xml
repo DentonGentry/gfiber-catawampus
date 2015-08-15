@@ -445,7 +445,7 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
           </string>
         </syntax>
       </parameter>
-      <parameter name="WifiBlasterResults" access="readOnly">
+      <parameter name="WifiblasterResults" access="readOnly">
         <description>The N most recent Wifi performance test results for this device, as a multiline string.</description>
         <syntax>
           <string>
