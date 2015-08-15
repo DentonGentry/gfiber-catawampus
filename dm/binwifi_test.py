@@ -54,6 +54,8 @@ class BinWifiTest(unittest.TestCase):
     binwifi.BINWIFI = ['testdata/binwifi/binwifi', self.wifioutfile]
     self.old_PROC_NET_DEV = netdev.PROC_NET_DEV
     netdev.PROC_NET_DEV = 'testdata/binwifi/proc_net_dev'
+    self.old_STATIONS_DIR = binwifi.STATIONS_DIR[0]
+    binwifi.STATIONS_DIR[0] = os.path.join(self.tmpdir, 'stations')
     self.old_TMPWAVEGUIDE = binwifi.TMPWAVEGUIDE[0]
     binwifi.TMPWAVEGUIDE[0] = self.tmpdir
     self.loop = tr.mainloop.MainLoop()
@@ -62,6 +64,8 @@ class BinWifiTest(unittest.TestCase):
   def tearDown(self):
     binwifi.BINWIFI = self.old_BINWIFI
     netdev.PROC_NET_DEV = self.old_PROC_NET_DEV
+    binwifi.STATIONS_DIR[0] = self.old_STATIONS_DIR
+    binwifi.TMPWAVEGUIDE[0] = self.old_TMPWAVEGUIDE
     shutil.rmtree(self.tmpdir)
     # Let any pending callbacks expire
     self.loop.RunOnce(timeout=1)
@@ -260,13 +264,9 @@ class BinWifiTest(unittest.TestCase):
                       '0123456789abcdef0123456789abcdef0')
     self.loop.RunOnce(timeout=1)
 
-  # TODO(theannielin): Allow tests to use station files outside of /tmp/stations
   # TODO(theannielin): Consume data from mocked /bin/wifi in this test
   def testAssociatedDevices(self):
     bw = binwifi.WlanConfiguration('wifi0', '', 'br0')
-    if os.path.isdir('/tmp/stations'):
-      shutil.rmtree('/tmp/stations')
-    os.mkdir('/tmp/stations')
     stations = {'00:00:01:00:00:01': {'inactive since': 900,
                                       'authenticated': 'yes',
                                       'tx packets': 5,
@@ -308,7 +308,7 @@ class BinWifiTest(unittest.TestCase):
                                       'authorized': 'yes'}}
     time.time = lambda: 1000  # return 1000 in binwifi to make testing easier
     for mac_addr in stations:
-      with open(os.path.join('/tmp/stations', mac_addr), 'w') as f:
+      with open(os.path.join(binwifi.STATIONS_DIR[0], mac_addr), 'w') as f:
         f.write(json.dumps(stations[mac_addr]))
     bw.AssocDeviceListMaker()
     self.assertEqual(bw.TotalAssociations, 3)
@@ -339,8 +339,6 @@ class BinWifiTest(unittest.TestCase):
         self.assertEqual(c.X_CATAWAMPUS_ORG_SignalStrengthAverage, -31)
         found |= 4
     self.assertEqual(found, 0x7)
-    if os.path.isdir('/tmp/stations'):
-      shutil.rmtree('/tmp/stations')
 
   def testConfigNotChanged(self):
     bw = binwifi.WlanConfiguration('wifi0', '', 'br0', band='5')

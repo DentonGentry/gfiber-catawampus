@@ -48,6 +48,7 @@ CATA98WIFI = CATA98.InternetGatewayDevice.LANDevice.WLANConfiguration
 
 # Unit tests can override these.
 BINWIFI = ['wifi']
+STATIONS_DIR = ['/tmp/stations']
 TMPWAVEGUIDE = ['/tmp/waveguide']
 
 
@@ -301,13 +302,13 @@ class WlanConfiguration(CATA98WIFI):
         self, TMPWAVEGUIDE[0] + '/%s.autochan_free.init' % self.Name)
 
     # Watcher/Notifier for files being created or deleted in /tmp/stations
-    if not os.path.isdir('/tmp/stations'):
-      os.mkdir('/tmp/stations')
+    if not os.path.isdir(STATIONS_DIR[0]):
+      os.mkdir(STATIONS_DIR[0])
     ioloop = tornado.ioloop.IOLoop.instance()
     mask = tr.pyinotify.IN_CREATE | tr.pyinotify.IN_DELETE
     self.Notifier = tr.pyinotify.TornadoAsyncNotifier(self.StationsWatchManager,
                                                       ioloop)
-    self.StationsWatchManager.add_watch('/tmp/stations', mask,
+    self.StationsWatchManager.add_watch(STATIONS_DIR[0], mask,
                                         proc_fun=StationsChangeHandler(self))
 
   def _ParseBinwifiOutput(self, lines):
@@ -412,7 +413,7 @@ class WlanConfiguration(CATA98WIFI):
     type(self).SignalsStr.Set(self, str(self._sig_dict))
 
   def AssocDeviceListMaker(self):
-    directory = '/tmp/stations'
+    directory = STATIONS_DIR[0]
     stations = []
     valid_stations = []
     stations_dict = {}
@@ -877,7 +878,7 @@ def CollectSignalStrength(device):
     device: The Associated Device we need information for.
   """
   mac_addr = device.AssociatedDeviceMACAddress
-  directory = '/tmp/stations'
+  directory = STATIONS_DIR[0]
   last_sig_dict = dict(device.wlan.signals)
   new_sig_dict = dict(device.wlan.signals)
   # Check if file still exists if it is being deleted.
