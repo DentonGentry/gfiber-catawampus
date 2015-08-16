@@ -172,6 +172,9 @@ class StationsChangeHandler(tr.pyinotify.ProcessEvent):
   def process_IN_CREATE(self, event):
     self.wlanconfig.AssocDeviceListMaker()
 
+  def process_IN_MODIFY(self, event):
+    self.wlanconfig.AssocDeviceListMaker()
+
   def process_IN_DELETE(self, event):
     wlan = self.wlanconfig
     wlan.AssocDeviceListMaker()
@@ -216,7 +219,6 @@ class WlanConfiguration(CATA98WIFI):
   WPAEncryptionModes = tr.cwmptypes.TriggerEnum(
       encryption_modes, init='AESEncryption')
   SignalsStr = tr.cwmptypes.ReadOnlyString()
-  StationsWatchManager = tr.pyinotify.WatchManager()
 
   def __init__(self, ifname, if_suffix, bridge, band=None, standard='n',
                width_2_4g=0, width_5g=0, autochan=None):
@@ -239,6 +241,7 @@ class WlanConfiguration(CATA98WIFI):
     self._initialized = True
     self.AssociatedDeviceList = {}
     self._sig_dict = {}
+    self.StationsWatchManager = tr.pyinotify.WatchManager()
 
     # Need to be implemented, but not done yet.
     self.Unexport(['BasicDataTransmitRates', 'AutoRateFallBackEnabled',
@@ -306,10 +309,15 @@ class WlanConfiguration(CATA98WIFI):
       os.mkdir(STATIONS_DIR[0])
     ioloop = tornado.ioloop.IOLoop.instance()
     mask = tr.pyinotify.IN_CREATE | tr.pyinotify.IN_DELETE
+    mask |= tr.pyinotify.IN_MODIFY
     self.Notifier = tr.pyinotify.TornadoAsyncNotifier(self.StationsWatchManager,
                                                       ioloop)
-    self.StationsWatchManager.add_watch(STATIONS_DIR[0], mask,
+    donefile = os.path.join(STATIONS_DIR[0], 'updated.new')
+    self.StationsWatchManager.add_watch(donefile, mask,
                                         proc_fun=StationsChangeHandler(self))
+
+  def release(self):
+    self.Notifier.stop()
 
   def _ParseBinwifiOutput(self, lines):
     """Parse output of /bin/wifi show.
@@ -420,18 +428,19 @@ class WlanConfiguration(CATA98WIFI):
     if os.path.isdir(directory):
       for dirfile in os.listdir(directory):
         if os.path.isfile(os.path.join(directory, dirfile)):
-          if not dirfile.endswith('.new'):
+          if not dirfile.endswith('.new') or dirfile == 'updated':
             try:
               device_data = json.load(open(os.path.join(directory, dirfile)))
             except ValueError:
               device_data = {}
             station = dict(PhysAddr=dirfile)
-            for key, value in device_data.iteritems():
-              station[key] = value
+            station.update(device_data)
             stations.append(station)
     for station in stations:
       if (('authorized' in station and station['authorized'] != 'yes') or
           ('authenticated' in station and station['authenticated'] != 'yes')):
+        continue
+      if station.get('ifname') != self._ifname:
         continue
       valid_stations.append(station)
     stations = valid_stations
