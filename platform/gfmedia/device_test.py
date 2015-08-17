@@ -23,6 +23,9 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
 import device
+import os
+import shutil
+import tempfile
 import tornado.ioloop
 import tornado.testing
 import tr.handle
@@ -49,6 +52,7 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
     self.old_ACTIVEWAN = device.ACTIVEWAN
     self.old_CONFIGDIR = device.CONFIGDIR
     self.old_GINSTALL = device.GINSTALL
+    self.old_GINSTALL_COMPLETION_FILE = device.GINSTALL_COMPLETION_FILE
     self.old_HNVRAM = device.HNVRAM
     self.old_ISNETWORKBOX = device.ISNETWORKBOX
     self.old_LEDSTATUS = device.LEDSTATUS
@@ -60,6 +64,8 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
     self.old_VERSIONFILE = device.VERSIONFILE
     device.ACTIVEWAN = 'testdata/device/activewan'
     device.PYNETIFCONF = MockPynetInterface
+    self.tmpdir = tempfile.mkdtemp()
+    device.GINSTALL_COMPLETION_FILE = os.path.join(self.tmpdir, 'done')
     self.install_cb_called = False
     self.install_cb_faultcode = None
     self.install_cb_faultstring = None
@@ -67,9 +73,11 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
 
   def tearDown(self):
     super(DeviceTest, self).tearDown()
+    shutil.rmtree(self.tmpdir)
     device.ACTIVEWAN = self.old_ACTIVEWAN
     device.CONFIGDIR = self.old_CONFIGDIR
     device.GINSTALL = self.old_GINSTALL
+    device.GINSTALL_COMPLETION_FILE = self.old_GINSTALL_COMPLETION_FILE
     device.HNVRAM = self.old_HNVRAM
     device.ISNETWORKBOX = self.old_ISNETWORKBOX
     device.LEDSTATUS = self.old_LEDSTATUS
@@ -167,6 +175,20 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
 
   def testInstallerStdout(self):
     device.GINSTALL = 'testdata/device/installer_128k_stdout'
+    inst = device.Installer('testdata/device/imagefile', ioloop=self.io_loop)
+    inst.Install(file_type='1 Firmware Upgrade Image',
+                 target_filename='',
+                 callback=self.install_callback)
+    self.wait()
+    self.assertTrue(self.install_cb_called)
+    self.assertEqual(self.install_cb_faultcode, 0)
+    self.assertFalse(self.install_cb_faultstring)
+    self.assertTrue(self.install_cb_must_reboot)
+
+  def testGinstallCompleted(self):
+    # If ginstall has completed, then the failing installer will never be run.
+    device.GINSTALL = 'testdata/device/installer_fails'
+    open(device.GINSTALL_COMPLETION_FILE, 'w').close()
     inst = device.Installer('testdata/device/imagefile', ioloop=self.io_loop)
     inst.Install(file_type='1 Firmware Upgrade Image',
                  target_filename='',

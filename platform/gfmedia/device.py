@@ -89,6 +89,7 @@ PROC_CPUINFO = '/proc/cpuinfo'
 REBOOT = 'tr69_reboot'
 REPOMANIFEST = '/etc/manifest'
 VERSIONFILE = '/etc/version'
+GINSTALL_COMPLETION_FILE = '/tmp/ginstall_complete'
 
 
 def _DoesInterfaceExist(ifcname):
@@ -237,6 +238,11 @@ class Installer(tr.download.Installer):
                           'Unsupported file_type {0}'.format(ftype[0]))
       return False
     self._install_cb = callback
+
+    if os.path.exists(GINSTALL_COMPLETION_FILE):
+      print 'Another instance of ginstall has already completed.'
+      self._call_callback(0, '')
+      return True
 
     cmd = [GINSTALL, '--tar=%s' % self.url, '--partition=other']
     try:
