@@ -132,9 +132,10 @@ class DeviceModelRoot(tr.core.Exporter):
     self.Device.IP.Diagnostics.X_CATAWAMPUS_ORG_Isostream = cata.Isostream
     self.Device.IP.Diagnostics.X_CATAWAMPUS_ORG_HttpDownload = cata.HttpDownload
 
+    # TODO(apenwarr): remove these aliases once we're sure nobody uses them.
+    #  They're deprecated.  Use Device.X_CATAWAMPUS-ORG.Whatever instead.
     self.Device.Export(objects=['X_CATAWAMPUS-ORG_DynamicDNS'])
     self.Device.X_CATAWAMPUS_ORG_DynamicDNS = cata.DynamicDNS
-
     self.Export(objects=['X_CATAWAMPUS-ORG_CATAWAMPUS',
                          'X_GOOGLE-COM_GFIBERTV',
                          'X_GOOGLE-COM_GVSB',

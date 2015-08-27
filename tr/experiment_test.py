@@ -97,7 +97,7 @@ class ExperimentTest(unittest.TestCase):
               root.SubObj.SubObj.TestParam)
 
     self.assertEqual(Vals(), (5, 5, 5))
-    exps.Requested = 'a, TestExp1, b'
+    exps.Requested = 'a, Testexp1, b'
     self.assertEqual(exps.Active, 'TestExp1')
     self.assertEqual(Vals(), (1, 5, 5))
     exps.Requested = 'TestExp1, TestExp2'
