@@ -20,6 +20,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import datetime
 import google3
 from tr.wvtest import unittest
 import miniupnp
@@ -313,8 +314,17 @@ class HostTest(unittest.TestCase):
         self.assertEqual(ci.WifiStandard.strip(), '802.11ac')
         self.assertEqual(ci.WifiNumberOfStreams, 4)
         self.assertEqual(ci.WifiChannelWidth.strip(), '80')
-        expected = 'blaster result f8:8f:ca:00:00:04\nand line 2 as well'
-        self.assertEqual(ci.WifiblasterResults.strip(), expected)
+        self.assertEqual(ci.WifiblasterLatestResult,
+                         '1440647444 version=2 mac=f8:8f:ca:00:00:04 '
+                         'throughput=587176800 rssi=-39 frequency=5745 '
+                         'samples=664440000,602112000,705600000,573888000,'
+                         '682080000,602112000,686784000,301056000,499800000,'
+                         '553896000')
+        self.assertEqual(ci.WifiblasterLatestTime,
+                         datetime.datetime(2015, 8, 27, 3, 50, 44))
+        self.assertEqual(ci.WifiblasterLatestFrequency, 5745)
+        self.assertEqual(ci.WifiblasterLatestRSSI, -39)
+        self.assertEqual(ci.WifiblasterLatestThroughput, 587176800)
         found |= 1
       elif h.PhysAddress == 'f8:8f:ca:00:00:05':
         expected = 'wifi|probe:1,2,3,4|assoc:5,6,7,8'

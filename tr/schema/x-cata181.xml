@@ -420,9 +420,7 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
       <parameter name="WifiNumberOfStreams" access="readOnly">
         <description>The number of spatial streams supported by this client, 0 for unknown.</description>
         <syntax>
-          <string>
-            <unsignedInt/>
-          </string>
+          <unsignedInt/>
         </syntax>
       </parameter>
       <parameter name="WifiChannelWidth" access="readOnly">
@@ -445,15 +443,38 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
           </string>
         </syntax>
       </parameter>
-      <parameter name="WifiblasterResults" access="readOnly">
-        <description>The N most recent Wifi performance test results for this device, as a multiline string.</description>
+      <parameter name="WifiblasterLatestTime" access="readOnly">
+        <description>The time of the most recent wifiblaster test run.</description>
+        <syntax>
+          <dateTime/>
+        </syntax>
+      </parameter>
+      <parameter name="WifiblasterLatestRSSI" access="readOnly">
+        <description>Measured received signal strength from this station during last wifiblaster test, in dB.</description>
+        <syntax>
+          <int><units value="dB"/></int>
+        </syntax>
+      </parameter>
+      <parameter name="WifiblasterLatestFrequency" access="readOnly">
+        <description>Wifi channel frequency being used during last wifiblaster test, in kHz.</description>
+        <syntax>
+          <unsignedInt><units value="kHz"/></unsignedInt>
+        </syntax>
+      </parameter>
+      <parameter name="WifiblasterLatestThroughput" access="readOnly">
+        <description>Measured real throughput delivered to this station during last wifiblaster test, in bits/sec.</description>
+        <syntax>
+          <unsignedInt><units value="bps"/></unsignedInt>
+        </syntax>
+      </parameter>
+      <parameter name="WifiblasterLatestResult" access="readOnly">
+        <description>The most recent Wifi performance test result for this device, as a one-line string produced by the wifiblaster command.</description>
         <syntax>
           <string>
-            <size maxLength="16384"/>
+            <size maxLength="256"/>
           </string>
         </syntax>
       </parameter>
-
     </object>
 
     <object name="Device.IP.Interface.{i}." access="readWrite" numEntriesParameter="InterfaceNumberOfEntries" enableParameter="Enable" minEntries="0" maxEntries="unbounded">

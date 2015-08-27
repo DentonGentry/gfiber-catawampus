@@ -27,6 +27,7 @@ import codecs
 import datetime
 import errno
 import os
+import re
 import struct
 import subprocess
 import time
@@ -711,7 +712,7 @@ class Host(CATA181HOST):
     type(cid).DnsSdName.Set(cid, DnsSdName)
     type(cid).NetbiosName.Set(cid, NetbiosName)
     type(cid).SsdpServer.Set(cid, SsdpServer)
-    type(cid).WifiblasterResults.Set(cid, WifiblasterResults)
+    cid.WifiblasterResults = WifiblasterResults
     type(cid).WifiChannelWidth.Set(cid, WifiChannelWidth)
     type(cid).WifiChipset.Set(cid, WifiChipset)
     type(cid).WifiDeviceModel.Set(cid, WifiDeviceModel)
@@ -772,6 +773,13 @@ class HostIPv6Address(BASE181HOST.IPv6Address):
     type(self).IPAddress.Set(self, address)
 
 
+def _IntOrZero(s):
+  try:
+    return int(s)
+  except ValueError:
+    return 0
+
+
 class ClientIdentification(CATA181HOST.X_CATAWAMPUS_ORG_ClientIdentification):
   """X_CATAWAMPUS-ORG_ClientIdentification, for client identification."""
 
@@ -780,7 +788,6 @@ class ClientIdentification(CATA181HOST.X_CATAWAMPUS_ORG_ClientIdentification):
   DnsSdName = tr.cwmptypes.ReadOnlyString('')
   NetbiosName = tr.cwmptypes.ReadOnlyString('')
   SsdpServer = tr.cwmptypes.ReadOnlyString('')
-  WifiblasterResults = tr.cwmptypes.ReadOnlyString('')
   WifiChannelWidth = tr.cwmptypes.ReadOnlyString('')
   WifiChipset = tr.cwmptypes.ReadOnlyString('')
   WifiDeviceModel = tr.cwmptypes.ReadOnlyString('')
@@ -788,3 +795,40 @@ class ClientIdentification(CATA181HOST.X_CATAWAMPUS_ORG_ClientIdentification):
   WifiPerformance = tr.cwmptypes.ReadOnlyString('')
   WifiStandard = tr.cwmptypes.ReadOnlyString('')
   WifiTaxonomy = tr.cwmptypes.ReadOnlyString('')
+
+  @property
+  @tr.session.cache
+  def WifiblasterLatestResult(self):
+    # Strictly speaking, WifiblasterResults could contain multiple entries.
+    # But we only want to export the most recent one.
+    results = self.WifiblasterResults.strip().split('\n')
+    if results:
+      return results[-1]
+    else:
+      return ''
+
+  @property
+  def WifiblasterLatestTime(self):
+    return datetime.datetime.utcfromtimestamp(
+        _IntOrZero(self.WifiblasterLatestResult.split(' ')[0]))
+
+  @property
+  def WifiblasterLatestFrequency(self):
+    g = re.search(r'frequency=(\d+)', self.WifiblasterLatestResult)
+    if g:
+      return _IntOrZero(g.group(1))
+    return 0
+
+  @property
+  def WifiblasterLatestRSSI(self):
+    g = re.search(r'rssi=([-\d]+)', self.WifiblasterLatestResult)
+    if g:
+      return _IntOrZero(g.group(1))
+    return 0
+
+  @property
+  def WifiblasterLatestThroughput(self):
+    g = re.search(r'throughput=(\d+)', self.WifiblasterLatestResult)
+    if g:
+      return _IntOrZero(g.group(1))
+    return 0
