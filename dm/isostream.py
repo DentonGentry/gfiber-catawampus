@@ -42,20 +42,24 @@ import tr.x_catawampus_tr181_2_0
 
 CATA181DEVICE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device
 ISOSTREAM = CATA181DEVICE.X_CATAWAMPUS_ORG.Isostream
+
+# Unit tests can override these.
 BASEDIR = ['/tmp/waveguide']
 CONSENSUS_KEY_FILE = ['/tmp/waveguide/consensus_key']
 
 
 @tr.experiment.Experiment
 def IsostreamSerial(_):
-  return [(ISOSTREAM + '.ServerEnable', True),
-          (ISOSTREAM + '.ServerConcurrentConnections', 1)]
+  if not subprocess.call(['is-storage-box']):
+    return [(ISOSTREAM + '.ServerEnable', True),
+            (ISOSTREAM + '.ServerConcurrentConnections', 1)]
 
 
 @tr.experiment.Experiment
 def IsostreamParallel(_):
-  return [(ISOSTREAM + '.ServerEnable', True),
-          (ISOSTREAM + '.ServerConcurrentConnections', 8)]
+  if not subprocess.call(['is-storage-box']):
+    return [(ISOSTREAM + '.ServerEnable', True),
+            (ISOSTREAM + '.ServerConcurrentConnections', 8)]
 
 
 @tr.experiment.Experiment
@@ -83,7 +87,8 @@ def WhatIfTV(_):
   return [(ISOSTREAM + '.ClientEnable', True),
           (ISOSTREAM + '.ClientStartAtOrAfter', 1*60*60),
           (ISOSTREAM + '.ClientEndBefore', 6*60*60),
-          (ISOSTREAM + '.ClientTimeLimit', 5*60)]
+          (ISOSTREAM + '.ClientTimeLimit', 5*60),
+          (ISOSTREAM + '.ClientInterface', 'wcli0')]
 
 
 @tr.experiment.Experiment
@@ -91,7 +96,8 @@ def WhatIfTVSwarm(_):
   return [(ISOSTREAM + '.ClientEnable', True),
           (ISOSTREAM + '.ClientStartAtOrAfter', 1*60*60),
           (ISOSTREAM + '.ClientEndBefore', 1*60*60+1*60),
-          (ISOSTREAM + '.ClientTimeLimit', 5*60)]
+          (ISOSTREAM + '.ClientTimeLimit', 5*60),
+          (ISOSTREAM + '.ClientInterface', 'wcli0')]
 
 
 def _KillWait(proc):
@@ -134,6 +140,7 @@ class Isostream(ISOSTREAM):
   ClientDisableIfPortActive = tr.cwmptypes.Unsigned(0)
   ClientTimeLimit = tr.cwmptypes.Unsigned(60)
   ClientRemoteIP = tr.cwmptypes.String('')
+  ClientInterface = tr.cwmptypes.String('')
   ClientMbps = tr.cwmptypes.Unsigned(1)
 
   def __init__(self):
@@ -272,6 +279,10 @@ class Isostream(ISOSTREAM):
           argv += [self.ClientRemoteIP]
         else:
           argv += ['--use-storage-box']
+
+        if self.ClientInterface:
+          argv += ['-I', self.ClientInterface]
+
         argv += ['-b', str(self.ClientMbps)]
         self.clientproc = subprocess.Popen(argv, env=env,
                                            stdout=subprocess.PIPE,
