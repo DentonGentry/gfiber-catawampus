@@ -175,6 +175,16 @@ class IsostreamTest(unittest.TestCase):
     time.sleep(1)
     self._Iter('run-isostream --use-storage-box -b 1\nDEAD run-isostream\n')
 
+  # pylint:disable=line-too-long
+  def testParseLineToTuple(self):
+    isos = isostream.Isostream()
+    isos.ParseLineToTuple('     29.428s 14Mbps offset=0.000s disconn=0/0.000s drops=9/0.047s/-0.098s')
+    self.assertEqual(isos.last_log, isostream.LogLine(29.428, 0.0, 0, 9))
+
+    # the offset can become negative; this used to crash the parser.
+    isos.ParseLineToTuple('     33.494s 14Mbps offset=-0.002s disconn=0/0.000s drops=10/0.068s/-0.098s')
+    self.assertEqual(isos.last_log, isostream.LogLine(33.494, -0.002, 0, 10))
+
 
 if __name__ == '__main__':
   unittest.main()

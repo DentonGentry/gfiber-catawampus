@@ -310,7 +310,8 @@ class Isostream(ISOSTREAM):
   def ParseLineToTuple(self, line):
     line = line.strip()
     values = re.match(
-        r'(\d*\.?\d*).*offset=(\d*\.?\d*).*disconn=(\d*).*drops=(\d*)',
+        (r'(%(real)s).*offset=(%(real)s).*disconn=(\d*).*drops=(\d*)' %
+         {'real': r'-?\d*\.?\d*'}),
         line)
     if values:
       timestamp, offset, disconn, drops = values.groups()
