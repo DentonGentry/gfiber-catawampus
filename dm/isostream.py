@@ -42,6 +42,7 @@ import tr.x_catawampus_tr181_2_0
 
 CATA181DEVICE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device
 ISOSTREAM = CATA181DEVICE.X_CATAWAMPUS_ORG.Isostream
+ISOSTREAM_KEY = 'Device.X_CATAWAMPUS-ORG.Isostream'
 
 # Unit tests can override these.
 BASEDIR = ['/tmp/waveguide']
@@ -51,53 +52,55 @@ CONSENSUS_KEY_FILE = ['/tmp/waveguide/consensus_key']
 @tr.experiment.Experiment
 def IsostreamSerial(_):
   if not subprocess.call(['is-storage-box']):
-    return [(ISOSTREAM + '.ServerEnable', True),
-            (ISOSTREAM + '.ServerConcurrentConnections', 1)]
+    return [(ISOSTREAM_KEY + '.ServerEnable', True),
+            (ISOSTREAM_KEY + '.ServerConcurrentConnections', 1),
+            (ISOSTREAM_KEY + '.ServerTimeLimit', 0)]
 
 
 @tr.experiment.Experiment
 def IsostreamParallel(_):
   if not subprocess.call(['is-storage-box']):
-    return [(ISOSTREAM + '.ServerEnable', True),
-            (ISOSTREAM + '.ServerConcurrentConnections', 8)]
+    return [(ISOSTREAM_KEY + '.ServerEnable', True),
+            (ISOSTREAM_KEY + '.ServerConcurrentConnections', 8),
+            (ISOSTREAM_KEY + '.ServerTimeLimit', 0)]
 
 
 @tr.experiment.Experiment
 def Isostream5(_):
-  return [(ISOSTREAM + '.ClientMbps', 5)]
+  return [(ISOSTREAM_KEY + '.ClientMbps', 5)]
 
 
 @tr.experiment.Experiment
 def Isostream10(_):
-  return [(ISOSTREAM + '.ClientMbps', 10)]
+  return [(ISOSTREAM_KEY + '.ClientMbps', 10)]
 
 
 @tr.experiment.Experiment
 def Isostream14(_):
-  return [(ISOSTREAM + '.ClientMbps', 14)]
+  return [(ISOSTREAM_KEY + '.ClientMbps', 14)]
 
 
 @tr.experiment.Experiment
 def Isostream20(_):
-  return [(ISOSTREAM + '.ClientMbps', 20)]
+  return [(ISOSTREAM_KEY + '.ClientMbps', 20)]
 
 
 @tr.experiment.Experiment
 def WhatIfTV(_):
-  return [(ISOSTREAM + '.ClientEnable', True),
-          (ISOSTREAM + '.ClientStartAtOrAfter', 1*60*60),
-          (ISOSTREAM + '.ClientEndBefore', 6*60*60),
-          (ISOSTREAM + '.ClientTimeLimit', 5*60),
-          (ISOSTREAM + '.ClientInterface', 'wcli0')]
+  return [(ISOSTREAM_KEY + '.ClientEnable', True),
+          (ISOSTREAM_KEY + '.ClientStartAtOrAfter', 1*60*60),
+          (ISOSTREAM_KEY + '.ClientEndBefore', 6*60*60),
+          (ISOSTREAM_KEY + '.ClientTimeLimit', 5*60),
+          (ISOSTREAM_KEY + '.ClientInterface', 'wcli0')]
 
 
 @tr.experiment.Experiment
 def WhatIfTVSwarm(_):
-  return [(ISOSTREAM + '.ClientEnable', True),
-          (ISOSTREAM + '.ClientStartAtOrAfter', 1*60*60),
-          (ISOSTREAM + '.ClientEndBefore', 1*60*60+1*60),
-          (ISOSTREAM + '.ClientTimeLimit', 5*60),
-          (ISOSTREAM + '.ClientInterface', 'wcli0')]
+  return [(ISOSTREAM_KEY + '.ClientEnable', True),
+          (ISOSTREAM_KEY + '.ClientStartAtOrAfter', 1*60*60),
+          (ISOSTREAM_KEY + '.ClientEndBefore', 1*60*60+1*60),
+          (ISOSTREAM_KEY + '.ClientTimeLimit', 5*60),
+          (ISOSTREAM_KEY + '.ClientInterface', 'wcli0')]
 
 
 def _KillWait(proc):
@@ -179,8 +182,8 @@ class Isostream(ISOSTREAM):
 
   @ServerTimeLimit.validator
   def ServerTimeLimit(self, value):
-    if value <= 0:
-      raise ValueError('ServerTimeLimit must be > 0')
+    if value < 0:
+      raise ValueError('ServerTimeLimit must be >= 0')
     return value
 
   @ClientTimeLimit.validator
@@ -237,7 +240,7 @@ class Isostream(ISOSTREAM):
       if self.ServerEnable:
         argv = ['run-isostream-server']
         if self.ServerConcurrentConnections:
-          argv += ['-P', self.ServerConcurrentConnections]
+          argv += ['-P', str(self.ServerConcurrentConnections)]
         self.serverproc = subprocess.Popen(argv, close_fds=True)
         if self.ServerTimeLimit:
           def _DisableServer():

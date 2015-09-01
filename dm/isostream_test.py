@@ -88,7 +88,7 @@ class IsostreamTest(unittest.TestCase):
     isos.ServerEnable = False
     self._Iter('DEAD run-isostream-server\n')
     isos.ServerTimeLimit = 1
-    self.assertRaises(ValueError, lambda: setattr(isos, 'ServerTimeLimit', 0))
+    self.assertRaises(ValueError, lambda: setattr(isos, 'ServerTimeLimit', -1))
     isos.ServerEnable = True
     self._Iter('run-isostream-server\n')
     time.sleep(1)

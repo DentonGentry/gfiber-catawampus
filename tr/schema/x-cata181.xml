@@ -1127,7 +1127,7 @@ While the test is in progress, setting this parameter to {{enum|Requested}} (and
         </syntax>
       </parameter>
       <parameter name="ClientTimeLimit" access="readWrite">
-        <description>Automatically disable the client if it runs for more than this many seconds. If zero, there is no limit.</description>
+        <description>Automatically disable the client if it runs for more than this many seconds.</description>
         <syntax>
           <unsignedInt/>
         </syntax>
