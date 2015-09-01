@@ -322,6 +322,13 @@ class DnsmasqTest(unittest.TestCase):
     self._checkConditionalResults(lines)
     self.assertEqual(len(lines), 0)
 
+  def testIPv6DnsServerInConfig(self):
+    dh4p = self.dh4p
+    dh4p.DNSServers = '3.3.3.3,4.4.4.4'
+    # non-IPv4 address in the list
+    dns = '3.3.3.3,4.4.4.4,1:2::3'
+    self.assertRaises(ValueError, setattr, dh4p, 'DNSServers', dns)
+
   def testMultipleDhcpHosts(self):
     dh4p = self.dh4p
     h = tr.handle.Handle(dh4p)

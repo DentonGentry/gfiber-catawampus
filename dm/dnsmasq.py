@@ -218,10 +218,10 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
   """tr-181 Device.DHCPv4.Server.Pool."""
 
   Enable = tr.cwmptypes.TriggerBool(False)
-  DNSServers = tr.cwmptypes.TriggerString('')
+  DNSServers = tr.cwmptypes.TriggerIPv4AddrList('')
   DomainName = tr.cwmptypes.TriggerString('')
   Interface = tr.cwmptypes.TriggerString('')
-  IPRouters = tr.cwmptypes.TriggerString('')
+  IPRouters = tr.cwmptypes.TriggerIPv4AddrList('')
   LeaseTime = tr.cwmptypes.TriggerUnsigned(86400)
   MinAddress = tr.cwmptypes.TriggerIP4Addr(None)
   MaxAddress = tr.cwmptypes.TriggerIP4Addr(None)

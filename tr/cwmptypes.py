@@ -321,6 +321,21 @@ class IP4Addr(Attr):
     return value
 
 
+class IPv4AddrList(Attr):
+  """Validates a comma-separated list of IPv4 addresses."""
+
+  def validate(self, obj, value):
+    if not value:
+      return value
+    addresses = str(value).split(',')
+    for address in addresses:
+      try:
+        socket.inet_pton(socket.AF_INET, address)
+      except socket.error:
+        raise ValueError('%s is not an IPv4 address.' % address)
+    return value
+
+
 class IP6Addr(Attr):
   """An attribute that is always an IPv6 address or None."""
 
@@ -629,6 +644,10 @@ def TriggerMacAddr(*args, **kwargs):
 
 def TriggerIP4Addr(*args, **kwargs):
   return Trigger(IP4Addr(*args, **kwargs))
+
+
+def TriggerIPv4AddrList(*args, **kwargs):
+  return Trigger(IPv4AddrList(*args, **kwargs))
 
 
 def TriggerIP6Addr(*args, **kwargs):
