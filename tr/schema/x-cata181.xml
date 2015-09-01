@@ -1140,6 +1140,14 @@ While the test is in progress, setting this parameter to {{enum|Requested}} (and
           </string>
         </syntax>
       </parameter>
+      <parameter name="ClientInterface" access="readWrite">
+        <description>If specified, bind isostream client socket to this network interface on the client device. Required for correct operation if ClientRemoteIP is set to a link-local IPv6 address, or if ClientRemoteIP is set to the empty string and a link-local IPv6 address might be detected.</description>
+        <syntax>
+          <string>
+            <size maxLength="15"/>
+          </string>
+        </syntax>
+      </parameter>
       <parameter name="ClientMbps" access="readWrite">
         <description>The data rate to use for the client connection in Mbits/sec.</description>
         <syntax>

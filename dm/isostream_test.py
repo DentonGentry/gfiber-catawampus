@@ -122,8 +122,9 @@ class IsostreamTest(unittest.TestCase):
     self.assertRaises(ValueError, lambda: setattr(isos, 'ClientTimeLimit', 0))
     isos.ClientMbps = 99
     isos.ClientRemoteIP = '1.2.3.4'
+    isos.ClientInterface = 'wcli0'
     isos.ClientRunning = True
-    self._Iter('run-isostream 1.2.3.4 -b 99\n')
+    self._Iter('run-isostream 1.2.3.4 -I wcli0 -b 99\n')
     # Validate that we can run client and server at the same time
     isos.ServerEnable = True
     self._Iter('run-isostream-server\n')
