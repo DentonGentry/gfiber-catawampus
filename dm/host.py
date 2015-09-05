@@ -201,7 +201,9 @@ class Hosts(BASE181HOSTS):
       interfaces[idx] = ifc
     fdb_path = os.path.join(SYS_CLASS_NET_PATH, brname, 'brforward')
     with open(fdb_path) as f:
-      fdb = f.read()  # proc file only works if read all at once
+      fdb = f.read(4096)  # proc file only works if read all at once
+                          # if the python buffer size is small, default
+                          # size may not big enough to read in the file
       offset = 0
       while offset < len(fdb):
         (m1, m2, m3, m4, m5, m6, port_lo, unused_local, unused_age_timer,
