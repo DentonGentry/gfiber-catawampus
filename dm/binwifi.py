@@ -45,6 +45,7 @@ BASE98IGD = tr.tr098_v1_6.InternetGatewayDevice_v1_12.InternetGatewayDevice
 BASE98WIFI = BASE98IGD.LANDevice.WLANConfiguration
 CATA98 = tr.x_catawampus_tr098_1_0.X_CATAWAMPUS_ORG_InternetGatewayDevice_v1_0
 CATA98WIFI = CATA98.InternetGatewayDevice.LANDevice.WLANConfiguration
+ISOSTREAM_KEY = 'Device.X_CATAWAMPUS-ORG.Isostream.'
 
 # Unit tests can override these.
 BINWIFI = ['wifi']
@@ -137,6 +138,7 @@ def ForceNoTvBoxWifi(roothandle):
 @tr.experiment.Experiment
 def ForceTvBoxWifiClient(roothandle):
   """Force join the wireless network provided by the InternetGatewayDevice."""
+
   try:
     model_name = roothandle.obj.Device.DeviceInfo.ModelName
   except AttributeError as e:
@@ -152,6 +154,8 @@ def ForceTvBoxWifiClient(roothandle):
       yield wlankey + 'RadioEnabled', True
       yield wlankey + 'Enable', False
       yield wlankey + 'ClientEnable', True
+      yield ISOSTREAM_KEY + 'ClientInterface', 'wcli0'
+      yield ISOSTREAM_KEY + 'ClientDisableIfPortActive', 0
       return  # ensure we only try to associate with one WLAN
 
   print 'ForceTvBoxWifiClient: %r does not support .ClientEnable' % model_name
