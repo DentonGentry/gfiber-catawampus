@@ -90,7 +90,17 @@ def WhatIfTV(_):
   return [(ISOSTREAM_KEY + 'ClientEnable', True),
           (ISOSTREAM_KEY + 'ClientStartAtOrAfter', 1*60*60),
           (ISOSTREAM_KEY + 'ClientEndBefore', 6*60*60),
-          (ISOSTREAM_KEY + 'ClientTimeLimit', 5*60)]
+          (ISOSTREAM_KEY + 'ClientTimeSufficient', 5*60),
+
+          # The limit for all clients, when we're serializing requests, is:
+          #
+          #   $timeLimit = k * count(clients) * timeSufficient$
+          #
+          # where k is a 'fudge factor' based on conducting tests on unreliable
+          # networks that allowed most six-node tests time enough to complete on
+          # all nodes.
+
+          (ISOSTREAM_KEY + 'ClientTimeLimit', 2*6*5*60)]
 
 
 @tr.experiment.Experiment
@@ -139,6 +149,7 @@ class Isostream(ISOSTREAM):
   ClientStartAtOrAfter = tr.cwmptypes.Unsigned(0)
   ClientEndBefore = tr.cwmptypes.Unsigned(86400)
   ClientDisableIfPortActive = tr.cwmptypes.Unsigned(0)
+  ClientTimeSufficient = tr.cwmptypes.Unsigned(0)
   ClientTimeLimit = tr.cwmptypes.Unsigned(60)
   ClientRemoteIP = tr.cwmptypes.String('')
   ClientInterface = tr.cwmptypes.String('')
@@ -283,6 +294,9 @@ class Isostream(ISOSTREAM):
 
         if self.ClientInterface:
           argv += ['-I', self.ClientInterface]
+
+        if self.ClientTimeSufficient:
+          argv += ['-s', str(self.ClientTimeSufficient)]
 
         argv += ['-b', str(self.ClientMbps)]
         self.clientproc = subprocess.Popen(argv, env=env,

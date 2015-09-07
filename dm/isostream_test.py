@@ -118,6 +118,15 @@ class IsostreamTest(unittest.TestCase):
     self._Iter('run-isostream --use-storage-box -b 1\n')
     isos.ClientRunning = False
     self._Iter('DEAD run-isostream\n')
+
+    # Test sufficient time.
+    isos.ClientTimeSufficient = 10
+    isos.ClientRunning = True
+    self._Iter('run-isostream --use-storage-box -s 10 -b 1\n')
+    isos.ClientRunning = False
+    self._Iter('DEAD run-isostream\n')
+
+    isos.ClientTimeSufficient = 0
     isos.ClientTimeLimit = 1
     self.assertRaises(ValueError, lambda: setattr(isos, 'ClientTimeLimit', 0))
     isos.ClientMbps = 99
