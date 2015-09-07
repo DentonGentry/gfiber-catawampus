@@ -22,6 +22,8 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
 from tr.wvtest import unittest
+import dm.periodic_statistics
+import tr.api
 import tr.core
 import tr.experiment
 import tr.handle
@@ -56,6 +58,36 @@ class CatawampusTest(unittest.TestCase):
     # We don't check the content (too fragile for a test), just that it
     # generated *something*
     self.assertTrue(c.Profiler.Result)
+
+  def testExpensiveStuffEnable(self):
+    r = tr.core.Exporter()
+    h = tr.experiment.ExperimentHandle(r)
+    c = catawampus.CatawampusDm(h)
+    self.assertFalse(tr.api.ExpensiveNotificationsEnable)
+    self.assertFalse(dm.periodic_statistics.ExpensiveStatsEnable)
+    c.ExpensiveStuff.Enable = True
+    self.assertTrue(tr.api.ExpensiveNotificationsEnable)
+    self.assertTrue(dm.periodic_statistics.ExpensiveStatsEnable)
+    c.ExpensiveStuff.Enable = False
+    self.assertFalse(tr.api.ExpensiveNotificationsEnable)
+    self.assertFalse(dm.periodic_statistics.ExpensiveStatsEnable)
+
+  def testExpensiveStuff(self):
+    r = tr.core.Exporter()
+    h = tr.experiment.ExperimentHandle(r)
+    c = catawampus.CatawampusDm(h)
+    for i in range(1, 100):
+      name = 'foo%d' % i
+      tr.api.ExpensiveNotifications[name] = 100 - i
+      dm.periodic_statistics.ExpensiveStats[name] = 100 - i
+    for i in range(1, 41):
+      name = 'foo%d' % i
+      self.assertTrue(name in c.ExpensiveStuff.Stats)
+      self.assertTrue(name in c.ExpensiveStuff.Notifications)
+    for i in range(41, 100):
+      name = 'foo%d' % i
+      self.assertFalse(name in c.ExpensiveStuff.Stats)
+      self.assertFalse(name in c.ExpensiveStuff.Notifications)
 
 
 if __name__ == '__main__':

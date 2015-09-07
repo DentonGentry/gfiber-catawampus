@@ -46,6 +46,7 @@ ACTIVE_NOTIFY = 2
 
 # Tracking of notifications which are particularly expensive to process.
 # pylint:disable=g-bad-name
+ExpensiveNotificationsEnable = False
 ExpensiveNotifications = {}
 
 
@@ -266,9 +267,10 @@ class ParameterAttributes(object):
         start = tr.monohelper.monotime()
         value = self.root.GetExport(paramname)
         end = tr.monohelper.monotime()
-        accumulated = ExpensiveNotifications.get(paramname, 0.0)
-        accumulated += end - start
-        ExpensiveNotifications[paramname] = accumulated
+        if ExpensiveNotificationsEnable:
+          accumulated = ExpensiveNotifications.get(paramname, 0.0)
+          accumulated += end - start
+          ExpensiveNotifications[paramname] = accumulated
       except KeyError:
         # ACS sets notifications for ephemeral objects like Device.Hosts.Host.
         # The object doesn't exist right now, it clearly has no notifications.

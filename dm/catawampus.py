@@ -100,6 +100,18 @@ class ExpensiveStuff(CATABASE.ExpensiveStuff):
       report += '%s: %s\n' % (param, samples[param])
     return report
 
+  def GetEnable(self):
+    a = tr.api.ExpensiveNotificationsEnable
+    b = dm.periodic_statistics.ExpensiveStatsEnable
+    return a and b
+
+  def SetEnable(self, value):
+    b = bool(value)
+    tr.api.ExpensiveNotificationsEnable = b
+    dm.periodic_statistics.ExpensiveStatsEnable = b
+
+  Enable = property(GetEnable, SetEnable, None, 'ExpensiveStuff.Enable')
+
   @property
   def Notifications(self):
     return self.getTopNSamples(tr.api.ExpensiveNotifications, 40)

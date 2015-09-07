@@ -53,6 +53,12 @@
     </object>
 
     <object name="Device.X_CATAWAMPUS-ORG.Catawampus.ExpensiveStuff." access="readOnly" minEntries="1" maxEntries="1">
+      <parameter name="Enable" access="readWrite">
+        <description>Enables instrumentation of periodic stats which take a long time to
+          collect. Storing this data adds to the memory footprint, so it is not routinely
+          left on.</description>
+        <syntax><boolean/></syntax>
+      </parameter>
       <parameter name="Stats" access="readOnly">
         <description>Text description of the N most expensive PeriodicStatistics to sample.</description>
         <syntax>
@@ -61,7 +67,6 @@
           </string>
         </syntax>
       </parameter>
-
       <parameter name="Notifications" access="readOnly">
         <description>Text description of the N most expensive Notifications to sample.</description>
         <syntax>

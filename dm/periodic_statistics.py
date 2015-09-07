@@ -49,6 +49,7 @@ TIMEFUNC = _timefunc
 
 # Profiling which parameters take the most time to sample.
 # pylint:disable=g-bad-name
+ExpensiveStatsEnable = False
 ExpensiveStats = {}
 
 
@@ -505,9 +506,10 @@ class PeriodicStatistics(BASE157PS):
           # This will keep just the last ReportSamples worth of samples.
           self.TrimSamples(self._parent.ReportSamples)
         end = tr.monohelper.monotime()
-        accumulated = ExpensiveStats.get(self.Reference, 0.0)
-        accumulated += end - start
-        ExpensiveStats[self.Reference] = accumulated
+        if ExpensiveStatsEnable:
+          accumulated = ExpensiveStats.get(self.Reference, 0.0)
+          accumulated += end - start
+          ExpensiveStats[self.Reference] = accumulated
 
       def ClearSamplingData(self):
         """Throw away any sampled data."""
