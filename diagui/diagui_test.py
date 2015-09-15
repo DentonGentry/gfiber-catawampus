@@ -11,6 +11,7 @@ import tornado.httpclient
 import tr.mainloop
 import tr.helpers
 import dm_root
+import dm.fakewifi
 from tr.wvtest import unittest
 
 
@@ -276,6 +277,24 @@ class TechuiTest(unittest.TestCase):
     self.assertEqual(uncorrected_cw,
                      techui.data['moca_uncorrected_codewords'])
     self.assertEqual(nbas, techui.data['moca_nbas'])
+
+  def testUpdateWifiDict(self):
+    techui = diagui.main.TechUI(None)
+    wlan0 = dm.fakewifi.FakeWifiWlanConfiguration()
+    wlan1 = dm.fakewifi.FakeWifiWlanConfiguration()
+    techui.root = dm_root.DeviceModelRoot(None, 'fakecpe', None)
+    lans = techui.root.InternetGatewayDevice.LANDeviceList
+    lans['1'].WLANConfigurationList = {
+        '1': wlan0,
+        '2': wlan1,
+    }
+    wlan0.signals = {'11:22:33:44:55:66': -66}
+    wlan1.signals = {'66:55:44:33:22:11': -11}
+
+    techui.UpdateWifiDict()
+    self.assertEquals(
+        techui.data['wifi_signal_strength'],
+        {'66:55:44:33:22:11': -11, '11:22:33:44:55:66': -66})
 
 if __name__ == '__main__':
   unittest.main()

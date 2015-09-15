@@ -364,7 +364,7 @@ class TechUI(object):
     landevlist = self.root.InternetGatewayDevice.LANDeviceList
     for unused_i, dev in landevlist.iteritems():
       for unused_j, wlconf in dev.WLANConfigurationList.iteritems():
-        wifi_signal_strengths = wlconf.signals
+        wifi_signal_strengths.update(wlconf.signals)
     if self.SetTechUIDict('wifi_signal_strength', wifi_signal_strengths):
       self.NotifyUpdatedDict()
 
