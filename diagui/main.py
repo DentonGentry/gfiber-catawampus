@@ -289,20 +289,20 @@ class TechUI(object):
     self.callbacklist = []
     self.root = root
     if self.root:
-      for unused_i, inter in self.root.Device.MoCA.InterfaceList.iteritems():
-        tr.cwmptypes.AddNotifier(type(inter),
+      for interface in self.root.Device.MoCA.InterfaceList.itervalues():
+        tr.cwmptypes.AddNotifier(type(interface),
                                  'AssociatedDeviceCount',
-                                 lambda unused_obj: self.UpdateMocaDict())
+                                 lambda _: self.UpdateMocaDict())
       landevlist = self.root.InternetGatewayDevice.LANDeviceList
-      for unused_i, dev in landevlist.iteritems():
-        for unused_j, wlconf in dev.WLANConfigurationList.iteritems():
+      for dev in landevlist.itervalues():
+        for wlconf in dev.WLANConfigurationList.itervalues():
           tr.cwmptypes.AddNotifier(type(wlconf),
                                    'SignalsStr',
-                                   lambda unused_obj: self.UpdateWifiDict())
+                                   lambda _: self.UpdateWifiDict())
     mask = tr.pyinotify.IN_MODIFY
     self.ap_wm = tr.pyinotify.WatchManager()
     self.ap_notifier = tr.pyinotify.TornadoAsyncNotifier(
-        self.ap_wm, IOLoop(), callback=lambda unused_obj: self.UpdateAPDict())
+        self.ap_wm, IOLoop(), callback=lambda _: self.UpdateAPDict())
     if os.path.exists(AP_DIR):
       self.ap_wm.add_watch(AP_DIR, mask)
 
@@ -329,8 +329,8 @@ class TechUI(object):
       global_node_id = global_content['NodeId']
     except KeyError:
       global_node_id = 17  # max number of nodes is 16
-    for unused_i, inter in self.root.Device.MoCA.InterfaceList.iteritems():
-      for unused_j, dev in inter.AssociatedDeviceList.iteritems():
+    for interface in self.root.Device.MoCA.InterfaceList.itervalues():
+      for dev in interface.AssociatedDeviceList.itervalues():
         if dev.NodeID != global_node_id:  #  to avoid getting info about self
           snr[dev.MACAddress] = dev.X_CATAWAMPUS_ORG_RxSNR_dB
           bitloading[dev.MACAddress] = dev.X_CATAWAMPUS_ORG_RxBitloading
@@ -362,8 +362,8 @@ class TechUI(object):
     """Updates the wifi signal strength dict using catawampus."""
     wifi_signal_strengths = {}
     landevlist = self.root.InternetGatewayDevice.LANDeviceList
-    for unused_i, dev in landevlist.iteritems():
-      for unused_j, wlconf in dev.WLANConfigurationList.iteritems():
+    for dev in landevlist.itervalues():
+      for wlconf in dev.WLANConfigurationList.itervalues():
         wifi_signal_strengths.update(wlconf.signals)
     if self.SetTechUIDict('wifi_signal_strength', wifi_signal_strengths):
       self.NotifyUpdatedDict()
@@ -482,7 +482,7 @@ class DiagUI(object):
 
     t = dict()
     try:
-      for unused_i, sensor in tempstatus.TemperatureSensorList.iteritems():
+      for sensor in tempstatus.TemperatureSensorList.itervalues():
         t[sensor.Name] = sensor.Value
       self.data['temperature'] = t
     except AttributeError:
@@ -490,14 +490,14 @@ class DiagUI(object):
 
     wan_addrs = dict()
     lan_addrs = dict()
-    for unused_i, inter in self.root.Device.IP.InterfaceList.iteritems():
+    for inter in self.root.Device.IP.InterfaceList.itervalues():
       t = wan_addrs if inter.Name in ['wan0', 'wan0.2'] else lan_addrs
-      for unused_j, ip4 in inter.IPv4AddressList.iteritems():
+      for ip4 in inter.IPv4AddressList.itervalues():
         # Static IPs show up even if there is no address.
         if ip4.IPAddress is not None:
           t[ip4.IPAddress] = '(%s)' % ip4.Status
           self.data['subnetmask'] = ip4.SubnetMask
-      for unused_i, ip6 in inter.IPv6AddressList.iteritems():
+      for ip6 in inter.IPv6AddressList.itervalues():
         if ip6.IPAddress[:4] != 'fe80':
           t[ip6.IPAddress] = '(%s)' % ip6.Status
     self.data['lanip'] = lan_addrs
@@ -506,7 +506,7 @@ class DiagUI(object):
     wan_mac = dict()
     lan_mac = dict()
     t = dict()
-    for unused_i, interface in etherlist.iteritems():
+    for interface in etherlist.itervalues():
       if interface.Name in ['wan0', 'wan0.2']:
         wan_mac[interface.MACAddress] = '(%s)' % interface.Status
       else:
@@ -515,8 +515,8 @@ class DiagUI(object):
     self.data['wanmac'] = wan_mac
 
     t = dict()
-    for unused_i, inter in self.root.Device.MoCA.InterfaceList.iteritems():
-      for unused_j, dev in inter.AssociatedDeviceList.iteritems():
+    for interface in self.root.Device.MoCA.InterfaceList.itervalues():
+      for dev in interface.AssociatedDeviceList.itervalues():
         t[dev.NodeID] = dev.MACAddress
     self.data['wireddevices'] = t
 
@@ -525,8 +525,8 @@ class DiagUI(object):
     wpa = dict()
     self.data['ssid5'] = ''
 
-    for unused_i, dev in landevlist.iteritems():
-      for unused_j, wlconf in dev.WLANConfigurationList.iteritems():
+    for dev in landevlist.itervalues():
+      for wlconf in dev.WLANConfigurationList.itervalues():
         # Convert the channel to an int here.  It is returned as a string.
         try:
           ch = int(wlconf.Channel)
@@ -540,7 +540,7 @@ class DiagUI(object):
           if wlconf.WPAAuthenticationMode == 'PSKAuthentication':
             wpa['2.4 GHz'] = '(Configured)'
           wlan[wlconf.BSSID] = '(2.4 GHz) (%s)' % wlconf.Status
-          for unused_k, assoc in wlconf.AssociatedDeviceList.iteritems():
+          for assoc in wlconf.AssociatedDeviceList.itervalues():
             devices[assoc.AssociatedDeviceMACAddress] = (
                 '(2.4 GHz) (Authentication state: %s)'
                 % assoc.AssociatedDeviceAuthenticationState)
@@ -549,7 +549,7 @@ class DiagUI(object):
           if wlconf.WPAAuthenticationMode == 'PSKAuthentication':
             wpa['5 GHz'] = '(Configured)'
           wlan[wlconf.BSSID] = '(5 GHz) (%s)' % wlconf.Status
-          for unused_k, assoc in wlconf.AssociatedDeviceList.iteritems():
+          for assoc in wlconf.AssociatedDeviceList.itervalues():
             devices[assoc.AssociatedDeviceMACAddress] = (
                 '(5 GHz) (Authentication state: %s)'
                 % assoc.AssociatedDeviceAuthenticationState)
@@ -569,7 +569,7 @@ class DiagUI(object):
 
     try:
       dns = self.root.DNS.SD.ServiceList
-      for unused_i, serv in dns.iteritems():
+      for serv in dns.itervalues():
         self.data['dyndns'] = serv.InstanceName
         self.data['domain'] = serv.Domain
     except AttributeError:
