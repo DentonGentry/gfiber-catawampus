@@ -4,6 +4,7 @@
 
 __author__ = 'anandkhare@google.com (Anand Khare)'
 
+import datetime
 import errno
 import hashlib
 import json
@@ -12,10 +13,10 @@ import os
 
 import google3
 
-import tornado.ioloop
 import tornado.web
 import tr.cwmptypes
 import tr.helpers
+import tr.mainloop
 import tr.pyinotify
 
 
@@ -27,9 +28,25 @@ SELFSIGNALS_FILE = '/tmp/waveguide/signals_json/self_signals'
 APSIGNAL_FILE = '/tmp/waveguide/signals_json/ap_signals'
 SOFTWARE_VERSION_FILE = '/etc/version'
 MOCAGLOBALJSON = '/tmp/cwmp/monitoring/moca2/globals'
+JSON_DEADLINE = 5
+
+
+def IOLoop():
+  return tr.mainloop.IOLoopWrapper.instance()
 
 
 def JsonGet(page, ui, update_dictionary):
+  """Handle a request to get a new version of a dict when it's available.
+
+  Args:
+      page: A RequestHandler instance for the request being handled.
+      ui: The TechUI or DiagUI instance that the request is for.  Must have a
+          'data' attribute with a 'checksum' key; this is how we determine when
+          to reply with a new version of the dictonary.  The 'data' attribute is
+          serialized to JSON and sent as the response when ready.
+      update_dictionary: A function that will update ui.data with the latest
+          information.
+  """
   update_dictionary()
   if (page.get_argument('checksum') !=
       ui.data.get('checksum', None)):
@@ -40,19 +57,36 @@ def JsonGet(page, ui, update_dictionary):
     except IOError:
       print 'Could not write to JSON page'
   else:
-    page.callback = lambda: JsonReturnData(page, ui)
+    def Send(deadline_exceeded):
+      """Called by the cwmp watchers when they think new data might be ready.
+
+      The data might not actually be updated; in that case, we don't send.
+
+      Args:
+          deadline_exceeded: True if the timeout for answering the request has
+              arrived.  In that case, we send whatever we have.
+      """
+      if (not deadline_exceeded and
+          page.get_argument('checksum') == ui.data['checksum']):
+        # callback called, but data didn't change, so do nothing.
+        return
+
+      if page.deadline:
+        IOLoop().remove_timeout(page.deadline)
+        page.deadline = None
+
+      ui.callbacklist.remove(page.callback)
+      try:
+        page.set_header('Content-Type', 'application/json')
+        page.write(json.dumps(ui.data))
+        page.finish()
+      except IOError:
+        print 'Could not write to JSON page'
+
+    page.callback = lambda: Send(False)
+    page.deadline = IOLoop().add_timeout(
+        datetime.timedelta(seconds=JSON_DEADLINE), lambda: Send(True))
     ui.callbacklist.append(page.callback)
-
-
-def JsonReturnData(page, ui):
-  if page.get_argument('checksum') != ui.data['checksum']:
-    ui.callbacklist.remove(page.callback)
-    try:
-      page.set_header('Content-Type', 'application/json')
-      page.write(json.dumps(ui.data))
-      page.finish()
-    except IOError:
-      print 'Could not write to JSON page'
 
 
 class TechUIJsonHandler(tornado.web.RequestHandler):
@@ -265,11 +299,10 @@ class TechUI(object):
           tr.cwmptypes.AddNotifier(type(wlconf),
                                    'SignalsStr',
                                    lambda unused_obj: self.UpdateWifiDict())
-    ioloop = tornado.ioloop.IOLoop.instance()
     mask = tr.pyinotify.IN_MODIFY
     self.ap_wm = tr.pyinotify.WatchManager()
     self.ap_notifier = tr.pyinotify.TornadoAsyncNotifier(
-        self.ap_wm, ioloop, callback=lambda unused_obj: self.UpdateAPDict())
+        self.ap_wm, IOLoop(), callback=lambda unused_obj: self.UpdateAPDict())
     if os.path.exists(AP_DIR):
       self.ap_wm.add_watch(AP_DIR, mask)
 
@@ -368,11 +401,10 @@ class TechUI(object):
     deviceinfo = self.root.Device.DeviceInfo
     self.data['softversion'] = deviceinfo.SoftwareVersion
 
-    if self.data['checksum'] == 0:
-      self.UpdateCheckSum()
     self.UpdateMocaDict()
     self.UpdateWifiDict()
     self.UpdateAPDict()
+    self.UpdateCheckSum()
 
   def NotifyUpdatedDict(self):
     self.UpdateCheckSum()
@@ -380,6 +412,7 @@ class TechUI(object):
       i()
 
   def UpdateCheckSum(self):
+    self.data['checksum'] = 0
     newchecksum = hashlib.sha1(unicode(
         sorted(list(self.data.items()))).encode('utf-8')).hexdigest()
     self.data['checksum'] = 'sha1%s' % newchecksum
@@ -406,12 +439,11 @@ class DiagUI(object):
       # as below, as and when they are implemented using types.py.
       tr.cwmptypes.AddNotifier(type(self.root.Device.Ethernet),
                                'InterfaceNumberOfEntries', self.AlertNotifiers)
-    self.ioloop = tornado.ioloop.IOLoop.instance()
     self.wm = tr.pyinotify.WatchManager()
     self.mask = tr.pyinotify.IN_CLOSE_WRITE
     self.callbacklist = []
     self.notifier = tr.pyinotify.TornadoAsyncNotifier(
-        self.wm, self.ioloop, callback=self.AlertNotifiers)
+        self.wm, IOLoop(), callback=self.AlertNotifiers)
     self.wdd = self.wm.add_watch(
         os.path.join(self.pathname, 'Testdata'), self.mask)
 
@@ -421,6 +453,7 @@ class DiagUI(object):
       i()
 
   def UpdateCheckSum(self):
+    self.data['checksum'] = 0
     newchecksum = hashlib.sha1(unicode(
         sorted(list(self.data.items()))).encode('utf-8')).hexdigest()
     self.data['checksum'] = newchecksum
