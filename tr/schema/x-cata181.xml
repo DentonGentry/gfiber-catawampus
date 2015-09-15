@@ -1131,6 +1131,12 @@ While the test is in progress, setting this parameter to {{enum|Requested}} (and
           <unsignedInt/>
         </syntax>
       </parameter>
+      <parameter name="ClientTimeSufficient" access="readWrite">
+        <description>Instruct isostream to exit if it successfully conducts a test for at least this many seconds.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
       <parameter name="ClientTimeLimit" access="readWrite">
         <description>Automatically disable the client if it runs for more than this many seconds.</description>
         <syntax>
