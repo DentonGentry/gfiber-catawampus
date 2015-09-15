@@ -388,15 +388,29 @@ class TechUI(object):
 
     host_names = {}
     ip_addr = {}
+    wifiblaster_results = {}
+
     try:
       hostinfo = self.root.Device.Hosts.HostList
     except AttributeError:
       hostinfo = {}
+
     for host in hostinfo.itervalues():
       host_names[host.PhysAddress] = host.HostName
       ip_addr[host.PhysAddress] = host.IPAddress
+      try:
+        throughput = (
+            host.X_CATAWAMPUS_ORG_ClientIdentification.
+            WifiblasterLatestThroughput)
+        if throughput:
+          wifiblaster_results[host.PhysAddress] = throughput/1e6
+      except AttributeError:
+        # no wifiblaster results
+        pass
+
     self.data['host_names'] = host_names
     self.data['ip_addr'] = ip_addr
+    self.data['wifiblaster_results'] = wifiblaster_results
 
     deviceinfo = self.root.Device.DeviceInfo
     self.data['softversion'] = deviceinfo.SoftwareVersion
