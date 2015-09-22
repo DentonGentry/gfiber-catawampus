@@ -144,7 +144,8 @@ class Isostream(ISOSTREAM):
   ServerEnable = tr.cwmptypes.TriggerBool(False)
   ServerConcurrentConnections = tr.cwmptypes.Unsigned(0)
   ServerTimeLimit = tr.cwmptypes.Unsigned(60)
-  ClientRunning = tr.cwmptypes.TriggerBool(False)
+  ClientRunning = tr.cwmptypes.ReadOnly(
+      tr.cwmptypes.TriggerBool(False))
   ClientEnable = tr.cwmptypes.TriggerBool(False)
   ClientStartAtOrAfter = tr.cwmptypes.Unsigned(0)
   ClientEndBefore = tr.cwmptypes.Unsigned(86400)
@@ -277,12 +278,13 @@ class Isostream(ISOSTREAM):
         self.clientscheduletimer = None
       if self.ClientEnable:
         def _RunTest():
-          self.ClientRunning = True
+          Isostream.ClientRunning.Set(self, True)
           self.clientscheduletimer = self.ioloop.add_timeout(
               deadline=self._GetNextDeadline(), callback=_RunTest)
 
         self.clientscheduletimer = self.ioloop.add_timeout(
             deadline=self._GetNextDeadline(), callback=_RunTest)
+
       if self.ClientRunning:
         argv = ['run-isostream']
         env = dict(os.environ)  # make a copy
@@ -306,7 +308,8 @@ class Isostream(ISOSTREAM):
                                 self.ioloop.READ)
         if self.ClientTimeLimit:
           def _DisableClient():
-            self.ClientRunning = False
+            Isostream.ClientRunning.Set(self, False)
+
           self.clienttimer = self.ioloop.add_timeout(
               deadline=datetime.timedelta(seconds=self.ClientTimeLimit),
               callback=_DisableClient)

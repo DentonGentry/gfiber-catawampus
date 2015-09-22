@@ -114,16 +114,16 @@ class IsostreamTest(unittest.TestCase):
   def testClient(self):
     isos = isostream.Isostream()
     self.assertEqual(isos.clientkey, '1CatawampusRocks')
-    isos.ClientRunning = True
+    isostream.Isostream.ClientRunning.Set(isos, True)
     self._Iter('run-isostream --use-storage-box -b 1\n')
-    isos.ClientRunning = False
+    isostream.Isostream.ClientRunning.Set(isos, False)
     self._Iter('DEAD run-isostream\n')
 
     # Test sufficient time.
     isos.ClientTimeSufficient = 10
-    isos.ClientRunning = True
+    isostream.Isostream.ClientRunning.Set(isos, True)
     self._Iter('run-isostream --use-storage-box -s 10 -b 1\n')
-    isos.ClientRunning = False
+    isostream.Isostream.ClientRunning.Set(isos, False)
     self._Iter('DEAD run-isostream\n')
 
     isos.ClientTimeSufficient = 0
@@ -132,7 +132,7 @@ class IsostreamTest(unittest.TestCase):
     isos.ClientMbps = 99
     isos.ClientRemoteIP = '1.2.3.4'
     isos.ClientInterface = 'wcli0'
-    isos.ClientRunning = True
+    isostream.Isostream.ClientRunning.Set(isos, True)
     self._Iter('run-isostream 1.2.3.4 -I wcli0 -b 99\n')
     # Validate that we can run client and server at the same time
     isos.ServerEnable = True
