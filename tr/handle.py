@@ -394,17 +394,13 @@ class Handle(object):
     objlist = self.GetExport(name)
     idx = str(idx)
     try:
-      obj = None
-      if _Int(idx) in objlist:
-        obj = objlist[_Int(idx)]
-        obj.Close()
-        del objlist[_Int(idx)]
-      else:
-        obj = objlist[idx]
-        obj.Close()
-        del objlist[idx]
+      del objlist[idx]
     except KeyError:
-      raise KeyError((name, idx))
+      try:
+        idx = _Int(idx)
+        del objlist[idx]
+      except KeyError:
+        raise KeyError((name, idx))
 
   def _ListExportsFromDict(self):
     if not hasattr(self.obj, 'iteritems'):

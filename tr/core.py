@@ -144,10 +144,6 @@ class AbstractExporter(object):
   def Unexport(self, params=None, objects=None, lists=None):
     raise NotImplementedError()
 
-  def Close(self):
-    """Called when an object is being deleted."""
-    pass
-
   def StartTransaction(self):
     """Prepare for a series of Set operations, to be applied atomically.
 

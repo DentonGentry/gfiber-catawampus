@@ -44,6 +44,22 @@ OUTPUTFILE6 = '/tmp/cwmp_ip6tables'
 RESTARTCMD = ['update-acs-iptables']
 
 
+class _TriggerDict(dict):
+  """A dict that can call a trigger function on every set/del."""
+
+  def __init__(self, trigger):
+    dict.__init__(self)
+    self.trigger = trigger
+
+  def __setitem__(self, k, v):
+    dict.__setitem__(self, k, v)
+    self.trigger()
+
+  def __delitem__(self, k):
+    dict.__delitem__(self, k)
+    self.trigger()
+
+
 class NAT(BASENAT):
   """tr181 Device.NAT."""
   InterfaceSettingNumberOfEntries = (
@@ -55,9 +71,9 @@ class NAT(BASENAT):
   def __init__(self, dmroot):
     super(NAT, self).__init__()
     self.dmroot = dmroot
-    self.InterfaceSettingList = {}
-    self.PortMappingList = {}
-    self.X_CATAWAMPUS_ORG_DmzMappingList = {}
+    self.InterfaceSettingList = _TriggerDict(self.WriteConfigs)
+    self.PortMappingList = _TriggerDict(self.WriteConfigs)
+    self.X_CATAWAMPUS_ORG_DmzMappingList = _TriggerDict(self.WriteConfigs)
 
   def PortMapping(self):
     return PortMapping(parent=self)
@@ -102,6 +118,7 @@ class NAT(BASENAT):
     An 'IDX_#' string in the COMMENT line lets us reconstruct the object
     numbering when read back in.
     """
+    print 'writeconfigs!!'
     ip4configs = {}
     ip6configs = {}
     for i in range(1, 5):
@@ -251,10 +268,6 @@ class PortMapping(CATANAT.PortMapping):
     if not self._IsNatComplete() and not self._IsDmzComplete():
       return 'Error_Misconfigured'
     return 'Enabled'
-
-  def Close(self):
-    """Called by core.py:DeleteExportObjects()."""
-    self.Triggered()
 
   def Triggered(self):
     self.parent.WriteConfigs()

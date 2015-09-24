@@ -57,16 +57,16 @@ class PeriodicStatisticsTest(unittest.TestCase):
     # Add some samples sets and check again.
     self.psh.AddExportObject('SampleSet', '0')
     self.psh.AddExportObject('SampleSet', '1')
-    self.assertTrue(0 in self.ps.sample_sets)
-    self.assertTrue(1 in self.ps.sample_sets)
-    tr.handle.Handle(self.ps.sample_sets[0]).AddExportObject('Parameter', '0')
-    tr.handle.Handle(self.ps.sample_sets[0]).AddExportObject('Parameter', '1')
-    tr.handle.Handle(self.ps.sample_sets[1]).AddExportObject('Parameter', '0')
-    tr.handle.Handle(self.ps.sample_sets[1]).AddExportObject('Parameter', '1')
-    self.assertTrue(0 in self.ps.sample_sets[0]._parameter_list)
-    self.assertTrue(1 in self.ps.sample_sets[0]._parameter_list)
-    self.assertTrue(0 in self.ps.sample_sets[1]._parameter_list)
-    self.assertTrue(1 in self.ps.sample_sets[1]._parameter_list)
+    self.assertTrue(0 in self.ps.SampleSetList)
+    self.assertTrue(1 in self.ps.SampleSetList)
+    tr.handle.Handle(self.ps.SampleSetList[0]).AddExportObject('Parameter', '0')
+    tr.handle.Handle(self.ps.SampleSetList[0]).AddExportObject('Parameter', '1')
+    tr.handle.Handle(self.ps.SampleSetList[1]).AddExportObject('Parameter', '0')
+    tr.handle.Handle(self.ps.SampleSetList[1]).AddExportObject('Parameter', '1')
+    self.assertTrue(0 in self.ps.SampleSetList[0].ParameterList)
+    self.assertTrue(1 in self.ps.SampleSetList[0].ParameterList)
+    self.assertTrue(0 in self.ps.SampleSetList[1].ParameterList)
+    self.assertTrue(1 in self.ps.SampleSetList[1].ParameterList)
     tr.handle.ValidateExports(self.ps)
 
   def testDeleteSample(self):
@@ -74,31 +74,31 @@ class PeriodicStatisticsTest(unittest.TestCase):
     # Add some samples sets and check again.
     self.psh.AddExportObject('SampleSet', '0')
     self.psh.AddExportObject('SampleSet', '1')
-    self.assertTrue(0 in self.ps.sample_sets)
-    self.assertTrue(1 in self.ps.sample_sets)
-    tr.handle.Handle(self.ps.sample_sets[0]).AddExportObject('Parameter', '0')
-    tr.handle.Handle(self.ps.sample_sets[0]).AddExportObject('Parameter', '1')
-    tr.handle.Handle(self.ps.sample_sets[1]).AddExportObject('Parameter', '0')
-    tr.handle.Handle(self.ps.sample_sets[1]).AddExportObject('Parameter', '1')
-    sample_sets = [weakref.ref(self.ps.sample_sets[0]),
-                   weakref.ref(self.ps.sample_sets[1])]
-    params = [weakref.ref(self.ps.sample_sets[0]._parameter_list[0]),
-              weakref.ref(self.ps.sample_sets[0]._parameter_list[1]),
-              weakref.ref(self.ps.sample_sets[1]._parameter_list[0]),
-              weakref.ref(self.ps.sample_sets[1]._parameter_list[1])]
+    self.assertTrue(0 in self.ps.SampleSetList)
+    self.assertTrue(1 in self.ps.SampleSetList)
+    tr.handle.Handle(self.ps.SampleSetList[0]).AddExportObject('Parameter', '0')
+    tr.handle.Handle(self.ps.SampleSetList[0]).AddExportObject('Parameter', '1')
+    tr.handle.Handle(self.ps.SampleSetList[1]).AddExportObject('Parameter', '0')
+    tr.handle.Handle(self.ps.SampleSetList[1]).AddExportObject('Parameter', '1')
+    sample_sets = [weakref.ref(self.ps.SampleSetList[0]),
+                   weakref.ref(self.ps.SampleSetList[1])]
+    params = [weakref.ref(self.ps.SampleSetList[0].ParameterList[0]),
+              weakref.ref(self.ps.SampleSetList[0].ParameterList[1]),
+              weakref.ref(self.ps.SampleSetList[1].ParameterList[0]),
+              weakref.ref(self.ps.SampleSetList[1].ParameterList[1])]
     tr.handle.ValidateExports(self.ps)
     tr.handle.Handle(
-        self.ps.sample_sets[0]).DeleteExportObject('Parameter', '1')
+        self.ps.SampleSetList[0]).DeleteExportObject('Parameter', '1')
     tr.handle.Handle(
-        self.ps.sample_sets[1]).DeleteExportObject('Parameter', '0')
+        self.ps.SampleSetList[1]).DeleteExportObject('Parameter', '0')
     self.assertIsNot(None, params[0]())
     self.assertIs(None, params[1]())
     self.assertIs(None, params[2]())
     self.assertIsNot(None, params[3]())
-    self.assertTrue(0 in self.ps.sample_sets[0]._parameter_list)
-    self.assertFalse(1 in self.ps.sample_sets[0]._parameter_list)
-    self.assertFalse(0 in self.ps.sample_sets[1]._parameter_list)
-    self.assertTrue(1 in self.ps.sample_sets[1]._parameter_list)
+    self.assertTrue(0 in self.ps.SampleSetList[0].ParameterList)
+    self.assertFalse(1 in self.ps.SampleSetList[0].ParameterList)
+    self.assertFalse(0 in self.ps.SampleSetList[1].ParameterList)
+    self.assertTrue(1 in self.ps.SampleSetList[1].ParameterList)
     self.psh.DeleteExportObject('SampleSet', '1')
     self.assertIsNot(None, sample_sets[0]())
     self.assertIs(None, sample_sets[1]())
@@ -106,9 +106,9 @@ class PeriodicStatisticsTest(unittest.TestCase):
     self.assertIs(None, params[1]())
     self.assertIs(None, params[2]())
     self.assertIs(None, params[3]())
-    self.assertTrue(0 in self.ps.sample_sets[0]._parameter_list)
-    self.assertFalse(1 in self.ps.sample_sets[0]._parameter_list)
-    self.assertFalse(1 in self.ps.sample_sets)
+    self.assertTrue(0 in self.ps.SampleSetList[0].ParameterList)
+    self.assertFalse(1 in self.ps.SampleSetList[0].ParameterList)
+    self.assertFalse(1 in self.ps.SampleSetList)
     tr.handle.ValidateExports(self.ps)
 
   def testSetCpeRoot(self):
@@ -122,16 +122,16 @@ class PeriodicStatisticsTest(unittest.TestCase):
   def testCollectSample(self):
     obj_name = 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.'
     obj_param = 'TotalBytesSent'
-    sampled_param = periodic_statistics.PeriodicStatistics.SampleSet.Parameter()
-    sampled_param.Enable = True
-    sampled_param.Reference = obj_name + obj_param
-    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
+    sample_set = periodic_statistics.SampleSet()
     self.mock_h.GetExport(mox.IsA(str)).AndReturn(1000)
     self.mock_ioloop.add_callback(mox.IgnoreArg())
     self.m.ReplayAll()
 
     sample_set.SetCpeAndRoot(cpe=self.mock_cpe, root=self.mock_h)
-    sample_set.SetParameter('1', sampled_param)
+    sampled_param = sample_set.Parameter()
+    sampled_param.Enable = True
+    sampled_param.Reference = obj_name + obj_param
+    sample_set.ParameterList['1'] = sampled_param
     sample_set.CollectSample()
 
     # Check that the sampled_param updated it's values.
@@ -140,10 +140,11 @@ class PeriodicStatisticsTest(unittest.TestCase):
   def testCollectSampleWrap(self):
     obj_name = 'InternetGatewayDevice.LANDevice.1.WLANConfiguration.1.'
     obj_param = 'TotalBytesSent'
-    sampled_param = periodic_statistics.PeriodicStatistics.SampleSet.Parameter()
+    sample_set = periodic_statistics.SampleSet()
+    sample_set.SetCpeAndRoot(cpe=self.mock_cpe, root=self.mock_h)
+    sampled_param = sample_set.Parameter()
     sampled_param.Enable = True
     sampled_param.Reference = obj_name + obj_param
-    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
     self.mock_h.GetExport(mox.IsA(str)).AndReturn(1000)
     self.mock_h.GetExport(mox.IsA(str)).AndReturn(2000)
     self.mock_h.GetExport(mox.IsA(str)).AndReturn(3000)
@@ -153,8 +154,7 @@ class PeriodicStatisticsTest(unittest.TestCase):
     self.mock_ioloop.add_callback(mox.IgnoreArg())
     self.m.ReplayAll()
 
-    sample_set.SetCpeAndRoot(cpe=self.mock_cpe, root=self.mock_h)
-    sample_set.SetParameter('1', sampled_param)
+    sample_set.ParameterList['1'] = sampled_param
     sample_set.ReportSamples = 1
     sample_set._sample_start_time = 10
     periodic_statistics.TIMEFUNC = lambda: 20
@@ -198,33 +198,33 @@ class PeriodicStatisticsTest(unittest.TestCase):
   def testSampleDatetime(self):
     obj_name = 'Fakeroot.Foo.Bar.'
     obj_param = 'Baz'
-    sampled_param = periodic_statistics.PeriodicStatistics.SampleSet.Parameter()
+    sample_set = periodic_statistics.SampleSet()
+    sample_set.SetCpeAndRoot(cpe=self.mock_cpe, root=self.mock_h)
+    sampled_param = sample_set.Parameter()
     sampled_param.Enable = True
     sampled_param.Reference = obj_name + obj_param
-    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
     dt = datetime.datetime(2013, 7, 8, 12, 0, 1)
     self.mock_h.GetExport(mox.IsA(str)).AndReturn(dt)
     periodic_statistics._EnableFlush()
     self.mock_ioloop.add_callback(mox.IgnoreArg())
     self.m.ReplayAll()
 
-    sample_set.SetCpeAndRoot(cpe=self.mock_cpe, root=self.mock_h)
-    sample_set.SetParameter('1', sampled_param)
+    sample_set.ParameterList['1'] = sampled_param
     sample_set.CollectSample()
     self.assertEqual('2013-07-08T12:00:01Z', sampled_param.Values)
 
   def testEscapeCommas(self):
-    sampled_param = periodic_statistics.PeriodicStatistics.SampleSet.Parameter()
+    sample_set = periodic_statistics.SampleSet()
+    sample_set.SetCpeAndRoot(cpe=self.mock_cpe, root=self.mock_h)
+    sampled_param = sample_set.Parameter()
     sampled_param.Enable = True
     sampled_param.Reference = 'Foo.CommaParameter.1.Bar'
-    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
     self.mock_h.GetExport(mox.IsA(str)).AndReturn('1000,20 0')
     self.mock_h.GetExport(mox.IsA(str)).AndReturn('3%00,40$&')
     self.mock_h.GetExport(mox.IsA(str)).AndReturn('5000\t\n6000')
     self.m.ReplayAll()
 
-    sample_set.SetCpeAndRoot(cpe=self.mock_cpe, root=self.mock_h)
-    sample_set.SetParameter('1', sampled_param)
+    sample_set.ParameterList['1'] = sampled_param
     sample_set.ReportSamples = 3
     sample_set.CollectSample()
     sample_set.CollectSample()
@@ -257,12 +257,12 @@ class SampleSetTest(unittest.TestCase):
     self.m.VerifyAll()
 
   def testValidateExports(self):
-    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
+    sample_set = periodic_statistics.SampleSet()
     tr.handle.ValidateExports(sample_set)
 
   def testParameters(self):
-    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
-    param1 = periodic_statistics.PeriodicStatistics.SampleSet.Parameter()
+    sample_set = periodic_statistics.SampleSet()
+    param1 = periodic_statistics.Parameter()
     sample_set.ParameterList['0'] = param1
     self.assertEqual(1, sample_set.ParameterNumberOfEntries)
     for key in sample_set.ParameterList:
@@ -272,13 +272,13 @@ class SampleSetTest(unittest.TestCase):
     self.assertEqual(0, sample_set.ParameterNumberOfEntries)
 
   def testReportSamples(self):
-    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
+    sample_set = periodic_statistics.SampleSet()
     self.assertEqual(0, sample_set.ReportSamples)
     sample_set.ReportSamples = '10'
     self.assertEqual(10, sample_set.ReportSamples)
 
   def testSampleInterval(self):
-    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
+    sample_set = periodic_statistics.SampleSet()
     self.ps.SampleSetList['0'] = sample_set
     self.assertEqual(0, sample_set.SampleInterval)
     sample_set.SampleInterval = 10
@@ -286,7 +286,8 @@ class SampleSetTest(unittest.TestCase):
 
   def testCollectSample(self):
     self.m.ReplayAll()
-    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
+    sample_set = periodic_statistics.SampleSet()
+    sample_set.SetCpeAndRoot(cpe=self.mock_cpe, root=self.mock_h)
     self.ps.SampleSetList['0'] = sample_set
     start1_time = time.time()
     sample_set.CollectSample()
@@ -303,7 +304,8 @@ class SampleSetTest(unittest.TestCase):
     self.assertEqual(sample_set.SampleSeconds, '0,0')
 
   def testSampleTrigger(self):
-    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
+    sample_set = periodic_statistics.SampleSet()
+    sample_set.SetCpeAndRoot(cpe=self.mock_cpe, root=self.mock_h)
     self.ps.SampleSetList['0'] = sample_set
     self.mock_ioloop.add_timeout(mox.IsA(datetime.timedelta),
                                  mox.IgnoreArg()).AndReturn(1)
@@ -311,7 +313,7 @@ class SampleSetTest(unittest.TestCase):
     sample_set.SetSampleTrigger()
 
   def testUpdateSampling(self):
-    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
+    sample_set = periodic_statistics.SampleSet()
     self.m.StubOutWithMock(sample_set, 'SetSampleTrigger')
     self.m.StubOutWithMock(sample_set, 'StopSampling')
 
@@ -330,7 +332,7 @@ class SampleSetTest(unittest.TestCase):
     sample_set.Enable = 'False'
 
   def testSampleTimes(self):
-    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
+    sample_set = periodic_statistics.SampleSet()
     sample_set._sample_times = []
     self.assertEqual('', sample_set.SampleSeconds)
     self.assertEqual('0001-01-01T00:00:00Z', sample_set.ReportStartTime)
@@ -349,11 +351,11 @@ class SampleSetTest(unittest.TestCase):
     self.assertEqual('1970-01-01T00:00:10Z', sample_set.ReportStartTime)
 
   def testPassiveNotify(self):
-    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
+    sample_set = periodic_statistics.SampleSet()
     self.m.StubOutWithMock(sample_set, 'ClearSamplingData')
     self.m.StubOutWithMock(sample_set, 'SetSampleTrigger')
     self.m.StubOutWithMock(tr.handle.Handle, 'GetCanonicalName')
-    PARAMETER = periodic_statistics.PeriodicStatistics.SampleSet.Parameter
+    PARAMETER = periodic_statistics.Parameter
     mock_param1 = self.m.CreateMock(PARAMETER)
     mock_param2 = self.m.CreateMock(PARAMETER)
     mock_param1.Reference = 'Fake.Param.One'
@@ -370,9 +372,9 @@ class SampleSetTest(unittest.TestCase):
     self.mock_cpe.SetNotificationParameters([(param_name, 'Trigger')])
     self.m.ReplayAll()
 
-    self.assertEqual({}, sample_set._parameter_list)
-    sample_set._parameter_list['1'] = mock_param1
-    sample_set._parameter_list['2'] = mock_param2
+    self.assertEqual({}, sample_set.ParameterList)
+    sample_set.ParameterList['1'] = mock_param1
+    sample_set.ParameterList['2'] = mock_param2
     sample_set.SetCpeAndRoot(cpe=self.mock_cpe, root=self.mock_h)
     self.assertEqual(0, sample_set.FetchSamples)
     sample_set.FetchSamples = 1
@@ -387,11 +389,11 @@ class SampleSetTest(unittest.TestCase):
   def testActiveNotify(self):
     periodic_statistics._EnableFlush()
     self.mock_ioloop.add_callback(mox.IgnoreArg())
-    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
+    sample_set = periodic_statistics.SampleSet()
     self.m.StubOutWithMock(sample_set, 'ClearSamplingData')
     self.m.StubOutWithMock(sample_set, 'SetSampleTrigger')
     self.m.StubOutWithMock(tr.handle.Handle, 'GetCanonicalName')
-    PARAMETER = periodic_statistics.PeriodicStatistics.SampleSet.Parameter
+    PARAMETER = periodic_statistics.Parameter
     mock_param1 = self.m.CreateMock(PARAMETER)
     mock_param2 = self.m.CreateMock(PARAMETER)
     mock_param1.Reference = 'Fake.Param.One'
@@ -410,9 +412,9 @@ class SampleSetTest(unittest.TestCase):
     self.mock_cpe.NewValueChangeSession()
     self.m.ReplayAll()
 
-    self.assertEqual({}, sample_set._parameter_list)
-    sample_set._parameter_list['1'] = mock_param1
-    sample_set._parameter_list['2'] = mock_param2
+    self.assertEqual({}, sample_set.ParameterList)
+    sample_set.ParameterList['1'] = mock_param1
+    sample_set.ParameterList['2'] = mock_param2
     sample_set.SetCpeAndRoot(cpe=self.mock_cpe, root=self.mock_h)
     self.assertEqual(0, sample_set.FetchSamples)
     sample_set.FetchSamples = 1
@@ -425,13 +427,13 @@ class SampleSetTest(unittest.TestCase):
     sample_set.CollectSample()
 
   def testClearSamplingData(self):
-    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
-    param1 = periodic_statistics.PeriodicStatistics.SampleSet.Parameter()
-    param2 = periodic_statistics.PeriodicStatistics.SampleSet.Parameter()
+    sample_set = periodic_statistics.SampleSet()
+    param1 = periodic_statistics.Parameter()
+    param2 = periodic_statistics.Parameter()
     sample_set.ClearSamplingData()
     sample_set.ParameterList['0'] = param1
     sample_set.ParameterList['1'] = param2
-    self.assertEqual(2, len(sample_set._parameter_list))
+    self.assertEqual(2, len(sample_set.ParameterList))
     sample_set.ClearSamplingData()
     # put in some fake data
     sample_set._sample_seconds = [1, 2, 3]
@@ -450,7 +452,7 @@ class SampleSetTest(unittest.TestCase):
 
   def testCalcTimeToNext(self):
     # Test with no sample period set.
-    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
+    sample_set = periodic_statistics.SampleSet()
     sample_set._sample_interval = 60
     # year, month, hour, min, sec
     start_time = time.mktime((2000, 7, 7, 6, 0, 0, -1, -1, -1))
@@ -511,7 +513,7 @@ class SampleSetTest(unittest.TestCase):
     self.assertEqual(5, round(time_till_sample))
 
   def testFetchSamplesTriggered(self):
-    sample_set = periodic_statistics.PeriodicStatistics.SampleSet()
+    sample_set = periodic_statistics.SampleSet()
     sample_set._report_samples = 10
     sample_set._fetch_samples = 7
     sample_set._samples_collected = 0

@@ -76,6 +76,17 @@ DhcpPoolTags = set()
 DhcpAcsUrl = ['']
 
 
+class _TriggerDict(dict):
+
+  def __setitem__(self, k, v):
+    dict.__setitem__(self, k, v)
+    UpdateDnsmasqConfig()
+
+  def __delitem__(self, k):
+    dict.__delitem__(self, k)
+    UpdateDnsmasqConfig()
+
+
 def _ActiveLines(lines):
   """Return all non-commented lines.
 
@@ -171,7 +182,7 @@ class DHCPv4(CATA181DEV.Device.DHCPv4):
     super(DHCPv4, self).__init__()
     self.dmroot = dmroot
     self.Server = Dhcp4Server()
-    self.ClientList = {}
+    self.ClientList = _TriggerDict()
     self.Unexport(objects=['Relay'])
     if self.dmroot:
       self._SetupUrlChanged()
@@ -191,27 +202,6 @@ class DHCPv4(CATA181DEV.Device.DHCPv4):
       print 'dnsmasq: ACS URL changed to %r' % url
       DhcpAcsUrl[0] = url
       UpdateDnsmasqConfig()
-
-
-class Dhcp4Server(DHCP4SERVER):
-  """tr-181 Device.DHCPv4.Server."""
-  Enable = tr.cwmptypes.TriggerBool(False)
-  PoolNumberOfEntries = tr.cwmptypes.NumberOf('PoolList')
-  X_CATAWAMPUS_ORG_TextConfig = tr.cwmptypes.FileBacked(
-      DNSMASQCONFIG, tr.cwmptypes.String(), delete_if_empty=False)
-
-  def __init__(self):
-    super(Dhcp4Server, self).__init__()
-    self.PoolList = {}
-    DhcpServers.add(self)
-
-  def Close(self):
-    """Routine called by tr/core when an object is about to be deleted."""
-    DhcpServers.remove(self)
-    UpdateDnsmasqConfig()
-
-  def Pool(self):
-    return Dhcp4ServerPool()
 
 
 class Dhcp4ServerPool(DHCP4SERVERPOOL):
@@ -300,8 +290,8 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
     super(Dhcp4ServerPool, self).__init__()
     self.name = name
     self.index = None
-    self.StaticAddressList = {}
-    self.OptionList = {}
+    self.StaticAddressList = _TriggerDict()
+    self.OptionList = _TriggerDict()
 
     self.Unexport(['Alias'])
 
@@ -324,10 +314,8 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
 
     DhcpPoolTags.add(self.name)
 
-  def Close(self):
-    """Routine called by tr/core when an object is about to be deleted."""
+  def __del__(self):
     DhcpPoolTags.remove(self.name)
-    UpdateDnsmasqConfig()
 
   @property
   def Status(self):
@@ -489,3 +477,17 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
       lines.append(l)
 
     return lines
+
+
+class Dhcp4Server(DHCP4SERVER):
+  """tr-181 Device.DHCPv4.Server."""
+  Enable = tr.cwmptypes.TriggerBool(False)
+  Pool = Dhcp4ServerPool
+  PoolNumberOfEntries = tr.cwmptypes.NumberOf('PoolList')
+  X_CATAWAMPUS_ORG_TextConfig = tr.cwmptypes.FileBacked(
+      DNSMASQCONFIG, tr.cwmptypes.String(), delete_if_empty=False)
+
+  def __init__(self):
+    super(Dhcp4Server, self).__init__()
+    self.PoolList = _TriggerDict()
+    DhcpServers.add(self)

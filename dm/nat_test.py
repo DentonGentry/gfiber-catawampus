@@ -184,11 +184,15 @@ class NatTest(unittest.TestCase):
 
   def testConfigIncomplete(self):
     n = nat.NAT(dmroot=DeviceModelRoot())
-    p = n.PortMapping()
-    n.PortMappingList['1'] = p
     self.loop.RunOnce(timeout=1)
     self.assertFalse(os.path.exists(self.outputfile4))
     self.assertFalse(os.path.exists(self.outputfile6))
+
+    p = n.PortMapping()
+    n.PortMappingList['1'] = p
+    self.loop.RunOnce(timeout=1)
+    self.assertTrue(os.path.exists(self.outputfile4))
+    self.assertTrue(os.path.exists(self.outputfile6))
 
     p.AllInterfaces = True
     p.Description = 'Description'
