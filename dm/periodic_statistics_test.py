@@ -429,9 +429,9 @@ class SampleSetTest(unittest.TestCase):
     sample_set._fetch_samples = 10
     sample_set._report_samples = 10
     param1._values = ['1', '2', '3']
-    param1._sample_seconds = [5, 6, 7]
+    param1._sample_times = [5, 6, 7]
     param2._values = ['5', '6', '7']
-    param2._sample_seconds = [8, 9, 10]
+    param2._sample_times = [8, 9, 10]
     sample_set.ClearSamplingData()
     self.assertEqual(0, len(sample_set._sample_times))
     self.assertEqual(0, len(param1._sample_times))

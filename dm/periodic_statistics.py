@@ -417,6 +417,9 @@ class PeriodicStatistics(BASE157PS):
     class Parameter(BASE157PS.SampleSet.Parameter):
       """Implementation of PeriodicStatistics.SampleSet.Parameter."""
 
+      __slots__ = ('_parent', '_root', 'Reference', '_sample_times',
+                   '_suspect_data', '_values', '_logged', '__weakref__')
+
       CalculationMode = tr.cwmptypes.Enum(
           ['Latest', 'Minimum', 'Maximum', 'Average'],
           'Latest')
