@@ -144,11 +144,12 @@ class Isostream(ISOSTREAM):
   ServerEnable = tr.cwmptypes.TriggerBool(False)
   ServerConcurrentConnections = tr.cwmptypes.Unsigned(0)
   ServerTimeLimit = tr.cwmptypes.Unsigned(60)
-  ClientRunning = tr.cwmptypes.ReadOnly(
-      tr.cwmptypes.TriggerBool(False))
   ClientEnable = tr.cwmptypes.TriggerBool(False)
+  ClientEnableByScheduler = tr.cwmptypes.ReadOnlyBool(False)
+  ClientRunOnSchedule = tr.cwmptypes.TriggerBool(False)
   ClientStartAtOrAfter = tr.cwmptypes.Unsigned(0)
   ClientEndBefore = tr.cwmptypes.Unsigned(86400)
+  ClientDeadline = tr.cwmptypes.ReadOnlyDate()
   ClientDisableIfPortActive = tr.cwmptypes.Unsigned(0)
   ClientTimeSufficient = tr.cwmptypes.Unsigned(0)
   ClientTimeLimit = tr.cwmptypes.Unsigned(60)
@@ -181,6 +182,15 @@ class Isostream(ISOSTREAM):
     notifier = tr.filenotifier.FileNotifier(mainloop)
     self.watch = notifier.WatchObj(CONSENSUS_KEY_FILE[0], self._Rekey)
     self._Rekey()
+
+  def __del__(self):
+    if self.serverproc:
+      _KillWait(self.serverproc)
+      self.serverproc = None
+    if self.clientproc:
+      self.ioloop.remove_handler(self.clientproc.stdout.fileno())
+      _KillWait(self.clientproc)
+      self.clientproc = None
 
   @ClientMbps.validator
   def ClientMbps(self, value):
@@ -233,7 +243,13 @@ class Isostream(ISOSTREAM):
     deadline = midnight + self.clientstarttime - nowish
     if deadline < datetime.timedelta(seconds=1):
       deadline += datetime.timedelta(days=1)
+
+    Isostream.ClientDeadline.Set(self, time.time() + deadline.total_seconds())
     return deadline
+
+  @property
+  def ClientRunning(self):
+    return not not self.clientproc
 
   @tr.mainloop.WaitUntilIdle
   def Triggered(self):
@@ -260,11 +276,15 @@ class Isostream(ISOSTREAM):
               callback=_DisableServer)
 
     clientsettings = (self.clientkey, self.ClientEnable,
-                      self.ClientStartAtOrAfter, self.ClientEndBefore,
-                      self.ClientDisableIfPortActive, self.ClientTimeLimit,
-                      self.ClientRemoteIP, self.ClientMbps)
+                      self.ClientRunOnSchedule, self.ClientStartAtOrAfter,
+                      self.ClientEndBefore, self.ClientDisableIfPortActive,
+                      self.ClientTimeLimit, self.ClientRemoteIP,
+                      self.ClientMbps)
+
+    clientshouldrun = (self.ClientEnable or self.ClientEnableByScheduler)
+
     if (clientsettings != self.clientsettings or
-        self.ClientRunning != (not not self.clientproc)):
+        clientshouldrun != self.ClientRunning):
       self.clientsettings = clientsettings
       if self.clienttimer:
         self.ioloop.remove_timeout(self.clienttimer)
@@ -276,16 +296,18 @@ class Isostream(ISOSTREAM):
       if self.clientscheduletimer:
         self.ioloop.remove_timeout(self.clientscheduletimer)
         self.clientscheduletimer = None
-      if self.ClientEnable:
+
+      if self.ClientRunOnSchedule:
         def _RunTest():
-          Isostream.ClientRunning.Set(self, True)
+          Isostream.ClientEnableByScheduler.Set(self, True)
           self.clientscheduletimer = self.ioloop.add_timeout(
               deadline=self._GetNextDeadline(), callback=_RunTest)
+          self.Triggered()
 
         self.clientscheduletimer = self.ioloop.add_timeout(
             deadline=self._GetNextDeadline(), callback=_RunTest)
 
-      if self.ClientRunning:
+      if clientshouldrun:
         argv = ['run-isostream']
         env = dict(os.environ)  # make a copy
         env['ISOSTREAM_DISABLE_IF_PORT'] = str(self.ClientDisableIfPortActive)
@@ -308,7 +330,8 @@ class Isostream(ISOSTREAM):
                                 self.ioloop.READ)
         if self.ClientTimeLimit:
           def _DisableClient():
-            Isostream.ClientRunning.Set(self, False)
+            Isostream.ClientEnableByScheduler.Set(self, False)
+            self.Triggered()
 
           self.clienttimer = self.ioloop.add_timeout(
               deadline=datetime.timedelta(seconds=self.ClientTimeLimit),
