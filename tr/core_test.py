@@ -82,8 +82,18 @@ class CoreTest(unittest.TestCase):
     # Reset the global gcount
     TestObject.SubObj.gcount = [0]
 
+  def testSlots(self):
+    ao = core.AbstractExporter()
+    self.assertFalse(hasattr(ao, '__dict__'))
+    self.assertTrue(hasattr(ao, 'dirty'))
+    eo = core.FastExporter()
+    self.assertFalse(hasattr(eo, '__dict__'))
+    self.assertTrue(hasattr(eo, 'dirty'))
+
   def testCore(self):
     o = TestObject()
+    assert hasattr(o, '_lastindex')
+    assert hasattr(o.SubObj, '_lastindex')
     h = handle.Handle(o)
     self.assertTrue(o)
     h.ValidateExports()
@@ -125,6 +135,9 @@ class CoreTest(unittest.TestCase):
 
   def testCanonicalName(self):
     o = TestObject()
+    assert hasattr(o, '_lastindex')
+    assert hasattr(o.SubObj, '_lastindex')
+    print o.export_params, o.export_objects, o.export_object_lists
     h = handle.Handle(o)
     self.assertTrue(o)
     h.ValidateExports()

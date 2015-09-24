@@ -222,6 +222,8 @@ class ProcessStatusLinux26(BASE181DEVICE.DeviceInfo.ProcessStatus):
   _PRIO = 17
   _RSS = 23
 
+  Process = tr.core.Extensible(BASE181DEVICE.DeviceInfo.ProcessStatus.Process)
+
   def __init__(self, ioloop=None):
     super(ProcessStatusLinux26, self).__init__()
     tick = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
