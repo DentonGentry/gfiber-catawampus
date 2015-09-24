@@ -156,7 +156,6 @@ class SampleSet(BASE157PS.SampleSet):
   def Parameter(self):
     p = Parameter()
     p.SetParent(self)
-    p.SetRoot(self._root)
     return p
 
   def Shutdown(self):
@@ -419,7 +418,7 @@ class SampleSet(BASE157PS.SampleSet):
 class Parameter(BASE157PS.SampleSet.Parameter):
   """Implementation of PeriodicStatistics.SampleSet.Parameter."""
 
-  __slots__ = ('_parent', '_root', 'Reference', '_sample_times',
+  __slots__ = ('_parent', 'Reference', '_sample_times',
                '_suspect_data', '_values', '_logged', '__weakref__')
 
   CalculationMode = tr.cwmptypes.Enum(
@@ -434,7 +433,6 @@ class Parameter(BASE157PS.SampleSet.Parameter):
   def __init__(self):
     BASE157PS.SampleSet.Parameter.__init__(self)
     self._parent = None
-    self._root = None
     self.Reference = None
     self._sample_times = []
     self._suspect_data = []
@@ -480,17 +478,13 @@ class Parameter(BASE157PS.SampleSet.Parameter):
     """Set the parent object (should be a SampleSet)."""
     self._parent = parent
 
-  def SetRoot(self, root):
-    """Sets the root of the hierarchy, needed for GetExport."""
-    self._root = root
-
   def CollectSample(self, start_time):
     """Collects one new sample point."""
     current_time = TIMEFUNC()
     start = tr.monohelper.monotime()
     if not self.Enable:
       return
-    f = self._root.GetExport
+    f = self._parent._root.GetExport
     try:
       try:
           # TODO(jnewlin): Update _suspect_data.
