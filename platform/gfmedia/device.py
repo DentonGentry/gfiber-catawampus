@@ -238,7 +238,7 @@ class Installer(tr.download.Installer):
       return False
     self._install_cb = callback
 
-    cmd = [GINSTALL, '--tar=%s' % self.url, '--partition=other']
+    cmd = [GINSTALL, '--tar=%s' % self.url, '--partition=other', '--once']
     try:
       self._ginstall = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     except (OSError, subprocess.CalledProcessError):
