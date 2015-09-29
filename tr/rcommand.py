@@ -92,11 +92,22 @@ class RemoteCommandStreamer(quotedblock.QuotedBlockStreamer):
     """Get the value of the given parameter."""
     return [[name, self.root.GetExport(name)]]
 
-  def CmdSet(self, name, value):
-    """Set the given parameter to the given value."""
-    parent = self.root.SetExportParam(name, value)
-    parent.CommitTransaction()
-    return [[name, value]]
+  def CmdSet(self, *args):
+    """Set the given parameter(s) to the given value(s)."""
+    groups = [(args[i], args[i+1]) for i in range(0, len(args), 2)]
+    objects = set()
+    ok = False
+    try:
+      for name, value in groups:
+        objects.add(self.root.SetExportParam(name, value))
+      ok = True
+    finally:
+      for o in objects:
+        if ok:
+          o.CommitTransaction()
+        else:
+          o.AbandonTransaction()
+    return groups
 
   def _CmdList(self, name, recursive):
     it = self.root.ListExportsEx(name, recursive=recursive)

@@ -59,6 +59,7 @@ class TraceRoute(BASE_TRACEROUTE):
   Timeout = tr.cwmptypes.Unsigned(5000)   # milliseconds
   DataBlockSize = tr.cwmptypes.Unsigned(38)
   MaxHopCount = tr.cwmptypes.Unsigned(30)
+  RouteHops = tr.core.Extensible(BASE_TRACEROUTE.RouteHops)
   RouteHopsNumberOfEntries = tr.cwmptypes.NumberOf('RouteHopsList')
 
   def __init__(self, ioloop=None):

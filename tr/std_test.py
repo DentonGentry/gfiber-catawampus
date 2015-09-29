@@ -33,7 +33,7 @@ class MyModel(BASE098IGD):
   def __init__(self):
     BASE098IGD.__init__(self)
     self.InternetGatewayDevice = core.TODO()
-    u = self.UDPEchoConfig = self.UDPEchoConfig()
+    u = self.UDPEchoConfig = core.Extensible(self.UDPEchoConfig)()
     u.BytesReceived = 0
     u.Enable = True
     u.PacketsReceived = 0

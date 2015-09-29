@@ -106,6 +106,7 @@ class PeriodicStatistics(BASE157PS):
   def SampleSetNumberOfEntries(self):
     return len(self.sample_sets)
 
+  @tr.core.Unexports(['ForceSample'])
   class SampleSet(BASE157PS.SampleSet):
     """Implementation of PeriodicStatistics.SampleSet."""
 
@@ -115,7 +116,6 @@ class PeriodicStatistics(BASE157PS):
           'ParameterList', iteritems=self.IterParameters,
           getitem=self.GetParameter, setitem=self.SetParameter,
           delitem=self.DelParameter)
-      self.Unexport(['ForceSample'])
       self.Name = ''
       self._parameter_list = dict()
       self._sample_times = []
@@ -416,6 +416,9 @@ class PeriodicStatistics(BASE157PS):
 
     class Parameter(BASE157PS.SampleSet.Parameter):
       """Implementation of PeriodicStatistics.SampleSet.Parameter."""
+
+      __slots__ = ('_parent', '_root', 'Reference', '_sample_times',
+                   '_suspect_data', '_values', '_logged', '__weakref__')
 
       CalculationMode = tr.cwmptypes.Enum(
           ['Latest', 'Minimum', 'Maximum', 'Average'],

@@ -33,7 +33,7 @@ parse-schema.py [-d dir] files...
 d,output-dir= Directory to write files to
 """
 
-DEFAULT_BASE_CLASS = 'core.Exporter'
+DEFAULT_BASE_CLASS = 'core.FastExporter'
 
 chunks = {}
 imports = {}
@@ -177,18 +177,9 @@ class Object(object):
       parent_class_name = parent_class_name[:-1]
     fullname_with_seq = re.sub(r'-{i}', '.{i}', '.'.join(self.prefix[:-1]))
     classname = self.name.translate(string.maketrans('-', '_'))
-    pre.append('class %s(%s):' % (classname, parent_class_name))
-    classpath = '%s.%s' % (self.model.name, fullname_with_seq)
-    if classpath.endswith('.'):
-      classpath = classpath[:-1]
-    pre.append('  """Represents %s."""' % classpath)
     if self.params or self.object_sequence:
-      pre.append('')
-      pre.append('  def __init__(self, **defaults):')
-      pre.append('    %s.__init__(self, defaults=defaults)'
-                 % parent_class_name)
       bits = []
-      space = ',\n                '
+      space = ',\n              '
       if self.params:
         quoted_param_list = ["'%s'" % param for param in self.params]
         quoted_params = (space + '        ').join(quoted_param_list)
@@ -205,12 +196,16 @@ class Object(object):
         quoted_objlist_list = ["'%s'" % obj for obj in objlist_list]
         quoted_objlists = (space + '       ').join(quoted_objlist_list)
         bits.append('lists=[%s]' % quoted_objlists)
-      pre.append('    self.Export(%s)' % (space.join(bits)))
+      pre.append('@core.Exports(%s)' % (space.join(bits)))
+    pre.append('class %s(%s):' % (classname, parent_class_name))
+    classpath = '%s.%s' % (self.model.name, fullname_with_seq)
+    if classpath.endswith('.'):
+      classpath = classpath[:-1]
+    pre.append('  """Represents %s."""' % classpath)
+    pre.append('  __slots__ = ()')
     for obj in self.object_sequence:
       out.append('')
       out.append(Indented('  ', obj))
-    if not self.params and not out:
-      out.append('  pass')
     return '\n'.join(pre + out)
 
   def FindParentClass(self):

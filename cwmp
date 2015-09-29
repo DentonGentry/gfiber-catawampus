@@ -225,9 +225,11 @@ def DoCmd(client, words):
              'add', 'del', 'get', 'set'):
     if not args:
       args = [client.cwd]
-    relpath = _DotsToSlashes(args[0])
-    abspath = os.path.normpath(os.path.join(client.cwd, relpath))
-    args[0] = _SlashesToDots(abspath)
+    skip = 2 if cmd in ('add', 'del', 'set') else 1
+    for i in range(0, len(args), skip):
+      relpath = _DotsToSlashes(args[i])
+      abspath = os.path.normpath(os.path.join(client.cwd, relpath))
+      args[i] = _SlashesToDots(abspath)
   if cmd == 'cd':
     client.cwd = os.path.normpath(os.path.join(client.cwd, relpath))
   else:

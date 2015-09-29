@@ -120,6 +120,9 @@ class AutoDict(object):
 class AbstractExporter(object):
   """A basic data model.  Most implementations derive from Exporter."""
 
+  # No per-instance variables.  Define a subclass if you need some.
+  __slots__ = ()
+
   # The following members might be overridden as properties or per-instance
   # objects in subclasses.  We don't assign them in __init__ because that
   # would prevent subclasses from making them properties.
@@ -128,9 +131,9 @@ class AbstractExporter(object):
   # of 1, which is what is called for in the spec.
   _lastindex = 0
   dirty = False  # true if object has pending SetParameters to be committed
-  export_params = None
-  export_objects = None
-  export_object_lists = None
+  export_params = ()
+  export_objects = ()
+  export_object_lists = ()
 
   def __init__(self):
     pass
@@ -166,78 +169,41 @@ class AbstractExporter(object):
     pass
 
 
-class Exporter(AbstractExporter):
+class FastExporter(AbstractExporter):
   """An object containing named parameters that can be get/set.
 
   It can also contain sub-objects with their own parameters, and attributes
   that represent lists of sub-objects.
   """
 
-  def __init__(self, defaults=None):
+  __slots__ = (
+      '_Attr__Attrs',  # for tr.cwmptypes magic
+      'dirty',         # for transactions
+  )
+
+  def __init__(self, **defaults):
     """Initialize an Exporter.
 
     Args:
-      defaults: (optional) a dictionary of attrs to set on the object.
+      **defaults: (optional) a dictionary of attrs to set on the object.
     """
-    self.export_params = set()
-    self.export_objects = set()
-    self.export_object_lists = set()
-    if defaults:
-      for (key, value) in defaults.iteritems():
-        setattr(self, key, value)
+    super(FastExporter, self).__init__()
+    self.dirty = False
+    for (key, value) in defaults.iteritems():
+      setattr(self, key, value)
 
   def Export(self, params=None, objects=None, lists=None):
-    """Export some parameters, objects, or lists to make them visible.
-
-    Once you export these, you still have to manually declare attributes
-    named after the exported names.  The idea is that mostly auto-generated
-    classes will call Export(), but manually-written subclasses will declare
-    the actual attributes.  If you forget to declare an attribute (or you
-    make a typo) then ValidateExports will fail.
-
-    Args:
-      params: a list of parameters in this object.
-      objects: a list of sub-objects in this object.
-      lists: a list of object-list names (lists containing objects) in this
-        object.
-    """
-    assert not isinstance(params, basestring)
-    assert not isinstance(objects, basestring)
-    assert not isinstance(lists, basestring)
-    if params:
-      self.export_params.update(params)
-    if objects:
-      self.export_objects.update(objects)
-    if lists:
-      self.export_object_lists.update(lists)
+    """Deprecated.  Use @tr.core.Exports() on the class instead."""
+    Exports(params, objects, lists)(self)
 
   def Unexport(self, params=None, objects=None, lists=None):
-    """Remove some parameters, objects, or lists to make them invisible.
+    """Deprecated.  Use @tr.core.Unexports() on the class instead."""
+    Unexports(params, objects, lists)(self)
 
-    Some parameters are optional. Auto-generated classes will Export()
-    all possible attributes. If an implementation chooses not to support
-    some fields, it must explicitly Unexport them.
 
-    The implementation has to deliberately choose not to implement a
-    parameter, not just overlook it or skip it out of laziness.
-
-    Args:
-      params: a list of parameters to remove
-      objects: a list of sub-objects to remove
-      lists: a list of object-list names (lists containing objects) to remove.
-    """
-    if params:
-      assert not isinstance(params, basestring)
-      for p in params:
-        self.export_params.remove(p)
-    if objects:
-      assert not isinstance(objects, basestring)
-      for o in objects:
-        self.export_objects.remove(o)
-    if lists:
-      assert not isinstance(lists, basestring)
-      for l in lists:
-        self.export_object_lists.remove(l)
+class Exporter(FastExporter):
+  """Exactly like FastExporter, but runtime extensible (no __slots__)."""
+  pass
 
 
 class TODO(Exporter):
@@ -252,6 +218,108 @@ class TODO(Exporter):
     Exporter.__init__(self)
     self.Export(params=['TODO'])
     self.TODO = 'CLASS NOT IMPLEMENTED YET'
+
+
+def Exports(params=None, objects=None, lists=None):
+  """Export some parameters, objects, or lists to make them visible.
+
+  Once you export these, you still have to manually declare attributes
+  named after the exported names.  The idea is that mostly auto-generated
+  classes will call Export(), but manually-written subclasses will declare
+  the actual attributes.  If you forget to declare an attribute (or you
+  make a typo) then ValidateExports will fail.
+
+  Args:
+    params: a list of parameters in this object.
+    objects: a list of sub-objects in this object.
+    lists: a list of object-list names (lists containing objects) in this
+      object.
+
+  Returns:
+    A function that takes an object or class as a parameter, and returns
+    that same object with its export_* members possibly appended to.
+
+  Example:
+    @Exports(params=['Foo'])
+    class MyClass(Exporter):
+      ...
+  """
+  assert not isinstance(params, basestring)
+  assert not isinstance(objects, basestring)
+  assert not isinstance(lists, basestring)
+  def Wrapper(obj):
+    if params:
+      obj.export_params = tuple(set(obj.export_params) | set(params))
+    if objects:
+      obj.export_objects = tuple(set(obj.export_objects) | set(objects))
+    if lists:
+      obj.export_object_lists = tuple(set(obj.export_object_lists) | set(lists))
+    return obj
+  return Wrapper
+
+
+def Unexports(params=None, objects=None, lists=None):
+  """Remove some parameters, objects, or lists to make them invisible.
+
+  Some parameters are optional. Auto-generated classes will Export()
+  all possible attributes. If an implementation chooses not to support
+  some fields, it must explicitly Unexport them.
+
+  The implementation has to deliberately choose not to implement a
+  parameter, not just overlook it or skip it out of laziness.
+
+  Args:
+    params: a list of parameters to remove
+    objects: a list of sub-objects to remove
+    lists: a list of object-list names (lists containing objects) to remove.
+
+  Returns:
+    A function that takes an object or class as a parameter, and returns
+    that same object with its export_* members possibly reduced.
+
+  Example:
+    @Unexports(params=['Foo'])
+    class MyClass(Exporter):
+      ...
+  """
+  def Wrapper(obj):
+    if params:
+      obj.export_params = tuple(set(obj.export_params) - set(params))
+    if objects:
+      assert not isinstance(objects, basestring)
+      obj.export_objects = tuple(set(obj.export_objects) - set(objects))
+    if lists:
+      assert not isinstance(lists, basestring)
+      obj.export_object_lists = tuple(set(obj.export_object_lists) - set(lists))
+    return obj
+  return Wrapper
+
+
+def Extensible(cls):
+  """Returns a subclass of cls that has no __slots__ member.
+
+  This allows you to set arbitrary members in each instance, even if they
+  don't exist already in the class.
+
+  This is useful for making one-off Exporter() instances in tests,
+  for example.
+
+  Args:
+    cls: a class to inherit from.
+
+  Returns:
+    A new class derived from cls.
+
+  Example:
+    o = Extensible(object)
+    o.Foo = 5
+  """
+
+  class Ext(cls):
+    pass
+
+  Ext.__name__ = 'Ext_' + cls.__name__
+  return Ext
 
 
 class ResourcesExceededError(BufferError):

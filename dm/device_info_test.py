@@ -194,7 +194,8 @@ class DeviceInfoTest(tornado.testing.AsyncTestCase, unittest.TestCase):
       self.assertTrue(processes)
 
   def testProcessStatusFakeData(self):
-    Process = device_info.BASE181DEVICE.DeviceInfo.ProcessStatus.Process
+    Process = tr.core.Extensible(
+        device_info.BASE181DEVICE.DeviceInfo.ProcessStatus.Process)
     fake_processes = {
         1: Process(PID=1, Command='init', Size=551,
                    Priority=20, CPUTime=81970,

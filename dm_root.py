@@ -89,7 +89,8 @@ class DeviceModelRoot(tr.core.Exporter):
       print 'add_cwmp_extensions: no tr-181 Device model available.'
       return  # no tr-181 is available for this platform
     dev.Export(objects=['X_CATAWAMPUS-ORG'])
-    cata = dev.X_CATAWAMPUS_ORG = BASE.Device.X_CATAWAMPUS_ORG()
+    cata = dev.X_CATAWAMPUS_ORG = tr.core.Extensible(
+        BASE.Device.X_CATAWAMPUS_ORG)()
     cata.Bluetooth = dm.bluetooth.Bluetooth()
     cata.Catawampus = dm.catawampus.CatawampusDm(self.handle)
     cata.DynamicDNS = dm.inadyn.Inadyn()

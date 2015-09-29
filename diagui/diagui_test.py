@@ -37,7 +37,7 @@ class FakeHostsList(dm.host.CATA181HOSTS):
   def __init__(self, count=1):
     self._hosts = {}
     for idx in range(1, count+1):
-      host = dm.host.CATA181HOST()
+      host = tr.core.Extensible(dm.host.CATA181HOST)()
       host.X_CATAWAMPUS_ORG_ClientIdentification = (
           dm.host.ClientIdentification())
       self._hosts[str(idx)] = host
