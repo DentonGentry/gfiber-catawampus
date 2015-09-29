@@ -110,6 +110,9 @@ class TriggerObject(object):
   ip6 = tr.cwmptypes.TriggerIP6Addr('1111:2222::3333:4444')
   file3 = tr.cwmptypes.Trigger(tr.cwmptypes.FileBacked([TEST3_FILE],
                                                        tr.cwmptypes.String()))
+  file4 = tr.cwmptypes.ReadOnly(
+      tr.cwmptypes.Trigger(
+          tr.cwmptypes.FileBacked([TEST3_FILE], tr.cwmptypes.String())))
 
   v = tr.cwmptypes.TriggerFloat()
 
@@ -123,6 +126,10 @@ class TriggerObject(object):
   def vv(self, value):
     return 2 * value
   vv = tr.cwmptypes.Trigger(vv)
+
+
+class DerivedObject(TriggerObject):
+  pass
 
 
 class ReadOnlyObject(object):
@@ -407,6 +414,7 @@ class TypesTest(unittest.TestCase):
     self.assertEqual(obj.triggers, 3)
     self.assertEqual(obj.file3, 'wonk')
     self.assertTrue(obj_ref())
+    _ = obj.file4
     del obj
     self.assertFalse(obj_ref())
 
@@ -523,8 +531,8 @@ class TypesTest(unittest.TestCase):
   def testReallyBigInteger(self):
     obj = ReadOnlyObject()
     obj2 = TestObject()
-    type(obj).i.Set(self, long(30595169952))
-    type(obj).u.Set(self, long(30595169952))
+    type(obj).i.Set(obj, long(30595169952))
+    type(obj).u.Set(obj, long(30595169952))
     obj2.i = long(30595169952L)
     obj2.u = long(30595169952L)
 
@@ -578,6 +586,11 @@ class TypesTest(unittest.TestCase):
     t.s = '\xef\xbf\xbe'
     t.s = 'ma\xf1ana'  # ISO8859
     self.assertEqual(u'ma\ufffdana', t.s)
+
+  def testDerived(self):
+    t = DerivedObject()
+    _ = t.file3
+    _ = t.file4
 
 
 if __name__ == '__main__':

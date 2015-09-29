@@ -416,8 +416,10 @@ class SampleSet(BASE157PS.SampleSet):
 class Parameter(BASE157PS.SampleSet.Parameter):
   """Implementation of PeriodicStatistics.SampleSet.Parameter."""
 
-  __slots__ = ('_parent', 'Reference', '_sample_times',
-               '_suspect_data', '_values', '_logged', '__weakref__')
+  __slots__ = ('Reference', '_sample_times',
+               '_values', '_logged', '__weakref__',
+               '_CalculationMode', '_Enable', '_HighThreshold',
+               '_LowThreshold', '_SampleMode')
 
   CalculationMode = tr.cwmptypes.Enum(
       ['Latest', 'Minimum', 'Maximum', 'Average'],
