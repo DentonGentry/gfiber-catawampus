@@ -484,7 +484,7 @@ class Parameter(BASE157PS.SampleSet.Parameter):
     start = tr.monohelper.monotime()
     if not self.Enable:
       return
-    f = self._parent._root.GetExport
+    f = self._parent._root.GetExport  # pylint:disable=protected-access
     try:
       try:
           # TODO(jnewlin): Update _suspect_data.
