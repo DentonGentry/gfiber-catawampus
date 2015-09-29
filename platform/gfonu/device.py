@@ -71,7 +71,6 @@ GFLT110_OPTICAL_I2C_ADDR = 0x51
 PON_STATS_DIR = '/sys/devices/platform/neta/anistats'
 ETH_STATS_DIR = '/sys/devices/platform/neta/unistats'
 KW2THERMALFILE = '/sys/devices/platform/KW2Thermal.0/temp1_input'
-GINSTALL_COMPLETION_FILE = '/tmp/ginstall_complete'
 
 
 class PlatformConfig(platform_config.PlatformConfigMeta):
@@ -194,12 +193,7 @@ class Installer(tr.download.Installer):
       return False
     self._install_cb = callback
 
-    if os.path.exists(GINSTALL_COMPLETION_FILE):
-      print 'Another instance of ginstall has already completed.'
-      self._call_callback(0, '')
-      return True
-
-    cmd = [GINSTALL, '--tar=%s' % self.url, '--partition=other']
+    cmd = [GINSTALL, '--tar=%s' % self.url, '--partition=other', '--once']
     try:
       self._ginstall = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     except (OSError, subprocess.CalledProcessError):
