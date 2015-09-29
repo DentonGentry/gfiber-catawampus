@@ -139,7 +139,7 @@ class SampleSet(BASE157PS.SampleSet):
     super(BASE157PS.SampleSet, self).__init__()
     self.ParameterList = {}
     self.Name = ''
-    self._sample_times = []
+    self._sample_times = ()
     self._samples_collected = 0
     self._sample_start_time = None
     self._attributes = dict()
@@ -154,9 +154,7 @@ class SampleSet(BASE157PS.SampleSet):
     self._time_reference = None
 
   def Parameter(self):
-    p = Parameter()
-    p.SetParent(self)
-    return p
+    return Parameter()
 
   def Shutdown(self):
     """Called when this object is no longer sampling."""
@@ -254,7 +252,7 @@ class SampleSet(BASE157PS.SampleSet):
     Clears any old sampled data, so that a new sampling run can
     begin.  Also clears all Parameter objects.
     """
-    self._sample_times = []
+    self._sample_times = ()
     self._samples_collected = 0
     for param in self.ParameterList.itervalues():
       param.ClearSamplingData()
@@ -314,12 +312,12 @@ class SampleSet(BASE157PS.SampleSet):
     self._sample_start_time = None
     sample_end_time = use_time
     self._samples_collected += 1
-    self._sample_times.append((sample_start_time, sample_end_time))
+    self._sample_times += ((sample_start_time, sample_end_time),)
     # This will keep just the last ReportSamples worth of samples.
     self._sample_times = self._sample_times[-self._report_samples:]
 
     for p in self.ParameterList.itervalues():
-      p.CollectSample(start_time=sample_start_time)
+      p.CollectSample(parent=self, start_time=sample_start_time)
 
     if self.FetchSamplesTriggered():
       if self.PassiveNotification() or self.ActiveNotification():
@@ -425,19 +423,20 @@ class Parameter(BASE157PS.SampleSet.Parameter):
       ['Latest', 'Minimum', 'Maximum', 'Average'],
       'Latest')
   Enable = tr.cwmptypes.Bool(False)
-  Failures = tr.cwmptypes.ReadOnlyUnsigned(0)
   HighThreshold = tr.cwmptypes.Unsigned(0)
   LowThreshold = tr.cwmptypes.Unsigned(0)
   SampleMode = tr.cwmptypes.Enum(['Current', 'Change'], 'Current')
 
   def __init__(self):
     BASE157PS.SampleSet.Parameter.__init__(self)
-    self._parent = None
     self.Reference = None
-    self._sample_times = []
-    self._suspect_data = []
-    self._values = []
+    self._sample_times = ()
+    self._values = ()
     self._logged = False
+
+  @property
+  def Failures(self):
+    return 0
 
   @property
   def SampleSeconds(self):
@@ -468,26 +467,23 @@ class Parameter(BASE157PS.SampleSet.Parameter):
 
   @property
   def SuspectData(self):
-    return ','.join(self._tr106_escape(self._suspect_data))
+    suspect_data = ()  # TODO(apenwarr): we never set this anyway
+    return ','.join(self._tr106_escape(suspect_data))
 
   @property
   def Values(self):
     return ','.join(self._tr106_escape(self._values))
 
-  def SetParent(self, parent):
-    """Set the parent object (should be a SampleSet)."""
-    self._parent = parent
-
-  def CollectSample(self, start_time):
+  def CollectSample(self, parent, start_time):
     """Collects one new sample point."""
     current_time = TIMEFUNC()
     start = tr.monohelper.monotime()
     if not self.Enable:
       return
-    f = self._parent._root.GetExport  # pylint:disable=protected-access
+    f = parent._root.GetExport  # pylint:disable=protected-access
     try:
       try:
-          # TODO(jnewlin): Update _suspect_data.
+        # TODO(jnewlin): Update _suspect_data.
         current_value = f(self.Reference)
       except (KeyError, AttributeError, IndexError), e:
         if not self._logged:
@@ -495,11 +491,11 @@ class Parameter(BASE157PS.SampleSet.Parameter):
           self._logged = True
       else:
         (_, soapstring) = tr.api_soap.Soapify(current_value)
-        self._values.append(soapstring)
-        self._sample_times.append((start_time, current_time))
+        self._values += (soapstring,)
+        self._sample_times += ((start_time, current_time),)
     finally:
       # This will keep just the last ReportSamples worth of samples.
-      self.TrimSamples(self._parent.ReportSamples)
+      self.TrimSamples(parent.ReportSamples)
     end = tr.monohelper.monotime()
     if ExpensiveStatsEnable:
       accumulated = ExpensiveStats.get(self.Reference, 0.0)
@@ -508,8 +504,8 @@ class Parameter(BASE157PS.SampleSet.Parameter):
 
   def ClearSamplingData(self):
     """Throw away any sampled data."""
-    self._values = []
-    self._sample_times = []
+    self._values = ()
+    self._sample_times = ()
 
   def TrimSamples(self, length):
     """Trim any sampling data arrays to only keep the last N values."""

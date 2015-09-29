@@ -362,8 +362,8 @@ class SampleSetTest(unittest.TestCase):
     mock_param2.Reference = 'Fake.Param.Two'
     sample_set.ClearSamplingData()
     periodic_statistics.TIMEFUNC = lambda: 20
-    mock_param1.CollectSample(start_time=10)
-    mock_param2.CollectSample(start_time=10)
+    mock_param1.CollectSample(parent=sample_set, start_time=10)
+    mock_param2.CollectSample(parent=sample_set, start_time=10)
     sample_set.SetSampleTrigger()
     obj_name = 'Device.PeriodicStatistics.SampleSet.0'
     param_name = obj_name + '.Status'
@@ -399,8 +399,8 @@ class SampleSetTest(unittest.TestCase):
     mock_param1.Reference = 'Fake.Param.One'
     mock_param2.Reference = 'Fake.Param.Two'
     periodic_statistics.TIMEFUNC = lambda: 20
-    mock_param1.CollectSample(start_time=10)
-    mock_param2.CollectSample(start_time=10)
+    mock_param1.CollectSample(parent=sample_set, start_time=10)
+    mock_param2.CollectSample(parent=sample_set, start_time=10)
     periodic_statistics.TIMEFUNC = lambda: 20
     sample_set.SetSampleTrigger()
     obj_name = 'Device.PeriodicStatistics.SampleSet.0'
