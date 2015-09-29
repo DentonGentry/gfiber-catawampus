@@ -413,28 +413,85 @@ class SampleSet(BASE157PS.SampleSet):
       self._attributes['AccessList'] = str(attrs['AccessList'])
 
 
+class ParamConfig(object):
+  Enable = 0
+  SampleMode = 1
+  CalculationMode = 2
+  HighThreshold = 3
+  LowThreshold = 4
+  Logged = 5
+
+
 class Parameter(BASE157PS.SampleSet.Parameter):
   """Implementation of PeriodicStatistics.SampleSet.Parameter."""
 
-  __slots__ = ('Reference', '_sample_times',
-               '_values', '_logged', '__weakref__',
-               '_CalculationMode', '_Enable', '_HighThreshold',
-               '_LowThreshold', '_SampleMode')
-
-  CalculationMode = tr.cwmptypes.Enum(
-      ['Latest', 'Minimum', 'Maximum', 'Average'],
-      'Latest')
-  Enable = tr.cwmptypes.Bool(False)
-  HighThreshold = tr.cwmptypes.Unsigned(0)
-  LowThreshold = tr.cwmptypes.Unsigned(0)
-  SampleMode = tr.cwmptypes.Enum(['Current', 'Change'], 'Current')
+  __slots__ = ('Reference', '_sample_times', '_values', '_config')
 
   def __init__(self):
     BASE157PS.SampleSet.Parameter.__init__(self)
     self.Reference = None
     self._sample_times = ()
     self._values = ()
-    self._logged = False
+    # We combine several settings into a single string so that we can intern()
+    # it and share it with other Parameter objects.  These settings
+    # change virtually never and are shared across a large number of
+    # parameters, so this extra level of indirection saves significant
+    # memory space.
+    self._config = intern('False,Current,Latest,0,0,False')
+
+  def _GetConfig(self, ix):
+    return self._config.split(',')[ix]
+
+  def _UpdateConfig(self, ix, v):
+    pc = self._config.split(',')
+    pc[ix] = str(v)
+    self._config = intern(','.join(pc))
+
+  @property
+  def Enable(self):
+    return bool(self._GetConfig(ParamConfig.Enable))
+
+  @Enable.setter
+  def Enable(self, value):
+    self._UpdateConfig(ParamConfig.Enable, tr.cwmpbool.parse(value))
+
+  @property
+  def SampleMode(self):
+    return self._GetConfig(ParamConfig.SampleMode)
+
+  @SampleMode.setter
+  def SampleMode(self, value):
+    allowed = ['Current', 'Change']
+    if value not in allowed:
+      raise ValueError('%s must be one of %r' % (value, allowed))
+    self._UpdateConfig(ParamConfig.SampleMode, value)
+
+  @property
+  def CalculationMode(self):
+    return self._GetConfig(ParamConfig.CalculationMode)
+
+  @CalculationMode.setter
+  def CalculationMode(self, value):
+    allowed = ['Latest', 'Minimum', 'Maximum', 'Average']
+    if value not in allowed:
+      raise ValueError('%s must be one of %r' % (value, allowed))
+    self._UpdateConfig(ParamConfig.CalculationMode, value)
+
+  @property
+  def HighThreshold(self):
+    return int(self._GetConfig(ParamConfig.HighThreshold))
+
+  @HighThreshold.setter
+  def HighThreshold(self, value):
+    self._UpdateConfig(ParamConfig.HighThreshold, int(value))
+
+  @property
+  def LowThreshold(self):
+    return int(self._GetConfig(ParamConfig.LowThreshold))
+
+  @LowThreshold.setter
+  def LowThreshold(self, value):
+    self._UpdateConfig(ParamConfig.LowThreshold, int(value))
 
   @property
   def Failures(self):
@@ -445,7 +502,7 @@ class Parameter(BASE157PS.SampleSet.Parameter):
     """Convert the stored time values to a SampleSeconds string."""
     return _MakeSampleSeconds(self._sample_times)
 
-  def _tr106_escape(self, value):
+  def _tr106_escape(self, values):
     """Escape string according to tr-106 section 3.2.3.
 
        '...Any whitespace or comma characters within an item value
@@ -453,19 +510,17 @@ class Parameter(BASE157PS.SampleSet.Parameter):
         Section 2.1/RFC 3986.'
 
     Args:
-      value: a list of sampled parameters
-
+      values: a list of sampled parameters
     Returns:
-      a list with whitespace and commas escaped for each sample.
+      a new string with whitespace and commas escaped for each sample.
     """
-    escaped = value
-    escaped = [x.replace('%', '%25') for x in escaped]
-    escaped = [x.replace(',', '%2c') for x in escaped]
-    escaped = [x.replace(' ', '%20') for x in escaped]
-    escaped = [x.replace('\t', '%09') for x in escaped]
-    escaped = [x.replace('\n', '%0a') for x in escaped]
-    escaped = [x.replace('\r', '%0d') for x in escaped]
-    return escaped
+    return (x
+            .replace('%', '%25')
+            .replace(',', '%2c')
+            .replace(' ', '%20')
+            .replace('\t', '%09')
+            .replace('\n', '%0a')
+            .replace('\r', '%0d') for x in values)
 
   @property
   def SuspectData(self):
@@ -488,9 +543,9 @@ class Parameter(BASE157PS.SampleSet.Parameter):
         # TODO(jnewlin): Update _suspect_data.
         current_value = f(self.Reference)
       except (KeyError, AttributeError, IndexError), e:
-        if not self._logged:
+        if not self._GetConfig(ParamConfig.Logged):
           print 'CollectSample("%s") error: %r' % (self.Reference, e)
-          self._logged = True
+          self._UpdateConfig(ParamConfig.Logged, True)
       else:
         (_, soapstring) = tr.api_soap.Soapify(current_value)
         self._values += (soapstring,)

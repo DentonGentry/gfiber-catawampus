@@ -82,19 +82,11 @@ class PeriodicStatisticsTest(unittest.TestCase):
     tr.handle.Handle(self.ps.SampleSetList[1]).AddExportObject('Parameter', '1')
     sample_sets = [weakref.ref(self.ps.SampleSetList[0]),
                    weakref.ref(self.ps.SampleSetList[1])]
-    params = [weakref.ref(self.ps.SampleSetList[0].ParameterList[0]),
-              weakref.ref(self.ps.SampleSetList[0].ParameterList[1]),
-              weakref.ref(self.ps.SampleSetList[1].ParameterList[0]),
-              weakref.ref(self.ps.SampleSetList[1].ParameterList[1])]
     tr.handle.ValidateExports(self.ps)
     tr.handle.Handle(
         self.ps.SampleSetList[0]).DeleteExportObject('Parameter', '1')
     tr.handle.Handle(
         self.ps.SampleSetList[1]).DeleteExportObject('Parameter', '0')
-    self.assertIsNot(None, params[0]())
-    self.assertIs(None, params[1]())
-    self.assertIs(None, params[2]())
-    self.assertIsNot(None, params[3]())
     self.assertTrue(0 in self.ps.SampleSetList[0].ParameterList)
     self.assertFalse(1 in self.ps.SampleSetList[0].ParameterList)
     self.assertFalse(0 in self.ps.SampleSetList[1].ParameterList)
@@ -102,10 +94,6 @@ class PeriodicStatisticsTest(unittest.TestCase):
     self.psh.DeleteExportObject('SampleSet', '1')
     self.assertIsNot(None, sample_sets[0]())
     self.assertIs(None, sample_sets[1]())
-    self.assertIsNot(None, params[0]())
-    self.assertIs(None, params[1]())
-    self.assertIs(None, params[2]())
-    self.assertIs(None, params[3]())
     self.assertTrue(0 in self.ps.SampleSetList[0].ParameterList)
     self.assertFalse(1 in self.ps.SampleSetList[0].ParameterList)
     self.assertFalse(1 in self.ps.SampleSetList)

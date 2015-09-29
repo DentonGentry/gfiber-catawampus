@@ -335,7 +335,7 @@ class Enum(Attr):
 
   def __init__(self, values, init=None):
     super(Enum, self).__init__(init=init)
-    self.values = set(values)
+    self.values = frozenset(values)
 
   def validate(self, obj, value):
     if value not in self.values:
