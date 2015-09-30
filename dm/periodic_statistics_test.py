@@ -82,19 +82,11 @@ class PeriodicStatisticsTest(unittest.TestCase):
     tr.handle.Handle(self.ps.SampleSetList[1]).AddExportObject('Parameter', '1')
     sample_sets = [weakref.ref(self.ps.SampleSetList[0]),
                    weakref.ref(self.ps.SampleSetList[1])]
-    params = [weakref.ref(self.ps.SampleSetList[0].ParameterList[0]),
-              weakref.ref(self.ps.SampleSetList[0].ParameterList[1]),
-              weakref.ref(self.ps.SampleSetList[1].ParameterList[0]),
-              weakref.ref(self.ps.SampleSetList[1].ParameterList[1])]
     tr.handle.ValidateExports(self.ps)
     tr.handle.Handle(
         self.ps.SampleSetList[0]).DeleteExportObject('Parameter', '1')
     tr.handle.Handle(
         self.ps.SampleSetList[1]).DeleteExportObject('Parameter', '0')
-    self.assertIsNot(None, params[0]())
-    self.assertIs(None, params[1]())
-    self.assertIs(None, params[2]())
-    self.assertIsNot(None, params[3]())
     self.assertTrue(0 in self.ps.SampleSetList[0].ParameterList)
     self.assertFalse(1 in self.ps.SampleSetList[0].ParameterList)
     self.assertFalse(0 in self.ps.SampleSetList[1].ParameterList)
@@ -102,10 +94,6 @@ class PeriodicStatisticsTest(unittest.TestCase):
     self.psh.DeleteExportObject('SampleSet', '1')
     self.assertIsNot(None, sample_sets[0]())
     self.assertIs(None, sample_sets[1]())
-    self.assertIsNot(None, params[0]())
-    self.assertIs(None, params[1]())
-    self.assertIs(None, params[2]())
-    self.assertIs(None, params[3]())
     self.assertTrue(0 in self.ps.SampleSetList[0].ParameterList)
     self.assertFalse(1 in self.ps.SampleSetList[0].ParameterList)
     self.assertFalse(1 in self.ps.SampleSetList)
@@ -362,8 +350,8 @@ class SampleSetTest(unittest.TestCase):
     mock_param2.Reference = 'Fake.Param.Two'
     sample_set.ClearSamplingData()
     periodic_statistics.TIMEFUNC = lambda: 20
-    mock_param1.CollectSample(start_time=10)
-    mock_param2.CollectSample(start_time=10)
+    mock_param1.CollectSample(parent=sample_set, start_time=10)
+    mock_param2.CollectSample(parent=sample_set, start_time=10)
     sample_set.SetSampleTrigger()
     obj_name = 'Device.PeriodicStatistics.SampleSet.0'
     param_name = obj_name + '.Status'
@@ -399,8 +387,8 @@ class SampleSetTest(unittest.TestCase):
     mock_param1.Reference = 'Fake.Param.One'
     mock_param2.Reference = 'Fake.Param.Two'
     periodic_statistics.TIMEFUNC = lambda: 20
-    mock_param1.CollectSample(start_time=10)
-    mock_param2.CollectSample(start_time=10)
+    mock_param1.CollectSample(parent=sample_set, start_time=10)
+    mock_param2.CollectSample(parent=sample_set, start_time=10)
     periodic_statistics.TIMEFUNC = lambda: 20
     sample_set.SetSampleTrigger()
     obj_name = 'Device.PeriodicStatistics.SampleSet.0'

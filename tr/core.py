@@ -173,7 +173,6 @@ class FastExporter(AbstractExporter):
   """
 
   __slots__ = (
-      '_Attr__Attrs',  # for tr.cwmptypes magic
       'dirty',         # for transactions
   )
 

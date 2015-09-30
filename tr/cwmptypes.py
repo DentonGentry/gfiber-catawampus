@@ -49,25 +49,92 @@ class Attr(object):
     x.s = [1,2]  # gets set to the string unicode([1, 2])
     x.i = '9'    # auto-converts to a real int
     x.e = 'Stinky'  # raises exception since it's not an allowed value
+
+  The way this works is when the class is instantiated, python treats
+  'descriptor' members (basically anything with a __get__ or __set__)
+  specially, calling the __get__ or __set__ function whenever you try to
+  read or write the member.  @property is just one default kind of descriptor;
+  we're defining a series of other ones here, which mostly enforce type
+  safety but have a couple of extra features (like notifier callbacks).
+
+  Storage of per-instance values for descriptors is very strange.  The problem
+  (although it's essential that it works this way) is that a descriptor
+  instance is created for the *class*, not for each instance of that class.
+  Thus, we have to manage our own storage.
+
+  cwmptypes.Attr used to handle this by adding an __Attr dict to each
+  instance, and storing the values of each Attr in there.  This worked,
+  but it turned out we wanted to create a *lot* of objects containing
+  attrs (eg. periodic_statistics.py) and the extra dict was too expensive.
+  (Note: storage inside the Attr instance is pretty cheap, because only one
+  instance is ever made per Attr declaration.  But storage per instance of
+  the class *containing* the Attr is expensive.)
+
+  So instead, we now have to do an extra layer of magic:
+   - discover the name of this Attr by looking at the class it's declared
+     in (see _MyAttrName)
+   - store the value itself in a second property named _Name, where Name
+     is the name discovered above.  (There's no need to ever access _Name
+     directly; access it through the Attr instead.)
+
+  This method gets further confused when you wrap an Attr in another
+  kind of descriptor (like Trigger, ReadOnly, etc, defined below).  When
+  that happens, we still need to find which property name maps to this Attr,
+  but this Attr doesn't appear directly in the containing object.  That's why
+  we need SetWrapper and _outermost; we use that to coordinate across a chain
+  of Attr and Attr-wrappers so they can find which class they're actually
+  instantiated inside, so they can find their name, so they can figure out
+  where to store their value.
   """
 
   def __init__(self, init=None):
     self.init = init
     self._callbacklist = []
+    self._attrname = None
+    self._outermost = self
 
   @property
   def callbacklist(self):
     """The callbacklist is read-only, but you can change its contents."""
     return self._callbacklist
 
-  def _MakeAttrs(self, obj):
-    # pylint: disable=protected-access
-    try:
-      return obj.__Attrs
-    except AttributeError:
-      obj.__Attrs = {}
-      return obj.__Attrs
-    # pylint: enable=protected-access
+  def SetWrapper(self, wrapattr):
+    """Tell this Attr that another is wrapping it, eg. Trigger or ReadOnly."""
+    self._outermost = wrapattr
+
+  def _MyAttrName(self, obj):
+    """Return the attr name we'll store this property's value in.
+
+    Args:
+      obj: an instance object containing this property.
+    Returns:
+      a string to identify this property's value.  For example, if a class
+      is declared with:
+        MyProp = ReadOnly(Unsigned(0))
+      then this function will return '_MyProp' if self is the ReadOnly or
+      Unsigned object and obj is an instance of the declared class.
+    Raises:
+      Exception: if this attribute is somehow not in 'obj'.  (Should never
+        happen unless there's a bug in cwmptypes.)
+    """
+    assert obj
+    if not self._attrname:
+      # It would be nice to use type(obj).__dict__.iteritems() here, but
+      # unfortunately that doesn't see members in any parent classes' dicts.
+      cls = type(obj)
+      for k in dir(cls):
+        if getattr(cls, k) == self._outermost:
+          self._attrname = '_' + k
+          break
+      if not self._attrname:
+        raise Exception('attribute %r is not in object %r' % (self, obj))
+    return self._attrname
+
+  def _SetInstanceAttr(self, obj, value):
+    setattr(obj, self._MyAttrName(obj), value)
+
+  def _GetInstanceAttr(self, obj):
+    return getattr(obj, self._MyAttrName(obj))
 
   def __get__(self, obj, _):
     # Type descriptors (ie. this class) are weird because they only have
@@ -77,17 +144,16 @@ class Attr(object):
     # value in a hidden variable in each obj, rather than in self.
     if obj is None:
       return self
-    d = self._MakeAttrs(obj)
     try:
-      return d[id(self)]
-    except KeyError:
+      return self._GetInstanceAttr(obj)
+    except AttributeError:
       if self.init is None:
         # special case: if init==None, don't do consistency checking, in
         # order to support initially-invalid variables
         self._SetWithoutNotify(obj, None)
       else:
         self._SetWithoutNotify(obj, self.validate(obj, self.init))
-      return d[id(self)]
+      return self._GetInstanceAttr(obj)
 
   def validate(self, obj, value):  # pylint: disable=unused-argument
     """Validate or convert a potential new value for this attribute.
@@ -163,8 +229,7 @@ class Attr(object):
     return self
 
   def _SetWithoutNotify(self, obj, value):
-    d = self._MakeAttrs(obj)
-    d[id(self)] = value
+    self._SetInstanceAttr(obj, value)
 
   def __set__(self, obj, value):
     self._SetWithoutNotify(obj, self.validate(obj, value))
@@ -270,7 +335,7 @@ class Enum(Attr):
 
   def __init__(self, values, init=None):
     super(Enum, self).__init__(init=init)
-    self.values = set(values)
+    self.values = frozenset(values)
 
   def validate(self, obj, value):
     if value not in self.values:
@@ -377,28 +442,35 @@ class FileBacked(Attr):
       # A one-element list containing a filename, so that the filename
       # itself can be reassigned later, eg. by a unit test
       self.filename_ptr = filename_ptr
-    self.filename_id_object = object()  # used for key in _MakeAttrs() dict
-    self.watcher_object = object()  # used for key in _MakeAttrs() dict
+    self.attr = attr
     self.validate = attr.validate
     self.delete_if_empty = delete_if_empty
     self.file_owner = file_owner
     self.file_group = file_group
+    if hasattr(attr, 'SetWrapper'):
+      attr.SetWrapper(self)
+
+  def SetWrapper(self, wrapattr):
+    super(FileBacked, self).SetWrapper(wrapattr)
+    if hasattr(self.attr, 'SetWrapper'):
+      self.attr.SetWrapper(self)
+
+  def _GetData(self, obj):
+    """Returns a tuple (val, filename, watch) corresponding to this object."""
+    try:
+      return self._GetInstanceAttr(obj)
+    except AttributeError:
+      return None, None, None
 
   def GetFileName(self, obj):
-    d = self._MakeAttrs(obj)
-    fn = d.get(id(self.filename_id_object), None)
-    if fn:
-      return fn
-    else:
+    _, filename, _ = self._GetData(obj)
+    if not filename:
       return self.filename_ptr[0]
+    return filename
 
   def SetFileName(self, obj, filename):
-    d = self._MakeAttrs(obj)
-    d[id(self.filename_id_object)] = filename
-    try:
-      del d[id(self.watcher_object)]
-    except KeyError:
-      pass
+    val, _, _ = self._GetData(obj)
+    self._SetInstanceAttr(obj, (val, filename, None))
     self._RegisterNotifier(obj)
 
   def _CallRefCallbacks(self, obj_ref):
@@ -409,8 +481,8 @@ class FileBacked(Attr):
 
   def _RegisterNotifier(self, obj):
     if not obj: return
-    d = self._MakeAttrs(obj)
-    if (id(self.watcher_object) not in d) and _FileBacked_Notifier:
+    val, filename, watch = self._GetData(obj)
+    if not watch and _FileBacked_Notifier:
       # This is a little tricky.  You might think we'd just register the
       # notifier in the FileBacked constructor, but that doesn't work for
       # several reasons:
@@ -447,8 +519,7 @@ class FileBacked(Attr):
         # Not fatal, but will retry registering next time
         print repr(e)
       else:
-        d[id(self)] = None
-        d[id(self.watcher_object)] = watch
+        self._SetInstanceAttr(obj, (val, filename, watch))
 
   def __get__(self, obj, _):
     if obj is None:
@@ -466,13 +537,12 @@ class FileBacked(Attr):
       v = self.validate(obj, content)
     except ValueError:
       v = ''
-    d = self._MakeAttrs(obj)
     try:
-      old_v = d.get(id(self), None)
-    except (ValueError, TypeError):
-      old_v = ''
+      old_v, filename, watch = self._GetInstanceAttr(obj)
+    except AttributeError:
+      old_v, filename, watch = '', None, None
     if v != old_v and (old_v, v) not in [(None, ''), ('', None)]:
-      d[id(self)] = v
+      self._SetInstanceAttr(obj, (v, filename, watch))
       self.CallCallbacks(obj)
     return v
 
@@ -515,7 +585,8 @@ class FileBacked(Attr):
 
   def _SetWithoutNotify(self, obj, value):
     self._RegisterNotifier(obj)
-    self._MakeAttrs(obj)[id(self)] = value  # cache this value
+    _, filename, watch = self._GetData(obj)
+    self._SetInstanceAttr(obj, (value, filename, watch))  # cache this value
     self._WriteFile(obj, value)
 
 
@@ -525,11 +596,18 @@ class _Proxy(Attr):
   def __init__(self, attr):
     super(_Proxy, self).__init__()
     self.attr = attr
+    if hasattr(attr, 'SetWrapper'):
+      attr.SetWrapper(self)
 
   def __get__(self, obj, _):
     if obj is None:
       return self
     return self.attr.__get__(obj, None)
+
+  def SetWrapper(self, wrapattr):
+    super(_Proxy, self).SetWrapper(wrapattr)
+    if hasattr(self.attr, 'SetWrapper'):
+      self.attr.SetWrapper(wrapattr)
 
   def validate(self, obj, value):
     f = getattr(self.attr, 'validate', None)
