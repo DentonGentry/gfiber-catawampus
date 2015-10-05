@@ -114,16 +114,16 @@ class IsostreamTest(unittest.TestCase):
   def testClient(self):
     isos = isostream.Isostream()
     self.assertEqual(isos.clientkey, '1CatawampusRocks')
-    isostream.Isostream.ClientRunning.Set(isos, True)
+    isos.ClientEnable = True
     self._Iter('run-isostream --use-storage-box -b 1\n')
-    isostream.Isostream.ClientRunning.Set(isos, False)
+    isos.ClientEnable = False
     self._Iter('DEAD run-isostream\n')
 
     # Test sufficient time.
     isos.ClientTimeSufficient = 10
-    isostream.Isostream.ClientRunning.Set(isos, True)
+    isos.ClientEnable = True
     self._Iter('run-isostream --use-storage-box -s 10 -b 1\n')
-    isostream.Isostream.ClientRunning.Set(isos, False)
+    isos.ClientEnable = False
     self._Iter('DEAD run-isostream\n')
 
     isos.ClientTimeSufficient = 0
@@ -132,12 +132,13 @@ class IsostreamTest(unittest.TestCase):
     isos.ClientMbps = 99
     isos.ClientRemoteIP = '1.2.3.4'
     isos.ClientInterface = 'wcli0'
-    isostream.Isostream.ClientRunning.Set(isos, True)
+    isos.ClientEnable = True
     self._Iter('run-isostream 1.2.3.4 -I wcli0 -b 99\n')
     # Validate that we can run client and server at the same time
     isos.ServerEnable = True
     self._Iter('run-isostream-server\n')
     time.sleep(1)
+    isos.ClientEnable = False
     self._Iter('DEAD run-isostream\n')
     isos.ServerEnable = False
     self._Iter('DEAD run-isostream-server\n')
@@ -152,7 +153,7 @@ class IsostreamTest(unittest.TestCase):
   def testClientScheduling(self):
     isos = isostream.Isostream()
     clientWasRun = False
-    isos.ClientEnable = True
+    isos.ClientRunOnSchedule = True
     isos.ClientTimeLimit = 1
 
     # Our scheduled interval can't overlap midnight. If we're close enough to
@@ -181,6 +182,7 @@ class IsostreamTest(unittest.TestCase):
     self.assertAlmostEqual(isos._GetNextDeadline() - datetime.timedelta(days=1),
                            datetime.timedelta(0),
                            delta=datetime.timedelta(1))
+    self.assertTrue(isos.ClientDeadline)
     time.sleep(1)
     self._Iter('run-isostream --use-storage-box -b 1\nDEAD run-isostream\n')
 

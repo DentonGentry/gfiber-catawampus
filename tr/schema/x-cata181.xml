@@ -1108,6 +1108,18 @@ While the test is in progress, setting this parameter to {{enum|Requested}} (and
         </syntax>
       </parameter>
       <parameter name="ClientEnable" access="readWrite">
+        <description>True if the ACS wants us running a client right now.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="ClientEnableByScheduler" access="readOnly">
+        <description>True if the scheduler wants this device running an isostream client right now.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
+      <parameter name="ClientRunOnSchedule" access="readWrite">
         <description>True if this device should schedule a daily test run in the half-open interval [ClientStartAtOrAfter, ClientEndBefore).</description>
         <syntax>
           <boolean/>
@@ -1123,6 +1135,12 @@ While the test is in progress, setting this parameter to {{enum|Requested}} (and
         <description>Latest time of day, in seconds after midnight local time, when clients will try to connect to isostream.</description>
         <syntax>
           <unsignedInt/>
+        </syntax>
+      </parameter>
+      <parameter name="ClientDeadline" access="readOnly">
+        <description>If a daily test run is scheduled, the deadline to start the scheduled run.</description>
+        <syntax>
+          <dateTime/>
         </syntax>
       </parameter>
       <parameter name="ClientDisableIfPortActive" access="readWrite">
