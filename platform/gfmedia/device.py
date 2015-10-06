@@ -80,7 +80,7 @@ INTERNAL_ERROR = 9002
 # Unit tests can override these with fake data
 ACTIVEWAN = 'activewan'
 CONFIGDIR = '/config/tr69'
-GINSTALL = 'ginstall.py'
+GINSTALL = 'ginstall'
 HNVRAM = 'hnvram'
 ISNETWORKBOX = 'is-network-box'
 LEDSTATUS = '/tmp/gpio/ledstate'
@@ -238,7 +238,7 @@ class Installer(tr.download.Installer):
       return False
     self._install_cb = callback
 
-    cmd = [GINSTALL, '--tar=%s' % self.url, '--partition=other', '--once']
+    cmd = [GINSTALL, '--once', '--tar=%s' % self.url, '--partition=other']
     try:
       self._ginstall = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     except (OSError, subprocess.CalledProcessError):

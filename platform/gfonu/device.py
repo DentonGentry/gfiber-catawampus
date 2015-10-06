@@ -60,7 +60,7 @@ CONFIGDIR = '/config/tr69'
 DOWNLOADDIR = '/tmp'
 SYSVAR = 'sysvar_cmd'
 SYSVAR_ERROR = '<<ERROR CODE>>'
-GINSTALL = 'ginstall.py'
+GINSTALL = 'ginstall'
 LEDSTATUS = '/tmp/gpio/ledstate'
 REBOOT = 'tr69_reboot'
 MODELNAMEFILE = '/etc/platform'
@@ -193,7 +193,7 @@ class Installer(tr.download.Installer):
       return False
     self._install_cb = callback
 
-    cmd = [GINSTALL, '--tar=%s' % self.url, '--partition=other', '--once']
+    cmd = [GINSTALL, '--once', '--tar=%s' % self.url, '--partition=other']
     try:
       self._ginstall = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     except (OSError, subprocess.CalledProcessError):
