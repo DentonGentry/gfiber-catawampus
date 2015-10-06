@@ -24,13 +24,12 @@ in http://www.broadband-forum.org/cwmp/tr-181-2-2-0.html
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import tr.tr098_v1_4
-import tr.tr181_v2_2
+import tr.basemodel
 import tr.cwmptypes
 
 
-BASEMGMT181 = tr.tr181_v2_2.Device_v2_2.Device.ManagementServer
-BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
+BASEMGMT181 = tr.basemodel.Device.ManagementServer
+BASE98IGD = tr.basemodel.InternetGatewayDevice
 BASEMGMT98 = BASE98IGD.ManagementServer
 
 
@@ -66,13 +65,18 @@ class ManagementServer181(BASEMGMT181):
     type(self.mgmt).MostRecentURL.callbacklist.append(self._URLChanged)
 
     self.ManageableDeviceList = {}
-    self.Unexport(['DownloadProgressURL', 'KickURL', 'NATDetected',
+    self.Unexport(['AliasBasedAddressing', 'AutoCreateInstances',
+                   'DownloadProgressURL', 'EmbeddedDeviceNumberOfEntries',
+                   'InstanceMode',
+                   'KickURL', 'NATDetected',
                    'STUNMaximumKeepAlivePeriod', 'STUNMinimumKeepAlivePeriod',
                    'STUNPassword', 'STUNServerAddress', 'STUNServerPort',
-                   'STUNUsername', 'UDPConnectionRequestAddress'],
+                   'STUNUsername', 'UDPConnectionRequestAddress',
+                   'VirtualDeviceNumberOfEntries'],
                   objects=['DownloadAvailability',
                            'AutonomousTransferCompletePolicy',
-                           'DUStateChangeComplPolicy'])
+                           'DUStateChangeComplPolicy'],
+                  lists=['EmbeddedDevice', 'VirtualDevice'])
 
   def _URLChanged(self, unused_obj):
     # This weird syntax is needed in order to bypass the self.__setattr__

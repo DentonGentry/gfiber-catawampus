@@ -26,13 +26,13 @@ import datetime
 import os
 import re
 import struct
+import tr.basemodel
 import tr.cwmpdate
 import tr.helpers
-import tr.tr098_v1_4
 import tr.cwmptypes
 
 
-BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
+BASE98IGD = tr.basemodel.InternetGatewayDevice
 LOCALTIMEFILE = '/tmp/localtime'
 TIMENOW = datetime.datetime.now
 TIMESYNCEDFILE = '/tmp/time.synced'

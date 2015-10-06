@@ -22,14 +22,13 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
 import dm_root
+import tr.basemodel
 import tr.cwmptypes
-import tr.tr098_v1_4
-import tr.tr181_v2_2
 from tr.wvtest import unittest
 
 
-BASE181 = tr.tr181_v2_2.Device_v2_2.Device
-BASE98 = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
+BASE181 = tr.basemodel.Device
+BASE98 = tr.basemodel.InternetGatewayDevice
 
 
 class MockTr181(BASE181):

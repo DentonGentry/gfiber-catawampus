@@ -24,21 +24,19 @@ __author__ = 'jnewlin@google.com (John Newlin)'
 import datetime
 import time
 import tr.api_soap
+import tr.basemodel
 import tr.cwmpbool
 import tr.cwmptypes
 import tr.handle
 import tr.monohelper
 import tr.session
-import tr.tr157_v1_3
 
 
 def _timefunc():
   return time.time()
 
 
-# TODO(jnewlin): Denton has suggested that we might need to import a newer
-# version of the schema.
-BASE157PS = tr.tr157_v1_3.Device_v1_7.Device.PeriodicStatistics
+BASE157PS = tr.basemodel.Device.PeriodicStatistics
 
 # The spec says when TimeReference isn't set, we can pick the phase.  This
 # seems as good as any other.  Set the phase to start at the beginning of
@@ -129,7 +127,7 @@ class PeriodicStatistics(BASE157PS):
     return v
 
 
-@tr.core.Unexports(['ForceSample'])
+@tr.core.Unexports(params=['ForceSample', 'Alias'])
 class SampleSet(BASE157PS.SampleSet):
   """Implementation of PeriodicStatistics.SampleSet."""
 
@@ -422,6 +420,7 @@ class ParamConfig(object):
   Logged = 5
 
 
+@tr.core.Unexports(['Alias'])
 class Parameter(BASE157PS.SampleSet.Parameter):
   """Implementation of PeriodicStatistics.SampleSet.Parameter."""
 

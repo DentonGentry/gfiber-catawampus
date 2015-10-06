@@ -47,13 +47,12 @@ import dm.traceroute
 import platform_config
 import pynetlinux
 import tornado.ioloop
+import tr.basemodel
 import tr.core
 import tr.download
 import tr.handle
 import tr.helpers
 import tr.session
-import tr.x_catawampus_tr098_1_0
-import tr.x_catawampus_tr181_2_0
 import stbservice
 
 QCASWITCHPORT = None
@@ -69,9 +68,6 @@ except qca83xx.SdkError:
   traceback.print_exc()
   print 'Continuing catawampus startup'
 
-BASE98 = tr.x_catawampus_tr098_1_0.X_CATAWAMPUS_ORG_InternetGatewayDevice_v1_0
-BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
-BASE181 = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
 PYNETIFCONF = pynetlinux.ifconfig.Interface
 
 # tr-69 error codes
@@ -275,7 +271,7 @@ class Installer(tr.download.Installer):
         self._call_callback(INTERNAL_ERROR, 'Unable to install image.')
 
 
-class Services(BASE181.Device.Services):
+class Services(tr.basemodel.Device.Services):
   """Implements tr-181 Device.Services."""
 
   def __init__(self):
@@ -322,7 +318,7 @@ def activewan(ifname):
   return 'Down'
 
 
-class Ethernet(BASE181.Device.Ethernet):
+class Ethernet(tr.basemodel.Device.Ethernet):
   """Implementation of tr-181 Device.Ethernet for GFMedia platforms."""
 
   InterfaceNumberOfEntries = tr.cwmptypes.NumberOf('InterfaceList')
@@ -386,7 +382,7 @@ class Ethernet(BASE181.Device.Ethernet):
     # Do not use idx 254, it is used for br0 above if has_wan_port
 
 
-class Moca(BASE181.Device.MoCA):
+class Moca(tr.basemodel.Device.MoCA):
   """Implementation of tr-181 Device.MoCA for GFMedia platforms."""
 
   def __init__(self):
@@ -414,7 +410,7 @@ class Moca(BASE181.Device.MoCA):
 
 
 class FanReadGpio(
-    BASE181.Device.DeviceInfo.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
+    tr.basemodel.Device.DeviceInfo.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
   """Implementation of Fan object, reading rev/sec from a file."""
   Name = tr.cwmptypes.ReadOnlyString('')
 
@@ -454,7 +450,7 @@ class FanReadGpio(
       return -1
 
 
-class IP(BASE181.Device.IP):
+class IP(tr.basemodel.Device.IP):
   """tr-181 Device.IP implementation for Google Fiber media platforms."""
   # Enable fields are supposed to be writeable, but we don't support that.
   IPv4Capable = tr.cwmptypes.ReadOnlyBool(True)
@@ -528,7 +524,7 @@ class IP(BASE181.Device.IP):
     return len(self.ActivePortList)
 
 
-class IPDiagnostics(BASE181.Device.IP.Diagnostics):
+class IPDiagnostics(tr.basemodel.Device.IP.Diagnostics):
   """tr-181 Device.IP.Diagnostics for Google Fiber media platforms."""
 
   def __init__(self):
@@ -538,7 +534,7 @@ class IPDiagnostics(BASE181.Device.IP.Diagnostics):
     self.TraceRoute = dm.traceroute.TraceRoute()
 
 
-class Device(BASE181.Device):
+class Device(tr.basemodel.Device):
   """tr-181 Device implementation for Google Fiber media platforms."""
 
   RootDataModelVersion = tr.cwmptypes.ReadOnlyString('2.6')
@@ -601,7 +597,7 @@ class Device(BASE181.Device):
         iflookup=iflookup, bridgename='br0', dmroot=tr.handle.Handle(dmroot))
 
 
-class LANDevice(BASE98IGD.LANDevice):
+class LANDevice(tr.basemodel.InternetGatewayDevice.LANDevice):
   """tr-98 InternetGatewayDevice for Google Fiber media platforms."""
 
   LANWLANConfigurationNumberOfEntries = tr.cwmptypes.NumberOf(
@@ -638,15 +634,16 @@ class LANDevice(BASE98IGD.LANDevice):
       self.WLANConfigurationList['1'] = wifi
 
 
-class InternetGatewayDevice(BASE98IGD):
+class InternetGatewayDevice(tr.basemodel.InternetGatewayDevice):
   """Implements tr-98 InternetGatewayDevice (deprecated but heavily used)."""
 
   def __init__(self, device_id, periodic_stats):
     super(InternetGatewayDevice, self).__init__()
     self.Unexport(params=['DeviceSummary', 'UserNumberOfEntries',
                           'SmartCardReaderNumberOfEntries'],
-                  objects=['Capabilities', 'CaptivePortal', 'DeviceConfig',
-                           'DLNA', 'DownloadAvailability',
+                  objects=['BulkData',
+                           'Capabilities', 'CaptivePortal', 'DeviceConfig',
+                           'DLNA', 'DNS', 'DownloadAvailability',
                            'DownloadDiagnostics', 'FAP', 'FaultMgmt',
                            'Firewall',
                            'IPPingDiagnostics',

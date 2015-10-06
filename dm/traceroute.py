@@ -31,13 +31,13 @@ import subprocess
 import sys
 import google3
 import tornado.ioloop
+import tr.basemodel
 import tr.handle
 import tr.mainloop
-import tr.tr181_v2_6
 import tr.cwmptypes
 
 
-BASE_TRACEROUTE = tr.tr181_v2_6.Device_v2_6.Device.IP.Diagnostics.TraceRoute
+BASE_TRACEROUTE = tr.basemodel.Device.IP.Diagnostics.TraceRoute
 MIN_PACKET_SIZE = 52  # from MacOS; Linux can apparently go smaller?
 TRACEROUTE = 'traceroute'
 TRACEROUTE6 = 'traceroute6'

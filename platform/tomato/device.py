@@ -35,14 +35,10 @@ import platform_config
 import pynetlinux
 import tornado.ioloop
 import tr.acs_config
+import tr.basemodel
 import tr.core
 import tr.download
-import tr.tr181_v2_2 as tr181
-import tr.x_catawampus_tr181_2_0
 
-
-BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
-CATA181 = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
 
 # tr-69 error codes
 INTERNAL_ERROR = 9002
@@ -237,29 +233,35 @@ class DeviceId(dm.device_info.DeviceIdMeta):
     return ''
 
 
-class Services(tr181.Device_v2_2.Device.Services):
+class Services(tr.basemodel.Device.Services):
 
   def __init__(self):
-    tr181.Device_v2_2.Device.Services.__init__(self)
+    tr.basemodel.Device.Services.__init__(self)
     self.Export(objects=['StorageServices'])
     self.StorageServices = dm.storage.StorageServiceLinux26()
 
 
-class Device(tr181.Device_v2_2.Device):
+class Device(tr.basemodel.Device):
   """Device implementation for a simulated CPE device."""
 
   def __init__(self, device_id, periodic_stats):
     super(Device, self).__init__()
     self.Export(objects=['DeviceInfo'])
-    self.Unexport(objects=['ATM', 'Bridging', 'CaptivePortal', 'DHCPv4',
-                           'DHCPv6', 'DLNA', 'DNS', 'DSL', 'DSLite', 'Firewall',
-                           'GatewayInfo', 'HPNA', 'HomePlug', 'Hosts',
-                           'IEEE8021x', 'IPv6rd', 'LANConfigSecurity',
-                           'NAT', 'NeighborDiscovery', 'PPP', 'PTM', 'QoS',
+    self.Unexport(params=['RootDataModelVersion'],
+                  objects=['ATM', 'Bridging', 'BulkData',
+                           'CaptivePortal', 'DHCPv4',
+                           'DHCPv6', 'DLNA', 'DNS', 'DSL', 'DSLite',
+                           'ETSIM2M',
+                           'FAP', 'FaultMgmt', 'Firewall',
+                           'GatewayInfo', 'Ghn', 'HPNA', 'HomePlug', 'Hosts',
+                           'IEEE8021x', 'IPsec', 'IPv6rd', 'LANConfigSecurity',
+                           'NAT', 'NeighborDiscovery', 'Optical',
+                           'PPP', 'PTM', 'QoS',
                            'RouterAdvertisement', 'Routing', 'SmartCardReaders',
-                           'SelfTestDiagnostics',
+                           'Security', 'SelfTestDiagnostics',
                            'SoftwareModules', 'Time', 'UPA', 'UPnP', 'USB',
-                           'UserInterface', 'Users', 'WiFi'])
+                           'UserInterface', 'Users', 'WiFi',
+                           'X_CATAWAMPUS-ORG'])
 
     self.DeviceInfo = dm.device_info.DeviceInfo181Linux26(device_id)
     self.ManagementServer = tr.core.TODO()  # Higher layer code splices this in
@@ -276,7 +278,9 @@ class Device(tr181.Device_v2_2.Device):
     self.MoCA = MoCA()
 
 
-class Ethernet(tr181.Device_v2_2.Device.Ethernet):
+@tr.core.Unexports(params=['RMONStatsNumberOfEntries'],
+                   lists=['RMONStats'])
+class Ethernet(tr.basemodel.Device.Ethernet):
   """Implements Device_v2_2.Device.Ethernet for TomatoUSB platform."""
 
   def __init__(self):
@@ -308,7 +312,7 @@ class Ethernet(tr181.Device_v2_2.Device.Ethernet):
     return len(self.LinkList)
 
 
-class IP(tr181.Device_v2_2.Device.IP):
+class IP(tr.basemodel.Device.IP):
   """Implements Device_v2_2.Device.IP for TomatoUSB Platform."""
 
   # Enable fields are supposed to be writeable; we don't support that.
@@ -345,7 +349,7 @@ class IP(tr181.Device_v2_2.Device.IP):
     return len(self.ActivePortList)
 
 
-class MoCA(tr181.Device_v2_2.Device.MoCA):
+class MoCA(tr.basemodel.Device.MoCA):
   """Implements Device_v2_2.Device.MoCA for TomatoUSB Platform."""
 
   def __init__(self):
@@ -354,7 +358,7 @@ class MoCA(tr181.Device_v2_2.Device.MoCA):
     self.InterfaceList = {}
 
 
-class InternetGatewayDevice(BASE98IGD):
+class InternetGatewayDevice(tr.basemodel.InternetGatewayDevice):
   """Implements tr-98 InternetGatewayDevice."""
 
   def __init__(self, device_id, periodic_stats):
@@ -385,7 +389,7 @@ class InternetGatewayDevice(BASE98IGD):
     return 0
 
 
-class LANDevice(BASE98IGD.LANDevice):
+class LANDevice(tr.basemodel.InternetGatewayDevice.LANDevice):
   """tr-98 InternetGatewayDevice for TomatoUSB platforms."""
 
   def __init__(self):
@@ -409,7 +413,7 @@ class LANDevice(BASE98IGD.LANDevice):
     return 0
 
 
-class IPDiagnostics(CATA181.Device.IP.Diagnostics):
+class IPDiagnostics(tr.basemodel.Device.IP.Diagnostics):
   """tr-181 Device.IP.Diagnostics for Google Fiber media platforms."""
 
   def __init__(self):

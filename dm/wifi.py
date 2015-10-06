@@ -21,10 +21,10 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import pbkdf2
-import tr.tr098_v1_4
+import tr.basemodel
 
 
-IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
+IGD = tr.basemodel.InternetGatewayDevice
 WLANDEV = IGD.LANDevice.WLANConfiguration
 
 

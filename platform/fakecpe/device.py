@@ -35,16 +35,15 @@ import dm.storage
 import platform_config
 import tornado.ioloop
 import tr.acs_config
+import tr.basemodel
 import tr.core
 import tr.cwmptypes
 import tr.download
-import tr.tr098_v1_4
-import tr.tr181_v2_2 as tr181
 
 
 FAKECPEINSTANCE = None
 INTERNAL_ERROR = 9002
-BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
+BASE98IGD = tr.basemodel.InternetGatewayDevice
 
 
 class PlatformConfig(platform_config.PlatformConfigMeta):
@@ -118,15 +117,15 @@ class DeviceId(dm.device_info.DeviceIdMeta):
       return 'unknown_version'
 
 
-class ServicesFakeCPE(tr181.Device_v2_2.Device.Services):
+class ServicesFakeCPE(tr.basemodel.Device.Services):
 
   def __init__(self):
-    tr181.Device_v2_2.Device.Services.__init__(self)
+    tr.basemodel.Device.Services.__init__(self)
     self.Export(objects=['StorageServices'])
     self.StorageServices = dm.storage.StorageServiceLinux26()
 
 
-class DeviceFakeCPE(tr181.Device_v2_2.Device):
+class DeviceFakeCPE(tr.basemodel.Device):
   """Device implementation for a simulated CPE device."""
 
   InterfaceStackNumberOfEntries = tr.cwmptypes.NumberOf('InterfaceStackList')
@@ -134,13 +133,17 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
   def __init__(self, device_id, periodic_stats=None):
     super(DeviceFakeCPE, self).__init__()
     self.Export(objects=['DeviceInfo'])
-    self.Unexport(objects=['ATM', 'Bridging',
+    self.Unexport(params=['RootDataModelVersion'],
+                  objects=['ATM', 'Bridging', 'BulkData',
                            'DHCPv6', 'DLNA', 'DNS', 'DSL', 'DSLite',
+                           'ETSIM2M', 'FAP', 'FaultMgmt',
                            'Firewall',
-                           'GatewayInfo', 'HPNA', 'HomePlug', 'Hosts',
-                           'IEEE8021x', 'IPv6rd', 'LANConfigSecurity', 'NAT',
-                           'NeighborDiscovery', 'PPP', 'PTM', 'QoS',
+                           'GatewayInfo', 'Ghn', 'HPNA', 'HomePlug', 'Hosts',
+                           'IEEE8021x', 'IPsec', 'IPv6rd',
+                           'LANConfigSecurity', 'NAT',
+                           'NeighborDiscovery', 'Optical', 'PPP', 'PTM', 'QoS',
                            'RouterAdvertisement', 'Routing',
+                           'Security',
                            'SelfTestDiagnostics',
                            'SoftwareModules', 'SmartCardReaders', 'Time',
                            'UPA', 'UPnP', 'USB',
@@ -163,7 +166,9 @@ class DeviceFakeCPE(tr181.Device_v2_2.Device):
     self.MoCA = dm.fakemoca.FakeMoca()
 
 
-class EthernetFakeCPE(tr181.Device_v2_2.Device.Ethernet):
+@tr.core.Unexports(params=['RMONStatsNumberOfEntries'],
+                   lists=['RMONStats'])
+class EthernetFakeCPE(tr.basemodel.Device.Ethernet):
   """Implements Device_v2_2.Device.Ethernet for FakeCPE platform."""
 
   InterfaceNumberOfEntries = tr.cwmptypes.NumberOf('InterfaceList')
@@ -177,7 +182,7 @@ class EthernetFakeCPE(tr181.Device_v2_2.Device.Ethernet):
     self.VLANTerminationList = {}
 
 
-class IPFakeCPE(tr181.Device_v2_2.Device.IP):
+class IPFakeCPE(tr.basemodel.Device.IP):
   """Implements Device_v2_2.Device.IP for FakeCPE Platform."""
   # Enable fields are supposed to be writeable; we don't support that.
   IPv4Capable = tr.cwmptypes.ReadOnlyBool(True)
@@ -209,8 +214,10 @@ class InternetGatewayDeviceFakeCPE(BASE98IGD):
   def __init__(self, device_id, periodic_stats=None):
     super(InternetGatewayDeviceFakeCPE, self).__init__()
     self.Unexport(params=['DeviceSummary'],
-                  objects=['CaptivePortal', 'Capabilities', 'DeviceConfig',
+                  objects=['BulkData',
+                           'CaptivePortal', 'Capabilities', 'DeviceConfig',
                            'DLNA',
+                           'DNS',
                            'DownloadAvailability',
                            'DownloadDiagnostics', 'FAP', 'FaultMgmt',
                            'Firewall',

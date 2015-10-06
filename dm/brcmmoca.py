@@ -23,14 +23,14 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import re
 import subprocess
 import pynetlinux
-import tr.session
-import tr.tr181_v2_2
+import tr.basemodel
 import tr.cwmptypes
+import tr.session
 import tr.x_catawampus_tr181_2_0
 import netdev
 
 
-BASE181MOCA = tr.tr181_v2_2.Device_v2_2.Device.MoCA
+BASE181MOCA = tr.basemodel.Device.MoCA
 CATA181MOCA = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device.MoCA
 MOCACTL = 'mocactl'
 PYNETIFCONF = pynetlinux.ifconfig.Interface
@@ -115,6 +115,7 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
   Name = tr.cwmptypes.ReadOnlyString('')
   # In theory LowerLayers is writeable, but it is nonsensical to write to it.
   LowerLayers = tr.cwmptypes.ReadOnlyString('')
+  X_CATAWAMPUS_ORG_ExtraTracing = tr.cwmptypes.ReadOnlyBool(False)
 
   MAX_NODES_MOCA1 = 8
   MAX_NODES_MOCA2 = 16

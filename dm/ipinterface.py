@@ -30,10 +30,10 @@ import socket
 import struct
 import subprocess
 import traceback
+import tr.basemodel
 import tr.cwmpdate
 import tr.mainloop
 import tr.session
-import tr.tr181_v2_6
 import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 
@@ -44,7 +44,7 @@ except ImportError:
   print 'Skipping netifaces module for unit test'
   IFADDRESSES = None
 
-BASEIPINTF = tr.tr181_v2_6.Device_v2_6.Device.IP.Interface
+BASEIPINTF = tr.basemodel.Device.IP.Interface
 CATA181IP = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device.IP
 IPCONFIG = ['tr69_ipconfig']
 PYNETIFCONF = pynetlinux.ifconfig.Interface

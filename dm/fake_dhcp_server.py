@@ -26,11 +26,10 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import time
 
 import dhcp
-import tr.tr181_v2_6
+import tr.basemodel
 import tr.cwmptypes
-import tr.x_catawampus_tr181_2_0
 
-CATA181DEV = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
+CATA181DEV = tr.basemodel
 DHCP4SERVER = CATA181DEV.Device.DHCPv4.Server
 DHCP4SERVERPOOL = DHCP4SERVER.Pool
 

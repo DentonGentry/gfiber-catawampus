@@ -32,7 +32,7 @@ a configuration file for dnsmasq.
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
-import tr.tr181_v2_6
+import tr.basemodel
 import tr.cwmptypes
 
 
@@ -43,7 +43,7 @@ UC = 77  # UserClassID
 VC = 60  # VendorClassID
 
 
-DHCP4SERVERPOOL = tr.tr181_v2_6.Device_v2_6.Device.DHCPv4.Server.Pool
+DHCP4SERVERPOOL = tr.basemodel.Device.DHCPv4.Server.Pool
 
 
 class Client(DHCP4SERVERPOOL.Client):
