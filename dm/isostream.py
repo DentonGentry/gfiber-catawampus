@@ -87,7 +87,7 @@ def Isostream20(_):
 
 @tr.experiment.Experiment
 def WhatIfTV(_):
-  return [(ISOSTREAM_KEY + 'ClientEnable', True),
+  return [(ISOSTREAM_KEY + 'ClientRunOnSchedule', True),
           (ISOSTREAM_KEY + 'ClientStartAtOrAfter', 1*60*60),
           (ISOSTREAM_KEY + 'ClientEndBefore', 6*60*60),
           (ISOSTREAM_KEY + 'ClientTimeSufficient', 5*60),
@@ -105,7 +105,7 @@ def WhatIfTV(_):
 
 @tr.experiment.Experiment
 def WhatIfTVSwarm(_):
-  return [(ISOSTREAM_KEY + 'ClientEnable', True),
+  return [(ISOSTREAM_KEY + 'ClientRunOnSchedule', True),
           (ISOSTREAM_KEY + 'ClientStartAtOrAfter', 1*60*60),
           (ISOSTREAM_KEY + 'ClientEndBefore', 1*60*60+1*60),
           (ISOSTREAM_KEY + 'ClientTimeLimit', 5*60)]
