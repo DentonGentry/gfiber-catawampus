@@ -22,6 +22,7 @@ import sys
 
 mydir = os.path.dirname(__file__)
 sys.path = [
+    os.path.join(mydir, 'override'),
     os.path.join(mydir, 'vendor/i2c'),
     os.path.join(mydir, 'vendor/tornado'),
     os.path.join(mydir, 'vendor/bup/lib'),

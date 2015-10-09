@@ -54,7 +54,11 @@ clean: tr/clean
 
 
 LINT_DIRS=$(shell \
-	find . -name vendor -prune -o -name '*.py' -size +1c -printf '%h\n' | \
+	find . \
+	    \( -name vendor -o -name override \) -prune \
+	    -o -name '*.py' \
+	    -size +1c \
+	    -printf '%h\n' | \
 	sort -u \
 )
 LINT_TASKS?=12
