@@ -28,6 +28,7 @@ import json
 import os
 import re
 import subprocess
+import weakref
 import xmlrpclib
 import google3
 import tr.api
@@ -200,9 +201,13 @@ class GFiberTv(CATABASE.GFiberTV):
 
     def __init__(self, parent, my_serial):
       super(GFiberTv._DeviceProperties, self).__init__()
-      self.parent = parent
+      self.parent = weakref.ref(parent)
       self.my_serial = my_serial
-      self.Triggered = self.parent.Triggered
+
+    def Triggered(self):
+      p = self.parent()
+      if p:
+        p.Triggered()
 
   def DeviceProperties(self):
     """Default constructor for new elements of DevicePropertiesList.

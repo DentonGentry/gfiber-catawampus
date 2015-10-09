@@ -25,6 +25,7 @@ import weakref
 
 import google3
 import tornado.ioloop
+import garbage
 import mainloop
 
 
@@ -50,6 +51,12 @@ class IdleClass(object):
 
 class MainLoopTest(unittest.TestCase):
   """Tests for mainloop.MainLoop."""
+
+  def setUp(self):
+    self.gccheck = garbage.GcChecker()
+
+  def tearDown(self):
+    self.gccheck.Done()
 
   def _GotLine(self, line):
     print 'got line: %r' % (line,)

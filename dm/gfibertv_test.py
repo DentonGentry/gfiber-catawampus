@@ -29,8 +29,10 @@ import tempfile
 import threading
 import xmlrpclib
 import google3
+import subprocess
 import gfibertv
 import tr.cwmpdate
+import tr.garbage
 import tr.handle
 import tr.helpers
 import tr.mainloop
@@ -78,28 +80,75 @@ srv_port = 0
 srv_cv = threading.Condition()
 
 
+def CreateRPCServer():
+  tv = TvPropertyRpcs()
+  xmlrpcsrv = TvXMLRPCServer(('localhost', 0))
+  global srv_port
+  _, srv_port = xmlrpcsrv.server_address
+  xmlrpcsrv.logRequests = False
+  xmlrpcsrv.register_introspection_functions()
+  xmlrpcsrv.register_instance(tv)
+  return xmlrpcsrv, tv
+
+
 class XmlRpcThread(threading.Thread):
 
   def run(self):
-    self.tv = TvPropertyRpcs()
-    xmlrpcsrv = TvXMLRPCServer(('localhost', 0))
-    global srv_port
-    _, srv_port = xmlrpcsrv.server_address
-    xmlrpcsrv.logRequests = False
-    xmlrpcsrv.register_introspection_functions()
-    xmlrpcsrv.register_instance(self.tv)
+    xmlrpcsrv, tv = CreateRPCServer()
     srv_cv.acquire()
     srv_cv.notify()
     srv_cv.release()
-    while self.tv.running:
+    while tv.running:
       xmlrpcsrv.handle_request()
     xmlrpcsrv.server_close()
+    xmlrpcsrv.funcs.clear()  # get rid of circular references
+
+
+class GarbageTests(unittest.TestCase):
+  """Basic tests for gfibertv.py to ensure no garbage objects get created."""
+
+  def setUp(self):
+    self.gccheck = tr.garbage.GcChecker()
+
+  def tearDown(self):
+    self.gccheck.Done()
+
+  def testObject10(self):
+    gfibertv.GFiberTv('http://localhost:%d' % srv_port)
+
+  def testObject20(self):
+    xmlrpcsrv, unused_tv = CreateRPCServer()
+    xmlrpcsrv.funcs.clear()
+
+  def testObject30(self):
+    subprocess.Popen(['true'])
+    self.assertTrue(1)
+
+  def testObject31(self):
+    with self.assertRaises(OSError):
+      subprocess.Popen(['does-not-exist'])
+
+  def testObject40(self):
+    gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
+    _ = gftv.UiType
+
+  def testObject41(self):
+    gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
+    h = tr.handle.Handle(gftv)
+    h.AddExportObject('DeviceProperties', None)
+
+  def testObject50(self):
+    gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
+    _ = gftv.Config.foo
+    self.assertTrue(1)
 
 
 class GfiberTvTests(unittest.TestCase):
   """Tests for gfibertv.py."""
 
   def setUp(self):
+    self.gccheck = tr.garbage.GcChecker()
+
     srv_cv.acquire()
     self.server_thread = XmlRpcThread()
     self.server_thread.start()
@@ -161,6 +210,9 @@ class GfiberTvTests(unittest.TestCase):
     gfibertv.HNVRAM = self.old_HNVRAM
     gfibertv.RESTARTFROBCMD = self.old_RESTARTFROBCMD
     gfibertv.SAGEFILES = self.old_SAGEFILES
+    self.gccheck.Check()
+    del self.server_thread
+    self.gccheck.Done()
 
   def testValidate(self):
     tv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
@@ -331,11 +383,13 @@ class GfiberTvTests(unittest.TestCase):
     self.assertEqual('', gftv.BtDevices)
     self.assertEqual('', gftv.BtHHDevices)
     self.assertEqual('', gftv.BtConfig)
+    self.gccheck.Check()
 
     devices1 = 'This is a test'
     devices2 = 'devices test 2'
     hhdevices = 'hhdevice str\nwith a newline'
     config = 'btconfig str'
+    self.gccheck.Check()
 
     gftv.BtDevices = devices1
     self.loop.RunOnce()
@@ -345,6 +399,7 @@ class GfiberTvTests(unittest.TestCase):
     self.assertEqual(open(self.bthhdevices_fname).read(), '')
     self.assertEqual('', gftv.BtConfig)
     self.assertEqual(open(self.btconfig_fname).read(), '')
+    self.gccheck.Check()
 
     gftv.BtDevices = devices2
     gftv.BtHHDevices = hhdevices
@@ -356,6 +411,7 @@ class GfiberTvTests(unittest.TestCase):
     self.assertEqual(open(self.bthhdevices_fname).read(), hhdevices + '\n')
     self.assertEqual(config, gftv.BtConfig)
     self.assertEqual(open(self.btconfig_fname).read(), config + '\n')
+    self.gccheck.Check()
 
   def testNoPairing(self):
     gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
