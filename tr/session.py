@@ -24,6 +24,7 @@ import collections
 import Cookie
 import functools
 import types
+import weakref
 import tornado.httpclient
 import tornado.ioloop
 
@@ -155,28 +156,33 @@ class cache(object):
 
   def __init__(self, func):
     self.func = func
-    self.obj = None
 
   def __get__(self, obj, objtype):
     """Support instance methods."""
-    self.obj = obj
-    return functools.partial(self.__call__, obj)
+    if obj is None: return self
+    return functools.partial(self._call, weakref.ref(obj))
 
   def __call__(self, *args, **kwargs):
-    key = self._cache_key(args, kwargs)
+    return self._call(None, *args, **kwargs)
+
+  def _call(self, obj, *args, **kwargs):
+    key = self._cache_key(obj, args, kwargs)
     try:
       return cache._thecache[key]
     except KeyError:
-      val = self.func(*args, **kwargs)
+      if obj:
+        val = self.func(obj(), *args, **kwargs)
+      else:
+        val = self.func(*args, **kwargs)
       if isinstance(val, types.GeneratorType):
         raise TypeError('cannot cache generators; use cache_as_list instead')
       cache._thecache[key] = val
       return val
 
-  def _cache_key(self, args, kwargs):
+  def _cache_key(self, obj, args, kwargs):
     """Concatenate the function, object, and all arguments."""
     return (_make_hashable(self.func),
-            _make_hashable(self.obj),
+            _make_hashable(obj() if obj else None),
             tuple(_make_hashable(x) for x in list(args)),
             tuple(_make_hashable(x) for x in list(kwargs)))
 

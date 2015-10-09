@@ -28,6 +28,34 @@ For navigating the tree, look at handle.Handle().
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import weakref
+
+
+class _WeakFunc(object):
+  """Wrap a function so that its ref to self, if any, is a weakref."""
+
+  def __init__(self, fn):
+    self.obj = self.fn = None
+    self.name = 'Uninitialized'
+    if hasattr(fn, 'im_self'):
+      self.name = fn.im_func.func_name
+      self.obj = weakref.ref(fn.im_self)
+      self.fn = fn.im_func
+    else:
+      self.name = getattr(fn, 'func_name', 'UnknownFunc')
+      self.obj = None
+      self.fn = fn
+
+  def __call__(self, *args, **kwargs):
+    if self.obj:
+      obj = self.obj()
+      if not obj:
+        raise Exception('tried to use %r after its obj disappeared!'
+                        % self.name)
+      return self.fn(obj, *args, **kwargs)
+    else:
+      return self.fn(*args, **kwargs)
+
 
 class AutoDict(object):
   """Class for simulating a dict that has dynamically-generated content.
@@ -47,22 +75,22 @@ class AutoDict(object):
   def __init__(self, name, iteritems=None,
                getitem=None, setitem=None, delitem=None):
     self.__name = name
-    self.__iteritems = iteritems or self._Bad('iteritems')
+    self.__iteritems = _WeakFunc(iteritems or self._Bad('iteritems'))
     if getitem:
-      self.__getitem = getitem
+      self.__getitem = _WeakFunc(getitem)
     elif iteritems:
-      self.__getitem = self._GetItemFromIterItems
+      self.__getitem = _WeakFunc(self._GetItemFromIterItems)
     else:
-      self.__getitem = self._Bad('getitem')
-    self.__setitem = setitem or self._Bad('setitem')
-    self.__delitem = delitem or self._Bad('delitem')
+      self.__getitem = _WeakFunc(self._Bad('getitem'))
+    self.__setitem = _WeakFunc(setitem or self._Bad('setitem'))
+    self.__delitem = _WeakFunc(delitem or self._Bad('delitem'))
 
   def _Bad(self, funcname):
+    myname = self.__name
 
     # pylint:disable=unused-argument
     def Fn(*args, **kwargs):
-      raise NotImplementedError('%r must override %s'
-                                % (self.__name, funcname))
+      raise NotImplementedError('%r must override %s' % (myname, funcname))
     return Fn
 
   def _GetItemFromIterItems(self, key):

@@ -151,7 +151,8 @@ def main():
                               loop.ioloop.READ)
 
   if opt.diagui:
-    inst = diagui.main.MainApplication(root, cpe_machine, run_techui=opt.techui)
+    inst = diagui.main.MainApplication(root, cpe_machine,
+                                       run_techui=opt.techui)
     inst.listen(opt.diagui_port)
   if opt.factory:
     inst = factory.FactoryFactory()

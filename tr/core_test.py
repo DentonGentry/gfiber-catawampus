@@ -23,6 +23,7 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 import weakref
 import core
+import garbage
 import handle
 from wvtest import unittest
 
@@ -31,13 +32,17 @@ class TestObject(core.Exporter):
 
   def __init__(self):
     core.Exporter.__init__(self)
-    self.Export(params=['TestParam'],
+    self.Export(params=['TestParam', 'ReadParam'],
                 objects=['SubObj'],
                 lists=['Counter'])
     self.TestParam = 5
     self.SubObj = TestObject.SubObj()
     self.CounterList = {}
     self.Counter = TestObject.SubObj
+
+  @property
+  def ReadParam(self):
+    return 5
 
   class SubObj(core.Exporter):
     gcount = [0]
@@ -79,8 +84,12 @@ class AutoObject(core.Exporter):
 class CoreTest(unittest.TestCase):
 
   def setUp(self):
+    self.gccheck = garbage.GcChecker()
     # Reset the global gcount
     TestObject.SubObj.gcount = [0]
+
+  def tearDown(self):
+    self.gccheck.Done()
 
   def testSlots(self):
     ao = core.AbstractExporter()
@@ -103,12 +112,13 @@ class CoreTest(unittest.TestCase):
     print h.ListExports(recursive=False)
     print h.ListExports(recursive=True)
     self.assertEqual(list(h.ListExports()),
-                     ['Counter.', 'SubObj.', 'TestParam'])
+                     ['Counter.', 'ReadParam', 'SubObj.', 'TestParam'])
     self.assertEqual(list(h.ListExports(recursive=True)),
                      ['Counter.',
                       'Counter.1.', 'Counter.1.Count',
                       'Counter.2.', 'Counter.2.Count',
                       'Counter.3.', 'Counter.3.Count',
+                      'ReadParam',
                       'SubObj.', 'SubObj.Count', 'TestParam'])
 
     ds1 = handle.DumpSchema(TestObject)
@@ -120,7 +130,7 @@ class CoreTest(unittest.TestCase):
                      ['Counter.',
                       'Counter.1.', 'Counter.1.Count',
                       'Counter.3.', 'Counter.3.Count',
-                      'SubObj.', 'SubObj.Count', 'TestParam'])
+                      'ReadParam', 'SubObj.', 'SubObj.Count', 'TestParam'])
     self.assertEqual([(idx, i.Count) for idx, i in o.CounterList.items()],
                      [(1, 2), (3, 4)])
     # NOTE(jnewlin): Note that is actually outside the spec, the spec says that
@@ -150,7 +160,17 @@ class CoreTest(unittest.TestCase):
     name = handle.Handle.GetCanonicalName(o, obj3)
     self.assertEqual('Counter.3', name)
 
-  def testLifecycle(self):
+  def testLifecycle0(self):
+    core.AutoDict('whatever')
+
+  def testLifecycle1(self):
+    AutoObject()
+
+  def testLifecycle2(self):
+    root = AutoObject()
+    _ = handle.Handle(root)
+
+  def testLifecycle3(self):
     # AutoObject() regenerates its children, with a new count, every time
     # you look for them.  (This simulates a "virtual" hierarchy, such as
     # a Unix process list, that is different every time you look at it.)
@@ -172,11 +192,13 @@ class CoreTest(unittest.TestCase):
     del s0
     self.assertEqual(w(), None)  # all remaining refs are definitely gone
     self.assertEqual(handle.Handle(root.SubList[0]).GetExport('Count'), 3)
+    self.gccheck.Check()
 
     # FindExport of Sub.0 shouldn't actually instantiate the .0
     hp = h.FindExport('Sub.0')
     self.assertEqual((hp[0].obj, hp[1]), (root.SubList, '0'))
     self.assertEqual(root.SubList[0].Count, 4)
+    self.gccheck.Check()
 
     # FindExport of Sub.0.Count should instantiate Sub.0 exactly once
     s0, name = h.FindExport('Sub.0.Count')
@@ -201,6 +223,7 @@ class CoreTest(unittest.TestCase):
                       'Sub.2.',
                       'Sub.2.Count'])
     self.assertEqual(root.SubList[0].Count, 13)
+    self.gccheck.Check()
 
     # LookupExports gives us a list of useful object pointers that
     # should only generate each requested object once.
@@ -224,6 +247,7 @@ class CoreTest(unittest.TestCase):
     self.assertEqual(vals, [14, 15, 14])
     vals = [getattr(o.obj, param) for o, param in out[0:3]]
     self.assertEqual(vals, [14, 15, 14])
+    self.gccheck.Check()
 
     out = list(h.LookupExports(['Sub.1.Count',
                                 'Sub.0.Count',
@@ -237,6 +261,14 @@ class CoreTest(unittest.TestCase):
       setattr(o, param, i * 1000)
     vals = [getattr(o, param) for o, param in out]
     self.assertEqual(vals, [2000, 1000, 2000])
+    self.gccheck.Check()
+
+  def testException(self):
+    root = TestObject()
+    h = handle.Handle(root)
+    with self.assertRaises(AttributeError):
+      h.SetExportParam('ReadParam', 6)
+    self.gccheck.Check()
 
 
 if __name__ == '__main__':
