@@ -29,7 +29,7 @@ from binascii import hexlify
 from tornado import ioloop
 
 try:
-    import multiprocessing  # Python 2.6+
+    import disabled_multiprocessing  # Python 2.6+
 except ImportError:
     multiprocessing = None
 
