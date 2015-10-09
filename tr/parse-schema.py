@@ -17,6 +17,7 @@
 
 __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
+import hashlib
 import os.path
 import re
 import string
@@ -76,13 +77,6 @@ def ObjNameForPython(name):
   name = re.sub(r':(\d+)\.(\d+)', r'_v\1_\2', name)
   name = name.replace('-', '_')  # X_EXAMPLE-COM_foo vendor data models
   return name
-
-
-def Indented(prefix, s):
-  s = unicode(s)
-  s = re.sub(re.compile(r'^', re.M), prefix, s)
-  s = re.sub(re.compile(r'^\s+$', re.M), '', s)
-  return s
 
 
 IMPORT_BUG_FIXES = {
@@ -152,6 +146,50 @@ def ResolveImports():
       raise KeyError(objtype)
 
 
+def _Params(o):
+  return o.params
+
+
+def _SubObjectNames(o):
+  return [i.name for i in o.object_sequence if not i.is_sequence]
+
+
+def _SequenceNames(o):
+  return [i.name for i in o.object_sequence if i.is_sequence]
+
+
+def _SubsAndSequences(o):
+  return [i.name for i in o.object_sequence]
+
+
+def _GlobalName(namecache, seq):
+  """Generate and cache a module-global name for the given object path."""
+  # Toplevel objects are special: no need for a special global name, because
+  # they *are* the global name.
+  if len(seq) == 1:
+    return seq[0]
+
+  # Otherwise, use a unique "private" name inside the module.
+  last = ObjNameForPython(seq[-1])
+  for i in xrange(1000):
+    if i == 0:
+      n = '_%s' % last
+    else:
+      n = '_%d_%s' % (i, last)
+    if n not in namecache:
+      namecache.add(n)
+      return n
+  raise Exception('weird, no available names for %r?' % last)
+
+
+def _QuotedList(outlist, space, key, values):
+  l = ["'%s'," % i for i in values]
+  if l:
+    inner_space = space + ' ' * (len(key) + 4)
+    s = inner_space.join(l)
+    outlist.append('%s = (%s)' % (key, s))
+
+
 class Object(object):
   """Represents an <object> tag."""
 
@@ -163,50 +201,76 @@ class Object(object):
     self.params = []
     self.object_sequence = []
 
-  def __str__(self):
-    pre = []
+  def _Augment(self, lookupfunc):
+    """Return a list of all sub-object names, including ones in my parent.
+
+    Args:
+      lookupfunc: one of _Params, _SubObjectNames, _SequenceNames,
+        or _SubsAndSequences.
+    Returns:
+      A list of names.
+    """
+    objlist = []
+    obj = self
+    while obj:
+      objlist.insert(0, obj)
+      obj = obj.FindParentClass()
     out = []
-    parent_class_name = DEFAULT_BASE_CLASS
-    if self.model.parent_model_name:
-      parent_class = self.FindParentClass()
-      if parent_class:
-        parent_class_name = '%s.%s' % (self.model.parent_model_name,
-                                       parent_class.FullName())
-    if parent_class_name.endswith('.'):
-      # Only happens for toplevel Model objects
-      parent_class_name = parent_class_name[:-1]
+    for o in objlist:
+      for v in lookupfunc(o):
+        if v not in out:
+          out.append(v)
+    return out
+
+  def _FindUpTree(self, objname):
+    obj = self
+    while obj:
+      for i in obj.object_sequence:
+        if i.name == objname:
+          return i
+      obj = obj.FindParentClass()
+    raise KeyError('%r in %r' % (objname, self.name))
+
+  def Render(self, nameprefix, namecache, outcache):
+    """Render this object and all its children as python code."""
     fullname_with_seq = re.sub(r'-{i}', '.{i}', '.'.join(self.prefix[:-1]))
     classname = self.name.translate(string.maketrans('-', '_'))
-    if self.params or self.object_sequence:
-      bits = []
-      space = ',\n              '
-      if self.params:
-        quoted_param_list = ["'%s'" % param for param in self.params]
-        quoted_params = (space + '        ').join(quoted_param_list)
-        bits.append('params=[%s]' % quoted_params)
-      obj_list = [obj.name for obj in self.object_sequence
-                  if not obj.is_sequence]
-      if obj_list:
-        quoted_obj_list = ["'%s'" % obj for obj in obj_list]
-        quoted_objs = (space + '         ').join(quoted_obj_list)
-        bits.append('objects=[%s]' % quoted_objs)
-      objlist_list = [obj.name for obj in self.object_sequence
-                      if obj.is_sequence]
-      if objlist_list:
-        quoted_objlist_list = ["'%s'" % obj for obj in objlist_list]
-        quoted_objlists = (space + '       ').join(quoted_objlist_list)
-        bits.append('lists=[%s]' % quoted_objlists)
-      pre.append('@core.Exports(%s)' % (space.join(bits)))
-    pre.append('class %s(%s):' % (classname, parent_class_name))
-    classpath = '%s.%s' % (self.model.name, fullname_with_seq)
-    if classpath.endswith('.'):
-      classpath = classpath[:-1]
-    pre.append('  """Represents %s."""' % classpath)
-    pre.append('  __slots__ = ()')
-    for obj in self.object_sequence:
-      out.append('')
-      out.append(Indented('  ', obj))
-    return '\n'.join(pre + out)
+    newprefix = nameprefix + (classname,)
+    myname = _GlobalName(namecache, newprefix)
+
+    subout = []
+    selfheader = []
+    selfout = []
+
+    selfheader.append('')
+    selfheader.append('')
+    selfheader.append('class %s(core.FastExporter):' % myname)
+    if fullname_with_seq:
+      selfheader.append('  """Represents %s."""' % fullname_with_seq)
+    else:
+      selfheader.append('  """Top level datamodel object."""')
+
+    selfout.append('  __slots__ = ()')
+    _QuotedList(selfout, '\n', '  export_params',
+                self._Augment(_Params))
+    _QuotedList(selfout, '\n', '  export_objects',
+                self._Augment(_SubObjectNames))
+    _QuotedList(selfout, '\n', '  export_object_lists',
+                self._Augment(_SequenceNames))
+
+    for objname in self._Augment(_SubsAndSequences):
+      obj = self._FindUpTree(objname)
+      gname, code = obj.Render(newprefix, namecache, outcache)
+      subout.append(code)
+      selfout.append('  %s = %s' % (ObjNameForPython(objname), gname))
+    outhash = hashlib.sha1('\n'.join(selfout)).digest()
+    if outhash not in outcache:
+      outcache[outhash] = myname
+      return myname, '\n'.join(subout + selfheader + selfout)
+    else:
+      # An identical object was already rendered; make this name just an
+      # alias to it.
+      return myname, '%s = %s' % (myname, outcache[outhash])
 
   def FindParentClass(self):
     parent_model = models.get((self.model.spec.name,
@@ -287,44 +351,45 @@ class Model(object):
     obj = self.Objectify(self.name, ('',))
     self.object_sequence = [obj]
 
-  def __str__(self):
+  def Render(self, namecache, outcache):
     out = []
     for obj in self.object_sequence:
-      out.append(Indented('', obj))
+      unused_gname, code = obj.Render((), namecache, outcache)
+      out.append(code)
       out.append('')
-    return '\n'.join(out)
+    return None, '\n'.join(out)
 
 
-def RenderParameter(model, prefix, xmlelement):
+def ProcessParameter(model, prefix, xmlelement):
   name = xmlelement.attrib.get('base', xmlelement.attrib.get('name', '<??>'))
   model.AddItem('%s%s' % (prefix, name))
 
 
-def RenderObject(model, prefix, spec, xmlelement):
+def ProcessObject(model, prefix, spec, xmlelement):
   name = xmlelement.attrib.get('base', xmlelement.attrib.get('name', '<??>'))
   prefix += name
   model.AddItem(prefix)
   for i in xmlelement:
     if i.tag == 'parameter':
-      RenderParameter(model, prefix, i)
+      ProcessParameter(model, prefix, i)
     elif i.tag == 'object':
-      RenderObject(model, prefix, spec, i)
+      ProcessObject(model, prefix, spec, i)
     elif i.tag in ('description', 'uniqueKey'):
       pass
     else:
       raise KeyError(i.tag)
 
 
-def RenderComponent(model, prefix, spec, xmlelement):
+def ProcessComponent(model, prefix, spec, xmlelement):
   for i in xmlelement:
     if i.tag == 'parameter':
-      RenderParameter(model, prefix, i)
+      ProcessParameter(model, prefix, i)
     elif i.tag == 'object':
-      RenderObject(model, prefix, spec, i)
+      ProcessObject(model, prefix, spec, i)
     elif i.tag == 'component':
       refspec, unused_refname, ref = chunks[spec, 'component', i.attrib['ref']]
       component_prefix = prefix + i.attrib.get('path', '')
-      RenderComponent(model, component_prefix, refspec, ref)
+      ProcessComponent(model, component_prefix, refspec, ref)
     elif i.tag in ('profile', 'description'):
       pass
     else:
@@ -344,30 +409,12 @@ class Spec(object):
     self.deps = []
     specs[name] = self
 
-  def __str__(self):
+  def Render(self, namecache, outcache):
+    """Renders everything in this spec (one xml file) as python code."""
     out = []
-    implist = []
-    for (fromspec, fromname), (tospec, toname) in self.aliases:
-      fromname = ObjNameForPython(fromname)
-      tospec = SpecNameForPython(tospec)
-      toname = ObjNameForPython(toname)
-      if (fromspec, fromname) not in models:
-        models[(fromspec, fromname)] = models[(tospec, toname)]
-        Log('aliased %r' % ((fromspec, fromname),))
-      if toname != fromname:
-        implist.append((tospec,
-                        'from %s import %s as %s'
-                        % (tospec, toname, fromname)))
-      else:
-        implist.append((tospec,
-                        'from %s import %s'
-                        % (tospec, toname)))
-    for imp in sorted(implist):
-      out.append(imp[1])
-    out.append('')
-    out.append('')
     for model in self.models:
-      out.append(str(model))
+      unused_gname, code = model.Render(namecache, outcache)
+      out.append(code)
       out.append('')
 
     if self.models:
@@ -376,7 +423,7 @@ class Spec(object):
       out.append('  import handle  # pylint:disable=g-import-not-at-top')
       for model in self.models:
         out.append('  print handle.DumpSchema(%s)' % model.name)
-    return '\n'.join(out) + '\n'
+    return None, '\n'.join(out) + '\n'
 
   def MakeObjects(self):
     for (fromspec, fromname), (tospec, toname) in self.aliases:
@@ -415,7 +462,7 @@ def main():
           model = Model(spec, objname, parent_model_name=parent)
         else:
           model = Model(spec, objname, parent_model_name=None)
-        RenderComponent(model, '', refspec, xmlelement)
+        ProcessComponent(model, '', refspec, xmlelement)
         model.MakeObjects()
         spec.models.append(model)
 
@@ -434,18 +481,15 @@ def main():
                '#\n'
                '# DO NOT EDIT!!\n'
                '#\n'
-               '# pylint:disable=g-importing-member\n'
                '# pylint:disable=invalid-name\n'
                '# pylint:disable=line-too-long\n'
-               '# These should not actually be necessary (bugs in gpylint?):\n'
-               '# pylint:disable=super-init-not-called\n'
-               '# pylint:disable=non-parent-init-called\n'
                '#\n'
                '"""Auto-generated from spec: %s."""\n'
                '\n'
                'import core  # pylint:disable=unused-import\n'
                % specname)
-    outf.write(str(spec))
+    unused_gname, code = spec.Render(set(), {})
+    outf.write(code)
 
 
 if __name__ == '__main__':
