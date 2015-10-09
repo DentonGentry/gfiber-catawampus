@@ -394,7 +394,10 @@ import types
 import traceback
 import gc
 import signal
+import sys
 import errno
+
+sys.stderr.write('Note: using modified subprocess.py.\n')
 
 # Exception classes used by this module.
 class CalledProcessError(Exception):
@@ -721,7 +724,12 @@ class Popen(object):
                 except EnvironmentError:
                     pass
 
-            raise exc_type, exc_value, exc_trace
+            try:
+                raise exc_type, exc_value, exc_trace
+            finally:
+                del exc_type
+                del exc_value
+                del exc_trace
 
         if mswindows:
             if p2cwrite is not None:
