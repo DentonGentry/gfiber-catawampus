@@ -21,10 +21,9 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import time
-from wvtest import unittest
-
 import google3
 import session
+from wvtest import unittest
 
 
 class CwmpSessionTest(unittest.TestCase):
@@ -300,7 +299,6 @@ class SessionCacheTest(unittest.TestCase):
 RunAtEndTestResults = {}
 
 
-@session.RunAtEnd
 def setBarAtEnd(val):
   RunAtEndTestResults['bar'] = val
 
@@ -310,15 +308,14 @@ class RunAtEndTest(unittest.TestCase):
   def setUp(self):
     RunAtEndTestResults.clear()
 
-  @session.RunAtEnd
   def setFooAtEnd(self, val):
     RunAtEndTestResults['foo'] = val
 
   def testRunAtEnd(self):
-    self.setFooAtEnd(1)
-    setBarAtEnd(2)
+    session.RunAtEnd(lambda: self.setFooAtEnd(1))
+    session.RunAtEnd(lambda: setBarAtEnd(2))
     self.assertEqual(len(RunAtEndTestResults), 0)
-    session._RunAtEnd.runall()
+    session._RunEndCallbacks()
     self.assertEqual(len(RunAtEndTestResults), 2)
     self.assertEqual(RunAtEndTestResults['foo'], 1)
     self.assertEqual(RunAtEndTestResults['bar'], 2)

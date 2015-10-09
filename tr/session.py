@@ -49,6 +49,7 @@ digraph DLstates {
 """
 
 HTTPCLIENT = tornado.httpclient.AsyncHTTPClient
+_run_at_end = []
 
 
 class CwmpSession(object):
@@ -119,7 +120,7 @@ class CwmpSession(object):
 
   def close(self):
     cache.flush()
-    _RunAtEnd.runall()
+    _RunEndCallbacks()
     self.http = None
     return self.ping_received
 
@@ -200,50 +201,17 @@ def cache_as_list(f):
   return AsList
 
 
-class _RunAtEnd(object):
-  """A class to implement the @session.RunAtEnd decorator."""
-
-  _thefunctions = collections.deque()
-
-  @staticmethod
-  def runall():
-    """Run all staged methods."""
-    try:
-      while True:
-        func = _RunAtEnd._thefunctions.popleft()
-        func()
-    except IndexError:
-      pass
-
-  def __init__(self, func):
-    self.func = func
-
-  def RunItLater(self, *args, **kwargs):
-    deferred = functools.partial(self.func, *args, **kwargs)
-    self._thefunctions.append(deferred)
-
-
 def RunAtEnd(func):
-  """A decorator to run a function at the end of the CWMP session.
+  """Schedule a function to run as soon as this ACS session ends."""
+  if func not in _run_at_end:
+    _run_at_end.append(func)
 
-  If a method is called N times during the session, it will be
-  run N times at the end of the session. All methods are run in
-  the order they were called.
 
-  Args:
-    func: the function the be called later.
-  Returns:
-    the defferal function.
-  """
-
-  # These w and ScheduleIt objects are are created once when you *declare*
-  # a @RunAtEnd function...
-  w = _RunAtEnd(func)
-
-  def ScheduleIt(*args, **kwargs):
-    # ...and ScheduleIt() is called when you *call* the declared function
-    w.RunItLater(*args, **kwargs)
-  return ScheduleIt
+def _RunEndCallbacks():
+  """Call any callbacks registered by RunAtEnd()."""
+  while _run_at_end:
+    func = _run_at_end.pop(0)
+    func()
 
 
 def main():

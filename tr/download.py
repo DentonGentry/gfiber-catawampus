@@ -434,7 +434,6 @@ class DownloadManager(object):
         raise core.CancelNotPermitted(
             'Installed, awaiting TransferCompleteResponse')
 
-  @session.RunAtEnd
   def _DelayedReboot(self):
     installer = INSTALLER('')
     installer.Reboot()
@@ -457,7 +456,7 @@ class DownloadManager(object):
     kwargs = dict(command_key=command_key)
     persistobj.PersistentObject(objdir=self.config_dir, rootname=BOOTROOTNAME,
                                 filename=None, **kwargs)
-    self._DelayedReboot()
+    session.RunAtEnd(self._DelayedReboot)
 
   def _MakeDirsIgnoreError(self, directory):
     """Make sure a directory exists."""
