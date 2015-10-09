@@ -28,12 +28,11 @@ import re
 import subprocess
 import tr.core
 import tr.session
-import tr.tr140_v1_1
 import tr.cwmptypes
-import tr.x_catawampus_storage_1_0
+import tr.basemodel
 
 
-CATASTORAGE = tr.x_catawampus_storage_1_0.X_CATAWAMPUS_ORG_Storage_v1_0
+CATASTORAGE = tr.basemodel.Storage
 BASESTORAGE = CATASTORAGE.StorageService
 PHYSICALMEDIUM = BASESTORAGE.PhysicalMedium
 DISKSTAT = '/sys/block/'

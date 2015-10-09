@@ -34,20 +34,17 @@ import copy
 import re
 import subprocess
 import time
+import tr.basemodel
 import tr.core
 import tr.cwmpbool
 import tr.handle
 import tr.helpers
 import tr.session
-import tr.tr098_v1_4
-import tr.x_catawampus_tr098_1_0
 import netdev
 import wifi
 
-BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
-BASE98WIFI = BASE98IGD.LANDevice.WLANConfiguration
-CATA98 = tr.x_catawampus_tr098_1_0.X_CATAWAMPUS_ORG_InternetGatewayDevice_v1_0
-CATA98WIFI = CATA98.InternetGatewayDevice.LANDevice.WLANConfiguration
+BASE98WIFI = tr.basemodel.InternetGatewayDevice.LANDevice.WLANConfiguration
+CATA98WIFI = tr.basemodel.InternetGatewayDevice.LANDevice.WLANConfiguration
 
 
 # Supported Encryption Modes

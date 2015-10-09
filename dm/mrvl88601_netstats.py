@@ -22,10 +22,10 @@
 __author__ = 'jnewlin@google.com (John Newlin)'
 
 import google3
+import tr.basemodel
 import tr.cwmptypes
-import tr.tr181_v2_6
 
-ETHERNET = tr.tr181_v2_6.Device_v2_6.Device.Ethernet
+ETHERNET = tr.basemodel.Device.Ethernet
 
 
 class NetdevStatsMrvl88601(ETHERNET.Interface.Stats):

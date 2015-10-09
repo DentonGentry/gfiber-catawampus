@@ -28,14 +28,14 @@ import binascii
 import re
 import subprocess
 import traceback
+import tr.basemodel
 import tr.cwmptypes
 import tr.handle
 import tr.helpers
 import tr.mainloop
-import tr.tr181_v2_6
 import tr.x_catawampus_tr181_2_0
 
-BASENAT = tr.tr181_v2_6.Device_v2_6.Device.NAT
+BASENAT = tr.basemodel.Device.NAT
 CATANAT = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device.NAT
 DMZFILE4 = '/tmp/acs/dmzhostv4'
 DMZFILE6 = '/tmp/acs/dmzhostv6'

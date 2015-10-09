@@ -33,9 +33,10 @@ import subprocess
 import time
 import dhcp
 import miniupnp
+import tr.basemodel
 import tr.helpers
 import tr.session
-import tr.tr181_v2_6
+import tr.basemodel
 import tr.cwmptypes
 
 
@@ -57,9 +58,9 @@ except ImportError:
   WIFICHARACTERIZE = NullCharacterize
 
 
-BASE181HOSTS = tr.tr181_v2_6.Device_v2_6.Device.Hosts
-BASE181HOST = tr.tr181_v2_6.Device_v2_6.Device.Hosts.Host
-CATA181 = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
+BASE181HOSTS = tr.basemodel.Device.Hosts
+BASE181HOST = tr.basemodel.Device.Hosts.Host
+CATA181 = tr.basemodel
 CATA181HOSTS = CATA181.Device.Hosts
 CATA181HOST = CATA181HOSTS.Host
 

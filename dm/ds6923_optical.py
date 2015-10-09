@@ -26,10 +26,10 @@ import math
 import google3
 import i2c
 
-import tr.tr181_v2_6
+import tr.basemodel
 import tr.cwmptypes
 
-BASE181OPTICAL = tr.tr181_v2_6.Device_v2_6.Device.Optical
+BASE181OPTICAL = tr.basemodel.Device.Optical
 I2C_BUS = None
 
 TX_POWER_HIGH_ALARM = 24

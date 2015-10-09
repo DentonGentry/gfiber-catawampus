@@ -23,16 +23,16 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import json
 import subprocess
 import pynetlinux
-import tr.session
-import tr.tr181_v2_2
+import tr.basemodel
 import tr.cwmpbool
 import tr.cwmptypes
 import tr.mainloop
+import tr.session
 import tr.x_catawampus_tr181_2_0
 import netdev
 
 
-BASE181MOCA = tr.tr181_v2_2.Device_v2_2.Device.MoCA
+BASE181MOCA = tr.basemodel.Device.MoCA
 CATA181MOCA = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device.MoCA
 MOCAGLOBALJSON = '/tmp/cwmp/monitoring/moca2/globals'
 MOCANODEJSON = '/tmp/cwmp/monitoring/moca2/node%d'

@@ -25,7 +25,7 @@ in http://www.broadband-forum.org/cwmp/tr-181-2-2-0.html
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import sys
-import tr.tr181_v2_6
+import tr.basemodel
 import tr.cwmptypes
 
 
@@ -37,7 +37,7 @@ except ImportError:
   sys.stderr.write('No qca83xx module; continuing for unit test support.')
 
 
-ETHERNET = tr.tr181_v2_6.Device_v2_6.Device.Ethernet
+ETHERNET = tr.basemodel.Device.Ethernet
 
 
 class EthernetInterfaceStatsQca83xx(ETHERNET.Interface.Stats):
@@ -72,7 +72,8 @@ class EthernetInterfaceQca83xx(ETHERNET.Interface):
     self._portnum = portnum
     self._port = QCAPORT(portnum)
     self._ifname = ifname
-    self.Unexport(['Alias'])
+    self.Unexport(['Alias', 'X_CATAWAMPUS-ORG_ActualBitRate',
+                   'X_CATAWAMPUS-ORG_ActualDuplexMode'])
     type(self).MACAddress.Set(self, mac)
     type(self).Name.Set(self, 'qca83xx_' + str(portnum))
     type(self).Upstream.Set(self, upstream)

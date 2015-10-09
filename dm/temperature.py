@@ -29,12 +29,11 @@ import datetime
 import re
 import subprocess
 import tornado.ioloop
+import tr.basemodel
 import tr.cwmpbool
 import tr.cwmpdate
-import tr.tr181_v2_2
-import tr.x_catawampus_tr181_2_0
 
-BASE181 = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
+BASE181 = tr.basemodel
 BASE181TEMPERATURE = BASE181.Device.DeviceInfo.TemperatureStatus
 CATA181DI = BASE181.Device.DeviceInfo
 NUMBER = re.compile(r'(\d+(?:\.\d+)?)')

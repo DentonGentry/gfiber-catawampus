@@ -22,13 +22,13 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
 from tr.wvtest import unittest
+import tr.basemodel
 import tr.handle
-import tr.tr181_v2_2 as tr181
 import ethernet
 import netdev
 
 
-BASEETHERNET = tr181.Device_v2_2.Device.Ethernet
+BASEETHERNET = tr.basemodel.Device.Ethernet
 
 
 class EthernetTest(unittest.TestCase):

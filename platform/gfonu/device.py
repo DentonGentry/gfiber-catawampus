@@ -40,13 +40,12 @@ import platform_config
 import pynetlinux
 import tornado.ioloop
 import tr.acs_config
+import tr.basemodel
 import tr.core
 import tr.download
 import tr.handle
-import tr.tr181_v2_4 as tr181
 
 
-BASE98IGD = tr.tr098_v1_4.InternetGatewayDevice_v1_10.InternetGatewayDevice
 PYNETIFCONF = pynetlinux.ifconfig.Interface
 
 # File to find the name of the current running platform.  Override for test.
@@ -247,11 +246,11 @@ class EthernetInterfaceOnu(dm.ethernet.EthernetInterfaceLinux26):
     return dm.mrvl88601_netstats.NetdevStatsMrvl88601(stat_dir=self.stat_dir)
 
 
-class Ethernet(tr181.Device_v2_4.Device.Ethernet):
+class Ethernet(tr.basemodel.Device.Ethernet):
   """Implementation of tr-181 Device.Ethernet for gfonu platforms."""
 
   def __init__(self):
-    tr181.Device_v2_4.Device.Ethernet.__init__(self)
+    tr.basemodel.Device.Ethernet.__init__(self)
     self.InterfaceList = {
         '1': EthernetInterfaceOnu('eth0', ETH_STATS_DIR),
         '2': EthernetInterfaceOnu('pon0', PON_STATS_DIR, maxbitrate=1000),
@@ -278,7 +277,7 @@ class Ethernet(tr181.Device_v2_4.Device.Ethernet):
     return len(self.RMONStatsList)
 
 
-class Device(tr181.Device_v2_4.Device):
+class Device(tr.basemodel.Device):
   """Device implementation for ONU device."""
 
   def __init__(self, device_id, periodic_stats):
@@ -327,7 +326,7 @@ class Device(tr181.Device_v2_4.Device):
         sensor=dm.temperature.SensorReadFromFile(KW2THERMALFILE, 1000))
 
 
-class InternetGatewayDevice(BASE98IGD):
+class InternetGatewayDevice(tr.basemodel.InternetGatewayDevice):
   """Implements tr-98 InternetGatewayDevice."""
 
   def __init__(self, device_id, periodic_stats):

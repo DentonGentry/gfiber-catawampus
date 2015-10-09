@@ -39,15 +39,14 @@ import subprocess
 import traceback
 
 import dhcp
+import tr.basemodel
 import tr.core
 import tr.cwmptypes
 import tr.helpers
 import tr.mainloop
 import tr.session
-import tr.tr181_v2_6
-import tr.x_catawampus_tr181_2_0
 
-CATA181DEV = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
+CATA181DEV = tr.basemodel
 DHCP4SERVER = CATA181DEV.Device.DHCPv4.Server
 DHCP4SERVERPOOL = DHCP4SERVER.Pool
 DASH_TO_UNDERSCORE = string.maketrans('-', '_')

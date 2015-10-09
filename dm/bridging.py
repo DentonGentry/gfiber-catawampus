@@ -24,10 +24,10 @@ in http://www.broadband-forum.org/cwmp/tr-181-2-2-0.html
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import tr.tr181_v2_2
+import tr.basemodel
 
 
-BASEBRIDGE = tr.tr181_v2_2.Device_v2_2.Device.Bridging
+BASEBRIDGE = tr.basemodel.Device.Bridging
 
 
 class BridgingState(object):

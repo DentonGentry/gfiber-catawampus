@@ -23,10 +23,10 @@ Useful for uinit tests and for platform/fakecpe.
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import tr.tr181_v2_2
+import tr.basemodel
 import tr.cwmptypes
 
-BASE181MOCA = tr.tr181_v2_2.Device_v2_2.Device.MoCA
+BASE181MOCA = tr.basemodel.Device.MoCA
 
 
 class FakeMoca(BASE181MOCA):
@@ -61,6 +61,9 @@ class FakeMocaInterfaceStats(BASE181MOCA.Interface.Stats):
   BroadcastPacketsSent = tr.cwmptypes.ReadOnlyUnsigned(11000)
   BroadcastPacketsReceived = tr.cwmptypes.ReadOnlyUnsigned(21000)
   UnknownProtoPacketsReceived = tr.cwmptypes.ReadOnlyUnsigned(6)
+  X_CATAWAMPUS_ORG_DiscardFrameCnts = tr.cwmptypes.ReadOnlyBool(False)
+  X_CATAWAMPUS_ORG_DiscardPacketsReceivedHipri = (
+      tr.cwmptypes.ReadOnlyBool(False))
 
 
 class FakeMocaInterface(BASE181MOCA.Interface):
@@ -70,6 +73,7 @@ class FakeMocaInterface(BASE181MOCA.Interface):
   BeaconPowerLimit = tr.cwmptypes.Unsigned(8)
   CurrentOperFreq = tr.cwmptypes.ReadOnlyUnsigned(1000)
   CurrentVersion = tr.cwmptypes.ReadOnlyString('2.0')
+  X_CATAWAMPUS_ORG_ExtraTracing = tr.cwmptypes.ReadOnlyBool(False)
   FirmwareVersion = tr.cwmptypes.ReadOnlyString('1.0.2')
   FreqCapabilityMask = tr.cwmptypes.ReadOnlyString('0x000000001FFFC000')
   FreqCurrentMaskSetting = tr.cwmptypes.String('0x000000001FFFFFFF')
@@ -148,6 +152,8 @@ class FakeMocaAssociatedDevice(BASE181MOCA.Interface.AssociatedDevice):
   X_CATAWAMPUS_ORG_RxSNR_dB = tr.cwmptypes.ReadOnlyFloat(0.0)
   X_CATAWAMPUS_ORG_RxBitloading = tr.cwmptypes.ReadOnlyString('')
   X_CATAWAMPUS_ORG_RxNBAS = tr.cwmptypes.ReadOnlyFloat(0.0)
+  X_CATAWAMPUS_ORG_RxBcastPowerLevel_dBm = tr.cwmptypes.ReadOnlyUnsigned(0)
+  X_CATAWAMPUS_ORG_RxPowerLevel_dBm = tr.cwmptypes.ReadOnlyUnsigned(0)
   X_CATAWAMPUS_ORG_RxPrimaryCwCorrected = tr.cwmptypes.ReadOnlyUnsigned(0)
   X_CATAWAMPUS_ORG_RxPrimaryCwUncorrected = tr.cwmptypes.ReadOnlyUnsigned(0)
   X_CATAWAMPUS_ORG_RxPrimaryCwNoErrors = tr.cwmptypes.ReadOnlyUnsigned(0)
@@ -156,6 +162,7 @@ class FakeMocaAssociatedDevice(BASE181MOCA.Interface.AssociatedDevice):
   X_CATAWAMPUS_ORG_RxSecondaryCwUncorrected = tr.cwmptypes.ReadOnlyUnsigned(0)
   X_CATAWAMPUS_ORG_RxSecondaryCwNoErrors = tr.cwmptypes.ReadOnlyUnsigned(0)
   X_CATAWAMPUS_ORG_RxSecondaryCwNoSync = tr.cwmptypes.ReadOnlyUnsigned(0)
+  X_CATAWAMPUS_ORG_TxBitloading = tr.cwmptypes.ReadOnlyUnsigned(0)
 
   def __init__(self, nodeid=None, mac=None):
     super(FakeMocaAssociatedDevice, self).__init__()
