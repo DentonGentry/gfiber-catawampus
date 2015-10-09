@@ -30,6 +30,8 @@ import traceback
 # All this is done just so that wvtest.py can be a single file that's
 # easy to import into your own applications.
 if __name__ != '__main__':   # we're imported as a module
+    sys.stdout = os.fdopen(1, 'w', 1)  # force line buffering
+    sys.stderr = os.fdopen(2, 'w', 1)  # force line buffering
     _registered = []
     _tests = 0
     _fails = 0
