@@ -182,6 +182,9 @@ class HTTPConnection(object):
         callback()
         # Delete any unfinished callbacks to break up reference cycles.
         self._write_callback = None
+        self._header_callback = None
+        self.request_callback = None
+        self.stream = None
 
     def write(self, chunk, callback=None):
         """Writes a chunk of output to the stream."""

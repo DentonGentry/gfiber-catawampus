@@ -46,6 +46,7 @@ import tornado.web
 
 import api
 import cwmpdate
+import garbage
 import handle
 import http
 import session
@@ -135,6 +136,80 @@ class LinearHttpHandler(tornado.web.RequestHandler):
   @tornado.web.asynchronous
   def post(self):
     return self._handle()
+
+
+class _TrivialHandler(tornado.web.RequestHandler):
+
+  def get(self):
+    return 'foo'
+
+
+class TrivialTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
+
+  def setUp(self):
+    super(TrivialTest, self).setUp()
+    self.gccheck = garbage.GcChecker()
+
+  def tearDown(self):
+    super(TrivialTest, self).tearDown()
+    del self._app.handlers
+    del self._app
+    del self.http_server
+    self.gccheck.Done()
+
+  def trivial_callback(self, *args, **kwargs):
+    self.trivial_calledback = True
+
+  def get_app(self):
+    return tornado.web.Application([('/', _TrivialHandler)])
+
+  def test01(self):
+    pass
+
+  def test02(self):
+    pass
+
+  def test_trivial(self):
+    self.trivial_calledback = False
+    self.http_client.fetch(self.get_url('/'), self.stop)
+    response = self.wait()
+    self.assertIsNone(response.error)
+    self.assertFalse(self.trivial_calledback)
+    self.assertTrue(response.body.find('qop'))
+    for fd in self.io_loop._handlers.keys():
+      self.io_loop.remove_handler(fd)
+
+
+class TestManagementServer(object):
+  ConnectionRequestUsername = 'username'
+  ConnectionRequestPassword = 'password'
+
+
+class PingTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
+
+  def setUp(self):
+    super(PingTest, self).setUp()
+    self.gccheck = garbage.GcChecker()
+
+  def tearDown(self):
+    super(PingTest, self).tearDown()
+    self.gccheck.Done()
+
+  def ping_callback(self):
+    self.ping_calledback = True
+
+  def get_app(self):
+    return tornado.web.Application(
+        [('/', http.PingHandler, dict(cpe_ms=TestManagementServer(),
+                                      callback=self.ping_callback))])
+
+  def test_ping(self):
+    self.ping_calledback = False
+    self.http_client.fetch(self.get_url('/'), self.stop)
+    response = self.wait()
+    self.assertEqual(response.error.code, 401)
+    self.assertFalse(self.ping_calledback)
+    self.assertTrue(response.body.find('qop'))
 
 
 class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
@@ -449,30 +524,6 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
     self.assertTrue(len(inform))
     self.assertTrue('2 PERIODIC' in inform)
     self.assertTrue('4 VALUE CHANGE' in inform)
-
-
-class TestManagementServer(object):
-  ConnectionRequestUsername = 'username'
-  ConnectionRequestPassword = 'password'
-
-
-class PingTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
-
-  def ping_callback(self):
-    self.ping_calledback = True
-
-  def get_app(self):
-    return tornado.web.Application(
-        [('/', http.PingHandler, dict(cpe_ms=TestManagementServer(),
-                                      callback=self.ping_callback))])
-
-  def test_ping(self):
-    self.ping_calledback = False
-    self.http_client.fetch(self.get_url('/'), self.stop)
-    response = self.wait()
-    self.assertEqual(response.error.code, 401)
-    self.assertFalse(self.ping_calledback)
-    self.assertTrue(response.body.find('qop'))
 
 
 if __name__ == '__main__':

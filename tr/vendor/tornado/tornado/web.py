@@ -689,7 +689,8 @@ class RequestHandler(object):
                 content_length = sum(len(part) for part in self._write_buffer)
                 self.set_header("Content-Length", content_length)
 
-        if hasattr(self.request, "connection"):
+        # NOTE(apenwarr): breaks httpserver.HTTPConnection.set_close_callback
+        if 0 and hasattr(self.request, "connection"):
             # Now that the request is finished, clear the callback we
             # set on the IOStream (which would otherwise prevent the
             # garbage collection of the RequestHandler when there
@@ -702,6 +703,7 @@ class RequestHandler(object):
             self._log()
         self._finished = True
         self.on_finish()
+        self.ui = None
 
     def send_error(self, status_code=500, **kwargs):
         """Sends the given HTTP error code to the browser.

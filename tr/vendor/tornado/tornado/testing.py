@@ -165,6 +165,9 @@ class AsyncTestCase(unittest.TestCase):
             self.io_loop.stop()
             self.__running = False
         self.__stopped = True
+        if self.__timeout is not None:
+          self.io_loop.remove_timeout(self.__timeout)
+          self.__timeout = None
 
     def wait(self, condition=None, timeout=5):
         """Runs the IOLoop until stop is called or timeout has passed.

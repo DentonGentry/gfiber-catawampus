@@ -180,6 +180,7 @@ class AsyncHTTPClient(object):
             if self._instance_cache.get(self.io_loop) is not self:
                 raise RuntimeError("inconsistent AsyncHTTPClient cache")
             del self._instance_cache[self.io_loop]
+            self._instance_cache = None
 
     def fetch(self, request, callback, **kwargs):
         """Executes a request, calling callback with an `HTTPResponse`.
@@ -419,7 +420,7 @@ class HTTPError(Exception):
     def __init__(self, code, message=None, response=None):
         self.code = code
         message = message or httplib.responses.get(code, "Unknown")
-        self.response = response
+        # self.response = response  # removed to avoid circular references
         Exception.__init__(self, "HTTP %d: %s" % (self.code, message))
 
 
