@@ -390,6 +390,7 @@ class IOStream(object):
                 self._check_closed()
         finally:
             self._pending_callbacks -= 1
+            self._maybe_add_error_listener()
         if self._read_from_buffer():
             return
         self._add_io_state(self.io_loop.READ)

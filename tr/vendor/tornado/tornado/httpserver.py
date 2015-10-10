@@ -168,9 +168,10 @@ class HTTPConnection(object):
         # Save stack context here, outside of any request.  This keeps
         # contexts from one request from leaking into the next.
         self._header_callback = stack_context.wrap(self._on_headers)
-        self.stream.read_until(b("\r\n\r\n"), self._header_callback)
         self._write_callback = None
         self._close_callback = None
+        self.set_close_callback(lambda: None)
+        self.stream.read_until(b("\r\n\r\n"), self._header_callback)
 
     def set_close_callback(self, callback):
         self._close_callback = stack_context.wrap(callback)

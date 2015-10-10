@@ -47,6 +47,8 @@ PROC_IF_INET6 = '/proc/net/if_inet6'
 MAX_EVENT_QUEUE_SIZE = 64
 GETWANPORT = 'activewan'
 
+Url = collections.namedtuple('Url', ('method host port path'))
+
 
 class LimitDeque(collections.deque):
   """Wrapper around a deque that limits the maximimum size.
@@ -88,7 +90,6 @@ class LimitDeque(collections.deque):
 # SPEC3 = TR-069_Amendment-3.pdf
 # http://www.broadband-forum.org/technical/download/TR-069_Amendment-3.pdf
 def SplitUrl(url):
-  Url = collections.namedtuple('Url', ('method host port path'))
   method, rest = urllib.splittype(url)
   hostport, path = urllib.splithost(rest)
   host, port = urllib.splitport(hostport)

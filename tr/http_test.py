@@ -215,6 +215,7 @@ class PingTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
 class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
 
   def setUp(self):
+    self.gccheck = garbage.GcChecker()
     self.old_HTTPCLIENT = session.HTTPCLIENT
     self.old_GETWANPORT = http.GETWANPORT
 
@@ -238,12 +239,27 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
   def tearDown(self):
     session.HTTPCLIENT = self.old_HTTPCLIENT
     http.GETWANPORT = self.old_GETWANPORT
-    super(HttpTest, self).tearDown()
     SetMonotime(self.old_monotime)
     for d in self.removedirs:
       shutil.rmtree(d)
     for f in self.removefiles:
       os.remove(f)
+    super(HttpTest, self).tearDown()
+
+    # clean up the namespace to make it easier to see "real" memory leaks
+    del self.app.handlers[:]
+    del self.app.handlers
+    self.app.__dict__.clear()
+    del self.app
+    del self._app
+    del self.http_server
+
+    if self.requestlog:
+      raise Exception('requestlog still has %d unhandled requests'
+                      % len(self.requestlog))
+
+    self.gccheck.Done()
+    self.gccheck = None
 
   def get_app(self):
     return self.app
@@ -279,6 +295,18 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
                               ioloop=self.io_loop)
     return cpe_machine
 
+  def testA00(self):
+    # a trivial test to make sure setUp/tearDown don't leak memory.
+    pass
+
+  def testA01(self):
+    self.http_client.fetch(self.get_url('/cwmp'), self.stop)
+    self.wait()
+    h = self.NextHandler()
+    self.assertEqual(h.request.method, 'GET')
+    h.finish()
+    self.wait()
+
   def testMaxEnvelopes(self):
     SetMonotime(self.advanceTime)
     cpe_machine = self.getCpe()
@@ -288,6 +316,7 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
     self.assertEqual(h.request.method, 'POST')
 
     root = ET.fromstring(h.request.body)
+    h.finish()
     envelope = root.find(SOAPNS + 'Body/' + CWMPNS + 'Inform/MaxEnvelopes')
     self.assertTrue(envelope is not None)
     self.assertEqual(envelope.text, '1')
@@ -303,6 +332,7 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
     self.assertEqual(h.request.method, 'POST')
 
     root = ET.fromstring(h.request.body)
+    h.finish()
     ctime = root.find(SOAPNS + 'Body/' + CWMPNS + 'Inform/CurrentTime')
     self.assertTrue(ctime is not None)
     self.assertTrue(cwmpdate.valid(ctime.text))
@@ -338,6 +368,7 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
     h = self.NextHandler()
 
     root = ET.fromstring(h.request.body)
+    h.finish()
     retry = root.find(SOAPNS + 'Body/' + CWMPNS + 'Inform/RetryCount')
     self.assertTrue(retry is not None)
     self.assertEqual(retry.text, '1')
@@ -364,10 +395,13 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
                  path='/', expires_days=1)
     h.write(msg)
     h.finish()
+    self.wait()
 
     h = self.NextHandler()
     self.assertEqual(h.request.headers['Cookie'],
                      'AnotherCookie=987654321; CWMPSID=0123456789abcdef')
+    h.finish()
+    self.wait()
 
   def testRedirect(self):
     SetMonotime(self.advanceTime)
@@ -397,6 +431,7 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
     self.assertEqual(h.request.method, 'POST')
     self.assertEqual(h.request.path, '/redir2')
     self.assertTrue('<soap' in h.request.body)
+    h.finish()
 
   def testRedirectSession(self):
     """Test that a redirect persists for the entire session."""
