@@ -21,7 +21,7 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
-import xml.etree.ElementTree as ET
+import xml.etree.cElementTree as ET
 import xmlwitch
 from wvtest import unittest
 

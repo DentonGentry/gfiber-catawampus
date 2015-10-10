@@ -22,7 +22,7 @@ import os.path
 import re
 import string
 import sys
-import xml.etree.ElementTree
+import xml.etree.cElementTree as ET
 
 import google3
 import bup.options
@@ -114,7 +114,7 @@ def ParseImports(into_spec, root):
 
 def ParseFile(filename):
   Log(filename)
-  root = xml.etree.ElementTree.parse(open(filename)).getroot()
+  root = ET.parse(open(filename)).getroot()
   spec = FixSpec(root.attrib['spec'])
   Log(NiceSpec(spec))
   for node in root:

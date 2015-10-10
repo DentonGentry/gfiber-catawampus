@@ -20,7 +20,7 @@
 
 
 import os
-import xml.etree.ElementTree as ET
+import xml.etree.cElementTree as ET
 
 
 SUPPRESSLIST = frozenset(['ParameterNames', 'string', 'ParameterList',

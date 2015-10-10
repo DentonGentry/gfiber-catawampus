@@ -17,6 +17,7 @@ from tr.wvtest import unittest
 import mox
 import tornado.ioloop
 import tr.core
+import tr.garbage
 import tr.handle
 import tr.http
 import periodic_statistics
@@ -33,6 +34,7 @@ class FakeWLAN(tr.core.Exporter):
 class PeriodicStatisticsTest(unittest.TestCase):
 
   def setUp(self):
+    self.gccheck = tr.garbage.GcChecker()
     self.save_time_func = periodic_statistics.TIMEFUNC
     self.ps = periodic_statistics.PeriodicStatistics()
     self.psh = tr.handle.Handle(self.ps)
@@ -51,6 +53,7 @@ class PeriodicStatisticsTest(unittest.TestCase):
     periodic_statistics.TIMEFUNC = self.save_time_func
     self.m.UnsetStubs()
     self.m.VerifyAll()
+    self.gccheck.Done()
 
   def testValidateExports(self):
     tr.handle.ValidateExports(self.ps)

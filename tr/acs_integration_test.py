@@ -24,7 +24,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import collections
 import datetime
-import xml.etree.ElementTree as ET
+import xml.etree.cElementTree as ET
 import google3
 import api
 import core

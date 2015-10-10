@@ -32,7 +32,7 @@ import sys
 import tempfile
 import time
 from wvtest import unittest
-import xml.etree.ElementTree as ET
+import xml.etree.cElementTree as ET
 
 import google3
 

@@ -21,9 +21,10 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import datetime
-import xml.etree.ElementTree as ET
+import xml.etree.cElementTree as ET
 import google3
 import api_soap
+import garbage
 from wvtest import unittest
 
 
@@ -76,6 +77,12 @@ class ApiSoapTest(unittest.TestCase):
 
     def __str__(self):
       return 'foo'
+
+  def setUp(self):
+    self.gccheck = garbage.GcChecker()
+
+  def tearDown(self):
+    self.gccheck.Done()
 
   def testSoapify(self):
     tobj = self.ThisHasXsiType()

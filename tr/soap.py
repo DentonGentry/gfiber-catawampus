@@ -21,7 +21,7 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 
 
 import re
-import xml.etree.ElementTree
+import xml.etree.cElementTree as ET
 import google3
 import xmlwitch
 
@@ -232,7 +232,7 @@ def _Parse(node):
 
 
 def Parse(xmlstring):
-  root = xml.etree.ElementTree.fromstring(xmlstring)
+  root = ET.fromstring(xmlstring)
   return _Parse(root)
 
 

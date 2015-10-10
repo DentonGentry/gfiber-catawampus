@@ -21,8 +21,10 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import os
+import xml.etree.cElementTree as ET
 import google3
 import cwmplog
+import garbage
 from wvtest import unittest
 
 
@@ -30,8 +32,16 @@ class CwmpLogTest(unittest.TestCase):
   """Tests for boolean formatting."""
 
   def setUp(self):
+    self.gccheck = garbage.GcChecker()
     if 'DONT_SHORTEN' in os.environ:
       del os.environ['DONT_SHORTEN']
+
+  def tearDown(self):
+    self.gccheck.Done()
+
+  def test00(self):
+    xml = ET.fromstring(InformXML)
+    xml.clear()
 
   def testInform(self):
     logger = cwmplog.Logger(full_logs=0)
