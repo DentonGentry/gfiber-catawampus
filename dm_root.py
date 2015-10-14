@@ -27,6 +27,7 @@ import google3
 import dm.bluetooth
 import dm.catawampus
 import dm.gfibertv
+import dm.glaukus
 import dm.gvsb
 import dm.hat
 import dm.inadyn
@@ -102,6 +103,7 @@ class DeviceModelRoot(tr.core.Exporter):
     cata.GFiberTV = dm.gfibertv.GFiberTv(
         mailbox_url='http://localhost:51834/xmlrpc',
         my_serial=self.device.DeviceId().SerialNumber)
+    cata.Glaukus = dm.glaukus.Glaukus()
     cata.GVSB = dm.gvsb.Gvsb()
     cata.HAT = dm.hat.Hat()
     cata.HttpDownload = dm.ip_diag_http.DiagHttpDownload()

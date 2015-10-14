@@ -1294,5 +1294,65 @@ If both {{param|X_CATAWAMPUS-ORG_PortRangeSize}} and {{param|ExternalPortEndRang
       </parameter>
     </object>
 
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus." access="readOnly" minEntries="1" maxEntries="1">
+      <description>Container for parameters supporting Glaukus Manager.</description>
+      <parameter name="StartSampleCaptureTimeMs" access="readOnly">
+        <description>Start capture timestamp in milliseconds.</description>
+        <syntax><unsignedLong><units value="ms"/></unsignedLong></syntax>
+      </parameter>
+      <parameter name="StopSampleCaptureTimeMs" access="readOnly">
+        <description>End capture timestamp in milliseconds.</description>
+        <syntax><unsignedLong><units value="ms"/></unsignedLong></syntax>
+      </parameter>
+      <parameter name="RxLockStatus" access="readOnly">
+        <description>RX lock status.</description>
+        <syntax><boolean/></syntax>
+      </parameter>
+      <parameter name="RxLockLossEvents" access="readOnly">
+        <description>RX loss of lock events.</description>
+        <syntax><unsignedInt/></syntax>
+      </parameter>
+      <parameter name="RxLockLossTimeMs" access="readOnly">
+        <description>RX loss of lock timestamp in milliseconds.</description>
+        <syntax><unsignedLong><units value="ms"/></unsignedLong></syntax>
+      </parameter>
+      <parameter name="MeasuredPowerRssiDbm" access="readOnly">
+        <description>Measured Power RSSI in dBm.</description>
+        <syntax><int><units value="dBm"/></int></syntax>
+      </parameter>
+      <parameter name="AdcCount" access="readOnly">
+        <description>ADC count.</description>
+        <syntax><unsignedInt/></syntax>
+      </parameter>
+      <parameter name="InPowerRssiDbc" access="readOnly">
+        <description>In Power RSSI in dBc.</description>
+        <syntax><int><units value="dBc"/></int></syntax>
+      </parameter>
+      <parameter name="InbandPowerRssiDbc" access="readOnly">
+        <description>Inband Power RSSI in dBc.</description>
+        <syntax><int><units value="dBc"/></int></syntax>
+      </parameter>
+      <parameter name="ExternalAgcIdx" access="readOnly">
+        <description>External AGC table index.</description>
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="InternalAgcIdx" access="readOnly">
+        <description>Internal AGC table index.</description>
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="AbsMseDb" access="readOnly">
+        <description>Absolute MSE in dB.</description>
+        <syntax><int><units value="dB"/></int></syntax>
+      </parameter>
+      <parameter name="NormMseDb" access="readOnly">
+        <description>Normalized MSE in dB.</description>
+        <syntax><int><units value="dB"/></int></syntax>
+      </parameter>
+      <parameter name="RadMseDb" access="readOnly">
+        <description>Radial MSE in dB.</description>
+        <syntax><int><units value="dB"/></int></syntax>
+      </parameter>
+    </object>
+
   </model>
 </dm:document>
