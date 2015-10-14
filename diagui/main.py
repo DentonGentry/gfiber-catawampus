@@ -168,7 +168,8 @@ class IsostreamHandler(tornado.web.RequestHandler):
                      .X_CATAWAMPUS_ORG_Isostream)
     isostreaminfo.last_log = None
     isostreaminfo.ClientRemoteIP = self.request.remote_ip
-    isostreaminfo.ClientRunning = True
+    isostreaminfo.ClientMbps = 14
+    isostreaminfo.ClientEnable = True
 
 
 class IsostreamJsonHandler(_JsonHandler):

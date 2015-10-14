@@ -42,10 +42,6 @@
       <div class="content">
         <div id="moca_graph"></div><div id="moca_labels"></div>
         <br>
-        <div id="corrected_codewords"></div><div id="cor_cw_labels"></div>
-        <br>
-        <div id="uncorrected_codewords"></div><div id="uncor_cw_labels"></div>
-        <br>
         <div id="bitloading"></div>
       </div>
     </div>
@@ -54,34 +50,6 @@
       <label for="tab-3">Wifi Clients</label>
       <div class="content">
         <div id="wifi_graph"></div><div id="rssi_labels"></div>
-        <br>
-        <div id="wifiblaster_graph"></div><div id="wifiblaster_labels"></div>
-      </div>
-    </div>
-    <div class="tab">
-      <input type="radio" id="tab-4" name="tab-group-1">
-      <label for="tab-4">Wifi APs</label>
-      <div class="content">
-        <div id="aps_graph"></div><div id="ap_labels"></div>
-        <br>
-        <div id="me_ap_graph"></div><div id="me_ap_labels"></div>
-      </div>
-    </div>
-    <div class="tab">
-      <input type="radio" id="tab-5" name="tab-group-1">
-      <label for="tab-5">Isostream</label>
-      <div class="content">
-        <form action=/startisostream method=post>
-          {% module xsrf_form_html() %}
-          <button id="isostream_button">Run Test</button>
-        </form>
-        <div id="isos_status"></div>
-        <div id="isos_offset"></div><div id="offset_labels"></div>
-        <br>
-        <div id="isos_disconn"></div><div id="disconn_labels"></div>
-        <br>
-        <div id="isos_drops"></div><div id="drops_labels"></div>
-        <br>
       </div>
     </div>
   </div>

@@ -39,7 +39,7 @@ var drops = new SignalStrengthChart('Drops',
                                     'isostream_last_log', 'isos_drops',
                                     'drops_labels', false);
 
-var graph_array = [wifi, wifiblaster, moca, corrected_cwrds, uncorrected_cwrds, aps, me_ap];
+var graph_array = [wifi, moca];
 
 $(document).ready(function() {
   getData(graph_array);
