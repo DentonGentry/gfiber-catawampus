@@ -28,8 +28,9 @@ class AsynchFetch(object):
   def HandleRequest(self, response):
     self.resp = response
 
-  def ReturnResponseBody(self):
-    return self.resp.body
+  def Wait(self, loop):
+    while not self.resp:
+      loop.RunOnce()
 
 
 class FakeHostsList(dm.host.CATA181HOSTS):
@@ -97,11 +98,12 @@ domain home.allenfamily.com"""
     response1 = AsynchFetch(url_temp)
     response2 = AsynchFetch(url_temp)
     main_loop = tr.mainloop.MainLoop()
-    main_loop.Start(1)
-    self.assertEqual(response1.ReturnResponseBody(),
-                     response2.ReturnResponseBody())
-    self.assertNotEqual(response1.ReturnResponseBody(), None)
-    self.checksum = ast.literal_eval(response1.ReturnResponseBody()).get(
+    response1.Wait(main_loop)
+    response2.Wait(main_loop)
+    self.assertEqual(response1.resp.body,
+                     response2.resp.body)
+    self.assertNotEqual(response1.resp.body, None)
+    self.checksum = ast.literal_eval(response1.resp.body).get(
         'checksum')
     test_data = """acs OK (May 21 2013 18:58:41+700)
 softversion 2.16a
@@ -133,12 +135,13 @@ domain home.allenfamily.com"""
     url_temp = self.url_string + self.checksum
     response1_new = AsynchFetch(url_temp)
     response2_new = AsynchFetch(url_temp)
-    main_loop.Start(1)
-    self.assertEqual(response1_new.ReturnResponseBody(),
-                     response2_new.ReturnResponseBody())
-    self.assertNotEqual(response1_new.ReturnResponseBody(), None)
-    self.assertNotEqual(response1.ReturnResponseBody(),
-                        response1_new.ReturnResponseBody())
+    response1_new.Wait(main_loop)
+    response2_new.Wait(main_loop)
+    self.assertEqual(response1_new.resp.body,
+                     response2_new.resp.body)
+    self.assertNotEqual(response1_new.resp.body, None)
+    self.assertNotEqual(response1.resp.body,
+                        response1_new.resp.body)
 
   def testOnuStats(self):
     app = diagui.main.MainApplication(None, None)
@@ -151,16 +154,16 @@ domain home.allenfamily.com"""
     self.checksum = '0'
     url_temp = self.url_string + self.checksum
     response = AsynchFetch(url_temp)
-    main_loop.Start(1)
-    self.assertNotEqual(response.ReturnResponseBody(), None)
-    jsdata = json.loads(response.ReturnResponseBody())
+    response.Wait(main_loop)
+    self.assertNotEqual(response.resp.body, None)
+    jsdata = json.loads(response.resp.body)
     self.assertTrue(jsdata['onu_wan_connected'])
 
     diagui.main.ONU_STAT_FILE = 'testdata/onu_stats2.json'
     app.diagui.ReadOnuStats()
     response = AsynchFetch(url_temp)
-    main_loop.Start(1)
-    jsdata = json.loads(response.ReturnResponseBody())
+    response.Wait(main_loop)
+    jsdata = json.loads(response.resp.body)
     self.assertTrue(jsdata['onu_wan_connected'])
     self.assertTrue(jsdata['onu_acs_contacted'])
     self.assertEqual(jsdata['onu_acs_contact_time'], 100000)
@@ -191,8 +194,8 @@ class TechuiTest(unittest.TestCase):
     app.listen(8880)
     main_loop = tr.mainloop.MainLoop()
     response1 = AsynchFetch(url)
-    main_loop.Start(1)
-    result1 = json.loads(response1.ReturnResponseBody())
+    response1.Wait(main_loop)
+    result1 = json.loads(response1.resp.body)
     self.assertNotEqual(result1, None)
     self.assertEqual(result1, fake_data)
 
@@ -202,8 +205,8 @@ class TechuiTest(unittest.TestCase):
     response2 = AsynchFetch(url)
     app.techui.data['other_aps'] = {'f4:f5:e8:80:58:d7': -50.0}
     app.techui.NotifyUpdatedDict()
-    main_loop.Start(1)
-    result2 = json.loads(response2.ReturnResponseBody())
+    response2.Wait(main_loop)
+    result2 = json.loads(response2.resp.body)
 
     # Set fake data to expected output and compare.
     fake_data['other_aps'] = {'f4:f5:e8:80:58:d7': -50.0}
@@ -220,8 +223,8 @@ class TechuiTest(unittest.TestCase):
     response3 = AsynchFetch(url)
     app.techui.data['other_aps'] = {'f4:f5:e8:80:58:d7': -40.0}
     app.techui.NotifyUpdatedDict()
-    main_loop.Start(1)
-    result3 = json.loads(response3.ReturnResponseBody())
+    response3.Wait(main_loop)
+    result3 = json.loads(response3.resp.body)
 
     # Set fake data to expected output and compare.
     fake_data['other_aps'] = {'f4:f5:e8:80:58:d7': -40.0}
