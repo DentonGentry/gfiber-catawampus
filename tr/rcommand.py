@@ -79,6 +79,10 @@ class RemoteCommandStreamer(quotedblock.QuotedBlockStreamer):
     """Close the current connection."""
     raise EOFError()
 
+  def CmdQuitquitquit(self):
+    """Shut down the server entirely."""
+    exit(123)
+
   def CmdCompletions(self, prefix):
     """Return possible completions for the given name prefix."""
     parts = prefix.split('.')
