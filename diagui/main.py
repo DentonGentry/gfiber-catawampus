@@ -47,15 +47,13 @@ def JsonGet(page, ui, update_dictionary):
       update_dictionary: A function that will update ui.data with the latest
           information.
   """
+  page.ui = ui
   update_dictionary()
   if (page.get_argument('checksum') !=
       ui.data.get('checksum', None)):
-    try:
-      page.set_header('Content-Type', 'application/json')
-      page.write(json.dumps(ui.data))
-      page.finish()
-    except IOError:
-      print 'Could not write to JSON page'
+    page.set_header('Content-Type', 'application/json')
+    page.write(json.dumps(ui.data))
+    page.finish()
   else:
     def Send(deadline_exceeded):
       """Called by the cwmp watchers when they think new data might be ready.
@@ -71,17 +69,10 @@ def JsonGet(page, ui, update_dictionary):
         # callback called, but data didn't change, so do nothing.
         return
 
-      if page.deadline:
-        IOLoop().remove_timeout(page.deadline)
-        page.deadline = None
-
-      ui.callbacklist.remove(page.callback)
-      try:
-        page.set_header('Content-Type', 'application/json')
-        page.write(json.dumps(ui.data))
-        page.finish()
-      except IOError:
-        print 'Could not write to JSON page'
+      page.ClearCallbacks()
+      page.set_header('Content-Type', 'application/json')
+      page.write(json.dumps(ui.data))
+      page.finish()
 
     page.callback = lambda: Send(False)
     page.deadline = IOLoop().add_timeout(
@@ -89,7 +80,29 @@ def JsonGet(page, ui, update_dictionary):
     ui.callbacklist.append(page.callback)
 
 
-class TechUIJsonHandler(tornado.web.RequestHandler):
+class _JsonHandler(tornado.web.RequestHandler):
+  """Base class for handlers that serve async json files."""
+
+  def initialize(self):
+    self.ui = None
+    self.callback = None
+    self.deadline = None
+
+  def ClearCallbacks(self):
+    if self.deadline:
+      dl = self.deadline
+      self.deadline = None
+      IOLoop().remove_timeout(dl)
+    if self.callback:
+      cb = self.callback
+      self.callback = None
+      self.ui.callbacklist.remove(cb)
+
+  def on_connection_close(self):
+    self.ClearCallbacks()
+
+
+class TechUIJsonHandler(_JsonHandler):
   """Provides JSON-formatted info for the TechUI."""
 
   @tornado.web.asynchronous
@@ -158,25 +171,22 @@ class IsostreamHandler(tornado.web.RequestHandler):
     isostreaminfo.ClientRunning = True
 
 
-class IsostreamJsonHandler(tornado.web.RequestHandler):
+class IsostreamJsonHandler(_JsonHandler):
   """Provides JSON of the last line of the isostream log (usually on TV box)."""
 
   @tornado.web.asynchronous
   def get(self):
-    try:
-      self.set_header('Content-Type', 'application/json')
-      isostreaminfo = (self.application.root.Device.IP.Diagnostics
-                       .X_CATAWAMPUS_ORG_Isostream)
-      isos_dict = {}
-      last_log_dict = {}
-      if isostreaminfo.last_log:
-        last_log_dict = vars(isostreaminfo.last_log)
-      isos_dict['last_log'] = last_log_dict
-      isos_dict['ClientRunning'] = isostreaminfo.ClientRunning
-      self.write(json.dumps(isos_dict))
-      self.finish()
-    except IOError:
-      pass
+    self.set_header('Content-Type', 'application/json')
+    isostreaminfo = (self.application.root.Device.IP.Diagnostics
+                     .X_CATAWAMPUS_ORG_Isostream)
+    isos_dict = {}
+    last_log_dict = {}
+    if isostreaminfo.last_log:
+      last_log_dict = vars(isostreaminfo.last_log)
+    isos_dict['last_log'] = last_log_dict
+    isos_dict['ClientRunning'] = isostreaminfo.ClientRunning
+    self.write(json.dumps(isos_dict))
+    self.finish()
 
 
 class IsostreamCombinedHandler(tornado.web.RequestHandler):
@@ -220,18 +230,15 @@ class IsostreamCombinedHandler(tornado.web.RequestHandler):
     finally:
       self.outstanding_requests -= 1
       if self.outstanding_requests == 0:
-        try:
-          self.write(self.combined_data)
-          self.finish()
-        except IOError:
-          pass
+        self.write(self.combined_data)
+        self.finish()
 
 
-class DiagUIJsonHandler(tornado.web.RequestHandler):
+class DiagUIJsonHandler(_JsonHandler):
   """Provides JSON-formatted content to be displayed in the UI."""
 
   @tornado.web.asynchronous
-  def get(self):    # pylint: disable=g-bad-name
+  def get(self):
     print 'diagui GET JSON data for diagnostics page'
     JsonGet(self, self.application.diagui,
             self.application.diagui.UpdateDiagUIDict)
@@ -248,11 +255,11 @@ class DiagnosticsHandler(tornado.web.RequestHandler):
 class DiagUIRestartHandler(tornado.web.RequestHandler):
   """Restart the network box."""
 
-  def get(self):    # pylint: disable=g-bad-name
+  def get(self):
     print 'diagui displaying restart interstitial screen'
     self.render('restarting.html')
 
-  def post(self):    # pylint: disable=g-bad-name
+  def post(self):
     print 'diagui user requested restart'
     self.redirect('/restart')
     os.system('(sleep 5; reboot) &')
@@ -325,10 +332,7 @@ class TechUI(object):
     nbas = {}
 
     global_content = LoadJson(MOCAGLOBALJSON)
-    try:
-      global_node_id = global_content['NodeId']
-    except KeyError:
-      global_node_id = 17  # max number of nodes is 16
+    global_node_id = global_content.get('NodeId', 17)  # max nodes is 16
     for interface in self.root.Device.MoCA.InterfaceList.itervalues():
       for dev in interface.AssociatedDeviceList.itervalues():
         if dev.NodeID != global_node_id:  #  to avoid getting info about self
@@ -342,10 +346,10 @@ class TechUI(object):
           no_errors = (dev.X_CATAWAMPUS_ORG_RxPrimaryCwNoErrors +
                        dev.X_CATAWAMPUS_ORG_RxSecondaryCwNoErrors)
           total = corrected + uncorrected + no_errors
-          try:
+          if total != 0:
             corrected_cw[dev.MACAddress] = corrected/total
             uncorrected_cw[dev.MACAddress] = uncorrected/total
-          except ZeroDivisionError:
+          else:
             corrected_cw[dev.MACAddress] = 0
             uncorrected_cw[dev.MACAddress] = 0
     updated = self.SetTechUIDict('moca_signal_strength', snr)
@@ -402,11 +406,12 @@ class TechUI(object):
         throughput = (
             host.X_CATAWAMPUS_ORG_ClientIdentification.
             WifiblasterLatestThroughput)
-        if throughput:
-          wifiblaster_results[host.PhysAddress] = throughput/1e6
       except AttributeError:
         # no wifiblaster results
         pass
+      else:
+        if throughput:
+          wifiblaster_results[host.PhysAddress] = throughput/1e6
 
     self.data['host_names'] = host_names
     self.data['ip_addr'] = ip_addr
@@ -498,9 +503,10 @@ class DiagUI(object):
     try:
       for sensor in tempstatus.TemperatureSensorList.itervalues():
         t[sensor.Name] = sensor.Value
-      self.data['temperature'] = t
     except AttributeError:
       pass
+    else:
+      self.data['temperature'] = t
 
     wan_addrs = dict()
     lan_addrs = dict()
@@ -583,11 +589,12 @@ class DiagUI(object):
 
     try:
       dns = self.root.DNS.SD.ServiceList
+    except AttributeError:
+      pass
+    else:
       for serv in dns.itervalues():
         self.data['dyndns'] = serv.InstanceName
         self.data['domain'] = serv.Domain
-    except AttributeError:
-      pass
 
     # We want the 'connected' field to be a boolean, but Activewan
     # returns either the empty string, or the name of the active wan
@@ -599,16 +606,12 @@ class DiagUI(object):
 
   def ReadOnuStats(self):
     """Read the ONU stat file and store into self.data."""
-    try:
-      with open(ONU_STAT_FILE) as f:
-        stats = f.read()
-    except IOError:
-      return
+    stats = open(ONU_STAT_FILE).read()
 
     try:
       json_stats = json.loads(stats)
-    except ValueError:
-      print 'Failed to decode onu stat file.'
+    except ValueError as e:
+      print 'Failed to decode onu stat file: %s' % e
       return
 
     self.data.update(json_stats)
