@@ -51,6 +51,7 @@ ISOSTREAM_KEY = 'Device.X_CATAWAMPUS-ORG.Isostream.'
 BINWIFI = ['wifi']
 STATIONS_DIR = ['/tmp/stations']
 TMPWAVEGUIDE = ['/tmp/waveguide']
+WIFIINFO_DIR = ['/tmp/wifi/wifiinfo']
 
 
 class WifiConfig(object):
@@ -435,88 +436,18 @@ class WlanConfiguration(CATA98WIFI):
   def release(self):
     self.Notifier.stop()
 
-  def _ParseBinwifiOutput(self, lines):
-    """Parse output of /bin/wifi show.
-
-    Example:
-        GSAFSJ1234E0123# wifi show
-        Band: 5
-        RegDomain: US
-        BSSID: 00:00:01:02:03:04
-        SSID: GFRG_GSAFSJ1234E0123_11ac
-        Channel: 153
-        Station List for band: 5
-        Station 00:00:01:00:00:01 (on wlan0)
-                inactive time:  1 ms
-                rx bytes:       2
-                rx packets:     3
-                tx bytes:       4
-                tx packets:     5
-                tx retries:     6
-                tx failed:      7
-                signal:         -8 dBm
-                signal avg:     -9 dBm
-                tx bitrate:     10.0 MBit/s
-                rx bitrate:     11.0 MBit/s
-
-    Args:
-        lines: The text that is being parsed.
-
-    Returns:
-        A dict populated with parameter names.
-        The dict will contain a AssociatedDevices
-        key, which holds a list of dicts (one per
-        associated Wifi client).
-    """
-
-    rc = {}
-    stations = []
-    in_stations = False
-    for line in lines:
-      if 'Station List' in line:
-        in_stations = True
-        continue
-      if not line.strip():
-        in_stations = False
-        continue
-
-      if in_stations:
-        if line.startswith('Station '):
-          stations.append(dict())
-          fields = line.split(' ')
-          stations[-1]['PhysAddr'] = fields[1]
-        else:
-          param, val = line.split(':', 1)
-          stations[-1][param.strip()] = val.strip()
-      else:
-        param, val = line.split(':', 1)
-        rc[param.strip()] = val.strip()
-    valid_stations = []
-    # The RG will print stations that have connected but aren't authorized
-    # or authenticated, this loop removes any such stations.
-    for station in stations:
-      if (('authorized' in station and station['authorized'] != 'yes') or
-          ('authenticated' in station and station['authenticated'] != 'yes')):
-        continue
-      valid_stations.append(station)
-    rc['AssociatedDevices'] = valid_stations
-    return rc
-
   @tr.session.cache
   def _BinwifiShow(self):
-    """Cache the output of /bin/wifi show."""
-    cmd = BINWIFI + ['show', '-b', self._band]
-    if self._if_suffix:
-      cmd += ['-S', self._if_suffix]
-
+    wifi_data = {}
     try:
-      w = subprocess.Popen(cmd, stdout=subprocess.PIPE, close_fds=True)
-      out, _ = w.communicate(None)
+      wifi_data = json.load(open(os.path.join(WIFIINFO_DIR[0], self._ifname)))
+      wifi_data['Band'] = self._band
     except (IOError, OSError, subprocess.CalledProcessError):
-      print 'Unable to run ' + ' '.join(cmd)
+      print ('Unable to load wifi info from: ' +
+             os.path.join(WIFIINFO_DIR[0], self._ifname))
       traceback.print_exc()
       return {}
-    return self._ParseBinwifiOutput(out.splitlines())
+    return wifi_data
 
   def StartTransaction(self):
     """Returns a dict of config updates to be applied."""

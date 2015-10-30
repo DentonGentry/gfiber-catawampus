@@ -1,0 +1,8 @@
+{
+  "BSSID": "00:01:02:03:04:05",
+  "SSID": "Test SSID",
+  "Channel": 8,
+  "RegDomain": "US",
+  "AutoChannel": false,
+  "AutoType": "LOW"
+}

@@ -58,6 +58,8 @@ class BinWifiTest(unittest.TestCase):
     binwifi.STATIONS_DIR[0] = os.path.join(self.tmpdir, 'stations')
     self.old_TMPWAVEGUIDE = binwifi.TMPWAVEGUIDE[0]
     binwifi.TMPWAVEGUIDE[0] = self.tmpdir
+    self.old_WIFIINFO_DIR = binwifi.WIFIINFO_DIR[0]
+    binwifi.WIFIINFO_DIR[0] = 'testdata/binwifi'
     self.loop = tr.mainloop.MainLoop()
     tr.session.cache.flush()
     self.bw_pool = []
@@ -67,6 +69,7 @@ class BinWifiTest(unittest.TestCase):
     netdev.PROC_NET_DEV = self.old_PROC_NET_DEV
     binwifi.STATIONS_DIR[0] = self.old_STATIONS_DIR
     binwifi.TMPWAVEGUIDE[0] = self.old_TMPWAVEGUIDE
+    binwifi.WIFIINFO_DIR[0] = self.old_WIFIINFO_DIR
     shutil.rmtree(self.tmpdir)
     # Let any pending callbacks expire
     self.loop.RunOnce(timeout=1)
@@ -140,7 +143,7 @@ class BinWifiTest(unittest.TestCase):
   def testAnotherConfigCommit(self):
     for (if_suffix, s_param) in SUFFIX_PARAMS:
       for (bridge, b_param) in BRIDGE_PARAMS:
-        bw = self.WlanConfiguration('wifi0', if_suffix, bridge, band='2.4')
+        bw = self.WlanConfiguration('wlan2', if_suffix, bridge, band='2.4')
         bw.StartTransaction()
         bw.RadioEnabled = True
         bw.Enable = True
