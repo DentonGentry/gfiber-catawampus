@@ -16,7 +16,7 @@
 # unittest requires method names starting in 'test'
 # pylint:disable=invalid-name
 
-"""Unit tests for TR-181 Device.X_CATAWAMPUS_ORG.Glaukus."""
+"""Unit tests for TR-69 Device.X_CATAWAMPUS_ORG.Glaukus."""
 
 __author__ = 'cgibson@google.com (Chris Gibson)'
 
@@ -30,11 +30,21 @@ import glaukus
 class GlaukusTest(unittest.TestCase):
   """Tests for glaukus.py."""
 
-  def setUp(self):
-    self.glaukus = glaukus.Glaukus()
+  def testValidateGlaukusExports(self):
+    glaukus_obj = glaukus.Glaukus()
+    tr.handle.ValidateExports(glaukus_obj)
 
-  def testValidate(self):
-    tr.handle.ValidateExports(self.glaukus)
+  def testValidateModemExports(self):
+    modem = glaukus.Modem()
+    tr.handle.ValidateExports(modem)
+
+  def testValidateRadioExports(self):
+    radio = glaukus.Radio()
+    tr.handle.ValidateExports(radio)
+
+  def testValidateReportExports(self):
+    report = glaukus.Report()
+    tr.handle.ValidateExports(report)
 
 
 if __name__ == '__main__':

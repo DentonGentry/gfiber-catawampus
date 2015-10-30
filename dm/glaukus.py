@@ -16,7 +16,7 @@
 # TR-069 has mandatory attribute names that don't comply with policy
 # pylint:disable=invalid-name
 
-"""Implementation of TR-181 objects for Glaukus."""
+"""Implementation of TR-69 objects for Glaukus Manager."""
 
 __author__ = 'cgibson@google.com (Chris Gibson)'
 
@@ -31,20 +31,57 @@ CATA181GLAUKUS = BASE.Device.X_CATAWAMPUS_ORG.Glaukus
 class Glaukus(CATA181GLAUKUS):
   """Device.X_CATAWAMPUS_ORG.Glaukus."""
 
-  AbsMseDb = tr.cwmptypes.ReadOnlyInt(0)
-  AdcCount = tr.cwmptypes.ReadOnlyInt(0)
-  ExternalAgcIdx = tr.cwmptypes.ReadOnlyInt(0)
-  InPowerRssiDbc = tr.cwmptypes.ReadOnlyInt(0)
-  InbandPowerRssiDbc = tr.cwmptypes.ReadOnlyInt(0)
-  InternalAgcIdx = tr.cwmptypes.ReadOnlyInt(0)
-  MeasuredPowerRssiDbm = tr.cwmptypes.ReadOnlyInt(0)
-  NormMseDb = tr.cwmptypes.ReadOnlyInt(0)
-  RadMseDb = tr.cwmptypes.ReadOnlyInt(0)
-  RxLockLossEvents = tr.cwmptypes.ReadOnlyUnsigned(0)
-  RxLockLossTimeMs = tr.cwmptypes.ReadOnlyUnsigned(0)
+  @property
+  def Modem(self):
+    return Modem()
+
+  @property
+  def Radio(self):
+    return Radio()
+
+  @property
+  def Report(self):
+    return Report()
+
+
+class Modem(CATA181GLAUKUS.Modem):
+  """Catawampus implementation of Glaukus Manager Modem statistics."""
+
+  ChipTemp = tr.cwmptypes.ReadOnlyFloat()
+  ChipTempStatus = tr.cwmptypes.ReadOnlyString()
+  ConfigHash = tr.cwmptypes.ReadOnlyString()
+  FecAlarms = tr.cwmptypes.ReadOnlyInt()
+  PcbCurrentDraw = tr.cwmptypes.ReadOnlyFloat()
+  PcbTemp = tr.cwmptypes.ReadOnlyFloat()
+  PcbTempStatus = tr.cwmptypes.ReadOnlyString()
+  ResetCount = tr.cwmptypes.ReadOnlyUnsigned()
+  Uptime = tr.cwmptypes.ReadOnlyUnsigned()
+
+
+class Radio(CATA181GLAUKUS.Radio):
+  """Catawampus implementation of Glaukus Manager Radio statistics."""
+
+  MajorVersion = tr.cwmptypes.ReadOnlyString()
+  MinorVersion = tr.cwmptypes.ReadOnlyString()
+
+
+class Report(CATA181GLAUKUS.Report):
+  """Catawampus implementation of Glaukus Manager Report statistics."""
+
+  AbsMseDb = tr.cwmptypes.ReadOnlyInt()
+  AdcCount = tr.cwmptypes.ReadOnlyInt()
+  ExternalAgcIdx = tr.cwmptypes.ReadOnlyInt()
+  InPowerRssiDbc = tr.cwmptypes.ReadOnlyInt()
+  InbandPowerRssiDbc = tr.cwmptypes.ReadOnlyInt()
+  InternalAgcIdx = tr.cwmptypes.ReadOnlyInt()
+  MeasuredPowerRssiDbm = tr.cwmptypes.ReadOnlyInt()
+  NormMseDb = tr.cwmptypes.ReadOnlyInt()
+  RadMseDb = tr.cwmptypes.ReadOnlyInt()
+  RxLockLossEvents = tr.cwmptypes.ReadOnlyUnsigned()
+  RxLockLossTimeMs = tr.cwmptypes.ReadOnlyUnsigned()
   RxLockStatus = tr.cwmptypes.ReadOnlyBool()
-  StartSampleCaptureTimeMs = tr.cwmptypes.ReadOnlyUnsigned(0)
-  StopSampleCaptureTimeMs = tr.cwmptypes.ReadOnlyUnsigned(0)
+  StartSampleCaptureTimeMs = tr.cwmptypes.ReadOnlyUnsigned()
+  StopSampleCaptureTimeMs = tr.cwmptypes.ReadOnlyUnsigned()
 
 
 if __name__ == '__main__':

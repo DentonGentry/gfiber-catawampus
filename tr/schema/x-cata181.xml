@@ -1294,8 +1294,62 @@ If both {{param|X_CATAWAMPUS-ORG_PortRangeSize}} and {{param|ExternalPortEndRang
       </parameter>
     </object>
 
-    <object name="Device.X_CATAWAMPUS-ORG.Glaukus." access="readOnly" minEntries="1" maxEntries="1">
-      <description>Container for parameters supporting Glaukus Manager.</description>
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus." access="readOnly" minEntries="1" maxEntries="1"/>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Modem." access="readOnly" minEntries="1" maxEntries="1">
+      <description>Container for Glaukus Manager Modem statistics.</description>
+      <parameter name="ConfigHash" access="readOnly">
+        <description>Modem config file hash.</description>
+        <syntax><string/></syntax>
+      </parameter>
+      <parameter name="ChipTemp" access="readOnly">
+        <description>Temperature reported by the modem chip sensor.</description>
+        <syntax><float><units value="celsius"/></float></syntax>
+      </parameter>
+      <parameter name="ChipTempStatus" access="readOnly">
+        <description>Overall status of the modem chip temperature.</description>
+        <syntax><string/></syntax>
+      </parameter>
+      <parameter name="FecAlarms" access="readOnly">
+        <description>FEC encoder frame alarms.</description>
+        <syntax><unsignedInt/></syntax>
+      </parameter>
+      <parameter name="PcbCurrentDraw" access="readOnly">
+        <description>Current draw from modem PCB.</description>
+        <syntax><unsignedInt/></syntax>
+      </parameter>
+      <parameter name="PcbTemp" access="readOnly">
+        <description>Temperature reported by the modem PCB.</description>
+        <syntax><float><units value="celsius"/></float></syntax>
+      </parameter>
+      <parameter name="PcbTempStatus" access="readOnly">
+        <description>Overall status of the modem PCB temperature.</description>
+        <syntax><string/></syntax>
+      </parameter>
+      <parameter name="ResetCount" access="readOnly">
+        <description>Number of times the modem has been reset.</description>
+        <syntax><unsignedInt/></syntax>
+      </parameter>
+      <parameter name="Uptime" access="readOnly">
+        <description>Modem uptime.</description>
+        <syntax><unsignedInt><units value="milliseconds"/></unsignedInt></syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Radio." access="readOnly" minentries="1" maxEntries="1">
+      <description>Container for Glaukus Manager Radio Statistics.</description>
+      <parameter name="MajorVersion" access="readOnly">
+        <description>Radio Subsystem Major Version.</description>
+        <syntax><string/></syntax>
+      </parameter>
+      <parameter name="MinorVersion" access="readOnly">
+        <description>Radio Subsystem Minor Version.</description>
+        <syntax><string/></syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Report." access="readOnly" minEntries="1" maxEntries="1">
+      <description>Container for Glaukus Manager Report Statistics.</description>
       <parameter name="StartSampleCaptureTimeMs" access="readOnly">
         <description>Start capture timestamp in milliseconds.</description>
         <syntax><unsignedLong><units value="ms"/></unsignedLong></syntax>
