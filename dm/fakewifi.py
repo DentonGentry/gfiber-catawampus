@@ -138,7 +138,9 @@ class FakeWifiWlanConfiguration(CATA98WIFI):
     # Unimplemented, but not yet evaluated
     self.Unexport(['Alias', 'BeaconAdvertisementEnabled', 'ChannelsInUse',
                    'MaxBitRate', 'PossibleDataTransmitRates',
-                   'TotalIntegrityFailures', 'TotalPSKFailures'])
+                   'TotalIntegrityFailures', 'TotalPSKFailures',
+                   'OperatingStandards', 'SupportedStandards',
+                   'RekeyingInterval', 'GuardInterval'])
 
     # No support for acting as a client, could be added later.
     self.Unexport(['ClientEnable'])

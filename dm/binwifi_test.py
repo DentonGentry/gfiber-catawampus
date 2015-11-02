@@ -27,11 +27,11 @@ import tempfile
 import time
 
 import google3
+import binwifi
+import netdev
 import tr.handle
 import tr.session
 from tr.wvtest import unittest
-import binwifi
-import netdev
 
 BRIDGE_PARAMS = [
     ('', ' "--bridge="'),
@@ -131,7 +131,8 @@ class BinWifiTest(unittest.TestCase):
         # testdata/binwifi/binwifi quotes every argument
         exp = [
             '"set" "-P" "-b" "2.4" "-e" "WPA_PSK_AES"%s%s "-c" "auto" "-s" '
-            '"Test SSID 1" "-a" "HIGH" "-p" "a/b/g/n"' % (s_param, b_param),
+            '"Test SSID 1" "-a" "HIGH" "-p" "a/b/g/n" '
+            '"-M"' % (s_param, b_param),
             'PSK=testpassword'
         ]
         self.assertEqual(buf.strip().splitlines(), exp)
@@ -155,7 +156,7 @@ class BinWifiTest(unittest.TestCase):
         # testdata/binwifi/binwifi quotes every argument
         exp = [
             '"set" "-P" "-b" "2.4" "-e" "WPA2_PSK_AES"%s%s "-H" "-c" "10" '
-            '"-s" "Test SSID 1" "-a" "HIGH" "-p" "a/b/g/n"'
+            '"-s" "Test SSID 1" "-a" "HIGH" "-p" "a/b/g/n" "-M"'
             % (s_param, b_param),
             'PSK=testpassword'
         ]
@@ -181,7 +182,7 @@ class BinWifiTest(unittest.TestCase):
         # testdata/binwifi/binwifi quotes every argument
         exp = [
             '"set" "-P" "-b" "5" "-e" "WPA2_PSK_AES"%s%s "-H" "-c" "44" '
-            '"-s" "Test SSID 1" "-a" "HIGH" "-w" "80" "-p" "a/b/g/n"'
+            '"-s" "Test SSID 1" "-a" "HIGH" "-w" "80" "-p" "a/b/g/n" "-M"'
             % (s_param, b_param),
             'PSK=testpassword'
         ]
@@ -283,7 +284,7 @@ class BinWifiTest(unittest.TestCase):
           # testdata/binwifi/binwifi quotes every argument
           exp = [
               '"set" "-P" "-b" "2.4" "-e" "WPA12_PSK_AES"%s%s '
-              '"-c" "auto" "-s" "Test SSID 1" "-p" "a/b/g/n"'
+              '"-c" "auto" "-s" "Test SSID 1" "-p" "a/b/g/n" "-M"'
               % (s_param, b_param),
               'PSK=testpassword'
           ]
@@ -324,7 +325,8 @@ class BinWifiTest(unittest.TestCase):
         buf = self.GatherOutput()
         exp = [
             '"set" "-P" "-b" "2.4" "-e" "WEP"%s%s '
-            '"-c" "auto" "-s" "Test SSID" "-p" "a/b/g/n"' % (s_param, b_param),
+            '"-c" "auto" "-s" "Test SSID" "-p" "a/b/g/n" '
+            '"-M"' % (s_param, b_param),
             'PSK='
         ]
         self.assertEqual(buf.strip().splitlines(), exp)
@@ -482,18 +484,54 @@ class BinWifiTest(unittest.TestCase):
     bw.IEEE11iEncryptionModes = 'AESEncryption'
     bw.KeyPassphrase = 'testpassword'
     bw.SSIDAdvertisementEnabled = False
+    bw.GuardInterval = '800nsec'
+    bw.RekeyingInterval = 3600
+    bw.WMMEnable = False
 
     bw.Standard = 'ac'
     buf = self.GatherOutput()
     self.assertTrue('"-p" "a/b/g/n/ac"' in buf)
+    self.assertTrue('"-M"' in buf)  # always enabled for n/ac modes
+    self.assertTrue('"-G"' not in buf)
+
+    bw.GuardInterval = '400nsec'
+    buf = self.GatherOutput()
+    self.assertTrue('"-G"' in buf)
+    self.assertTrue('"-Y"' not in buf)
+    self.assertTrue('"-X"' not in buf)
+    self.assertTrue('"-XX"' not in buf)
+
+    bw.RekeyingInterval = 0
+    buf = self.GatherOutput()
+    self.assertTrue('"-Y"' in buf)
+    self.assertTrue('"-X"' not in buf)
+    self.assertTrue('"-XX"' not in buf)
+
+    bw.RekeyingInterval = 1
+    buf = self.GatherOutput()
+    self.assertTrue('"-Y"' not in buf)
+    self.assertTrue('"-X"' in buf)
+    self.assertTrue('"-XX"' not in buf)
+
+    bw.RekeyingInterval = 10
+    buf = self.GatherOutput()
+    self.assertTrue('"-Y"' not in buf)
+    self.assertTrue('"-X"' not in buf)
+    self.assertTrue('"-XX"' in buf)
 
     bw.Standard = 'n'
     buf = self.GatherOutput()
     self.assertTrue('"-p" "a/b/g/n"' in buf)
+    self.assertTrue('"-M"' in buf)  # always enabled for n/ac modes
 
     bw.Standard = 'g'
     buf = self.GatherOutput()
     self.assertTrue('"-p" "a/b/g"' in buf)
+    self.assertTrue('"-M"' not in buf)  # not auto-enabled
+
+    bw.WMMEnable = True
+    buf = self.GatherOutput()
+    self.assertTrue('"-M"' in buf)
 
     bw.Standard = 'b'
     buf = self.GatherOutput()
@@ -502,7 +540,15 @@ class BinWifiTest(unittest.TestCase):
 
     bw.Standard = 'a'
     buf = self.GatherOutput()
-    # We set 'a/b' and expect OperatingFrequencyBand to determine the band.
+    # No output, because 'a' is the same as the previous 'b', so wifi doesn't
+    # need to restart.
+    self.assertEqual(buf, '')
+
+    bw.Standard = 'g'
+    buf = self.GatherOutput()
+    bw.Standard = 'a'
+    buf = self.GatherOutput()
+    # Same output as 'b'
     self.assertTrue('"-p" "a/b"' in buf)
 
   def testWidth(self):

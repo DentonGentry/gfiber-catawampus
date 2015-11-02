@@ -106,6 +106,84 @@ def Wifi24GForce40M(roothandle):
 
 
 @tr.experiment.Experiment
+def Wifi5GForce20M(roothandle):
+  for wlankey, wlan in _WifiConfigs(roothandle):
+    if hasattr(wlan, 'X_CATAWAMPUS_ORG_Width5G'):
+      yield (wlankey + 'X_CATAWAMPUS-ORG_Width5G'), '20'
+
+
+@tr.experiment.Experiment
+def Wifi5GForce40M(roothandle):
+  for wlankey, wlan in _WifiConfigs(roothandle):
+    if hasattr(wlan, 'X_CATAWAMPUS_ORG_Width5G'):
+      yield (wlankey + 'X_CATAWAMPUS-ORG_Width5G'), '40'
+
+
+@tr.experiment.Experiment
+def Wifi5GDisable(roothandle):
+  for wlankey, wlan in _WifiConfigs(roothandle):
+    if getattr(wlan, '_fixed_band', '') == '5':
+      yield (wlankey + 'Enable'), False
+
+
+@tr.experiment.Experiment
+def WifiShortGuardInterval(roothandle):
+  for wlankey, wlan in _WifiConfigs(roothandle):
+    if hasattr(wlan, 'GuardInterval'):
+      yield (wlankey + 'GuardInterval'), '400nsec'
+
+
+@tr.experiment.Experiment
+def WifiDisableWMM(roothandle):
+  """Note: only applies if not using 802.11n or later."""
+  for wlankey, wlan in _WifiConfigs(roothandle):
+    if hasattr(wlan, 'WMMEnable'):
+      yield (wlankey + 'WMMEnable'), False
+
+
+@tr.experiment.Experiment
+def WifiRekeyNever(roothandle):
+  for wlankey, wlan in _WifiConfigs(roothandle):
+    if hasattr(wlan, 'RekeyingInterval'):
+      yield (wlankey + 'RekeyingInterval'), 0
+
+
+@tr.experiment.Experiment
+def WifiRekeyPTK(roothandle):
+  for wlankey, wlan in _WifiConfigs(roothandle):
+    if hasattr(wlan, 'RekeyingInterval'):
+      yield (wlankey + 'RekeyingInterval'), 1
+
+
+@tr.experiment.Experiment
+def WifiRekeyOften(roothandle):
+  for wlankey, wlan in _WifiConfigs(roothandle):
+    if hasattr(wlan, 'RekeyingInterval'):
+      yield (wlankey + 'RekeyingInterval'), 10
+
+
+@tr.experiment.Experiment
+def Wifi80211g(roothandle):
+  for wlankey, wlan in _WifiConfigs(roothandle):
+    if hasattr(wlan, 'X_CATAWAMPUS_ORG_Width24G'):
+      yield (wlankey + 'X_CATAWAMPUS-ORG_Width24G'), '20'
+    if hasattr(wlan, 'X_CATAWAMPUS_ORG_Width5G'):
+      yield (wlankey + 'X_CATAWAMPUS-ORG_Width5G'), '20'
+    yield (wlankey + 'Standard'), 'g'
+
+
+@tr.experiment.Experiment
+def Wifi24G80211g(roothandle):
+  for wlankey, wlan in _WifiConfigs(roothandle):
+    # Note: this intentionally doesn't match dual-band interfaces, because
+    # there's no clean way to switch this back in 5 GHz mode on those.
+    if hasattr(wlan, 'X_CATAWAMPUS_ORG_Width24G'):
+      yield (wlankey + 'X_CATAWAMPUS-ORG_Width24G'), '20'
+    if getattr(wlan, '_fixed_band', '') == '2.4':
+      yield (wlankey + 'Standard'), 'g'
+
+
+@tr.experiment.Experiment
 def ForceTvBoxWifi(roothandle):
   try:
     model_name = roothandle.obj.Device.DeviceInfo.ModelName
@@ -227,6 +305,8 @@ class WlanConfiguration(CATA98WIFI):
   ClientEnable = tr.cwmptypes.TriggerBool(False)
   DeviceOperationMode = tr.cwmptypes.ReadOnlyString('InfrastructureAccessPoint')
   Enable = tr.cwmptypes.TriggerBool(False)
+  GuardInterval = tr.cwmptypes.TriggerEnum(
+      ['400nsec', '800nsec', 'Auto'], init='Auto')
   IEEE11iAuthenticationMode = tr.cwmptypes.TriggerEnum(
       ['PSKAuthentication'], init='PSKAuthentication')
   IEEE11iEncryptionModes = tr.cwmptypes.TriggerEnum(
@@ -234,14 +314,17 @@ class WlanConfiguration(CATA98WIFI):
   LocationDescription = tr.cwmptypes.String()
   Name = tr.cwmptypes.ReadOnlyString()
   RadioEnabled = tr.cwmptypes.TriggerBool(False)
+  RekeyingInterval = tr.cwmptypes.TriggerUnsigned(3600)
   SSIDAdvertisementEnabled = tr.cwmptypes.TriggerBool(True)
-  Standard = tr.cwmptypes.TriggerString()
+  SupportedStandards = tr.cwmptypes.ReadOnlyString()
+  OperatingStandards = tr.cwmptypes.TriggerString()
   SupportedFrequencyBands = tr.cwmptypes.ReadOnlyString('2.4GHz,5GHz')
   TransmitPowerSupported = tr.cwmptypes.ReadOnlyString('0,20,40,60,80,100')
   UAPSDSupported = tr.cwmptypes.ReadOnlyBool(False)
   WEPEncryptionLevel = tr.cwmptypes.ReadOnlyString('Disabled,40-bit,104-bit')
   WEPKeyIndex = tr.cwmptypes.Unsigned(1)
-  WMMSupported = tr.cwmptypes.ReadOnlyBool(False)
+  WMMSupported = tr.cwmptypes.ReadOnlyBool(True)
+  WMMEnable = tr.cwmptypes.TriggerBool(True)
   WPAAuthenticationMode = tr.cwmptypes.TriggerEnum(
       ['PSKAuthentication'], init='PSKAuthentication')
   WPAEncryptionModes = tr.cwmptypes.TriggerEnum(
@@ -258,6 +341,12 @@ class WlanConfiguration(CATA98WIFI):
     self._band = band if band else '5'
     self._bridge = bridge
     self._fixed_band = band
+    if standard == 'ac':
+      type(self).SupportedStandards.Set(self, 'a,b,g,n,ac')
+    elif standard == 'n':
+      type(self).SupportedStandards.Set(self, 'a,b,g,n')
+    else:
+      raise ValueError('unsupported wifi standards level: %r' % (standard,))
     self.Standard = standard
     self.X_CATAWAMPUS_ORG_Width24G = str(width_2_4g) if width_2_4g else ''
     self.X_CATAWAMPUS_ORG_Width5G = str(width_5g) if width_5g else ''
@@ -304,7 +393,7 @@ class WlanConfiguration(CATA98WIFI):
     # Wifi MultiMedia, currently unimplemented but could be supported.
     # "wl wme_*" commands
     self.Unexport(lists=['APWMMParameter', 'STAWMMParameter'])
-    self.Unexport(['UAPSDEnable', 'WMMEnable'])
+    self.Unexport(['UAPSDEnable'])
 
     # WDS, currently unimplemented but could be supported at some point.
     self.Unexport(['PeerBSSID', 'DistanceFromRoot'])
@@ -579,6 +668,31 @@ class WlanConfiguration(CATA98WIFI):
                                     'WLANConfiguration.OperatingFrequencyBand')
 
   @property
+  def Standard(self):
+    l = self.OperatingStandards.split(',')
+    if 'ac' in l:
+      return 'ac'
+    elif 'n' in l:
+      return 'n'
+    elif 'g' in l:
+      return 'g'
+    else:
+      return 'b'
+
+  @Standard.setter
+  def Standard(self, v):
+    if v == 'ac':
+      self.OperatingStandards = 'a,b,g,n,ac'
+    elif v == 'n':
+      self.OperatingStandards = 'a,b,g,n'
+    elif v == 'g':
+      self.OperatingStandards = 'a,b,g'
+    elif v == 'a' or v == 'b':
+      self.OperatingStandards = 'a,b'
+    else:
+      raise ValueError('unknown wifi standard %r' % (v,))
+
+  @property
   def RegulatoryDomain(self):
     return self._BinwifiShow().get('RegDomain', '').strip()
 
@@ -813,14 +927,20 @@ class WlanConfiguration(CATA98WIFI):
     elif self._band == '5' and cw5:
       cmd += ['-w', cw5]
 
-    if self.Standard == 'ac':
-      cmd += ['-p', 'a/b/g/n/ac']
-    elif self.Standard == 'n':
-      cmd += ['-p', 'a/b/g/n']
-    elif self.Standard == 'g':
-      cmd += ['-p', 'a/b/g']
-    elif self.Standard == 'a' or self.Standard == 'b':
-      cmd += ['-p', 'a/b']
+    cmd += ['-p', '/'.join(self.OperatingStandards.split(',')).encode('utf8')]
+
+    if self.Standard in ('n', 'ac') or self.WMMEnable:
+      cmd += ['-M']
+
+    if self.RekeyingInterval == 1:
+      cmd += ['-X']  # normal rekeying but add PTK rekeying
+    elif self.RekeyingInterval == 0:
+      cmd += ['-Y']  # disable all rekeying
+    elif self.RekeyingInterval <= 300:
+      cmd += ['-XX']  # very fast rekeying
+
+    if self.GuardInterval == '400nsec':
+      cmd += ['-G']
 
     sl = sorted(self.PreSharedKeyList.iteritems(), key=lambda x: int(x[0]))
     for (_, psk) in sl:
