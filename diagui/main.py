@@ -606,7 +606,12 @@ class DiagUI(object):
 
   def ReadOnuStats(self):
     """Read the ONU stat file and store into self.data."""
-    stats = open(ONU_STAT_FILE).read()
+    try:
+      stats = open(ONU_STAT_FILE).read()
+    except IOError as e:
+      if e.errno != errno.ENOENT:
+        print 'Failed to read onu stat file: %s' % e
+      return
 
     try:
       json_stats = json.loads(stats)

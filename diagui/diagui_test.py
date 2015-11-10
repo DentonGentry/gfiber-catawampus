@@ -169,6 +169,12 @@ domain home.allenfamily.com"""
     self.assertEqual(jsdata['onu_acs_contact_time'], 100000)
     self.assertEqual(jsdata['onu_serial'], '12345')
 
+  def testNoOnuStats(self):
+    app = diagui.main.MainApplication(None, None)
+    diagui.main.ONU_STAT_FILE = '/no/such/file'
+    app.diagui.ReadOnuStats()
+    # just checking whether there is an exception
+
 
 class TechuiTest(unittest.TestCase):
   """Tests the data gathering functions for the TechUI."""
