@@ -133,9 +133,10 @@ def WhatIfTVSwarm(_):
 def WhatIfTVPrimetimeSwarm(_):
   return [(ISOSTREAM_KEY + 'ClientRunOnSchedule', True),
 
-          # The swarm experiments should be as stressful as possible, and complete as soon as
-          # possible. My working hypothesis is 8PM is deeper into primetime, and thus has more load
-          # on the network, than 7PM :).
+          # The swarm experiments should be as stressful as possible, and
+          # complete as soon as possible. My working hypothesis is 8PM is
+          # deeper into primetime, and thus has more load on the network,
+          # than 7PM :).
 
           (ISOSTREAM_KEY + 'ClientStartAtOrAfter', 20*60*60),
           (ISOSTREAM_KEY + 'ClientEndBefore', 20*60*60+1*60),
