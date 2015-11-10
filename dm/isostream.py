@@ -104,10 +104,41 @@ def WhatIfTV(_):
 
 
 @tr.experiment.Experiment
+def WhatIfTVPrimetime(_):
+  return [(ISOSTREAM_KEY + 'ClientRunOnSchedule', True),
+          (ISOSTREAM_KEY + 'ClientStartAtOrAfter', 19*60*60),
+          (ISOSTREAM_KEY + 'ClientEndBefore', 22*60*60),
+          (ISOSTREAM_KEY + 'ClientTimeSufficient', 5*60),
+
+          # The limit for all clients, when we're serializing requests, is:
+          #
+          #   $timeLimit = k * count(clients) * timeSufficient$
+          #
+          # where k is a 'fudge factor' based on conducting tests on unreliable
+          # networks that allowed most six-node tests time enough to complete on
+          # all nodes.
+
+          (ISOSTREAM_KEY + 'ClientTimeLimit', 2*6*5*60)]
+
+
+@tr.experiment.Experiment
 def WhatIfTVSwarm(_):
   return [(ISOSTREAM_KEY + 'ClientRunOnSchedule', True),
           (ISOSTREAM_KEY + 'ClientStartAtOrAfter', 1*60*60),
           (ISOSTREAM_KEY + 'ClientEndBefore', 1*60*60+1*60),
+          (ISOSTREAM_KEY + 'ClientTimeLimit', 5*60)]
+
+
+@tr.experiment.Experiment
+def WhatIfTVPrimetimeSwarm(_):
+  return [(ISOSTREAM_KEY + 'ClientRunOnSchedule', True),
+
+          # The swarm experiments should be as stressful as possible, and complete as soon as
+          # possible. My working hypothesis is 8PM is deeper into primetime, and thus has more load
+          # on the network, than 7PM :).
+
+          (ISOSTREAM_KEY + 'ClientStartAtOrAfter', 20*60*60),
+          (ISOSTREAM_KEY + 'ClientEndBefore', 20*60*60+1*60),
           (ISOSTREAM_KEY + 'ClientTimeLimit', 5*60)]
 
 
