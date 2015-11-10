@@ -233,22 +233,26 @@ function showBitloading(data) {
     var bitloading = bit_data[macAddr];
     for (var i = prefix.length; i < bitloading.length; i++) {
       var bl = parseInt(bitloading[i], 16);
+      var chan = i - prefix.length;
+      var color;
+
       if (isNaN(bl)) {
         console.log('Could not parse', bitloading[i], 'as a number.');
         continue;
       }
-      if (bl < 5) {
-        $('#bitloading').append('<span class="bit" ' +
-        'style="background-color:#FF4136">' + bitloading[i] + '</span>');
+      if ((chan < 4) || (chan > 243 && chan < 269) || (chan > 508)) {
+        /** Guard bands. */
+        color = '#E5E5E5';
+      } else if (bl < 5) {
+        color = '#FF4136';
+      } else if (bl < 7) {
+        color = '#FFDC00';
+      } else {
+        color = '#2ECC40';
       }
-      else if (bl < 7) {
-        $('#bitloading').append('<span class="bit" ' +
-        'style="background-color:#FFDC00">' + bitloading[i] + '</span>');
-      }
-      else {
-        $('#bitloading').append('<span class="bit" ' +
-        'style="background-color:#2ECC40">' + bitloading[i] + '</span>');
-      }
+
+      $('#bitloading').append('<span class="bit" ' +
+        'style="background-color:' + color + '">' + bitloading[i] + '</span>');
     }
     $('#bitloading').append('<br style="clear:both"><br>');
   }
