@@ -21,31 +21,54 @@
 __author__ = 'cgibson@google.com (Chris Gibson)'
 
 import google3
-
 from tr.wvtest import unittest
 import tr.handle
 import glaukus
 
+glaukus.MODEM_JSON_FILE = 'testdata/glaukus/modem.json'
+glaukus.RADIO_JSON_FILE = 'testdata/glaukus/radio.json'
+glaukus.REPORT_JSON_FILE = 'testdata/glaukus/report.json'
+
 
 class GlaukusTest(unittest.TestCase):
   """Tests for glaukus.py."""
+
+  def setUp(self):
+    self.json_reader = glaukus.JsonReader()
 
   def testValidateGlaukusExports(self):
     glaukus_obj = glaukus.Glaukus()
     tr.handle.ValidateExports(glaukus_obj)
 
   def testValidateModemExports(self):
-    modem = glaukus.Modem()
+    modem = glaukus.Modem(self.json_reader)
     tr.handle.ValidateExports(modem)
 
   def testValidateRadioExports(self):
-    radio = glaukus.Radio()
+    radio = glaukus.Radio(self.json_reader)
     tr.handle.ValidateExports(radio)
 
   def testValidateReportExports(self):
-    report = glaukus.Report()
+    report = glaukus.Report(self.json_reader)
     tr.handle.ValidateExports(report)
 
+  def testJsonReaderWithTestData(self):
+    self.json_reader.LoadJsonFromFile('testdata/glaukus/test.json', 'test')
+    self.assertEqual('bar', self.json_reader.GetStat('foo',
+                                                     default='mydefault'))
+    self.assertEqual('mydefault', self.json_reader.GetStat('doesntexist',
+                                                           default='mydefault'))
+
+  def testJsonFailToDecode(self):
+    self.json_reader.LoadJsonFromFile('testdata/glaukus/test.json', 'fail')
+    self.assertEqual('mydefault',
+                     self.json_reader.GetStat('foo', default='mydefault'))
+
+  def testJsonReaderWithMissingJsonFile(self):
+    self.json_reader.LoadJsonFromFile('/this/does/not/exist', 'missingfile')
+    self.assertEqual('mydefault',
+                     self.json_reader.GetStat('shouldntmatter',
+                                              default='mydefault'))
 
 if __name__ == '__main__':
   unittest.main()

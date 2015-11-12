@@ -1,0 +1,1 @@
+{"report": {"abs_mse_db": 123, "adc_count": 1, "external_agc_idx": 1, "inpower_rssi_dbc": 123, "inband_power_rssi_dbc": 123, "internal_agc_idx": "1", "msr_pwr_rssi_dbm": 123, "norm_mse_db": "123", "rad_mse_db": "123", "rx_lock_loss_events": "0", "rx_lock_loss_time_ms": 123123, "rx_lock_status": true, "sample_start_tstamp_ms": "123", "sample_stop_tstamp_ms": "456"}}
