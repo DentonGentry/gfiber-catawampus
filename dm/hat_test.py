@@ -168,5 +168,13 @@ class HatTests(unittest.TestCase):
     self.assertEqual(
         open(hat.CONTRACTS[0]).read(), contracts_file_content + '\n')
 
+  def testNoDirectory(self):
+    hat.SYSTEMPROPS[0] = '/no/such/directory/systemprops'
+    hat_handler = hat.Hat()
+    hat_handler.HatRequestMaxDelaySecs = 120
+    self.loop.RunOnce()
+    # just checking that there is no exception
+
+
 if __name__ == '__main__':
   unittest.main()

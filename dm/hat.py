@@ -20,6 +20,7 @@
 
 __author__ = 'irinams@google.com (Irina Stanescu)'
 
+import errno
 import google3
 import tr.cwmptypes
 import tr.handle
@@ -81,8 +82,7 @@ class Hat(CATABASE.HAT):
     if var is not None:
       f.write('%s=%s\n' % (name, var))
 
-  @tr.mainloop.WaitUntilIdle
-  def Triggered(self):
+  def _WriteHatFile(self):
     with tr.helpers.AtomicFile(
         SYSTEMPROPS[0], owner='video', group='video') as f:
       self.printIfSetBool(f, self.HAT, 'hat')
@@ -115,6 +115,16 @@ class Hat(CATABASE.HAT):
       self.printIfSetString(f, self.FetcherThrottlingIntervals,
                             'fetcher_throttling_intervals')
       self.printIfSetString(f, self.GFASUrl, 'gfas_url')
+
+  @tr.mainloop.WaitUntilIdle
+  def Triggered(self):
+    try:
+      self._WriteHatFile()
+    except IOError as e:
+      if e.errno == errno.ENOENT:
+        print 'hat.py: no such file: %s' % SYSTEMPROPS[0]
+      else:
+        raise
 
 if __name__ == '__main__':
   print tr.handle.DumpSchema(Hat())
