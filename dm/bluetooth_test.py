@@ -32,23 +32,27 @@ import tr.helpers
 import tr.mainloop
 
 
-class iBeaconTest(unittest.TestCase):
+class BluetoothTest(unittest.TestCase):
 
   def setUp(self):
-    super(iBeaconTest, self).setUp()
+    super(BluetoothTest, self).setUp()
     self.tmpdir = tempfile.mkdtemp()
     self.outfile = os.path.join(self.tmpdir, 'out')
     self.old_IBEACONCMD = bluetooth.IBEACONCMD
     bluetooth.IBEACONCMD = ['testdata/bluetooth/ibeacon', self.outfile]
     self.old_EDDYSTONECMD = bluetooth.EDDYSTONECMD
     bluetooth.EDDYSTONECMD = ['testdata/bluetooth/eddystone', self.outfile]
+    self.old_INVENTORY_GLOB = bluetooth.INVENTORY_GLOB
+    g = 'testdata/bluetooth/inventory/*/gfiber-inventory'
+    bluetooth.INVENTORY_GLOB = [g]
     self.loop = tr.mainloop.MainLoop()
 
   def tearDown(self):
-    super(iBeaconTest, self).tearDown()
+    super(BluetoothTest, self).tearDown()
     shutil.rmtree(self.tmpdir)
     bluetooth.IBEACONCMD = self.old_IBEACONCMD
     bluetooth.EDDYSTONECMD = self.old_EDDYSTONECMD
+    bluetooth.INVENTORY_GLOB = self.old_INVENTORY_GLOB
     tr.helpers.Unlink(self.outfile)
 
   def testValidateExports(self):
@@ -112,6 +116,24 @@ class iBeaconTest(unittest.TestCase):
     self.assertTrue(os.path.exists(self.outfile))
     buf = open(self.outfile).read()
     self.assertTrue('-d' in buf)
+
+
+  def testRemoteControls(self):
+    b = bluetooth.Bluetooth()
+    self.assertEqual(2, b.RemoteControlNumberOfEntries)
+
+    l = b.RemoteControlList
+    self.assertEqual('GFRM100', l[1].Model)
+    self.assertEqual('00:24:1C:B5:E2:C8', l[1].PhysAddress)
+    self.assertEqual('', l[1].FirmwareVersion)
+    self.assertEqual('', l[1].HardwareVersion)
+    self.assertEqual('', l[1].SerialNumber)
+
+    self.assertEqual('GFRM200', l[2].Model)
+    self.assertEqual('5C:31:3E:08:25:44', l[2].PhysAddress)
+    self.assertEqual('T0055.12 G001E.04', l[2].FirmwareVersion)
+    self.assertEqual('GPN#07081865-01', l[2].HardwareVersion)
+    self.assertEqual('21451 20002000', l[2].SerialNumber)
 
 
 if __name__ == '__main__':

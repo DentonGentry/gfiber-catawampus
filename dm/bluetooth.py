@@ -20,6 +20,8 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import glob
+import json
 import subprocess
 import google3
 import tr.cwmptypes
@@ -29,16 +31,37 @@ import tr.x_catawampus_tr181_2_0
 
 IBEACONCMD = ['ibeacon']
 EDDYSTONECMD = ['eddystone']
+INVENTORY_GLOB = ['/user/bluez/lib/bluetooth/*/*/gfiber-inventory']
 CATA181DEVICE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device
 
 
 class Bluetooth(CATA181DEVICE.X_CATAWAMPUS_ORG.Bluetooth):
   """Implementation of X_CATAWAMPUS-ORG.Bluetooth."""
 
+  RemoteControlNumberOfEntries = tr.cwmptypes.NumberOf('RemoteControlList')
+
   def __init__(self):
     super(Bluetooth, self).__init__()
     self.iBeacon = iBeacon()
     self.Eddystone = Eddystone()
+
+  @property
+  def RemoteControlList(self):
+    """Return a list of RemoteControl objects, from Blue/Z gfiber-inventory."""
+    rcfiles = glob.glob(INVENTORY_GLOB[0])
+    rcnum = 1
+    rclist = {}
+    for rc in sorted(rcfiles):
+      jsondata = {}
+      try:
+        jsondata = json.load(open(rc))
+      except (OSError, IOError, ValueError):
+        print 'Bad Remote Control JSON file %s' % rc
+        continue
+      if 'bdaddr' in jsondata and 'model' in jsondata:
+        rclist[rcnum] = RemoteControl(jsondata)
+        rcnum += 1
+    return rclist
 
 
 class iBeacon(CATA181DEVICE.X_CATAWAMPUS_ORG.Bluetooth.iBeacon):
@@ -88,3 +111,20 @@ class Eddystone(CATA181DEVICE.X_CATAWAMPUS_ORG.Bluetooth.Eddystone):
 
   def Triggered(self):
     self.StartStop()
+
+
+class RemoteControl(CATA181DEVICE.X_CATAWAMPUS_ORG.Bluetooth.RemoteControl):
+  """Implementation of X_CATAWAMPUS-ORG.Bluetooth.RemoteControl."""
+  FirmwareVersion = tr.cwmptypes.ReadOnlyString('')
+  HardwareVersion = tr.cwmptypes.ReadOnlyString('')
+  Model = tr.cwmptypes.ReadOnlyString('')
+  PhysAddress = tr.cwmptypes.ReadOnlyString('')
+  SerialNumber = tr.cwmptypes.ReadOnlyString('')
+
+  def __init__(self, jsondata):
+    super(RemoteControl, self).__init__()
+    type(self).FirmwareVersion.Set(self, jsondata.get('firmware', ''))
+    type(self).HardwareVersion.Set(self, jsondata.get('hardware', ''))
+    type(self).Model.Set(self, jsondata.get('model', ''))
+    type(self).PhysAddress.Set(self, jsondata.get('bdaddr', ''))
+    type(self).SerialNumber.Set(self, jsondata.get('serial', ''))

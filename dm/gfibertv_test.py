@@ -170,14 +170,6 @@ class GfiberTvTests(unittest.TestCase):
     gfibertv.NICKFILE[0] = self.nick_file_name
     self.my_nick_file_name = os.path.join(self.tmpdir, 'MYNICKFILE')
     gfibertv.MYNICKFILE[0] = self.my_nick_file_name
-    self.btdevices_fname = os.path.join(self.tmpdir, 'BTDEVICES')
-    gfibertv.BTDEVICES[0] = self.btdevices_fname
-    self.bthhdevices_fname = os.path.join(self.tmpdir, 'BTHHDEVICES')
-    gfibertv.BTHHDEVICES[0] = self.bthhdevices_fname
-    self.btconfig_fname = os.path.join(self.tmpdir, 'BTCONFIG')
-    gfibertv.BTCONFIG[0] = self.btconfig_fname
-    self.btnopair_fname = os.path.join(self.tmpdir, 'BTNOPAIRING')
-    gfibertv.BTNOPAIRING[0] = self.btnopair_fname
     self.easfips_fname = os.path.join(self.tmpdir, 'EASFIPSFILE')
     gfibertv.EASFIPSFILE[0] = self.easfips_fname
     self.easaddr_fname = os.path.join(self.tmpdir, 'EASADDRFILE')
@@ -371,75 +363,6 @@ class GfiberTvTests(unittest.TestCase):
 
     mynickfile = open(gfibertv.MYNICKFILE[0]).read()
     self.assertEqual(mynickfile, my_nickname.encode('utf-8'))
-
-  def testBtFiles(self):
-    gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
-    self.loop.RunOnce()
-
-    open(self.btdevices_fname, 'w').write('')
-    open(self.bthhdevices_fname, 'w').write('')
-    open(self.btconfig_fname, 'w').write('')
-
-    self.assertEqual('', gftv.BtDevices)
-    self.assertEqual('', gftv.BtHHDevices)
-    self.assertEqual('', gftv.BtConfig)
-    self.gccheck.Check()
-
-    devices1 = 'This is a test'
-    devices2 = 'devices test 2'
-    hhdevices = 'hhdevice str\nwith a newline'
-    config = 'btconfig str'
-    self.gccheck.Check()
-
-    gftv.BtDevices = devices1
-    self.loop.RunOnce()
-    self.assertEqual(devices1, gftv.BtDevices)
-    self.assertEqual(open(self.btdevices_fname).read(), devices1 + '\n')
-    self.assertEqual('', gftv.BtHHDevices)
-    self.assertEqual(open(self.bthhdevices_fname).read(), '')
-    self.assertEqual('', gftv.BtConfig)
-    self.assertEqual(open(self.btconfig_fname).read(), '')
-    self.gccheck.Check()
-
-    gftv.BtDevices = devices2
-    gftv.BtHHDevices = hhdevices
-    gftv.BtConfig = config
-    self.loop.RunOnce()
-    self.assertEqual(devices2, gftv.BtDevices)
-    self.assertEqual(open(self.btdevices_fname).read(), devices2 + '\n')
-    self.assertEqual(hhdevices, gftv.BtHHDevices)
-    self.assertEqual(open(self.bthhdevices_fname).read(), hhdevices + '\n')
-    self.assertEqual(config, gftv.BtConfig)
-    self.assertEqual(open(self.btconfig_fname).read(), config + '\n')
-    self.gccheck.Check()
-
-  def testNoPairing(self):
-    gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)
-    self.loop.RunOnce()
-    self.assertFalse(gftv.BtNoPairing)
-    self.assertFalse(os.path.exists(self.btnopair_fname))
-
-    gftv.BtNoPairing = True
-    self.loop.RunOnce()
-    self.assertTrue(gftv.BtNoPairing)
-    self.assertTrue(os.path.exists(self.btnopair_fname))
-
-    # Make sure setting to True works if it is already true.
-    gftv.BtNoPairing = True
-    self.loop.RunOnce()
-    self.assertTrue(gftv.BtNoPairing)
-    self.assertTrue(os.path.exists(self.btnopair_fname))
-
-    gftv.BtNoPairing = False
-    self.loop.RunOnce()
-    self.assertFalse(gftv.BtNoPairing)
-    self.assertFalse(os.path.exists(self.btnopair_fname))
-
-    # Make sure setting to False works if it is already false.
-    gftv.BtNoPairing = False
-    self.loop.RunOnce()
-    self.assertFalse(gftv.BtNoPairing)
-    self.assertFalse(os.path.exists(self.btnopair_fname))
 
   def testEASHeartbeatTimestamp(self):
     gftv = gfibertv.GFiberTv('http://localhost:%d' % srv_port)

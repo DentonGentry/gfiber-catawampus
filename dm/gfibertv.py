@@ -47,10 +47,6 @@ CATABASE = BASE.Device.X_CATAWAMPUS_ORG
 
 # These are lists so list[0] can be reassigned in a unit test to affect
 # the operation of tr.cwmptypes.FileBacked.
-BTDEVICES = ['/user/bsa/bt_devices.xml']
-BTHHDEVICES = ['/user/bsa/bt_hh_devices.xml']
-BTCONFIG = ['/user/bsa/bt_config.xml']
-BTNOPAIRING = ['/user/bsa/nopairing']
 DISK_SPACE_FILE = ['/tmp/dvr_space']
 EASADDRFILE = ['/tmp/eas_service_address']
 EASFIPSFILE = ['/tmp/eas_fips']
@@ -80,20 +76,6 @@ def _SageEscape(s):
 
 class GFiberTv(CATABASE.GFiberTV):
   """Implementation of x-gfibertv.xml."""
-  BtConfig = tr.cwmptypes.FileBacked(BTCONFIG, tr.cwmptypes.String())
-  BtDevices = tr.cwmptypes.FileBacked(BTDEVICES, tr.cwmptypes.String())
-  BtHHDevices = tr.cwmptypes.FileBacked(BTHHDEVICES, tr.cwmptypes.String())
-  BtNoPairing = tr.cwmptypes.FileBacked(BTNOPAIRING, tr.cwmptypes.String())
-
-  @BtNoPairing.validator
-  def BtNoPairing(self, value):
-    # tr.cwmptypes.Bool is picky about parsing, and we don't want that when
-    # reading possibly-invalid data from a file, so we use tr.cwmptypes.String
-    # and parse it ourselves.
-    if not value or value == 'false' or value == 'False' or value == '0':
-      return ''
-    else:
-      return True
 
   EASFipsCode = tr.cwmptypes.FileBacked(EASFIPSFILE, tr.cwmptypes.String())
   EASServiceAddress = tr.cwmptypes.FileBacked(

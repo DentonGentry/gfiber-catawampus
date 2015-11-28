@@ -136,7 +136,38 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
       </parameter>
     </object>
 
-    <object name="Device.X_CATAWAMPUS-ORG.Bluetooth." access="readOnly" minEntries="1" maxEntries="1"/>
+    <object name="Device.X_CATAWAMPUS-ORG.Bluetooth." access="readOnly" minEntries="1" maxEntries="1">
+      <parameter name="RemoteControlNumberOfEntries" access="readOnly">
+        <description>The number of instances of {{object|.RemoteControl.{i}.}}.</description>
+        <syntax>
+          <unsignedInt/>
+        </syntax>
+      </parameter>
+    </object>
+    <object name="Device.X_CATAWAMPUS-ORG.Bluetooth.RemoteControl.{i}." access="readOnly"
+            numEntriesParameter="RemoteControlNumberOfEntries" minEntries="0" maxEntries="unbounded">
+        <description>Information about remote controls paired with this device.</description>
+        <parameter name="PhysAddress" access="readOnly">
+            <description>Bluetooth address of the remote; this is a 6 byte MAC address.</description>
+            <syntax><string><size maxLength="32"/></string></syntax>
+        </parameter>
+        <parameter name="Model" access="readOnly">
+            <description>Model of the remote, like GFRM100 or GFRM200.</description>
+            <syntax><string><size maxLength="32"/></string></syntax>
+        </parameter>
+        <parameter name="SerialNumber" access="readOnly">
+            <description>Serial Number of the remote, if known.</description>
+            <syntax><string><size maxLength="64"/></string></syntax>
+        </parameter>
+        <parameter name="HardwareVersion" access="readOnly">
+            <description>Hardware Version of the remote, if known. This is generally a GPN (Google Part Number).</description>
+            <syntax><string><size maxLength="64"/></string></syntax>
+        </parameter>
+        <parameter name="FirmwareVersion" access="readOnly">
+            <description>Firmware Version of the remote, if known.</description>
+            <syntax><string><size maxLength="64"/></string></syntax>
+        </parameter>
+    </object>
     <object base="Device.X_CATAWAMPUS-ORG.Bluetooth.iBeacon." access="readOnly" minEntries="1" maxEntries="1" enableParameter="Enable">
       <parameter name="Enable" access="readWrite">
         <description>Enables or disables the iBeacon.</description>
@@ -652,30 +683,6 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
         <description>Number of instances of {{object|DeviceProperties}}.</description>
         <syntax>
           <unsignedInt/>
-        </syntax>
-      </parameter>
-      <parameter name="BtDevices" access="readWrite">
-        <description>The bluetooth devices config.</description>
-        <syntax>
-          <string/>
-        </syntax>
-      </parameter>
-      <parameter name="BtHHDevices" access="readWrite">
-        <description>The bluetooth HH devices config.</description>
-        <syntax>
-          <string/>
-        </syntax>
-      </parameter>
-      <parameter name="BtConfig" access="readWrite">
-        <description>The bluetooth device config.</description>
-        <syntax>
-          <string/>
-        </syntax>
-      </parameter>
-      <parameter name="BtNoPairing" access="readWrite">
-        <description>Creates a file that will prevent the device from pairing with the remote control over bluetooth, which effectively forces IR mode.</description>
-        <syntax>
-          <string/>
         </syntax>
       </parameter>
       <parameter name="EASHeartbeatTimestamp" access="readOnly">
