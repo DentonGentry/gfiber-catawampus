@@ -143,6 +143,12 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
           <unsignedInt/>
         </syntax>
       </parameter>
+      <parameter name="UnplugGFRM100" access="readWrite">
+        <description>Writing True to this parameter will trigger the device to send Virtual Cable Unplug messages to all GFRM100 remote controls, the next time they connect.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
     </object>
     <object name="Device.X_CATAWAMPUS-ORG.Bluetooth.RemoteControl.{i}." access="readOnly"
             numEntriesParameter="RemoteControlNumberOfEntries" minEntries="0" maxEntries="unbounded">

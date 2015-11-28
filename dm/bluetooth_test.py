@@ -45,14 +45,17 @@ class BluetoothTest(unittest.TestCase):
     self.old_INVENTORY_GLOB = bluetooth.INVENTORY_GLOB
     g = 'testdata/bluetooth/inventory/*/gfiber-inventory'
     bluetooth.INVENTORY_GLOB = [g]
+    self.old_UNPLUG_CMD = bluetooth.UNPLUG_CMD
+    bluetooth.UNPLUG_CMD = ['testdata/bluetooth/unplug-GFRM100', self.outfile]
     self.loop = tr.mainloop.MainLoop()
 
   def tearDown(self):
     super(BluetoothTest, self).tearDown()
     shutil.rmtree(self.tmpdir)
-    bluetooth.IBEACONCMD = self.old_IBEACONCMD
     bluetooth.EDDYSTONECMD = self.old_EDDYSTONECMD
+    bluetooth.IBEACONCMD = self.old_IBEACONCMD
     bluetooth.INVENTORY_GLOB = self.old_INVENTORY_GLOB
+    bluetooth.UNPLUG_CMD = self.old_UNPLUG_CMD
     tr.helpers.Unlink(self.outfile)
 
   def testValidateExports(self):
@@ -117,7 +120,6 @@ class BluetoothTest(unittest.TestCase):
     buf = open(self.outfile).read()
     self.assertTrue('-d' in buf)
 
-
   def testRemoteControls(self):
     b = bluetooth.Bluetooth()
     self.assertEqual(2, b.RemoteControlNumberOfEntries)
@@ -134,6 +136,18 @@ class BluetoothTest(unittest.TestCase):
     self.assertEqual('T0055.12 G001E.04', l[2].FirmwareVersion)
     self.assertEqual('GPN#07081865-01', l[2].HardwareVersion)
     self.assertEqual('21451 20002000', l[2].SerialNumber)
+
+  def testUnplug(self):
+    b = bluetooth.Bluetooth()
+    self.assertFalse(os.path.exists(self.outfile))
+    b.UnplugGFRM100 = True
+    self.loop.RunOnce()
+    for _ in range(1, 5):
+      # give the script time to run
+      if not os.path.exists(self.outfile):
+        time.sleep(0.2)
+    self.assertTrue(os.path.exists(self.outfile))
+    # We just check that the command was run
 
 
 if __name__ == '__main__':

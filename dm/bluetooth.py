@@ -29,16 +29,18 @@ import tr.mainloop
 import tr.x_catawampus_tr181_2_0
 
 
-IBEACONCMD = ['ibeacon']
-EDDYSTONECMD = ['eddystone']
-INVENTORY_GLOB = ['/user/bluez/lib/bluetooth/*/*/gfiber-inventory']
 CATA181DEVICE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device
+EDDYSTONECMD = ['eddystone']
+IBEACONCMD = ['ibeacon']
+INVENTORY_GLOB = ['/user/bluez/lib/bluetooth/*/*/gfiber-inventory']
+UNPLUG_CMD = ['unplug-GFRM100', 'all']
 
 
 class Bluetooth(CATA181DEVICE.X_CATAWAMPUS_ORG.Bluetooth):
   """Implementation of X_CATAWAMPUS-ORG.Bluetooth."""
 
   RemoteControlNumberOfEntries = tr.cwmptypes.NumberOf('RemoteControlList')
+  UnplugGFRM100 = tr.cwmptypes.TriggerBool(False)
 
   def __init__(self):
     super(Bluetooth, self).__init__()
@@ -62,6 +64,12 @@ class Bluetooth(CATA181DEVICE.X_CATAWAMPUS_ORG.Bluetooth):
         rclist[rcnum] = RemoteControl(jsondata)
         rcnum += 1
     return rclist
+
+  def Triggered(self):
+    """Called when Trigger properties are written to."""
+    if self.UnplugGFRM100:
+      self.UnplugGFRM100 = False
+      subprocess.call(UNPLUG_CMD)
 
 
 class iBeacon(CATA181DEVICE.X_CATAWAMPUS_ORG.Bluetooth.iBeacon):

@@ -1,0 +1,6 @@
+#!/bin/sh
+
+outfile=$1
+shift 1
+echo -n "$*" >$outfile
+exit 0
