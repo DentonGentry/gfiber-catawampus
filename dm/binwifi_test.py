@@ -242,32 +242,29 @@ class BinWifiTest(unittest.TestCase):
 
     bw.ClientEnable = True
     buf = self.GatherOutput()
-    self.assertEqual(Verbs(buf), ['"stopap"', '"setclient"'])
+    self.assertEqual(Verbs(buf), ['"setclient"', '"set"'])
 
     bw.Enable = False
     buf = self.GatherOutput()
-    self.assertEqual(Verbs(buf), ['"setclient"'])
+    self.assertEqual(Verbs(buf), ['"setclient"', '"stopap"'])
 
     bw.ClientEnable = False
     buf = self.GatherOutput()
     self.assertEqual(Verbs(buf), ['"stopclient"'])
 
+    bw.Enable = True
     bw.ClientEnable = True
     buf = self.GatherOutput()
-    self.assertEqual(Verbs(buf), ['"setclient"'])
-
-    bw.Enable = True
-    bw.ClientEnable = False
-    buf = self.GatherOutput()
-    self.assertEqual(Verbs(buf), ['"stopclient"', '"set"'])
+    self.assertEqual(Verbs(buf), ['"setclient"', '"set"'])
 
     bw.SSID = 'Test SSID 2A'
     buf = self.GatherOutput()
-    self.assertEqual(Verbs(buf), ['"set"'])
+    self.assertEqual(Verbs(buf), ['"setclient"', '"set"'])
 
     bw.Enable = False
+    bw.ClientEnable = False
     buf = self.GatherOutput()
-    self.assertEqual(Verbs(buf), ['"stopap"'])
+    self.assertEqual(Verbs(buf), ['"stopclient"', '"stopap"'])
 
   def testPSK(self):
     for i in range(1, 11):

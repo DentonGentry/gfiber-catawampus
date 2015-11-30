@@ -353,7 +353,7 @@ class WlanConfiguration(CATA98WIFI):
     self.X_CATAWAMPUS_ORG_Width5G = str(width_5g) if width_5g else ''
     self._autochan = autochan
     self.new_config = None
-    self.last_action = None
+    self.last_actions = []
     self._Stats = WlanConfigurationStats(ifname=self._ifname)
     self._initialized = True
     self.AssociatedDeviceList = {}
@@ -914,41 +914,32 @@ class WlanConfiguration(CATA98WIFI):
     print 'UpdateBinWifi clientenable=%r radioenabled=%r reallywantwifi=%r' % (
         self.ClientEnable, self.RadioEnabled, self._ReallyWantWifi())
 
-    if self.ClientEnable and self.RadioEnabled:
-      action = 'setclient'
-      cmd, env = self._MakeBinWifiClientCommand()
-      if cmd is None:
-        print 'UpdateBinWifi: missing information required for client mode.'
-        return
-    elif self._ReallyWantWifi():
-      action = 'set'
-      cmd, env = self._MakeBinWifiCommand()
-    else:
-      action = None
-      cmd, env = None, None
-
-    verb = None
-    if self.last_action == action:
-      # just an update; no need to run a `wifi stop[client]` command
-      pass
-    elif self.last_action == 'set':
-      verb = 'stopap'
-    elif self.last_action == 'setclient':
-      verb = 'stopclient'
-    else:
-      print ('UpdateBinWifi: last action was %s, nothing to stop' %
-             self.last_action)
-
-    if verb:
+    def RunStopCommand(verb):
       stop_cmd = BINWIFI + [verb, '-P', '-b', self._band]
       if self._if_suffix:
         stop_cmd += ['-S', self._if_suffix]
       RunCmdWithEnv(stop_cmd, None)
 
-    if cmd is not None:
-      RunCmdWithEnv(cmd, env)
+    actions = []
 
-    self.last_action = action
+    if self.ClientEnable and self.RadioEnabled:
+      cmd, env = self._MakeBinWifiClientCommand()
+      if cmd is None:
+        print 'UpdateBinWifi: missing information required for client mode.'
+        return
+      RunCmdWithEnv(cmd, env)
+      actions += ['setclient']
+    elif 'setclient' in self.last_actions:
+      RunStopCommand('stopclient')
+
+    if self._ReallyWantWifi():
+      cmd, env = self._MakeBinWifiCommand()
+      RunCmdWithEnv(cmd, env)
+      actions += ['set']
+    elif 'set' in self.last_actions:
+      RunStopCommand('stopap')
+
+    self.last_actions = actions
 
 
 class PreSharedKey(BASE98WIFI.PreSharedKey):
