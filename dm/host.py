@@ -111,7 +111,7 @@ class Hosts(BASE181HOSTS):
       self.iflookup = iflookup
     self.iflookup_built = False
     if bridgename:
-      x = bridgename if type(bridgename) == list else [bridgename]
+      x = bridgename if isinstance(bridgename, list) else [bridgename]
       self.bridges.extend(x)
 
   def _BuildIfLookup(self, iflookup):

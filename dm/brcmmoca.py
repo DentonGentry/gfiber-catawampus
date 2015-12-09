@@ -192,7 +192,7 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
   def Status(self):
     if not self._pynet.is_up():
       return 'Down'
-    (speed, duplex, auto, link_up) = self._pynet.get_link_info()
+    (_, _, _, link_up) = self._pynet.get_link_info()
     if link_up:
       return 'Up'
     else:
@@ -255,7 +255,7 @@ class BrcmMocaInterface(BASE181MOCA.Interface):
 
   @property
   def BackupNC(self):
-    bnc = nodeid = self._MocaCtlGetField(self._MocaCtlShowStatus, 'backupNcId')
+    bnc = self._MocaCtlGetField(self._MocaCtlShowStatus, 'backupNcId')
     return bnc if bnc else ''
 
   @property
