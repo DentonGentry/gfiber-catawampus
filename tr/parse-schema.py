@@ -82,6 +82,11 @@ def ObjNameForPython(name):
 IMPORT_BUG_FIXES = {
     # bugs in tr-181-2-0-1.  It tries to import *_Device2, which doesn't
     # seem to exist anywhere.
+    #
+    # pylint 1.5 objects to this indentation, but earlier pylint versions
+    # object to anything other than this indentation. We can't find a
+    # style which makes all versions happy.
+    # pylint: disable=bad-continuation
     ('urn:broadband-forum-org:tr-143-1-0', 'component',
      'DownloadDiagnostics_Device2'):
          ('urn:broadband-forum-org:tr-143-1-0', 'component',

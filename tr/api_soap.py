@@ -244,7 +244,7 @@ class SoapHandler(object):
         cpefault = soap.CpeFault.METHOD_NOT_SUPPORTED
         faultstring = 'Unsupported RPC method: %s' % method
         result = soap.SimpleFault(xml, cpefault, faultstring)
-      except:
+      except:  # pylint:disable=bare-except
         result = soap.SimpleFault(
             xml, cpefault=soap.CpeFault.INTERNAL_ERROR,
             faultstring=traceback.format_exc())

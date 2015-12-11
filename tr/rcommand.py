@@ -62,7 +62,7 @@ class RemoteCommandStreamer(quotedblock.QuotedBlockStreamer):
       out = sum((list(i) for i in self._ProcessBlock(lines)), [])
     except EOFError:
       raise
-    except Exception, e:
+    except Exception as e:  # pylint:disable=broad-except
       print traceback.format_exc()
       return [['ERROR', '-1', str(e)]]
     session.cache.flush()

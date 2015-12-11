@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 # pylint:disable=redefined-outer-name
+# @Enterable handles being the context manager, but confuses pylint.
+# pylint:disable=not-context-manager
 
 """Encodings for the SOAP-based protocol used by TR-069."""
 
