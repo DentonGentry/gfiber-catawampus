@@ -562,7 +562,6 @@ class _RawEvent(_Event):
              'cookie': cookie,
              'name': name.rstrip('\0')}
         _Event.__init__(self, d)
-        log.debug(str(self))
 
     def __str__(self):
         if self._str is None:
