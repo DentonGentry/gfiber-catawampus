@@ -49,11 +49,15 @@ class BinWifiTest(unittest.TestCase):
 
   def setUp(self):
     self.old_BINWIFI = binwifi.BINWIFI
+    self.old_IS_WIRELESS_CLIENT = binwifi.IS_WIRELESS_CLIENT
+    binwifi.IS_WIRELESS_CLIENT[0] = 'testdata/binwifi/is-wireless-client'
     self.tmpdir = tempfile.mkdtemp()
     self.wifioutfile = os.path.join(self.tmpdir, 'wifi.out')
     binwifi.BINWIFI = ['testdata/binwifi/binwifi', self.wifioutfile]
     self.old_PROC_NET_DEV = netdev.PROC_NET_DEV
     netdev.PROC_NET_DEV = 'testdata/binwifi/proc_net_dev'
+    self.old_CONMAN_DIR = binwifi.CONMAN_DIR[0]
+    binwifi.CONMAN_DIR[0] = os.path.join(self.tmpdir, 'conman')
     self.old_STATIONS_DIR = binwifi.STATIONS_DIR[0]
     binwifi.STATIONS_DIR[0] = os.path.join(self.tmpdir, 'stations')
     self.old_TMPWAVEGUIDE = binwifi.TMPWAVEGUIDE[0]
@@ -66,7 +70,9 @@ class BinWifiTest(unittest.TestCase):
 
   def tearDown(self):
     binwifi.BINWIFI = self.old_BINWIFI
+    binwifi.IS_WIRELESS_CLIENT = self.old_IS_WIRELESS_CLIENT
     netdev.PROC_NET_DEV = self.old_PROC_NET_DEV
+    binwifi.CONMAN_DIR[0] = self.old_CONMAN_DIR
     binwifi.STATIONS_DIR[0] = self.old_STATIONS_DIR
     binwifi.TMPWAVEGUIDE[0] = self.old_TMPWAVEGUIDE
     binwifi.WIFIINFO_DIR[0] = self.old_WIFIINFO_DIR
@@ -265,6 +271,79 @@ class BinWifiTest(unittest.TestCase):
     bw.ClientEnable = False
     buf = self.GatherOutput()
     self.assertEqual(Verbs(buf), ['"stopclient"', '"stopap"'])
+
+  def testWifiCmdFile(self):
+    def loadWifiCmdFile(basename):
+      fullpath = os.path.join(binwifi.CONMAN_DIR[0], basename)
+      with open(fullpath) as cmdfile:
+        return json.load(cmdfile)
+
+    bw = self.WlanConfiguration('wlan1', '', 'br0', band='5')
+    bw.StartTransaction()
+    bw.RadioEnabled = True
+    bw.Enable = True
+    bw.SSID = 'Test Wifi Cmd SSID 5'
+    bw.KeyPassphrase = 'testpassword'
+    self.GatherOutput()
+
+    self.assertEqual(os.listdir(binwifi.CONMAN_DIR[0]),
+                     ['wlan_configuration.5.json'])
+
+    wc5 = loadWifiCmdFile('wlan_configuration.5.json')
+    self.assertTrue(wc5['access_point'])
+
+    # Deliberately create a WlanConfiguration outside of the pool, so we can
+    # release it early and test that it cleans up its command file.
+    bw24 = binwifi.WlanConfiguration('wlan0', '', 'br0', band='2.4')
+    bw24.StartTransaction()
+    bw24.RadioEnabled = True
+    bw24.Enable = True
+    bw24.SSID = 'Test Wifi Cmd SSID 2.4'
+    bw24.KeyPassphrase = 'testpassword'
+
+    bw.Enable = False
+    self.GatherOutput()
+
+    self.assertEqual(os.listdir(binwifi.CONMAN_DIR[0]),
+                     ['wlan_configuration.2.4.json',
+                      'wlan_configuration.5.json'])
+
+    wc24 = loadWifiCmdFile('wlan_configuration.2.4.json')
+    self.assertTrue(wc24['access_point'])
+    self.assertEqual(wc24['command'],
+                     binwifi.BINWIFI + [u'set', u'-P', u'-b', u'2.4', u'-e',
+                                        u'WPA2_PSK_AES', u'--bridge=br0', u'-c',
+                                        u'auto', u'-s',
+                                        u'Test Wifi Cmd SSID 2.4', u'-p',
+                                        u'a/b/g/n', u'-M'])
+
+    wc5 = loadWifiCmdFile('wlan_configuration.5.json')
+    self.assertFalse(wc5['access_point'])
+    self.assertEqual(wc5['command'],
+                     binwifi.BINWIFI + [u'set', u'-P', u'-b', u'5', u'-e',
+                                        u'WPA2_PSK_AES', u'--bridge=br0', u'-c',
+                                        u'auto', u'-s', u'Test Wifi Cmd SSID 5',
+                                        u'-p', u'a/b/g/n', u'-M'])
+
+    bw24.release()
+    self.assertEqual(os.listdir(binwifi.CONMAN_DIR[0]),
+                     ['wlan_configuration.5.json'])
+
+    bw.Enable = True
+    self.GatherOutput()
+    wc5 = loadWifiCmdFile('wlan_configuration.5.json')
+    self.assertTrue(wc5['access_point'])
+
+    bw_portal = self.WlanConfiguration('wlan1', '_portal', 'br1', band='5')
+    bw_portal.StartTransaction()
+    bw_portal.RadioEnabled = True
+    bw_portal.Enable = True
+    bw_portal.SSID = 'GFiberSetup'
+
+    self.GatherOutput()
+    self.assertEqual(os.listdir(binwifi.CONMAN_DIR[0]),
+                     ['wlan_configuration_portal.5.json',
+                      'wlan_configuration.5.json'])
 
   def testPSK(self):
     for i in range(1, 11):

@@ -49,6 +49,8 @@ ISOSTREAM_KEY = 'Device.X_CATAWAMPUS-ORG.Isostream.'
 
 # Unit tests can override these.
 BINWIFI = ['wifi']
+IS_WIRELESS_CLIENT = ['is-wireless-client']
+CONMAN_DIR = ['/tmp/conman']
 STATIONS_DIR = ['/tmp/stations']
 TMPWAVEGUIDE = ['/tmp/waveguide']
 WIFIINFO_DIR = ['/tmp/wifi/wifiinfo']
@@ -434,6 +436,11 @@ class WlanConfiguration(CATA98WIFI):
                                         proc_fun=StationsChangeHandler(self))
 
   def release(self):
+    try:
+      os.remove(self._WifiCmdFileName())
+    except OSError:
+      pass
+
     self.Notifier.stop()
 
   @tr.session.cache
@@ -822,6 +829,13 @@ class WlanConfiguration(CATA98WIFI):
 
   def _MakeBinWifiCommand(self):
     """Return (arglist, env) to run /bin/wifi."""
+
+    if self.new_config is None:
+      print '_MakeBinWifiCommand: WiFi configuration not yet received.'
+      env = {}
+      cmd = ['false']
+      return (cmd, env)
+
     env = os.environ.copy()
     cmd = BINWIFI + ['set', '-P', '-b', self._band,
                      '-e', self._GetEncryptionMode()]
@@ -900,6 +914,11 @@ class WlanConfiguration(CATA98WIFI):
         break
     return cmd, env
 
+  def _WifiCmdFileName(self):
+    return os.path.join(CONMAN_DIR[0],
+                        'wlan_configuration{}.{}.json'.format(self._if_suffix,
+                                                              self._band,))
+
   @tr.mainloop.WaitUntilIdle
   def UpdateBinWifi(self):
     """Apply config to device by running /bin/wifi."""
@@ -920,6 +939,21 @@ class WlanConfiguration(CATA98WIFI):
         stop_cmd += ['-S', self._if_suffix]
       RunCmdWithEnv(stop_cmd, None)
 
+    if not os.path.exists(CONMAN_DIR[0]):
+      os.makedirs(CONMAN_DIR[0])
+
+    conman_command = {
+        'access_point': self._ReallyWantWifi(),
+    }
+    conman_command['command'], conman_command['env'] = (
+        self._MakeBinWifiCommand())
+
+    with tr.helpers.AtomicFile(self._WifiCmdFileName()) as cmdfile:
+      json.dump(conman_command, cmdfile)
+
+    if subprocess.call(IS_WIRELESS_CLIENT) == 0:
+      return
+
     actions = []
 
     if self.ClientEnable and self.RadioEnabled:
@@ -933,8 +967,7 @@ class WlanConfiguration(CATA98WIFI):
       RunStopCommand('stopclient')
 
     if self._ReallyWantWifi():
-      cmd, env = self._MakeBinWifiCommand()
-      RunCmdWithEnv(cmd, env)
+      RunCmdWithEnv(conman_command['command'], conman_command['env'])
       actions += ['set']
     elif 'set' in self.last_actions:
       RunStopCommand('stopap')
