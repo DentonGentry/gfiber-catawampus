@@ -1227,8 +1227,8 @@ When the test is completed, the value of this parameter MUST be either {{enum|Co
         <syntax>
           <string>
             <enumeration value="Unspecified"/>
-            <enumeration value="IPv4_Only"/>
-            <enumeration value="IPv6_Only"/>
+            <enumeration value="IPv4"/>
+            <enumeration value="IPv6"/>
           </string>
           <default type="object" value="Unspecified"/>
         </syntax>
@@ -1248,6 +1248,20 @@ When the test is completed, the value of this parameter MUST be either {{enum|Co
       <parameter name="URL" access="readWrite">
         <description>The URL to access.</description>
         <syntax><boolean/></syntax>
+      </parameter>
+    </object>
+
+    <object base="Device.IP.Diagnostics.TraceRoute." access="readOnly" minEntries="1" maxEntries="1">
+      <parameter name="IPVersion" access="readWrite">
+        <description>The connection can be restricted to IPv4 or IPv6.</description>
+        <syntax>
+          <string>
+            <enumeration value="Unspecified"/>
+            <enumeration value="IPv4"/>
+            <enumeration value="IPv6"/>
+          </string>
+          <default type="object" value="Unspecified"/>
+        </syntax>
       </parameter>
     </object>
 

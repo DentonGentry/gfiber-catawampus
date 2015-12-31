@@ -92,7 +92,8 @@ class TraceRouteTest(unittest.TestCase):
 
   def testATaleOfTwoCitiesIPv6(self):
     trace = traceroute.TraceRoute(self.loop.ioloop)
-    self._DoTrace(trace, '1000:1000:1000:1000::1000', 30)
+    trace.IPVersion = 'IPv6'
+    self._DoTrace(trace, 'of.times', 30)
     self.assertEqual(len(trace.RouteHopsList), 6)
     self.assertEqual(trace.RouteHopsNumberOfEntries, 6)
     self.assertEqual(trace.RouteHopsList[1].Host, 'it.was')
@@ -118,6 +119,15 @@ class TraceRouteTest(unittest.TestCase):
     self.assertEqual(trace.DiagnosticsState, 'Complete')
     # rounding up the last RTT in the trace
     self.assertEqual(trace.ResponseTime, 7)
+
+  def testTraceIPv6Address(self):
+    trace = traceroute.TraceRoute(self.loop.ioloop)
+    self._DoTrace(trace, '1000:1000:1000:1000::1000', 30)
+    self.assertEqual(trace.RouteHopsNumberOfEntries, 6)
+    # spot-checkthat this is the IPv6 trace
+    self.assertEqual(
+        trace.RouteHopsList[1].HostAddress, '1000:1000:1000:1001::1')
+    self.assertEqual(trace.DiagnosticsState, 'Complete')
 
 if __name__ == '__main__':
   unittest.main()

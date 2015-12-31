@@ -54,13 +54,15 @@ class State(object):
 
 class TraceRoute(BASE_TRACEROUTE):
   """Implementation of the TraceRoute object from TR-181."""
-  DSCP = tr.cwmptypes.Unsigned(0)
-  NumberOfTries = tr.cwmptypes.Unsigned(3)
-  Timeout = tr.cwmptypes.Unsigned(5000)   # milliseconds
   DataBlockSize = tr.cwmptypes.Unsigned(38)
+  DSCP = tr.cwmptypes.Unsigned(0)
+  IPVersion = tr.cwmptypes.Enum(
+      ['Unspecified', 'IPv4', 'IPv6'], init='Unspecified')
   MaxHopCount = tr.cwmptypes.Unsigned(30)
+  NumberOfTries = tr.cwmptypes.Unsigned(3)
   RouteHops = tr.core.Extensible(BASE_TRACEROUTE.RouteHops)
   RouteHopsNumberOfEntries = tr.cwmptypes.NumberOf('RouteHopsList')
+  Timeout = tr.cwmptypes.Unsigned(5000)   # milliseconds
 
   def __init__(self, ioloop=None):
     super(TraceRoute, self).__init__()
@@ -134,7 +136,7 @@ class TraceRoute(BASE_TRACEROUTE):
     print 'traceroute starting.'
     if not self.Host:
       raise ValueError('TraceRoute.Host is not set')
-    if tr.helpers.IsIP6Addr(self.Host):
+    if tr.helpers.IsIP6Addr(self.Host) or self.IPVersion == 'IPv6':
       argv_base = [TRACEROUTE6]
       if sys.platform == 'darwin':
         argv_base += ['-l']  # tell MacOS traceroute6 to include IP addr
