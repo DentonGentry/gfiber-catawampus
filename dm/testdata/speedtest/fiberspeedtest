@@ -1,0 +1,13 @@
+#!/bin/sh
+
+for arg in $@; do
+  if [ "$arg" = '--right' ]; then
+    echo 'Fiber speedtest output'
+  fi
+
+  if [ "$arg" = '--wrong' ]; then
+    exit 1
+  fi
+done
+
+exit 0

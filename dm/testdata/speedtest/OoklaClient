@@ -1,7 +1,7 @@
 #!/bin/sh
 
 if [ "$1" = '--right' ]; then
-  echo 'Speedtest output'
+  echo 'Ookla speedtest output'
 fi
 
 if [ "$1" = '--wrong' ]; then

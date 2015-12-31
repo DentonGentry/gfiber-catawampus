@@ -18,7 +18,7 @@
 #
 """Device.IP.Diagnostics.X_CATAWAMPUS-ORG.Speedtest.
 
-Using Ookla's speedtest client.
+Supports the Ookla speedtest and the Fiber-developed speedtest.
 """
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
@@ -38,8 +38,9 @@ import tr.x_catawampus_tr181_2_0
 
 CATA181DEVICE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device
 CATA181SPEED = CATA181DEVICE.X_CATAWAMPUS_ORG.Speedtest
-SPEEDTEST = 'OoklaClient'
-SPEEDTESTDIR = '/tmp/ookla'
+FIBERSPEEDTEST = 'speedtest'
+OOKLACLIENT = 'OoklaClient'
+OOKLACLIENTDIR = '/tmp/ookla'
 TIMENOW = datetime.datetime.now
 
 
@@ -66,7 +67,7 @@ class Speedtest(CATA181SPEED):
     elif self.Output:
       return 'Complete'
     else:
-      return 'Internal_Error'  # Should not happen
+      return 'Error_Internal'  # Should not happen
 
   def _SetState(self, value):
     if value != 'Requested':
@@ -79,7 +80,7 @@ class Speedtest(CATA181SPEED):
 
   def _WriteLicense(self):
     if self.License:
-      licensefile = os.path.join(SPEEDTESTDIR, 'settings.xml')
+      licensefile = os.path.join(OOKLACLIENTDIR, 'settings.xml')
       with open(licensefile, 'w') as f:
         f.write(self.License)
       print 'Wrote %d bytes to %s' % (len(self.License), licensefile)
@@ -98,32 +99,58 @@ class Speedtest(CATA181SPEED):
         self.error = 'Error_Internal'
       self.subproc = None
 
+  def MaybeRunOoklaClient(self):
+    """Try to run the OoklaClient, return true if successful."""
+    try:
+      shutil.rmtree(path=OOKLACLIENTDIR, ignore_errors=True)
+      os.mkdir(OOKLACLIENTDIR)
+      self._WriteLicense()
+    except (IOError, OSError):
+      print 'OoklaClient license dir creation failed'
+      self.error = 'Error_Internal'
+      return False
+    argv = [OOKLACLIENT] + self.Arguments.split()
+    print 'Trying:  %r : %s' % (argv, OOKLACLIENTDIR)
+    try:
+      self.subproc = subprocess.Popen(argv, stdout=subprocess.PIPE,
+                                      cwd=OOKLACLIENTDIR)
+    except OSError:
+      print 'OoklaClient failed to start'
+      return False
+    return True
+
+  def MaybeRunFiberspeedtest(self):
+    """Try to run the Fiber speedtest, return true if successful."""
+    cmd = [FIBERSPEEDTEST, '--verbose', '--ping_timeout=10000']
+    argv = cmd + self.Arguments.split()
+    print 'Trying:  %r' % (argv)
+    try:
+      self.subproc = subprocess.Popen(argv, stdout=subprocess.PIPE)
+    except OSError:
+      return False
+    return True
+
   @tr.mainloop.WaitUntilIdle
   def _StartProc(self):
     self._EndProc()
     self.error = ''
     self.buffer = ''
     self.requested = False
+    success = False
     print 'speedtest starting.'
-    try:
-      shutil.rmtree(path=SPEEDTESTDIR, ignore_errors=True)
-      os.mkdir(SPEEDTESTDIR)
-      self._WriteLicense()
-    except (IOError, OSError):
-      print 'cwd creation failed'
-      self.error = 'Error_Internal'
-      return False
-    argv = [SPEEDTEST] + self.Arguments.split()
-    print '  %r : %s' % (argv, SPEEDTESTDIR)
-    try:
-      self.subproc = subprocess.Popen(argv, stdout=subprocess.PIPE,
-                                      cwd=SPEEDTESTDIR)
-    except OSError:
+    if self.MaybeRunFiberspeedtest():
+      print 'started Fiber speedtest'
+      success = True
+    elif self.MaybeRunOoklaClient():
+      print 'started Ookla speedtest'
+      success = True
+    else:
       print 'Unable to start speedtest'
       self.error = 'Error_Internal'
-      return False
-    self.ioloop.add_handler(self.subproc.stdout.fileno(),
-                            self._GotData, self.ioloop.READ)
+
+    if success:
+      self.ioloop.add_handler(self.subproc.stdout.fileno(),
+                              self._GotData, self.ioloop.READ)
 
   # pylint:disable=unused-argument
   def _GotData(self, fd, events):

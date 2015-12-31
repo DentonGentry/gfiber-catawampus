@@ -104,6 +104,9 @@ class DeviceModelRootTest(unittest.TestCase):
     self.assertTrue(os.path.exists(
         os.path.join(tr.experiment.ACTIVEDIR, 'test1.requested')))
 
+  def testValidateExports(self):
+    r = dm_root.DeviceModelRoot(None, None, None)
+    tr.handle.ValidateExports(r)
 
 if __name__ == '__main__':
   unittest.main()

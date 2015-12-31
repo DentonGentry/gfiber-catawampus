@@ -528,7 +528,6 @@ class IP(tr.basemodel.Device.IP):
           ifname='wcli1', lowerlayers='')
 
     self.ActivePortList = {}
-    self.Diagnostics = IPDiagnostics()
 
   @property
   def InterfaceNumberOfEntries(self):
@@ -537,16 +536,6 @@ class IP(tr.basemodel.Device.IP):
   @property
   def ActivePortNumberOfEntries(self):
     return len(self.ActivePortList)
-
-
-class IPDiagnostics(tr.basemodel.Device.IP.Diagnostics):
-  """tr-181 Device.IP.Diagnostics for Google Fiber media platforms."""
-
-  def __init__(self):
-    super(IPDiagnostics, self).__init__()
-    self.Unexport(objects=['IPPing', 'UploadDiagnostics',
-                           'UDPEchoConfig', 'DownloadDiagnostics'])
-    self.TraceRoute = dm.traceroute.TraceRoute()
 
 
 class Device(tr.basemodel.Device):
