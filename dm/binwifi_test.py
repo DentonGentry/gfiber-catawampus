@@ -286,7 +286,7 @@ class BinWifiTest(unittest.TestCase):
     bw.KeyPassphrase = 'testpassword'
     self.GatherOutput()
 
-    self.assertEqual(os.listdir(binwifi.CONMAN_DIR[0]),
+    self.assertEqual(sorted(os.listdir(binwifi.CONMAN_DIR[0])),
                      ['wlan_configuration.5.json'])
 
     wc5 = loadWifiCmdFile('wlan_configuration.5.json')
@@ -304,7 +304,7 @@ class BinWifiTest(unittest.TestCase):
     bw.Enable = False
     self.GatherOutput()
 
-    self.assertEqual(os.listdir(binwifi.CONMAN_DIR[0]),
+    self.assertEqual(sorted(os.listdir(binwifi.CONMAN_DIR[0])),
                      ['wlan_configuration.2.4.json',
                       'wlan_configuration.5.json'])
 
@@ -326,7 +326,7 @@ class BinWifiTest(unittest.TestCase):
                                         u'-p', u'a/b/g/n', u'-M'])
 
     bw24.release()
-    self.assertEqual(os.listdir(binwifi.CONMAN_DIR[0]),
+    self.assertEqual(sorted(os.listdir(binwifi.CONMAN_DIR[0])),
                      ['wlan_configuration.5.json'])
 
     bw.Enable = True
@@ -341,9 +341,9 @@ class BinWifiTest(unittest.TestCase):
     bw_portal.SSID = 'GFiberSetup'
 
     self.GatherOutput()
-    self.assertEqual(os.listdir(binwifi.CONMAN_DIR[0]),
-                     ['wlan_configuration_portal.5.json',
-                      'wlan_configuration.5.json'])
+    self.assertEqual(sorted(os.listdir(binwifi.CONMAN_DIR[0])),
+                     ['wlan_configuration.5.json',
+                      'wlan_configuration_portal.5.json'])
 
   def testPSK(self):
     for i in range(1, 11):
