@@ -95,13 +95,14 @@ class HatTests(unittest.TestCase):
     hat_handler.AdFetchMaxLeadTimeSecs = 0
     hat_handler.MinImpressionViewDurationPts = 450000
     hat_handler.CueToneFiredAdRequests = True
+    hat_handler.FrameAccurateSplicing = False
     throttle = '[00:00-6:00,25,15][12:00-6:00,25,40]'
     hat_handler.FetcherThrottlingIntervals = throttle
     hat_handler.GFASUrl = 'fiber.google.com'
 
     self.loop.RunOnce()
     lines = open(hat.SYSTEMPROPS[0]).readlines()
-    self.assertEqual(len(lines), 18)
+    self.assertEqual(len(lines), 19)
     self.assertTrue('hat=1\n' in lines)
     self.assertTrue('hat_insertion=0\n' in lines)
     self.assertTrue('dvr_replacement=0\n' in lines)
@@ -118,6 +119,7 @@ class HatTests(unittest.TestCase):
     self.assertTrue('ad_fetch_max_lead_time_secs=0\n' in lines)
     self.assertTrue('min_impression_view_duration_pts=450000\n' in lines)
     self.assertTrue('cue_tone_fired_ad_requests=1\n' in lines)
+    self.assertTrue('frame_accurate_splicing=0\n' in lines)
     self.assertTrue('fetcher_throttling_intervals='
                     '[00:00-6:00,25,15][12:00-6:00,25,40]\n' in lines)
     self.assertTrue('gfas_url=fiber.google.com\n' in lines)
@@ -128,6 +130,7 @@ class HatTests(unittest.TestCase):
     hat_handler.AdFetchMaxLeadTimeSecs = 3601
     hat_handler.DiskSpaceHighWatermarkPercent = 90
     hat_handler.CueToneFiredAdRequests = False
+    hat_handler.FrameAccurateSplicing = True
     hat_handler.FetcherThrottlingIntervals = '[00:00-6:00,10,25]'
 
     self.loop.RunOnce()
@@ -148,6 +151,7 @@ class HatTests(unittest.TestCase):
     self.assertTrue('ad_fetch_max_lead_time_secs=3601\n' in lines)
     self.assertTrue('min_impression_view_duration_pts=450000\n' in lines)
     self.assertTrue('cue_tone_fired_ad_requests=0\n' in lines)
+    self.assertTrue('frame_accurate_splicing=1\n' in lines)
     self.assertTrue('fetcher_throttling_intervals='
                     '[00:00-6:00,10,25]\n' in lines)
     self.assertTrue('gfas_url=fiber.google.com\n' in lines)

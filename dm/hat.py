@@ -53,6 +53,7 @@ class Hat(CATABASE.HAT):
   AdFetchMaxLeadTimeSecs = tr.cwmptypes.TriggerUnsigned()
   MinImpressionViewDurationPts = tr.cwmptypes.TriggerInt()
   CueToneFiredAdRequests = tr.cwmptypes.TriggerBool()
+  FrameAccurateSplicing = tr.cwmptypes.TriggerBool()
 
   GFASUrl = tr.cwmptypes.TriggerString()
   FetcherThrottlingIntervals = tr.cwmptypes.TriggerString()
@@ -112,6 +113,8 @@ class Hat(CATABASE.HAT):
                             'min_impression_view_duration_pts')
       self.printIfSetBool(f, self.CueToneFiredAdRequests,
                           'cue_tone_fired_ad_requests')
+      self.printIfSetBool(f, self.FrameAccurateSplicing,
+                          'frame_accurate_splicing')
       self.printIfSetString(f, self.FetcherThrottlingIntervals,
                             'fetcher_throttling_intervals')
       self.printIfSetString(f, self.GFASUrl, 'gfas_url')
