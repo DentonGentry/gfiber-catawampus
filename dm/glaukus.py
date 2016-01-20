@@ -45,36 +45,40 @@ class JsonReader(object):
   def __init__(self):
     self._json_data = {}
 
-  def LoadJsonFromFile(self, path, json_stats_key):
+  def LoadJsonFromFile(self, path, json_keys):
     """Deserializes a JSON file to a Python object.
 
     Args:
       path: The path to the JSON file to be converted.
-      json_stats_key: The key used to extract relevant section of data from the
-                      from the JSON object.
+      json_keys: A string of dot-delimited keys used to point to the JSON data
+                 in the dict.
 
     Raises:
+      OSError/IOError: If the JSON data file could not be loaded.
       ValueError: If the JSON data loaded from the file does not contain the
                   requested key, a ValueError is raised.
     """
     self._json_data = {}
     if not os.path.exists(path):
-      # It is a valid state that there might not be a JSON data file yet.
+      # It is a valid state that there might not be a JSON data file yet,
+      # so just return without printing an error.
       return
 
     try:
       with open(path) as f:
-        json_data = json.load(f)
-      if not json_data.has_key(json_stats_key):
-        raise ValueError('JSON data does not have key: %s' % json_stats_key)
-      self._json_data = json_data[json_stats_key]
+        self._json_data = json.load(f)
+      if json_keys:
+        for key in json_keys.split('.'):
+          if not self._json_data.has_key(key):
+            raise ValueError('JSON data does not have key: %s' % key)
+          self._json_data = self._json_data[key]
     except (IOError, OSError) as ex:
       print 'Failed to load %s: %s' % (path, ex)
       return
     except ValueError as ex:
       # Limit output length or logos will clip the line.
       print 'Failed to decode JSON! path:%s, content:%s, %s' % (
-          path, str(json_data)[0:70], ex)
+          path, str(self._json_data)[0:70], ex)
       return
 
   def GetStat(self, attr, default=0):
@@ -102,32 +106,153 @@ class Glaukus(CATA181GLAUKUS):
 
 
 class Modem(CATA181GLAUKUS.Modem):
-  """Catawampus implementation of Glaukus Manager Modem statistics."""
+  """Catawampus implementation of Glaukus Manager modem statistics."""
 
-  ChipTemp = tr.cwmptypes.ReadOnlyFloat()
-  ChipTempStatus = tr.cwmptypes.ReadOnlyString()
-  ConfigHash = tr.cwmptypes.ReadOnlyString()
-  FecAlarms = tr.cwmptypes.ReadOnlyInt()
-  PcbCurrentDraw = tr.cwmptypes.ReadOnlyFloat()
-  PcbTemp = tr.cwmptypes.ReadOnlyFloat()
-  PcbTempStatus = tr.cwmptypes.ReadOnlyString()
-  ResetCount = tr.cwmptypes.ReadOnlyUnsigned()
-  Uptime = tr.cwmptypes.ReadOnlyUnsigned()
+  StatusCode = tr.cwmptypes.ReadOnlyInt()
+  StatusStr = tr.cwmptypes.ReadOnlyString()
 
   def __init__(self, json_reader):
     super(Modem, self).__init__()
-    json_reader.LoadJsonFromFile(MODEM_JSON_FILE, 'modem')
-    type(self).ChipTemp.Set(self, json_reader.GetStat('chip_temp'))
-    type(self).ChipTempStatus.Set(
-        self, json_reader.GetStat('chip_temp_status'))
-    type(self).ConfigHash.Set(self, json_reader.GetStat('config_hash'))
-    type(self).FecAlarms.Set(self, json_reader.GetStat('fec_alarms'))
-    type(self).PcbCurrentDraw.Set(
-        self, json_reader.GetStat('pcb_current_draw'))
-    type(self).PcbTemp.Set(self, json_reader.GetStat('pcb_temp'))
-    type(self).PcbTempStatus.Set(self, json_reader.GetStat('pcb_temp_status'))
-    type(self).ResetCount.Set(self, json_reader.GetStat('reset_count'))
-    type(self).Uptime.Set(self, json_reader.GetStat('uptime'))
+    self.json_reader = json_reader
+
+  @property
+  def RxCounters(self):
+    return ModemRxCounters(self.json_reader)
+
+  @property
+  def TxCounters(self):
+    return ModemTxCounters(self.json_reader)
+
+  @property
+  def Status(self):
+    return ModemStatus(self.json_reader)
+
+
+class ModemRxCounters(CATA181GLAUKUS.Modem.RxCounters):
+  """Glaukus Manager modem RX counters."""
+
+  Broadcast = tr.cwmptypes.ReadOnlyInt()
+  Bytes = tr.cwmptypes.ReadOnlyInt()
+  CrcErrors = tr.cwmptypes.ReadOnlyInt()
+  Frames = tr.cwmptypes.ReadOnlyInt()
+  Frames1024_1518 = tr.cwmptypes.ReadOnlyInt()
+  Frames128_255 = tr.cwmptypes.ReadOnlyInt()
+  Frames256_511 = tr.cwmptypes.ReadOnlyInt()
+  Frames512_1023 = tr.cwmptypes.ReadOnlyInt()
+  Frames64 = tr.cwmptypes.ReadOnlyInt()
+  Frames65_127 = tr.cwmptypes.ReadOnlyInt()
+  FramesJumbo = tr.cwmptypes.ReadOnlyInt()
+  FramesUndersized = tr.cwmptypes.ReadOnlyInt()
+  Multicast = tr.cwmptypes.ReadOnlyInt()
+  Unicast = tr.cwmptypes.ReadOnlyInt()
+
+  def __init__(self, json_reader):
+    super(ModemRxCounters, self).__init__()
+    json_reader.LoadJsonFromFile(MODEM_JSON_FILE, 'network.rxCounters')
+    type(self).Broadcast.Set(self, json_reader.GetStat('broadcast'))
+    type(self).Bytes.Set(self, json_reader.GetStat('bytes'))
+    type(self).CrcErrors.Set(self, json_reader.GetStat('crcErrors'))
+    type(self).Frames.Set(self, json_reader.GetStat('frames'))
+    type(self).Frames1024_1518.Set(self, json_reader.GetStat('frames1024_1518'))
+    type(self).Frames128_255.Set(self, json_reader.GetStat('frames128_255'))
+    type(self).Frames256_511.Set(self, json_reader.GetStat('frames256_511'))
+    type(self).Frames512_1023.Set(self, json_reader.GetStat('frames512_1023'))
+    type(self).Frames64.Set(self, json_reader.GetStat('frames64'))
+    type(self).Frames65_127.Set(self, json_reader.GetStat('frames65_127'))
+    type(self).FramesJumbo.Set(self, json_reader.GetStat('framesJumbo'))
+    type(self).FramesUndersized.Set(self, json_reader.GetStat(
+        'framesUndersized'))
+    type(self).Multicast.Set(self, json_reader.GetStat('multicast'))
+    type(self).Unicast.Set(self, json_reader.GetStat('unicast'))
+
+
+class ModemTxCounters(CATA181GLAUKUS.Modem.TxCounters):
+  """Glaukus Manager modem TX counters."""
+
+  Broadcast = tr.cwmptypes.ReadOnlyInt()
+  Bytes = tr.cwmptypes.ReadOnlyInt()
+  CrcErrors = tr.cwmptypes.ReadOnlyInt()
+  Frames = tr.cwmptypes.ReadOnlyInt()
+  Frames1024_1518 = tr.cwmptypes.ReadOnlyInt()
+  Frames128_255 = tr.cwmptypes.ReadOnlyInt()
+  Frames256_511 = tr.cwmptypes.ReadOnlyInt()
+  Frames512_1023 = tr.cwmptypes.ReadOnlyInt()
+  Frames64 = tr.cwmptypes.ReadOnlyInt()
+  Frames65_127 = tr.cwmptypes.ReadOnlyInt()
+  FramesJumbo = tr.cwmptypes.ReadOnlyInt()
+  FramesUndersized = tr.cwmptypes.ReadOnlyInt()
+  Multicast = tr.cwmptypes.ReadOnlyInt()
+  Unicast = tr.cwmptypes.ReadOnlyInt()
+
+  def __init__(self, json_reader):
+    super(ModemTxCounters, self).__init__()
+    json_reader.LoadJsonFromFile(MODEM_JSON_FILE, 'network.txCounters')
+    type(self).Broadcast.Set(self, json_reader.GetStat('broadcast'))
+    type(self).Bytes.Set(self, json_reader.GetStat('bytes'))
+    type(self).CrcErrors.Set(self, json_reader.GetStat('crcErrors'))
+    type(self).Frames.Set(self, json_reader.GetStat('frames'))
+    type(self).Frames1024_1518.Set(self, json_reader.GetStat('frames1024_1518'))
+    type(self).Frames128_255.Set(self, json_reader.GetStat('frames128_255'))
+    type(self).Frames256_511.Set(self, json_reader.GetStat('frames256_511'))
+    type(self).Frames512_1023.Set(self, json_reader.GetStat('frames512_1023'))
+    type(self).Frames64.Set(self, json_reader.GetStat('frames64'))
+    type(self).Frames65_127.Set(self, json_reader.GetStat('frames65_127'))
+    type(self).FramesJumbo.Set(self, json_reader.GetStat('framesJumbo'))
+    type(self).FramesUndersized.Set(self, json_reader.GetStat(
+        'framesUndersized'))
+    type(self).Multicast.Set(self, json_reader.GetStat('multicast'))
+    type(self).Unicast.Set(self, json_reader.GetStat('unicast'))
+
+
+class ModemStatus(CATA181GLAUKUS.Modem.Status):
+  """Glaukus Manager Modem Status."""
+
+  AbsoluteMse = tr.cwmptypes.ReadOnlyInt()
+  AcmEngineRxSensorsEnabled = tr.cwmptypes.ReadOnlyInt()
+  AcmEngineTxSwitchEnabled = tr.cwmptypes.ReadOnlyInt()
+  AcquireStatus = tr.cwmptypes.ReadOnlyInt()
+  AcquireStatusStr = tr.cwmptypes.ReadOnlyString()
+  CarrierOffset = tr.cwmptypes.ReadOnlyInt()
+  DebugIndications = tr.cwmptypes.ReadOnlyInt()
+  ExternalAgc = tr.cwmptypes.ReadOnlyInt()
+  InternalAgc = tr.cwmptypes.ReadOnlyInt()
+  LastAcquireError = tr.cwmptypes.ReadOnlyInt()
+  LastAcquireErrorStr = tr.cwmptypes.ReadOnlyString()
+  NormalizedMse = tr.cwmptypes.ReadOnlyInt()
+  RadialMse = tr.cwmptypes.ReadOnlyInt()
+  ResPhNoiseVal = tr.cwmptypes.ReadOnlyInt()
+  RxAcmProfile = tr.cwmptypes.ReadOnlyInt()
+  RxSymbolRate = tr.cwmptypes.ReadOnlyInt()
+  TxAcmProfile = tr.cwmptypes.ReadOnlyInt()
+  TxSymbolRate = tr.cwmptypes.ReadOnlyInt()
+
+  def __init__(self, json_reader):
+    super(ModemStatus, self).__init__()
+    json_reader.LoadJsonFromFile(MODEM_JSON_FILE, 'status')
+    type(self).AbsoluteMse.Set(self, json_reader.GetStat('absoluteMse'))
+    type(self).AcmEngineRxSensorsEnabled.Set(self, json_reader.GetStat(
+        'acmEngineRxSensorsEnabled'))
+    type(self).AcmEngineTxSwitchEnabled.Set(self, json_reader.GetStat(
+        'acmEngineTxSwitchEnabled'))
+    type(self).AcquireStatus.Set(self, json_reader.GetStat('acquireStatus'))
+    type(self).AcquireStatusStr.Set(self, json_reader.GetStat(
+        'acquireStatusStr'))
+    type(self).CarrierOffset.Set(self, json_reader.GetStat('carrierOffset'))
+    type(self).DebugIndications.Set(self, json_reader.GetStat(
+        'debugIndications'))
+    type(self).ExternalAgc.Set(self, json_reader.GetStat('externalAgc'))
+    type(self).InternalAgc.Set(self, json_reader.GetStat('internalAgc'))
+    type(self).LastAcquireError.Set(self, json_reader.GetStat(
+        'lastAcquireError'))
+    type(self).LastAcquireErrorStr.Set(self, json_reader.GetStat(
+        'lastAcquireErrorStr'))
+    type(self).NormalizedMse.Set(self, json_reader.GetStat('normalizedMse'))
+    type(self).RadialMse.Set(self, json_reader.GetStat('radialMse'))
+    type(self).ResPhNoiseVal.Set(self, json_reader.GetStat('resPhNoiseVal'))
+    type(self).RxAcmProfile.Set(self, json_reader.GetStat('rxAcmProfile'))
+    type(self).RxSymbolRate.Set(self, json_reader.GetStat('rxSymbolRate'))
+    type(self).TxAcmProfile.Set(self, json_reader.GetStat('txAcmProfile'))
+    type(self).TxSymbolRate.Set(self, json_reader.GetStat('txSymbolRate'))
 
 
 class Radio(CATA181GLAUKUS.Radio):
@@ -146,43 +271,12 @@ class Radio(CATA181GLAUKUS.Radio):
 class Report(CATA181GLAUKUS.Report):
   """Catawampus implementation of Glaukus Manager Report statistics."""
 
-  AbsMseDb = tr.cwmptypes.ReadOnlyInt()
-  AdcCount = tr.cwmptypes.ReadOnlyInt()
-  ExternalAgcIdx = tr.cwmptypes.ReadOnlyInt()
-  InPowerRssiDbc = tr.cwmptypes.ReadOnlyInt()
-  InbandPowerRssiDbc = tr.cwmptypes.ReadOnlyInt()
-  InternalAgcIdx = tr.cwmptypes.ReadOnlyInt()
-  MeasuredPowerRssiDbm = tr.cwmptypes.ReadOnlyInt()
-  NormMseDb = tr.cwmptypes.ReadOnlyInt()
-  RadMseDb = tr.cwmptypes.ReadOnlyInt()
-  RxLockLossEvents = tr.cwmptypes.ReadOnlyUnsigned()
-  RxLockLossTimeMs = tr.cwmptypes.ReadOnlyUnsigned()
-  RxLockStatus = tr.cwmptypes.ReadOnlyBool()
   StartSampleCaptureTimeMs = tr.cwmptypes.ReadOnlyUnsigned()
   StopSampleCaptureTimeMs = tr.cwmptypes.ReadOnlyUnsigned()
 
   def __init__(self, json_reader):
     super(Report, self).__init__()
     json_reader.LoadJsonFromFile(REPORT_JSON_FILE, 'report')
-    type(self).AbsMseDb.Set(self, json_reader.GetStat('abs_mse_db'))
-    type(self).AdcCount.Set(self, json_reader.GetStat('adc_count'))
-    type(self).ExternalAgcIdx.Set(
-        self, json_reader.GetStat('external_agc_idx'))
-    type(self).InPowerRssiDbc.Set(
-        self, json_reader.GetStat('inpower_rssi_dbc'))
-    type(self).InbandPowerRssiDbc.Set(
-        self, json_reader.GetStat('inband_power_rssi_dbc'))
-    type(self).InternalAgcIdx.Set(
-        self, json_reader.GetStat('internal_agc_idx'))
-    type(self).MeasuredPowerRssiDbm.Set(
-        self, json_reader.GetStat('msr_pwr_rssi_dbm'))
-    type(self).NormMseDb.Set(self, json_reader.GetStat('norm_mse_db'))
-    type(self).RadMseDb.Set(self, json_reader.GetStat('rad_mse_db'))
-    type(self).RxLockLossEvents.Set(
-        self, json_reader.GetStat('rx_lock_loss_events'))
-    type(self).RxLockLossTimeMs.Set(
-        self, json_reader.GetStat('rx_lock_loss_time_ms'))
-    type(self).RxLockStatus.Set(self, json_reader.GetStat('rx_lock_status'))
     type(self).StartSampleCaptureTimeMs.Set(
         self, json_reader.GetStat('sample_start_tstamp_ms'))
     type(self).StopSampleCaptureTimeMs.Set(

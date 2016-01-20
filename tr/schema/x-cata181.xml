@@ -1304,41 +1304,171 @@ If both {{param|X_CATAWAMPUS-ORG_PortRangeSize}} and {{param|ExternalPortEndRang
 
     <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Modem." access="readOnly" minEntries="1" maxEntries="1">
       <description>Container for Glaukus Manager Modem statistics.</description>
-      <parameter name="ConfigHash" access="readOnly">
-        <description>Modem config file hash.</description>
+      <parameter name="StatusCode" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="StatusStr" access="readOnly">
         <syntax><string/></syntax>
       </parameter>
-      <parameter name="ChipTemp" access="readOnly">
-        <description>Temperature reported by the modem chip sensor.</description>
-        <syntax><float><units value="celsius"/></float></syntax>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Modem.RxCounters." access="readOnly" minEntries="1" maxEntries="1">
+      <description>Modem RX counters.</description>
+      <parameter name="Broadcast" access="readOnly">
+        <syntax><int/></syntax>
       </parameter>
-      <parameter name="ChipTempStatus" access="readOnly">
-        <description>Overall status of the modem chip temperature.</description>
+      <parameter name="Bytes" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="CrcErrors" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Frames" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Frames1024_1518" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Frames128_255" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Frames256_511" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Frames512_1023" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Frames64" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Frames65_127" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="FramesJumbo" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="FramesUndersized" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Multicast" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Unicast" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Modem.TxCounters." access="readOnly" minEntries="1" maxEntries="1">
+      <description>Modem TX counters.</description>
+      <parameter name="Broadcast" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Bytes" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="CrcErrors" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Frames" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Frames1024_1518" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Frames128_255" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Frames256_511" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Frames512_1023" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Frames64" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Frames65_127" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="FramesJumbo" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="FramesUndersized" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Multicast" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Unicast" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Modem.Status." access="readOnly" minEntries="1" maxEntries="1">
+      <description>Status of the modem.</description>
+      <parameter name="AbsoluteMse" access="readOnly">
+        <description>Absolute MSE in dB.</description>
+        <syntax><int><units value="dB"/></int></syntax>
+      </parameter>
+      <parameter name="AcmEngineRxSensorsEnabled" access="readOnly">
+        <description>ACM Engine RX Sensors Enabled.</description>
+        <syntax><boolean/></syntax>
+      </parameter>
+      <parameter name="AcmEngineTxSwitchEnabled" access="readOnly">
+        <description>ACM Engine TX Switch Enabled.</description>
+        <syntax><boolean/></syntax>
+      </parameter>
+      <parameter name="AcquireStatus" access="readOnly">
+        <description>Acquire status code.</description>
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="AcquireStatusStr" access="readOnly">
+        <description>Acquire status string.</description>
         <syntax><string/></syntax>
       </parameter>
-      <parameter name="FecAlarms" access="readOnly">
-        <description>FEC encoder frame alarms.</description>
-        <syntax><unsignedInt/></syntax>
+      <parameter name="CarrierOffset" access="readOnly">
+        <description>Carrier offset.</description>
+        <syntax><int/></syntax>
       </parameter>
-      <parameter name="PcbCurrentDraw" access="readOnly">
-        <description>Current draw from modem PCB.</description>
-        <syntax><unsignedInt/></syntax>
+      <parameter name="DebugIndications" access="readOnly">
+        <description>Debug indications.</description>
+        <syntax><int/></syntax>
       </parameter>
-      <parameter name="PcbTemp" access="readOnly">
-        <description>Temperature reported by the modem PCB.</description>
-        <syntax><float><units value="celsius"/></float></syntax>
+      <parameter name="LastAcquireError" access="readOnly">
+        <description>Last acquire error.</description>
+        <syntax><int/></syntax>
       </parameter>
-      <parameter name="PcbTempStatus" access="readOnly">
-        <description>Overall status of the modem PCB temperature.</description>
+      <parameter name="LastAcquireErrorStr" access="readOnly">
+        <description>Last acquire error string.</description>
         <syntax><string/></syntax>
       </parameter>
-      <parameter name="ResetCount" access="readOnly">
-        <description>Number of times the modem has been reset.</description>
-        <syntax><unsignedInt/></syntax>
+      <parameter name="NormalizedMse" access="readOnly">
+        <description>Normalized MSE in dB.</description>
+        <syntax><int><units value="dB"/></int></syntax>
       </parameter>
-      <parameter name="Uptime" access="readOnly">
-        <description>Modem uptime.</description>
-        <syntax><unsignedInt><units value="milliseconds"/></unsignedInt></syntax>
+      <parameter name="RadialMse" access="readOnly">
+        <description>Radial MSE in dB.</description>
+        <syntax><int><units value="dB"/></int></syntax>
+      </parameter>
+      <parameter name="ResPhNoiseVal" access="readOnly">
+        <description>Res Ph Noise value.</description>
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="RxAcmProfile" access="readOnly">
+        <description>RX ACM profile.</description>
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="RxSymbolRate" access="readOnly">
+        <description>RX symbol rate.</description>
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="TxAcmProfile" access="readOnly">
+        <description>TX ACM profile.</description>
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="TxSymbolRate" access="readOnly">
+        <description>TX symbol rate.</description>
+        <syntax><int/></syntax>
       </parameter>
     </object>
 
@@ -1363,54 +1493,6 @@ If both {{param|X_CATAWAMPUS-ORG_PortRangeSize}} and {{param|ExternalPortEndRang
       <parameter name="StopSampleCaptureTimeMs" access="readOnly">
         <description>End capture timestamp in milliseconds.</description>
         <syntax><unsignedLong><units value="ms"/></unsignedLong></syntax>
-      </parameter>
-      <parameter name="RxLockStatus" access="readOnly">
-        <description>RX lock status.</description>
-        <syntax><boolean/></syntax>
-      </parameter>
-      <parameter name="RxLockLossEvents" access="readOnly">
-        <description>RX loss of lock events.</description>
-        <syntax><unsignedInt/></syntax>
-      </parameter>
-      <parameter name="RxLockLossTimeMs" access="readOnly">
-        <description>RX loss of lock timestamp in milliseconds.</description>
-        <syntax><unsignedLong><units value="ms"/></unsignedLong></syntax>
-      </parameter>
-      <parameter name="MeasuredPowerRssiDbm" access="readOnly">
-        <description>Measured Power RSSI in dBm.</description>
-        <syntax><int><units value="dBm"/></int></syntax>
-      </parameter>
-      <parameter name="AdcCount" access="readOnly">
-        <description>ADC count.</description>
-        <syntax><unsignedInt/></syntax>
-      </parameter>
-      <parameter name="InPowerRssiDbc" access="readOnly">
-        <description>In Power RSSI in dBc.</description>
-        <syntax><int><units value="dBc"/></int></syntax>
-      </parameter>
-      <parameter name="InbandPowerRssiDbc" access="readOnly">
-        <description>Inband Power RSSI in dBc.</description>
-        <syntax><int><units value="dBc"/></int></syntax>
-      </parameter>
-      <parameter name="ExternalAgcIdx" access="readOnly">
-        <description>External AGC table index.</description>
-        <syntax><int/></syntax>
-      </parameter>
-      <parameter name="InternalAgcIdx" access="readOnly">
-        <description>Internal AGC table index.</description>
-        <syntax><int/></syntax>
-      </parameter>
-      <parameter name="AbsMseDb" access="readOnly">
-        <description>Absolute MSE in dB.</description>
-        <syntax><int><units value="dB"/></int></syntax>
-      </parameter>
-      <parameter name="NormMseDb" access="readOnly">
-        <description>Normalized MSE in dB.</description>
-        <syntax><int><units value="dB"/></int></syntax>
-      </parameter>
-      <parameter name="RadMseDb" access="readOnly">
-        <description>Radial MSE in dB.</description>
-        <syntax><int><units value="dB"/></int></syntax>
       </parameter>
     </object>
 
