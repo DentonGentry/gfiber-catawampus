@@ -22,6 +22,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import datetime
 import math
+import os
 import random
 import re
 import sys
@@ -63,7 +64,7 @@ class CpeManagementServer(object):
   def __init__(self, acs_config, port, ping_path,
                acs_url=None, get_parameter_key=None,
                start_periodic_session=None, ioloop=None,
-               restrict_acs_hosts=None):
+               restrict_acs_hosts=None, conman_dir='/tmp/conman'):
     self._acs_config = acs_config
     self.acs_url = acs_url
     self.get_parameter_key = get_parameter_key
@@ -77,6 +78,7 @@ class CpeManagementServer(object):
     self.restrict_acs_hosts = restrict_acs_hosts
     self.start_periodic_session = start_periodic_session
     self._start_periodic_timeout = None
+    self._conman_dir = conman_dir
     self.ConfigurePeriodicInform()
 
   def Triggered(self):
@@ -131,6 +133,47 @@ class CpeManagementServer(object):
     # If we don't find a valid host, raise an exception.
     raise ValueError('The ACS Host is not permissible: %r' % (value,))
 
+  def _WantACSAutoprovisioning(self):
+    """Whether to enable ACS autoprovisioning.
+
+    We only really care about doing this when a non-provisioned device connects
+    to the ACS wirelessly (since it might connect via another user's RG).  We
+    default to disabling it, since the problem is easier to detect and fix, and
+    impacts fewer users, if we fail to provision a device than if we provision
+    it to the wrong account.
+
+    Returns:
+      Whether to enable ACS autoprovisioning.
+    """
+    return os.path.exists(os.path.join(self._conman_dir,
+                                       'acs_autoprovisioning'))
+
+  def _AddQueryParams(self, url):
+    """Add URL query parameters.
+
+    URL query parameters added:
+
+    * noautoprov, when applicable.  This tells the ACS not to autoprovision the
+      device.
+
+    Args:
+      url: The URL to which to add query parameters.
+
+    Returns:
+      url, with query parameters added.
+    """
+    options = []
+    if not self._WantACSAutoprovisioning() and url is not None:
+      options.append('noautoprov')
+
+    if options:
+      parsed_url = urlparse.urlparse(url)
+      query = parsed_url.query
+      query += '%soptions=%s' % ('&' if query else '', ','.join(options))
+      url = parsed_url._replace(query=query).geturl()
+
+    return url
+
   def _GetURL(self):
     """Return the ACS URL to use (internal only)."""
     if self.acs_url:
@@ -166,7 +209,8 @@ class CpeManagementServer(object):
     # value has changed.
     if url and self.MostRecentURL != url:
       self.MostRecentURL = url
-    return url
+
+    return self._AddQueryParams(url)
 
   def SetURL(self, value):
     self.ValidateAcsUrl(value)

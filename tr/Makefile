@@ -39,7 +39,7 @@ runtests: all stamp.validated \
 	done
 
 test:
-	vendor/wvtest/wvtestrun $(MAKE) runtests
+	PATH="./testdata/cpe_management_server:$(PATH)" vendor/wvtest/wvtestrun $(MAKE) runtests
 
 clean:
 	rm -f *~ .*~ *.pyc *.stamp tr???_*.py* x_*.py* stamp.* *.tmp

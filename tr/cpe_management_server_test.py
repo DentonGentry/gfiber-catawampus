@@ -22,6 +22,10 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import datetime
+import os
+import shutil
+import tempfile
+
 import google3
 import cpe_management_server as ms
 import cwmpdate
@@ -112,16 +116,37 @@ class CpeManagementServerTest(unittest.TestCase):
                      'http://[2620:0:1000:5200:222:3ff:fe44:5555]:5/ping/path')
 
   def testAcsUrl(self):
-    pc = MockAcsConfig()
-    cpe_ms = ms.CpeManagementServer(acs_config=pc, port=0, ping_path='')
-    self.assertEqual(cpe_ms.URL, 'http://acs.example.com/cwmp')
-    self.assertRaises(AttributeError, cpe_ms.SetURL, 'http://example.com/')
-    self.assertTrue(pc.set_acs_url_called)
-    pc.set_acs_raise = False
-    pc.set_acs_url_called = False
-    cpe_ms.URL = 'http://example.com/'
-    self.assertTrue(pc.set_acs_url_called)
-    self.assertEqual(pc.acs_url_list[0], 'http://example.com/')
+    conman_dir = tempfile.mkdtemp()
+    autoprov_filepath = os.path.join(conman_dir, 'acs_autoprovisioning')
+    try:
+      open(autoprov_filepath, 'w')
+      pc = MockAcsConfig()
+      cpe_ms = ms.CpeManagementServer(acs_config=pc, port=0, ping_path='',
+                                      conman_dir=conman_dir)
+
+      self.assertEqual(cpe_ms.URL, 'http://acs.example.com/cwmp')
+      self.assertRaises(AttributeError, cpe_ms.SetURL, 'http://example.com/')
+      self.assertTrue(pc.set_acs_url_called)
+
+      pc.set_acs_raise = False
+      pc.set_acs_url_called = False
+
+      cpe_ms.URL = 'http://example.com/'
+      self.assertTrue(pc.set_acs_url_called)
+      self.assertEqual(pc.acs_url_list[0], 'http://example.com/')
+      self.assertEqual(cpe_ms.URL, 'http://example.com/')
+
+      # Now disable ACS autoprovisioning.
+      os.unlink(autoprov_filepath)
+      self.assertEqual(cpe_ms.URL, 'http://example.com/?options=noautoprov')
+
+      # Test URLs which already contain GET params.
+      cpe_ms.URL = 'http://example.com/?foo=bar'
+      self.assertEqual(pc.acs_url_list[0], 'http://example.com/?foo=bar')
+      self.assertEqual(cpe_ms.URL,
+                       'http://example.com/?foo=bar&options=noautoprov')
+    finally:
+      shutil.rmtree(conman_dir)
 
   def GetParameterKey(self):
     return 'ParameterKey'
@@ -269,7 +294,8 @@ class CpeManagementServerTest(unittest.TestCase):
     cpe_ms = ms.CpeManagementServer(acs_config=mock_config, port=5,
                                     ping_path='/',
                                     restrict_acs_hosts='.gfsvc.com')
-    self.assertEqual('https://foo.prod.gfsvc.com', cpe_ms.URL)
+    self.assertEqual('https://foo.prod.gfsvc.com?options=noautoprov',
+                     cpe_ms.URL)
     self.assertEqual(2, len(mock_config.acs_url_list))
     mock_config.acs_url_list = ['http://foo1.com',
                                 'http://foow2.com']
