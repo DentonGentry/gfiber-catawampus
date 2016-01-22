@@ -1,1 +1,58 @@
-{"modem": {"chip_temp": "31.6", "chip_temp_status": "0", "config_hash": "123abc", "fec_alarm": 1, "pcb_current_draw": 12, "pcb_temp": 12.6, "pcb_temp_status": "0", "reset_count": 1, "uptime": 123456}}
+{
+  "network": {
+    "rxCounters": {
+      "broadcast": 0,
+      "bytes": 0,
+      "crcErrors": 0,
+      "frames": 0,
+      "frames1024_1518": 0,
+      "frames128_255": 0,
+      "frames256_511": 0,
+      "frames512_1023": 0,
+      "frames64": 0,
+      "frames65_127": 0,
+      "framesJumbo": 0,
+      "framesUndersized": 0,
+      "multicast": 0,
+      "unicast": 0
+    },
+    "status": 1,
+    "statusStr": "DOWN",
+    "txCounters": {
+      "broadcast": 0,
+      "bytes": 0,
+      "crcErrors": 0,
+      "frames": 0,
+      "frames1024_1518": 0,
+      "frames128_255": 0,
+      "frames256_511": 0,
+      "frames512_1023": 0,
+      "frames64": 0,
+      "frames65_127": 0,
+      "framesJumbo": 0,
+      "framesUndersized": 0,
+      "multicast": 0,
+      "unicast": 0
+    }
+  },
+  "status": {
+    "absoluteMse": -32768,
+    "acmEngineRxSensorsEnabled": false,
+    "acmEngineTxSwitchEnabled": false,
+    "acquireStatus": 0,
+    "acquireStatusStr": "Acquire in progress",
+    "carrierOffset": -7919994,
+    "debugIndications": 0,
+    "externalAgc": 382,
+    "internalAgc": 210,
+    "lastAcquireError": 3,
+    "lastAcquireErrorStr": "Acquisition failed at frequency sweep.",
+    "normalizedMse": -32709,
+    "radialMse": -32679,
+    "resPhNoiseVal": 0,
+    "rxAcmProfile": 0,
+    "rxSymbolRate": 65999791,
+    "txAcmProfile": 0,
+    "txSymbolRate": 549999998
+  }
+}

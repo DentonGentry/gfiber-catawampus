@@ -1,1 +1,1 @@
-{"test": {"foo": "bar"}}
+{"test": {"foo": "bar", "baz": {"barre": "hi"}}}
