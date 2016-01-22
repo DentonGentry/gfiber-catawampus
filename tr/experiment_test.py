@@ -161,18 +161,19 @@ class ExperimentTest(unittest.TestCase):
     self.assertEqual(exps.Available, 'TestExp1,TestExp2,TestExpOverlap')
     self.assertEqual(exps.Active, '')
     os.unlink(os.path.join(experiment.ACTIVEDIR, 'Foo.requested'))
+    os.unlink(os.path.join(experiment.ACTIVEDIR, 'Foo.active'))
 
     open(os.path.join(experiment.REGDIR, 'Goo.available'), 'w')
     self.assertEqual(exps.Available, 'Goo,TestExp1,TestExp2,TestExpOverlap')
     self.assertEqual(exps.Active, '')
     exps.Requested = 'Foo, Goo '
     self.assertEqual(exps.Active, '')
+    self.assertTrue(os.path.exists(
+        os.path.join(experiment.ACTIVEDIR, 'Foo.requested')))
     os.rename(os.path.join(experiment.ACTIVEDIR, 'Goo.requested'),
               os.path.join(experiment.ACTIVEDIR, 'Goo.active'))
     self.assertEqual(exps.Requested, 'Foo,Goo')
     self.assertEqual(exps.Active, 'Goo')
-    self.assertFalse(os.path.exists(
-        os.path.join(experiment.ACTIVEDIR, 'Foo.requested')))
 
     exps.Requested = 'Foo'
     self.assertEqual(exps.Active, 'Goo')
@@ -182,6 +183,45 @@ class ExperimentTest(unittest.TestCase):
     os.unlink(os.path.join(experiment.ACTIVEDIR, 'Goo.unrequested'))
     self.assertEqual(exps.Requested, 'Foo')
     self.assertEqual(exps.Active, '')
+
+  def testSysExperimentsInvalidCharacters(self):
+    root = core.Exporter()
+    eh = experiment.ExperimentHandle(root)
+    exps = experiment.Experiments(eh)
+    eh.root_experiments = exps
+
+    exps.Requested = 'Foo/temp.test, Goo_-89'
+    self.assertFalse(os.path.exists(
+        os.path.join(experiment.ACTIVEDIR, 'Foo/temp.test.requested')))
+    self.assertTrue(os.path.exists(
+        os.path.join(experiment.ACTIVEDIR, 'Goo_-89.requested')))
+
+  def testSysExperimentsLongName(self):
+    root = core.Exporter()
+    eh = experiment.ExperimentHandle(root)
+    exps = experiment.Experiments(eh)
+    eh.root_experiments = exps
+
+    long_experiment = 'x' * 128
+    too_long_experiment = 'y' * 129
+    exps.Requested = '%s, %s' % (long_experiment, too_long_experiment)
+    self.assertTrue(os.path.exists(
+        os.path.join(experiment.ACTIVEDIR, long_experiment + '.requested')))
+    self.assertFalse(os.path.exists(
+        os.path.join(experiment.ACTIVEDIR, too_long_experiment + '.requested')))
+
+  def testSysExperimentsMaxFiles(self):
+    root = core.Exporter()
+    eh = experiment.ExperimentHandle(root)
+    exps = experiment.Experiments(eh)
+    eh.root_experiments = exps
+
+    for _ in range(256):
+      temp = tempfile.NamedTemporaryFile(dir=experiment.ACTIVEDIR, delete=False)
+      temp.close()
+    exps.Requested = 'Frue'
+    self.assertFalse(os.path.exists(
+        os.path.join(experiment.ACTIVEDIR, 'Frue.requested')))
 
   def testSysExperimentsExistAtStartup(self):
     open(os.path.join(experiment.ACTIVEDIR, 'Foo.active'), 'w')

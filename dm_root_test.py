@@ -22,7 +22,11 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
 import dm_root
+import os.path
+import shutil
+import tempfile
 import tr.basemodel
+import tr.experiment
 import tr.cwmptypes
 from tr.wvtest import unittest
 
@@ -56,6 +60,16 @@ class MockDevice(object):
 
 class DeviceModelRootTest(unittest.TestCase):
 
+  def setUp(self):
+    self.tmpdir = tempfile.mkdtemp()
+    self.old_ACTIVEDIR = tr.experiment.ACTIVEDIR
+    tr.experiment.ACTIVEDIR = os.path.join(self.tmpdir, 'act')
+    os.mkdir(tr.experiment.ACTIVEDIR)
+
+  def tearDown(self):
+    tr.experiment.ACTIVEDIR = self.old_ACTIVEDIR
+    shutil.rmtree(self.tmpdir)
+
   def testAddManagementServer(self):
     root = dm_root.DeviceModelRoot(loop=None, platform=None,
                                    ext_dir='ext_test')
@@ -87,6 +101,8 @@ class DeviceModelRootTest(unittest.TestCase):
                      'test1')
     self.assertEqual(root.Device.X_CATAWAMPUS_ORG.Experiments.Requested,
                      'test1')
+    self.assertTrue(os.path.exists(
+        os.path.join(tr.experiment.ACTIVEDIR, 'test1.requested')))
 
 
 if __name__ == '__main__':

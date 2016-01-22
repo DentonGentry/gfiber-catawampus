@@ -21,6 +21,7 @@
 import datetime
 import errno
 import os
+import re
 import traceback
 import google3
 import cwmptypes
@@ -35,6 +36,8 @@ ACTIVEDIR = helpers.Path('/config/experiments')
 BASE = x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
 CATABASE = BASE.Device.X_CATAWAMPUS_ORG
 
+MAX_FILE_NUMBER = 256
+MAX_EXPERIMENT_NAME_LENGTH = 128
 
 # The global list of all experiments registered with @Experiment
 registered = {}
@@ -172,16 +175,24 @@ class Experiments(CATABASE.Experiments):
     requested = [avail_lookup.get(i.lower(), i) for i in requested]
 
     for name in requested:
-      if name in sysavail:
-        print 'Requesting system experiment %r' % name
-        helpers.Unlink(os.path.join(ACTIVEDIR, name + '.unrequested'))
-        if not os.path.exists(os.path.join(ACTIVEDIR, name + '.active')):
-          helpers.WriteFileAtomic(
-              os.path.join(ACTIVEDIR, name + '.requested'), '')
       expfunc = registered.get(name)
       if not expfunc:
-        if name not in sysavail:
-          print 'no such experiment: %r' % name
+        if re.findall(r'[^A-Za-z0-9_-]', name):
+          print 'Invalid characters in experiment %r' % name
+        elif len(name) > MAX_EXPERIMENT_NAME_LENGTH:
+          print ('Experiment %r length %r is greater than the maximum '
+                 'allowed length %r' % (name, len(name),
+                                        MAX_EXPERIMENT_NAME_LENGTH))
+        elif len(os.listdir(ACTIVEDIR)) >= MAX_FILE_NUMBER:
+          print ('Unable to request system experiment, too many files in '
+                 '%r' % ACTIVEDIR)
+        else:
+          print 'Requesting system experiment %r' % name
+          helpers.Unlink(os.path.join(ACTIVEDIR, name + '.unrequested'))
+          if not os.path.exists(os.path.join(ACTIVEDIR,
+                                             name + '.active')):
+            helpers.WriteFileAtomic(
+                os.path.join(ACTIVEDIR, name + '.requested'), '')
       else:
         print 'Applying experiment %r' % name
         forces = list(expfunc(self.roothandle))
