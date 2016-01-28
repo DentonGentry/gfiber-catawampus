@@ -47,11 +47,12 @@ ISOSTREAM_KEY = 'Device.X_CATAWAMPUS-ORG.Isostream.'
 # Unit tests can override these.
 BASEDIR = ['/tmp/waveguide']
 CONSENSUS_KEY_FILE = ['/tmp/waveguide/consensus_key']
+IS_STORAGE_BOX = ['is-storage-box']
 
 
 @tr.experiment.Experiment
 def IsostreamSerial(_):
-  if not subprocess.call(['is-storage-box']):
+  if not subprocess.call(IS_STORAGE_BOX):
     return [(ISOSTREAM_KEY + 'ServerEnable', True),
             (ISOSTREAM_KEY + 'ServerConcurrentConnections', 1),
             (ISOSTREAM_KEY + 'ServerTimeLimit', 0)]
@@ -61,7 +62,7 @@ def IsostreamSerial(_):
 
 @tr.experiment.Experiment
 def IsostreamParallel(_):
-  if not subprocess.call(['is-storage-box']):
+  if not subprocess.call(IS_STORAGE_BOX):
     return [(ISOSTREAM_KEY + 'ServerEnable', True),
             (ISOSTREAM_KEY + 'ServerConcurrentConnections', 8),
             (ISOSTREAM_KEY + 'ServerTimeLimit', 0)]
