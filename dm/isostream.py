@@ -55,6 +55,8 @@ def IsostreamSerial(_):
     return [(ISOSTREAM_KEY + 'ServerEnable', True),
             (ISOSTREAM_KEY + 'ServerConcurrentConnections', 1),
             (ISOSTREAM_KEY + 'ServerTimeLimit', 0)]
+  else:
+    return []
 
 
 @tr.experiment.Experiment
@@ -63,6 +65,8 @@ def IsostreamParallel(_):
     return [(ISOSTREAM_KEY + 'ServerEnable', True),
             (ISOSTREAM_KEY + 'ServerConcurrentConnections', 8),
             (ISOSTREAM_KEY + 'ServerTimeLimit', 0)]
+  else:
+    return []
 
 
 @tr.experiment.Experiment
