@@ -41,7 +41,7 @@ class CaptivePortal(CATA181_CAPTIVE_PORTAL):
 
   def __init__(self):
     super(CaptivePortal, self).__init__()
-    self._interfaces = ['wlan0_portal']
+    self._interfaces = ['wlan0_portal', 'wlan1_portal']
 
   @property
   def Status(self):
