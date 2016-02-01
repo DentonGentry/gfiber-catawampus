@@ -22,6 +22,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import json
 import os
+import shlex
 import shutil
 import tempfile
 import time
@@ -34,14 +35,14 @@ import tr.session
 from tr.wvtest import unittest
 
 BRIDGE_PARAMS = [
-    ('', ' "--bridge="'),
-    ('br0', ' "--bridge=br0"'),
-    ('br1', ' "--bridge=br1"'),
+    ('', ' --bridge='),
+    ('br0', ' --bridge=br0'),
+    ('br1', ' --bridge=br1'),
 ]
 
 SUFFIX_PARAMS = [
     ('', ''),
-    ('portal', ' "-S" "portal"'),
+    ('portal', ' -S portal'),
 ]
 
 
@@ -49,11 +50,8 @@ class BinWifiTest(unittest.TestCase):
 
   def setUp(self):
     self.old_BINWIFI = binwifi.BINWIFI
-    self.old_IS_WIRELESS_CLIENT = binwifi.IS_WIRELESS_CLIENT
-    binwifi.IS_WIRELESS_CLIENT[0] = 'testdata/binwifi/is-wireless-client'
+    binwifi.BINWIFI = ['testdata/binwifi/binwifi']
     self.tmpdir = tempfile.mkdtemp()
-    self.wifioutfile = os.path.join(self.tmpdir, 'wifi.out')
-    binwifi.BINWIFI = ['testdata/binwifi/binwifi', self.wifioutfile]
     self.old_PROC_NET_DEV = netdev.PROC_NET_DEV
     netdev.PROC_NET_DEV = 'testdata/binwifi/proc_net_dev'
     self.old_CONMAN_DIR = binwifi.CONMAN_DIR[0]
@@ -70,7 +68,6 @@ class BinWifiTest(unittest.TestCase):
 
   def tearDown(self):
     binwifi.BINWIFI = self.old_BINWIFI
-    binwifi.IS_WIRELESS_CLIENT = self.old_IS_WIRELESS_CLIENT
     netdev.PROC_NET_DEV = self.old_PROC_NET_DEV
     binwifi.CONMAN_DIR[0] = self.old_CONMAN_DIR
     binwifi.STATIONS_DIR[0] = self.old_STATIONS_DIR
@@ -82,12 +79,15 @@ class BinWifiTest(unittest.TestCase):
     for bw in self.bw_pool:
       bw.release()
 
-  def GatherOutput(self):
+  def GatherOutput(self, wlan_configuration):
     self.loop.RunOnce(timeout=1)
-    with open(self.wifioutfile, 'r+') as of:
-      buf = of.read()
+    with open(wlan_configuration.WifiCommandFileName(), 'r+') as of:
+      command = of.read()
       of.truncate(0)
-    return buf
+
+    ap_enabled = os.path.exists(wlan_configuration.APEnabledFileName())
+
+    return ap_enabled, command
 
   def WlanConfiguration(self, *args, **kwargs):
     """Create WlanConfiguration objects in a pool that we release each test."""
@@ -136,15 +136,16 @@ class BinWifiTest(unittest.TestCase):
         bw.BeaconType = 'WPA'
         bw.IEEE11iEncryptionModes = 'AESEncryption'
         bw.KeyPassphrase = 'testpassword'
-        buf = self.GatherOutput()
-        # testdata/binwifi/binwifi quotes every argument
-        exp = [
-            '"set" "-P" "-b" "2.4" "-e" "WPA_PSK_AES"%s%s "-c" "auto" "-s" '
-            '"Test SSID 1" "-a" "HIGH" "-p" "a/b/g/n" '
-            '"-M"' % (s_param, b_param),
-            'PSK=testpassword'
-        ]
-        self.assertEqual(buf.strip().splitlines(), exp)
+        ap, buf = self.GatherOutput(bw)
+        exp = (
+            'env WIFI_PSK=testpassword %s '
+            'set -P -b 2.4 -e WPA_PSK_AES%s%s -c auto -s '
+            '\'Test SSID 1\' -a HIGH -p a/b/g/n '
+            '-M' % (binwifi.BINWIFI[0], s_param, b_param)
+        )
+
+        self.assertTrue(ap)
+        self.assertEqual(' '.join(buf.strip().splitlines()), exp)
 
   def testAnotherConfigCommit(self):
     for (if_suffix, s_param) in SUFFIX_PARAMS:
@@ -161,15 +162,15 @@ class BinWifiTest(unittest.TestCase):
         bw.IEEE11iEncryptionModes = 'AESEncryption'
         bw.KeyPassphrase = 'testpassword'
         bw.SSIDAdvertisementEnabled = False
-        buf = self.GatherOutput()
-        # testdata/binwifi/binwifi quotes every argument
-        exp = [
-            '"set" "-P" "-b" "2.4" "-e" "WPA2_PSK_AES"%s%s "-H" "-c" "10" '
-            '"-s" "Test SSID 1" "-a" "HIGH" "-p" "a/b/g/n" "-M"'
-            % (s_param, b_param),
-            'PSK=testpassword'
-        ]
-        self.assertEqual(buf.strip().splitlines(), exp)
+        ap, buf = self.GatherOutput(bw)
+        exp = (
+            'env WIFI_PSK=testpassword %s '
+            'set -P -b 2.4 -e WPA2_PSK_AES%s%s -H -c 10 '
+            '-s \'Test SSID 1\' -a HIGH -p a/b/g/n -M'
+            % (binwifi.BINWIFI[0], s_param, b_param)
+        )
+        self.assertTrue(ap)
+        self.assertEqual(' '.join(buf.strip().splitlines()), exp)
 
   def test5GhzConfigCommit(self):
     for (if_suffix, s_param) in SUFFIX_PARAMS:
@@ -187,15 +188,15 @@ class BinWifiTest(unittest.TestCase):
         bw.IEEE11iEncryptionModes = 'AESEncryption'
         bw.KeyPassphrase = 'testpassword'
         bw.SSIDAdvertisementEnabled = False
-        buf = self.GatherOutput()
-        # testdata/binwifi/binwifi quotes every argument
-        exp = [
-            '"set" "-P" "-b" "5" "-e" "WPA2_PSK_AES"%s%s "-H" "-c" "44" '
-            '"-s" "Test SSID 1" "-a" "HIGH" "-w" "80" "-p" "a/b/g/n" "-M"'
-            % (s_param, b_param),
-            'PSK=testpassword'
-        ]
-        self.assertEqual(buf.strip().splitlines(), exp)
+        ap, buf = self.GatherOutput(bw)
+        exp = (
+            'env WIFI_PSK=testpassword %s '
+            'set -P -b 5 -e WPA2_PSK_AES%s%s -H -c 44 '
+            '-s \'Test SSID 1\' -a HIGH -w 80 -p a/b/g/n -M'
+            % (binwifi.BINWIFI[0], s_param, b_param)
+        )
+        self.assertTrue(ap)
+        self.assertEqual(' '.join(buf.strip().splitlines()), exp)
 
   def testRadioDisabled(self):
     for (if_suffix, s_param) in SUFFIX_PARAMS:
@@ -204,146 +205,20 @@ class BinWifiTest(unittest.TestCase):
       bw.StartTransaction()
       bw.Enable = True
       bw.RadioEnabled = True
-      _ = self.GatherOutput()
+      bw.SSID = 'Test SSID 1'
+      bw.KeyPassphrase = 'testpassword'
+      _ = self.GatherOutput(bw)
 
       bw.RadioEnabled = False
-      buf = self.GatherOutput()
-      # testdata/binwifi/binwifi quotes every argument
-      exp = ['"stopap" "-P" "-b" "2.4"%s' % s_param, 'PSK=']
-      self.assertEqual(buf.strip().splitlines(), exp)
-
-  def testClientConfig(self):
-    bw = self.WlanConfiguration('wcli0', '', '')
-    bw.StartTransaction()
-    bw.RadioEnabled = True
-    bw.ClientEnable = True
-    bw.SSID = 'Test SSID 2'
-    bw.KeyPassphrase = 'testpassword'
-    buf = self.GatherOutput()
-    exp = ['"setclient" "-P" "-s" "Test SSID 2"', 'CLIENT_PSK=testpassword']
-    self.assertEqual(buf.strip().splitlines(), exp)
-
-    bw.RadioEnabled = False
-    buf = self.GatherOutput()
-    # testdata/binwifi/binwifi quotes every argument
-    exp = ['"stopclient" "-P" "-b" "5"', 'PSK=']
-    self.assertEqual(buf.strip().splitlines(), exp)
-
-  def testUpdateBinWifi(self):
-    def Verbs(buf):
-      verbs = []
-      for line in buf.strip().splitlines()[::2]:  # don't care about environment
-        verbs.append(line.split()[0])
-
-      return verbs
-
-    bw = self.WlanConfiguration('wlan0', '', 'br0', band='2.4')
-    bw.StartTransaction()
-    bw.RadioEnabled = True
-    bw.Enable = True
-    bw.SSID = 'Test SSID 2'
-    bw.KeyPassphrase = 'testpassword'
-    buf = self.GatherOutput()
-    self.assertEqual(Verbs(buf), ['"set"'])
-
-    bw.ClientEnable = True
-    buf = self.GatherOutput()
-    self.assertEqual(Verbs(buf), ['"setclient"', '"set"'])
-
-    bw.Enable = False
-    buf = self.GatherOutput()
-    self.assertEqual(Verbs(buf), ['"setclient"', '"stopap"'])
-
-    bw.ClientEnable = False
-    buf = self.GatherOutput()
-    self.assertEqual(Verbs(buf), ['"stopclient"'])
-
-    bw.Enable = True
-    bw.ClientEnable = True
-    buf = self.GatherOutput()
-    self.assertEqual(Verbs(buf), ['"setclient"', '"set"'])
-
-    bw.SSID = 'Test SSID 2A'
-    buf = self.GatherOutput()
-    self.assertEqual(Verbs(buf), ['"setclient"', '"set"'])
-
-    bw.Enable = False
-    bw.ClientEnable = False
-    buf = self.GatherOutput()
-    self.assertEqual(Verbs(buf), ['"stopclient"', '"stopap"'])
-
-  def testWifiCmdFile(self):
-    def loadWifiCmdFile(basename):
-      fullpath = os.path.join(binwifi.CONMAN_DIR[0], basename)
-      with open(fullpath) as cmdfile:
-        return json.load(cmdfile)
-
-    bw = self.WlanConfiguration('wlan1', '', 'br0', band='5')
-    bw.StartTransaction()
-    bw.RadioEnabled = True
-    bw.Enable = True
-    bw.SSID = 'Test Wifi Cmd SSID 5'
-    bw.KeyPassphrase = 'testpassword'
-    self.GatherOutput()
-
-    self.assertEqual(sorted(os.listdir(binwifi.CONMAN_DIR[0])),
-                     ['wlan_configuration.5.json'])
-
-    wc5 = loadWifiCmdFile('wlan_configuration.5.json')
-    self.assertTrue(wc5['access_point'])
-
-    # Deliberately create a WlanConfiguration outside of the pool, so we can
-    # release it early and test that it cleans up its command file.
-    bw24 = binwifi.WlanConfiguration('wlan0', '', 'br0', band='2.4')
-    bw24.StartTransaction()
-    bw24.RadioEnabled = True
-    bw24.Enable = True
-    bw24.SSID = 'Test Wifi Cmd SSID 2.4'
-    bw24.KeyPassphrase = 'testpassword'
-
-    bw.Enable = False
-    self.GatherOutput()
-
-    self.assertEqual(sorted(os.listdir(binwifi.CONMAN_DIR[0])),
-                     ['wlan_configuration.2.4.json',
-                      'wlan_configuration.5.json'])
-
-    wc24 = loadWifiCmdFile('wlan_configuration.2.4.json')
-    self.assertTrue(wc24['access_point'])
-    self.assertEqual(wc24['command'],
-                     binwifi.BINWIFI + [u'set', u'-P', u'-b', u'2.4', u'-e',
-                                        u'WPA2_PSK_AES', u'--bridge=br0', u'-c',
-                                        u'auto', u'-s',
-                                        u'Test Wifi Cmd SSID 2.4', u'-p',
-                                        u'a/b/g/n', u'-M'])
-
-    wc5 = loadWifiCmdFile('wlan_configuration.5.json')
-    self.assertFalse(wc5['access_point'])
-    self.assertEqual(wc5['command'],
-                     binwifi.BINWIFI + [u'set', u'-P', u'-b', u'5', u'-e',
-                                        u'WPA2_PSK_AES', u'--bridge=br0', u'-c',
-                                        u'auto', u'-s', u'Test Wifi Cmd SSID 5',
-                                        u'-p', u'a/b/g/n', u'-M'])
-
-    bw24.release()
-    self.assertEqual(sorted(os.listdir(binwifi.CONMAN_DIR[0])),
-                     ['wlan_configuration.5.json'])
-
-    bw.Enable = True
-    self.GatherOutput()
-    wc5 = loadWifiCmdFile('wlan_configuration.5.json')
-    self.assertTrue(wc5['access_point'])
-
-    bw_portal = self.WlanConfiguration('wlan1', '_portal', 'br1', band='5')
-    bw_portal.StartTransaction()
-    bw_portal.RadioEnabled = True
-    bw_portal.Enable = True
-    bw_portal.SSID = 'GFiberSetup'
-
-    self.GatherOutput()
-    self.assertEqual(sorted(os.listdir(binwifi.CONMAN_DIR[0])),
-                     ['wlan_configuration.5.json',
-                      'wlan_configuration_portal.5.json'])
+      ap, buf = self.GatherOutput(bw)
+      exp = (
+          'env WIFI_PSK=testpassword %s '
+          'set -P -b 2.4 -e WPA2_PSK_AES%s%s -c auto '
+          '-s \'Test SSID 1\' -p a/b/g/n -M'
+          % (binwifi.BINWIFI[0], s_param, dict(BRIDGE_PARAMS)['br1'])
+      )
+      self.assertFalse(ap)
+      self.assertEqual(' '.join(buf.strip().splitlines()), exp)
 
   def testPSK(self):
     for i in range(1, 11):
@@ -358,16 +233,16 @@ class BinWifiTest(unittest.TestCase):
           bw.SSID = 'Test SSID 1'
           bw.BeaconType = 'WPAand11i'
           bw.IEEE11iEncryptionModes = 'AESEncryption'
-          bw.PreSharedKeyList[str(i)].KeyPassphrase = 'testpassword'
-          buf = self.GatherOutput()
-          # testdata/binwifi/binwifi quotes every argument
-          exp = [
-              '"set" "-P" "-b" "2.4" "-e" "WPA12_PSK_AES"%s%s '
-              '"-c" "auto" "-s" "Test SSID 1" "-p" "a/b/g/n" "-M"'
-              % (s_param, b_param),
-              'PSK=testpassword'
-          ]
-          self.assertEqual(buf.strip().splitlines(), exp)
+          bw.PreSharedKeyList[str(i)].KeyPassphrase = 'test password'
+          ap, buf = self.GatherOutput(bw)
+          exp = (
+              'env WIFI_PSK=\'test password\' %s '
+              'set -P -b 2.4 -e WPA12_PSK_AES%s%s '
+              '-c auto -s \'Test SSID 1\' -p a/b/g/n -M'
+              % (binwifi.BINWIFI[0], s_param, b_param)
+          )
+          self.assertTrue(ap)
+          self.assertEqual(' '.join(buf.strip().splitlines()), exp)
 
   def testPasswordTriggers(self):
     bw = self.WlanConfiguration('wifi0', '', 'br0', band='2.4')
@@ -379,13 +254,13 @@ class BinWifiTest(unittest.TestCase):
     bw.BeaconType = 'WPAand11i'
     bw.IEEE11iEncryptionModes = 'AESEncryption'
     bw.PreSharedKeyList['1'].KeyPassphrase = 'testpassword'
-    buf = self.GatherOutput()
+    _, buf = self.GatherOutput(bw)
 
     # Test that setting the KeyPassphrase alone is enough to write the config
     bw.PreSharedKeyList['1'].KeyPassphrase = ''
     for i in reversed(range(1, 11)):
       bw.PreSharedKeyList[str(i)].KeyPassphrase = 'testpassword' + str(i)
-      newbuf = self.GatherOutput()
+      _, newbuf = self.GatherOutput(bw)
       self.assertNotEqual(newbuf, buf)
       buf = newbuf
 
@@ -401,14 +276,15 @@ class BinWifiTest(unittest.TestCase):
         bw.SSID = 'Test SSID'
         bw.BeaconType = 'Basic'
         bw.BasicEncryptionModes = 'WEPEncryption'
-        buf = self.GatherOutput()
-        exp = [
-            '"set" "-P" "-b" "2.4" "-e" "WEP"%s%s '
-            '"-c" "auto" "-s" "Test SSID" "-p" "a/b/g/n" '
-            '"-M"' % (s_param, b_param),
-            'PSK='
-        ]
-        self.assertEqual(buf.strip().splitlines(), exp)
+        ap, buf = self.GatherOutput(bw)
+        exp = (
+            '%s '
+            'set -P -b 2.4 -e WEP%s%s '
+            '-c auto -s \'Test SSID\' -p a/b/g/n '
+            '-M' % (binwifi.BINWIFI[0], s_param, b_param)
+        )
+        self.assertTrue(ap)
+        self.assertEqual(' '.join(buf.strip().splitlines()), exp)
 
   def testSSID(self):
     bw = self.WlanConfiguration('wifi0', '', 'br0', band='5')
@@ -420,6 +296,41 @@ class BinWifiTest(unittest.TestCase):
     self.assertRaises(ValueError, setattr, bw, 'SSID',
                       '0123456789abcdef0123456789abcdef0')
     self.loop.RunOnce(timeout=1)
+
+  # pylint: disable=protected-access
+  def testMakeBinWifiCommandSecurity(self):
+    bw = self.WlanConfiguration('wifi0', '', 'br0', band='5')
+    bw.StartTransaction()
+    bw.SSID = 'this is ok'
+    bw.PreSharedKeyList['1'].KeyPassphrase = 'test password'
+    bw._MakeBinWifiCommand()
+
+    bw.SSID = 'this is\nnot ok'
+    self.assertRaises(ValueError, bw._MakeBinWifiCommand)
+
+    bw.SSID = 'also not ok\0'
+    self.assertRaises(ValueError, bw._MakeBinWifiCommand)
+
+    bw.SSID = 'this is ok'
+    bw.PreSharedKeyList['1'].KeyPassphrase = 'test\npassword'
+    self.assertRaises(ValueError, bw._MakeBinWifiCommand)
+
+    bw.SSID = 'this is ok'
+    bw.PreSharedKeyList['1'].KeyPassphrase = 'test password\0'
+    self.assertRaises(ValueError, bw._MakeBinWifiCommand)
+
+    bw.PreSharedKeyList['1'].KeyPassphrase = 'test password'
+    self.loop.RunOnce(timeout=1)
+
+  def testConmanFilenames(self):
+    bw = self.WlanConfiguration('wifi0', '', 'br0', band='5')
+    self.assertEqual(bw.WifiCommandFileName(),
+                     os.path.join(binwifi.CONMAN_DIR[0], 'command.5'))
+    self.assertEqual(bw.APEnabledFileName(),
+                     os.path.join(binwifi.CONMAN_DIR[0], 'access_point.5'))
+    bw._if_suffix = '_portal'
+    self.assertEqual(bw.WifiCommandFileName(),
+                     os.path.join(binwifi.CONMAN_DIR[0], 'command._portal.5'))
 
   # TODO(theannielin): Consume data from mocked /bin/wifi in this test
   def testAssociatedDevices(self):
@@ -521,12 +432,12 @@ class BinWifiTest(unittest.TestCase):
     bw.SSID = 'Test SSID'
     bw.BeaconType = 'Basic'
     bw.BasicEncryptionModes = 'None'
-    buf = self.GatherOutput()
-    self.assertTrue('"-b" "5"' in buf)
+    _, buf = self.GatherOutput(bw)
+    self.assertTrue('-b 5' in ' '.join(buf.splitlines()))
 
     bw.OperatingFrequencyBand = '2.4GHz'
-    buf = self.GatherOutput()
-    self.assertTrue('"-b" "2.4"' in buf)
+    _, buf = self.GatherOutput(bw)
+    self.assertTrue('-b 2.4' in ' '.join(buf.splitlines()))
 
   def testBeaconType(self):
     bw = self.WlanConfiguration('wifi0', '', 'br0', band='5')
@@ -540,14 +451,14 @@ class BinWifiTest(unittest.TestCase):
     bw.BeaconType = '11i'
     bw.IEEE11iEncryptionModes = 'AESEncryption'
     bw.KeyPassphrase = 'testpassword'
-    buf = self.GatherOutput()
-    self.assertTrue('WPA2_PSK_AES' in buf)
+    _, buf = self.GatherOutput(bw)
+    self.assertTrue('WPA2_PSK_AES' in ' '.join(buf.splitlines()))
     bw.BeaconType = 'WPA'
-    buf = self.GatherOutput()
-    self.assertTrue('WPA_PSK_AES' in buf)
+    _, buf = self.GatherOutput(bw)
+    self.assertTrue('WPA_PSK_AES' in ' '.join(buf.splitlines()))
     bw.BeaconType = 'WPAand11i'
-    buf = self.GatherOutput()
-    self.assertTrue('WPA12_PSK_AES' in buf)
+    _, buf = self.GatherOutput(bw)
+    self.assertTrue('WPA12_PSK_AES' in ' '.join(buf.splitlines()))
 
   def testStandard(self):
     bw = self.WlanConfiguration(
@@ -568,67 +479,67 @@ class BinWifiTest(unittest.TestCase):
     bw.WMMEnable = False
 
     bw.Standard = 'ac'
-    buf = self.GatherOutput()
-    self.assertTrue('"-p" "a/b/g/n/ac"' in buf)
-    self.assertTrue('"-M"' in buf)  # always enabled for n/ac modes
-    self.assertTrue('"-G"' not in buf)
+    _, buf = self.GatherOutput(bw)
+    self.assertTrue('-p a/b/g/n/ac' in ' '.join(buf.splitlines()))
+    self.assertTrue('-M' in shlex.split(buf))  # always enabled for n/ac modes
+    self.assertTrue('-G' not in shlex.split(buf))
 
     bw.GuardInterval = '400nsec'
-    buf = self.GatherOutput()
-    self.assertTrue('"-G"' in buf)
-    self.assertTrue('"-Y"' not in buf)
-    self.assertTrue('"-X"' not in buf)
-    self.assertTrue('"-XX"' not in buf)
+    _, buf = self.GatherOutput(bw)
+    self.assertTrue('-G' in shlex.split(buf))
+    self.assertTrue('-Y' not in shlex.split(buf))
+    self.assertTrue('-X' not in shlex.split(buf))
+    self.assertTrue('-XX' not in shlex.split(buf))
 
     bw.RekeyingInterval = 0
-    buf = self.GatherOutput()
-    self.assertTrue('"-Y"' in buf)
-    self.assertTrue('"-X"' not in buf)
-    self.assertTrue('"-XX"' not in buf)
+    _, buf = self.GatherOutput(bw)
+    self.assertTrue('-Y' in shlex.split(buf))
+    self.assertTrue('-X' not in shlex.split(buf))
+    self.assertTrue('-XX' not in shlex.split(buf))
 
     bw.RekeyingInterval = 1
-    buf = self.GatherOutput()
-    self.assertTrue('"-Y"' not in buf)
-    self.assertTrue('"-X"' in buf)
-    self.assertTrue('"-XX"' not in buf)
+    _, buf = self.GatherOutput(bw)
+    self.assertTrue('-Y' not in shlex.split(buf))
+    self.assertTrue('-X' in shlex.split(buf))
+    self.assertTrue('-XX' not in shlex.split(buf))
 
     bw.RekeyingInterval = 10
-    buf = self.GatherOutput()
-    self.assertTrue('"-Y"' not in buf)
-    self.assertTrue('"-X"' not in buf)
-    self.assertTrue('"-XX"' in buf)
+    _, buf = self.GatherOutput(bw)
+    self.assertTrue('-Y' not in shlex.split(buf))
+    self.assertTrue('-X ' not in shlex.split(buf))
+    self.assertTrue('-XX' in shlex.split(buf))
 
     bw.Standard = 'n'
-    buf = self.GatherOutput()
-    self.assertTrue('"-p" "a/b/g/n"' in buf)
-    self.assertTrue('"-M"' in buf)  # always enabled for n/ac modes
+    _, buf = self.GatherOutput(bw)
+    self.assertTrue('-p a/b/g/n' in ' '.join(buf.splitlines()))
+    self.assertTrue('-M' in shlex.split(buf))  # always enabled for n/ac modes
 
     bw.Standard = 'g'
-    buf = self.GatherOutput()
-    self.assertTrue('"-p" "a/b/g"' in buf)
-    self.assertTrue('"-M"' not in buf)  # not auto-enabled
+    _, buf = self.GatherOutput(bw)
+    self.assertTrue('-p a/b/g' in ' '.join(buf.splitlines()))
+    self.assertTrue('-M' not in shlex.split(buf))  # not auto-enabled
 
     bw.WMMEnable = True
-    buf = self.GatherOutput()
-    self.assertTrue('"-M"' in buf)
+    _, buf = self.GatherOutput(bw)
+    self.assertTrue('-M' in shlex.split(buf))
 
     bw.Standard = 'b'
-    buf = self.GatherOutput()
+    _, buf = self.GatherOutput(bw)
     # We set 'a/b' and expect OperatingFrequencyBand to determine the band.
-    self.assertTrue('"-p" "a/b"' in buf)
+    self.assertTrue('-p a/b' in ' '.join(buf.splitlines()))
 
     bw.Standard = 'a'
-    buf = self.GatherOutput()
+    _, buf = self.GatherOutput(bw)
     # No output, because 'a' is the same as the previous 'b', so wifi doesn't
     # need to restart.
     self.assertEqual(buf, '')
 
     bw.Standard = 'g'
-    buf = self.GatherOutput()
+    _, buf = self.GatherOutput(bw)
     bw.Standard = 'a'
-    buf = self.GatherOutput()
+    _, buf = self.GatherOutput(bw)
     # Same output as 'b'
-    self.assertTrue('"-p" "a/b"' in buf)
+    self.assertTrue('-p a/b' in ' '.join(buf.splitlines()))
 
   def testWidth(self):
     bw = self.WlanConfiguration(
@@ -638,8 +549,8 @@ class BinWifiTest(unittest.TestCase):
     bw.Enable = True
     bw.AutoChannelEnable = True
     bw.SSID = 'Test SSID 1'
-    buf = self.GatherOutput()
-    self.assertTrue('"-w" "80"' in buf)
+    _, buf = self.GatherOutput(bw)
+    self.assertTrue('-w 80' in ' '.join(buf.splitlines()))
 
     bw = self.WlanConfiguration(
         'wifi0', '', 'br0', band='5', width_2_4g=40)
@@ -648,8 +559,8 @@ class BinWifiTest(unittest.TestCase):
     bw.Enable = True
     bw.AutoChannelEnable = True
     bw.SSID = 'Test SSID 1'
-    buf = self.GatherOutput()
-    self.assertFalse('"-w" "40"' in buf)
+    _, buf = self.GatherOutput(bw)
+    self.assertFalse('-w 40' in ' '.join(buf.splitlines()))
 
     bw = self.WlanConfiguration(
         'wifi0', '', 'br0', band='2.4', width_2_4g=40)
@@ -658,8 +569,8 @@ class BinWifiTest(unittest.TestCase):
     bw.Enable = True
     bw.AutoChannelEnable = True
     bw.SSID = 'Test SSID 1'
-    buf = self.GatherOutput()
-    self.assertTrue('"-w" "40"' in buf)
+    _, buf = self.GatherOutput(bw)
+    self.assertTrue('-w 40' in ' '.join(buf.splitlines()))
 
     bw = self.WlanConfiguration(
         'wifi0', '', 'br0', band='2.4', width_5g=80)
@@ -668,8 +579,8 @@ class BinWifiTest(unittest.TestCase):
     bw.Enable = True
     bw.AutoChannelEnable = True
     bw.SSID = 'Test SSID 1'
-    buf = self.GatherOutput()
-    self.assertFalse('"-w" "80"' in buf)
+    _, buf = self.GatherOutput(bw)
+    self.assertFalse('-w 80' in ' '.join(buf.splitlines()))
 
   def testAutoDisableRecommended(self):
     bw = self.WlanConfiguration('wifi0', '', 'br0', band='5')

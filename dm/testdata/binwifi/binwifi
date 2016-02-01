@@ -90,18 +90,6 @@ elif [ "$cmd" = "show" ] && [ "$2" = "-b" ] && [ "$3" = "2.4" ]; then
   echo "Channel: 11"
   echo "Station List for band: 2.4"
   echo ""
-else
-  quoted=""
-  for arg in "$@"; do
-    quoted="$quoted \"$arg\""
-  done
-  if [ "$cmd" = "restore" ]; then
-    (echo "$quoted"; echo "PSK=$WIFI_PSK"; echo "CLIENT_PSK=$WIFI_CLIENT_PSK") >>$out
-  elif [ "$cmd" = "setclient" ]; then
-    (echo "$quoted"; echo "CLIENT_PSK=$WIFI_CLIENT_PSK") >>$out
-  else
-    (echo "$quoted"; echo "PSK=$WIFI_PSK") >>$out
-  fi
 fi
 
 exit 0

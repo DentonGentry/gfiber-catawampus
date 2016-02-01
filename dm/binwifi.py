@@ -26,6 +26,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import errno
 import json
 import os
+import pipes
 import subprocess
 import time
 import traceback
@@ -49,7 +50,6 @@ ISOSTREAM_KEY = 'Device.X_CATAWAMPUS-ORG.Isostream.'
 
 # Unit tests can override these.
 BINWIFI = ['wifi']
-IS_WIRELESS_CLIENT = ['is-wireless-client']
 CONMAN_DIR = ['/tmp/conman']
 STATIONS_DIR = ['/tmp/stations']
 TMPWAVEGUIDE = ['/tmp/waveguide']
@@ -355,7 +355,6 @@ class WlanConfiguration(CATA98WIFI):
     self.X_CATAWAMPUS_ORG_Width5G = str(width_5g) if width_5g else ''
     self._autochan = autochan
     self.new_config = None
-    self.last_actions = []
     self._Stats = WlanConfigurationStats(ifname=self._ifname)
     self._initialized = True
     self.AssociatedDeviceList = {}
@@ -436,11 +435,8 @@ class WlanConfiguration(CATA98WIFI):
                                         proc_fun=StationsChangeHandler(self))
 
   def release(self):
-    try:
-      os.remove(self._WifiCmdFileName())
-    except OSError:
-      pass
-
+    tr.helpers.Unlink(self.WifiCommandFileName())
+    tr.helpers.Unlink(self.APEnabledFileName())
     self.Notifier.stop()
 
   @tr.session.cache
@@ -783,7 +779,7 @@ class WlanConfiguration(CATA98WIFI):
   def Triggered(self):
     """Called when a parameter is modified."""
     if self._initialized:
-      self.UpdateBinWifi()
+      self.ExportWifiPolicy()
 
   def _IsConfigComplete(self):
     """Returns true if configuration is ready to be applied."""
@@ -828,17 +824,12 @@ class WlanConfiguration(CATA98WIFI):
     return auth + crypto
 
   def _MakeBinWifiCommand(self):
-    """Return (arglist, env) to run /bin/wifi."""
-
+    """Return command to run /bin/wifi."""
     if self.new_config is None:
       print '_MakeBinWifiCommand: WiFi configuration not yet received.'
-      env = {}
-      cmd = ['false']
-      return (cmd, env)
+      return ''
 
-    env = os.environ.copy()
-    cmd = BINWIFI + ['set', '-P', '-b', self._band,
-                     '-e', self._GetEncryptionMode()]
+    cmd = ['set', '-P', '-b', self._band, '-e', self._GetEncryptionMode()]
     if self._if_suffix:
       cmd += ['-S', self._if_suffix]
 
@@ -887,92 +878,49 @@ class WlanConfiguration(CATA98WIFI):
     if self.GuardInterval == '400nsec':
       cmd += ['-G']
 
+    def sanitize(s):
+      if '\0' in s:
+        raise ValueError('string %r contains a NUL character' % s)
+      if '\n' in s:
+        raise ValueError('string %r contains a newline character' % s)
+
+      return pipes.quote(s)
+
+    wifi_psk = []
     sl = sorted(self.PreSharedKeyList.iteritems(), key=lambda x: int(x[0]))
     for (_, psk) in sl:
       key = psk.GetKey()
       if key:
-        env['WIFI_PSK'] = key
+        wifi_psk = ['env', 'WIFI_PSK=%s' % sanitize(key)]
         break
-    return (cmd, env)
+    return '\n'.join(wifi_psk + BINWIFI + [sanitize(token) for token in cmd])
 
-  def _MakeBinWifiClientCommand(self):
-    """Return (arglist, env) to run /bin/wifi."""
-    env = os.environ.copy()
-    cmd = BINWIFI + ['setclient', '-P']
-
-    ssid = self.new_config.SSID
-    if ssid:
-      cmd += ['-s', ssid]
-    else:
-      return None, None
-
-    sl = sorted(self.PreSharedKeyList.iteritems(), key=lambda x: int(x[0]))
-    for (_, psk) in sl:
-      key = psk.GetKey()
-      if key:
-        env['WIFI_CLIENT_PSK'] = key
-        break
-    return cmd, env
-
-  def _WifiCmdFileName(self):
+  def _ConmanFileName(self, prefix):
+    if_suffix = ('%s.' % self._if_suffix) if self._if_suffix else ''
     return os.path.join(CONMAN_DIR[0],
-                        'wlan_configuration{}.{}.json'.format(self._if_suffix,
-                                                              self._band,))
+                        '%s.%s%s' % (prefix, if_suffix, self._band))
+
+  def WifiCommandFileName(self):
+    return self._ConmanFileName('command')
+
+  def APEnabledFileName(self):
+    return self._ConmanFileName('access_point')
 
   @tr.mainloop.WaitUntilIdle
-  def UpdateBinWifi(self):
-    """Apply config to device by running /bin/wifi."""
-    def RunCmdWithEnv(cmd, env):
-      try:
-        print 'Running %s' % str(cmd)
-        subprocess.check_call(cmd, env=env, close_fds=True, shell=False)
-      except (IOError, OSError, subprocess.CalledProcessError):
-        print 'Unable to configure Wifi.'
-        traceback.print_exc()
-
-    print 'UpdateBinWifi clientenable=%r radioenabled=%r reallywantwifi=%r' % (
-        self.ClientEnable, self.RadioEnabled, self._ReallyWantWifi())
-
-    def RunStopCommand(verb):
-      stop_cmd = BINWIFI + [verb, '-P', '-b', self._band]
-      if self._if_suffix:
-        stop_cmd += ['-S', self._if_suffix]
-      RunCmdWithEnv(stop_cmd, None)
-
+  def ExportWifiPolicy(self):
+    """Export /bin/wifi command and wifi policy."""
     if not os.path.exists(CONMAN_DIR[0]):
       os.makedirs(CONMAN_DIR[0])
 
-    conman_command = {
-        'access_point': self._ReallyWantWifi(),
-    }
-    conman_command['command'], conman_command['env'] = (
-        self._MakeBinWifiCommand())
+    tr.helpers.WriteFileAtomic(self.WifiCommandFileName(),
+                               self._MakeBinWifiCommand())
 
-    with tr.helpers.AtomicFile(self._WifiCmdFileName()) as cmdfile:
-      json.dump(conman_command, cmdfile)
-
-    if subprocess.call(IS_WIRELESS_CLIENT) == 0:
-      return
-
-    actions = []
-
-    if self.ClientEnable and self.RadioEnabled:
-      cmd, env = self._MakeBinWifiClientCommand()
-      if cmd is None:
-        print 'UpdateBinWifi: missing information required for client mode.'
-        return
-      RunCmdWithEnv(cmd, env)
-      actions += ['setclient']
-    elif 'setclient' in self.last_actions:
-      RunStopCommand('stopclient')
-
+    ap_enabled_filename = self.APEnabledFileName()
     if self._ReallyWantWifi():
-      RunCmdWithEnv(conman_command['command'], conman_command['env'])
-      actions += ['set']
-    elif 'set' in self.last_actions:
-      RunStopCommand('stopap')
-
-    self.last_actions = actions
+      with open(ap_enabled_filename, 'w'):
+        pass
+    else:
+      tr.helpers.Unlink(ap_enabled_filename)
 
 
 class PreSharedKey(BASE98WIFI.PreSharedKey):
