@@ -1,0 +1,4 @@
+#!/bin/sh
+
+echo ping4: $*
+exit 0

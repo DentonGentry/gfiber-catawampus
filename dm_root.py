@@ -32,6 +32,7 @@ import dm.gvsb
 import dm.hat
 import dm.inadyn
 import dm.ip_diag_http
+import dm.ip_diag_ping
 import dm.isostream
 import dm.management_server
 import dm.ookla
@@ -108,6 +109,7 @@ class DeviceModelRoot(tr.core.Exporter):
     cata.HAT = dm.hat.Hat()
     cata.HttpDownload = dm.ip_diag_http.DiagHttpDownload()
     cata.Isostream = dm.isostream.Isostream()
+    cata.Ping = dm.ip_diag_ping.DiagPing()
     cata.SelfTest = dm.selftest.SelfTest()
     cata.Speedtest = dm.ookla.Speedtest()
     cata.Wifiblaster = dm.wifiblaster.Wifiblaster()
