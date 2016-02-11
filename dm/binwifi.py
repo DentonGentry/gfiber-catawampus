@@ -831,7 +831,7 @@ class WlanConfiguration(CATA98WIFI):
 
     cmd = ['set', '-P', '-b', self._band, '-e', self._GetEncryptionMode()]
     if self._if_suffix:
-      cmd += ['-S', self._if_suffix]
+      cmd += ['-S=%s' % self._if_suffix]
 
     cmd += ['--bridge=%s' % self._bridge or '']
 
@@ -878,22 +878,24 @@ class WlanConfiguration(CATA98WIFI):
     if self.GuardInterval == '400nsec':
       cmd += ['-G']
 
-    def sanitize(s):
+    def validate(s):
       if '\0' in s:
         raise ValueError('string %r contains a NUL character' % s)
       if '\n' in s:
         raise ValueError('string %r contains a newline character' % s)
+      if '\r' in s:
+        raise ValueError('string %r contains a carriage return character' % s)
 
-      return pipes.quote(s)
+      return s
 
     wifi_psk = []
     sl = sorted(self.PreSharedKeyList.iteritems(), key=lambda x: int(x[0]))
     for (_, psk) in sl:
       key = psk.GetKey()
       if key:
-        wifi_psk = ['env', 'WIFI_PSK=%s' % sanitize(key)]
+        wifi_psk = ['env', 'WIFI_PSK=%s' % validate(key)]
         break
-    return '\n'.join(wifi_psk + BINWIFI + [sanitize(token) for token in cmd])
+    return '\n'.join(wifi_psk + BINWIFI + [validate(token) for token in cmd])
 
   def _ConmanFileName(self, prefix):
     if_suffix = ('%s.' % self._if_suffix) if self._if_suffix else ''

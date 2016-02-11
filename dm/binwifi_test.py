@@ -35,14 +35,14 @@ import tr.session
 from tr.wvtest import unittest
 
 BRIDGE_PARAMS = [
-    ('', ' --bridge='),
-    ('br0', ' --bridge=br0'),
-    ('br1', ' --bridge=br1'),
+    ('', '--bridge='),
+    ('br0', '--bridge=br0'),
+    ('br1', '--bridge=br1'),
 ]
 
 SUFFIX_PARAMS = [
     ('', ''),
-    ('portal', ' -S portal'),
+    ('portal', '-S=portal'),
 ]
 
 
@@ -137,15 +137,15 @@ class BinWifiTest(unittest.TestCase):
         bw.IEEE11iEncryptionModes = 'AESEncryption'
         bw.KeyPassphrase = 'testpassword'
         ap, buf = self.GatherOutput(bw)
-        exp = (
-            'env WIFI_PSK=testpassword %s '
-            'set -P -b 2.4 -e WPA_PSK_AES%s%s -c auto -s '
-            '\'Test SSID 1\' -a HIGH -p a/b/g/n '
-            '-M' % (binwifi.BINWIFI[0], s_param, b_param)
-        )
+        exp = [
+            'env', 'WIFI_PSK=testpassword', binwifi.BINWIFI[0],
+            'set', '-P', '-b', '2.4', '-e', 'WPA_PSK_AES', s_param, b_param,
+            '-c', 'auto', '-s', 'Test SSID 1', '-a', 'HIGH', '-p', 'a/b/g/n',
+            '-M',
+        ]
 
         self.assertTrue(ap)
-        self.assertEqual(' '.join(buf.strip().splitlines()), exp)
+        self.assertEqual(buf.strip().splitlines(), [l for l in exp if l])
 
   def testAnotherConfigCommit(self):
     for (if_suffix, s_param) in SUFFIX_PARAMS:
@@ -163,14 +163,14 @@ class BinWifiTest(unittest.TestCase):
         bw.KeyPassphrase = 'testpassword'
         bw.SSIDAdvertisementEnabled = False
         ap, buf = self.GatherOutput(bw)
-        exp = (
-            'env WIFI_PSK=testpassword %s '
-            'set -P -b 2.4 -e WPA2_PSK_AES%s%s -H -c 10 '
-            '-s \'Test SSID 1\' -a HIGH -p a/b/g/n -M'
-            % (binwifi.BINWIFI[0], s_param, b_param)
-        )
+        exp = [
+            'env', 'WIFI_PSK=testpassword', binwifi.BINWIFI[0],
+            'set', '-P', '-b', '2.4', '-e', 'WPA2_PSK_AES', s_param, b_param,
+            '-H', '-c', '10', '-s', 'Test SSID 1', '-a', 'HIGH', '-p',
+            'a/b/g/n', '-M',
+        ]
         self.assertTrue(ap)
-        self.assertEqual(' '.join(buf.strip().splitlines()), exp)
+        self.assertEqual(buf.strip().splitlines(), [l for l in exp if l])
 
   def test5GhzConfigCommit(self):
     for (if_suffix, s_param) in SUFFIX_PARAMS:
@@ -189,14 +189,14 @@ class BinWifiTest(unittest.TestCase):
         bw.KeyPassphrase = 'testpassword'
         bw.SSIDAdvertisementEnabled = False
         ap, buf = self.GatherOutput(bw)
-        exp = (
-            'env WIFI_PSK=testpassword %s '
-            'set -P -b 5 -e WPA2_PSK_AES%s%s -H -c 44 '
-            '-s \'Test SSID 1\' -a HIGH -w 80 -p a/b/g/n -M'
-            % (binwifi.BINWIFI[0], s_param, b_param)
-        )
+        exp = [
+            'env', 'WIFI_PSK=testpassword', binwifi.BINWIFI[0],
+            'set', '-P', '-b', '5', '-e', 'WPA2_PSK_AES', s_param, b_param,
+            '-H', '-c', '44', '-s', 'Test SSID 1', '-a', 'HIGH', '-w', '80',
+            '-p', 'a/b/g/n', '-M',
+        ]
         self.assertTrue(ap)
-        self.assertEqual(' '.join(buf.strip().splitlines()), exp)
+        self.assertEqual(buf.strip().splitlines(), [l for l in exp if l])
 
   def testRadioDisabled(self):
     for (if_suffix, s_param) in SUFFIX_PARAMS:
@@ -211,14 +211,14 @@ class BinWifiTest(unittest.TestCase):
 
       bw.RadioEnabled = False
       ap, buf = self.GatherOutput(bw)
-      exp = (
-          'env WIFI_PSK=testpassword %s '
-          'set -P -b 2.4 -e WPA2_PSK_AES%s%s -c auto '
-          '-s \'Test SSID 1\' -p a/b/g/n -M'
-          % (binwifi.BINWIFI[0], s_param, dict(BRIDGE_PARAMS)['br1'])
-      )
+      exp = [
+          'env', 'WIFI_PSK=testpassword', binwifi.BINWIFI[0],
+          'set', '-P', '-b', '2.4', '-e', 'WPA2_PSK_AES', s_param,
+          dict(BRIDGE_PARAMS)['br1'],
+          '-c', 'auto', '-s', 'Test SSID 1', '-p', 'a/b/g/n', '-M',
+      ]
       self.assertFalse(ap)
-      self.assertEqual(' '.join(buf.strip().splitlines()), exp)
+      self.assertEqual(buf.strip().splitlines(), [l for l in exp if l])
 
   def testPSK(self):
     for i in range(1, 11):
@@ -235,14 +235,14 @@ class BinWifiTest(unittest.TestCase):
           bw.IEEE11iEncryptionModes = 'AESEncryption'
           bw.PreSharedKeyList[str(i)].KeyPassphrase = 'test password'
           ap, buf = self.GatherOutput(bw)
-          exp = (
-              'env WIFI_PSK=\'test password\' %s '
-              'set -P -b 2.4 -e WPA12_PSK_AES%s%s '
-              '-c auto -s \'Test SSID 1\' -p a/b/g/n -M'
-              % (binwifi.BINWIFI[0], s_param, b_param)
-          )
+          exp = [
+              'env', 'WIFI_PSK=test password', binwifi.BINWIFI[0],
+              'set', '-P', '-b', '2.4', '-e', 'WPA12_PSK_AES', s_param,
+              b_param,
+              '-c', 'auto', '-s', 'Test SSID 1', '-p', 'a/b/g/n', '-M',
+          ]
           self.assertTrue(ap)
-          self.assertEqual(' '.join(buf.strip().splitlines()), exp)
+          self.assertEqual(buf.strip().splitlines(), [l for l in exp if l])
 
   def testPasswordTriggers(self):
     bw = self.WlanConfiguration('wifi0', '', 'br0', band='2.4')
@@ -277,14 +277,13 @@ class BinWifiTest(unittest.TestCase):
         bw.BeaconType = 'Basic'
         bw.BasicEncryptionModes = 'WEPEncryption'
         ap, buf = self.GatherOutput(bw)
-        exp = (
-            '%s '
-            'set -P -b 2.4 -e WEP%s%s '
-            '-c auto -s \'Test SSID\' -p a/b/g/n '
-            '-M' % (binwifi.BINWIFI[0], s_param, b_param)
-        )
+        exp = [
+            binwifi.BINWIFI[0],
+            'set', '-P', '-b', '2.4', '-e', 'WEP', s_param, b_param,
+            '-c', 'auto', '-s', 'Test SSID', '-p', 'a/b/g/n', '-M',
+        ]
         self.assertTrue(ap)
-        self.assertEqual(' '.join(buf.strip().splitlines()), exp)
+        self.assertEqual(buf.strip().splitlines(), [l for l in exp if l])
 
   def testSSID(self):
     bw = self.WlanConfiguration('wifi0', '', 'br0', band='5')
