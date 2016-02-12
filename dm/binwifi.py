@@ -26,7 +26,6 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import errno
 import json
 import os
-import pipes
 import subprocess
 import time
 import traceback
