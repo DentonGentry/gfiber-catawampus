@@ -49,7 +49,7 @@ ISOSTREAM_KEY = 'Device.X_CATAWAMPUS-ORG.Isostream.'
 
 # Unit tests can override these.
 BINWIFI = ['wifi']
-CONMAN_DIR = ['/tmp/conman']
+CONMAN_DIR = ['/config/conman']
 STATIONS_DIR = ['/tmp/stations']
 TMPWAVEGUIDE = ['/tmp/waveguide']
 WIFIINFO_DIR = ['/tmp/wifi/wifiinfo']

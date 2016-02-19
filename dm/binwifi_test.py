@@ -67,6 +67,11 @@ class BinWifiTest(unittest.TestCase):
     self.bw_pool = []
 
   def tearDown(self):
+    # Let any pending callbacks expire
+    self.loop.RunOnce(timeout=1)
+    for bw in self.bw_pool:
+      bw.release()
+
     binwifi.BINWIFI = self.old_BINWIFI
     netdev.PROC_NET_DEV = self.old_PROC_NET_DEV
     binwifi.CONMAN_DIR[0] = self.old_CONMAN_DIR
@@ -74,10 +79,6 @@ class BinWifiTest(unittest.TestCase):
     binwifi.TMPWAVEGUIDE[0] = self.old_TMPWAVEGUIDE
     binwifi.WIFIINFO_DIR[0] = self.old_WIFIINFO_DIR
     shutil.rmtree(self.tmpdir)
-    # Let any pending callbacks expire
-    self.loop.RunOnce(timeout=1)
-    for bw in self.bw_pool:
-      bw.release()
 
   def GatherOutput(self, wlan_configuration):
     self.loop.RunOnce(timeout=1)
