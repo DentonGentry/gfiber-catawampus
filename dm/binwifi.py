@@ -830,7 +830,7 @@ class WlanConfiguration(CATA98WIFI):
 
     cmd = ['set', '-P', '-b', self._band, '-e', self._GetEncryptionMode()]
     if self._if_suffix:
-      cmd += ['-S=%s' % self._if_suffix]
+      cmd += ['--interface-suffix=%s' % self._if_suffix]
 
     cmd += ['--bridge=%s' % self._bridge or '']
 

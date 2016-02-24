@@ -42,7 +42,7 @@ BRIDGE_PARAMS = [
 
 SUFFIX_PARAMS = [
     ('', ''),
-    ('portal', '-S=portal'),
+    ('_portal', '--interface-suffix=_portal'),
 ]
 
 
