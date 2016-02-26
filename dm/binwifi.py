@@ -478,7 +478,7 @@ class WlanConfiguration(CATA98WIFI):
     if os.path.isdir(directory):
       for dirfile in os.listdir(directory):
         if os.path.isfile(os.path.join(directory, dirfile)):
-          if not dirfile.endswith('.new') or dirfile == 'updated':
+          if not dirfile.endswith('.new'):
             try:
               device_data = json.load(open(os.path.join(directory, dirfile)))
             except ValueError:
