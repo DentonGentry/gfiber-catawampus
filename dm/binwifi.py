@@ -85,6 +85,13 @@ def AutoDisableWifi(roothandle):
 
 
 @tr.experiment.Experiment
+def AlwaysEnableSetupNetwork(unused_roothandle):
+  # TODO(willangley): also enable setup network on 5 GHz once the ACS pushes
+  #   configuration for it, too.
+  yield 'InternetGatewayDevice.LANDevice.2.WLANConfiguration.1.Enable', True
+
+
+@tr.experiment.Experiment
 def WaveguideInitialChannel(roothandle):
   for wlankey, wlan in _WifiConfigs(roothandle):
     yield (wlankey + 'AutoChannelEnable'), True
