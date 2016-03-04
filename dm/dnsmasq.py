@@ -145,7 +145,7 @@ def UpdateDnsmasqConfig():
   if DhcpAcsUrl and DhcpAcsUrl[0]:
     url = DhcpAcsUrl[0].replace('"', '').replace('\\', '')
     lines.extend([
-        '# Set flag cwmp, when vendor-class contains dslform.org\n',
+        '# Set flag cwmp, when vendor-class contains dslforum.org\n',
         'dhcp-vendorclass=set:cwmp,enterprise:3561,dslforum.org\n',
         '# Sends ACS_URL if the client requested it\n',
         'dhcp-option=tag:cwmp,vi-encap:3561,option6:1,"%s"\n' % url,
