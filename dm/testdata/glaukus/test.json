@@ -1,1 +1,8 @@
-{"test": {"foo": "bar", "baz": {"barre": "hi"}}}
+{
+  "test": {
+    "foo": "bar",
+    "baz": {
+      "barre": "hi"
+    }
+  }
+}

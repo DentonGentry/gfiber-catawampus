@@ -1,4 +1,5 @@
 {
+  "firmware": "/etc/glaukus/firmware/bcm85100mc_1007128.fw",
   "network": {
     "rxCounters": {
       "broadcast": 0,
@@ -16,8 +17,8 @@
       "multicast": 0,
       "unicast": 0
     },
-    "status": 1,
-    "statusStr": "DOWN",
+    "status": 0,
+    "statusStr": "UP",
     "txCounters": {
       "broadcast": 0,
       "bytes": 0,
@@ -35,24 +36,40 @@
       "unicast": 0
     }
   },
+  "profile": "/etc/glaukus/profiles/16qam_tx26bo_rx29bo_1500M_v128.bin",
   "status": {
     "absoluteMse": -32768,
     "acmEngineRxSensorsEnabled": false,
     "acmEngineTxSwitchEnabled": false,
     "acquireStatus": 0,
     "acquireStatusStr": "Acquire in progress",
-    "carrierOffset": -7919994,
-    "debugIndications": 0,
-    "externalAgc": 382,
-    "internalAgc": 210,
+    "carrierOffset": -3749990,
+    "debugIndications": 2,
+    "externalAgc": 138,
+    "internalAgc": 558,
     "lastAcquireError": 3,
     "lastAcquireErrorStr": "Acquisition failed at frequency sweep.",
-    "normalizedMse": -32709,
-    "radialMse": -32679,
+    "normalizedMse": -32694,
+    "radialMse": -32664,
     "resPhNoiseVal": 0,
     "rxAcmProfile": 0,
-    "rxSymbolRate": 65999791,
-    "txAcmProfile": 0,
-    "txSymbolRate": 549999998
+    "rxSymbolRate": 374792939,
+    "txAcmProfile": 3,
+    "txSymbolRate": 1500000000
+  },
+  "transmitter": {
+    "dcLeakageI": 0,
+    "dcLeakageQ": 0,
+    "mode": 0,
+    "modeStr": "NORMAL",
+    "sweepTime": 0,
+    "toneFreq": 0,
+    "toneSecFreq": 0
+  },
+  "version": {
+    "build": 128,
+    "chipType": "BCM85100IFSBG",
+    "major": 100,
+    "minor": 7
   }
 }

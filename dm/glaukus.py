@@ -36,7 +36,6 @@ CATA181GLAUKUS = BASE.Device.X_CATAWAMPUS_ORG.Glaukus
 # These can be overridden by unit tests.
 MODEM_JSON_FILE = '/tmp/glaukus/modem.json'
 RADIO_JSON_FILE = '/tmp/glaukus/radio.json'
-REPORT_JSON_FILE = '/tmp/glaukus/report.json'
 
 
 class JsonReader(object):
@@ -45,7 +44,7 @@ class JsonReader(object):
   def __init__(self):
     self._json_data = {}
 
-  def LoadJsonFromFile(self, path, json_keys):
+  def LoadJsonFromFile(self, path, json_keys=None):
     """Deserializes a JSON file to a Python object.
 
     Args:
@@ -81,8 +80,37 @@ class JsonReader(object):
           path, str(self._json_data)[0:70], ex)
       return
 
-  def GetStat(self, attr, default=0):
-    return self._json_data.get(attr, default)
+  def GetStat(self, value, default=0):
+    """Get a statistic that was loaded from the JSON data file.
+
+    Args:
+      value: A dot-delimited value string used as a path to point to the JSON
+            data in the dict.
+      default: A default value returned if there is a problem with the lookup.
+
+    Raises:
+      ValueError: If the JSON data loaded from the file does not contain the
+                  requested attribute.
+
+    Returns:
+      The requested JSON statistic or the supplied default value if not present.
+      Otherwise, if no default value was specified and the value is not found,
+      return 0 as this satisifies almost all cases safely.
+    """
+    if not value:
+      return default
+
+    if '.' not in value:
+      return self._json_data.get(value, default)
+
+    tmp_json_data = self._json_data
+    keys = value.split('.')
+    for key in keys:
+      if not tmp_json_data.has_key(key):
+        print 'JSON data does not have key: %s (%s)' % (key, value)
+        return default
+      tmp_json_data = tmp_json_data[key]
+    return tmp_json_data
 
 
 class Glaukus(CATA181GLAUKUS):
@@ -100,20 +128,23 @@ class Glaukus(CATA181GLAUKUS):
   def Radio(self):
     return Radio(self.json_reader)
 
-  @property
-  def Report(self):
-    return Report(self.json_reader)
-
 
 class Modem(CATA181GLAUKUS.Modem):
   """Catawampus implementation of Glaukus Manager modem statistics."""
 
   StatusCode = tr.cwmptypes.ReadOnlyInt()
   StatusStr = tr.cwmptypes.ReadOnlyString()
+  ModemFirmware = tr.cwmptypes.ReadOnlyString()
+  ModemProfile = tr.cwmptypes.ReadOnlyString()
 
   def __init__(self, json_reader):
     super(Modem, self).__init__()
     self.json_reader = json_reader
+    json_reader.LoadJsonFromFile(MODEM_JSON_FILE)
+    type(self).ModemFirmware.Set(self, json_reader.GetStat('firmware'))
+    type(self).ModemProfile.Set(self, json_reader.GetStat('profile'))
+    type(self).StatusCode.Set(self, json_reader.GetStat('network.status'))
+    type(self).StatusStr.Set(self, json_reader.GetStat('network.statusStr'))
 
   @property
   def RxCounters(self):
@@ -126,6 +157,54 @@ class Modem(CATA181GLAUKUS.Modem):
   @property
   def Status(self):
     return ModemStatus(self.json_reader)
+
+  @property
+  def Transmitter(self):
+    return ModemTransmitter(self.json_reader)
+
+  @property
+  def ModemVersion(self):
+    return ModemVersion(self.json_reader)
+
+
+class ModemVersion(CATA181GLAUKUS.Modem.ModemVersion):
+  """Glaukus Manager modem version."""
+
+  Build = tr.cwmptypes.ReadOnlyInt()
+  ChipType = tr.cwmptypes.ReadOnlyString()
+  Major = tr.cwmptypes.ReadOnlyInt()
+  Minor = tr.cwmptypes.ReadOnlyInt()
+
+  def __init__(self, json_reader):
+    super(ModemVersion, self).__init__()
+    json_reader.LoadJsonFromFile(MODEM_JSON_FILE, 'version')
+    type(self).Build.Set(self, json_reader.GetStat('build'))
+    type(self).ChipType.Set(self, json_reader.GetStat('chipType'))
+    type(self).Major.Set(self, json_reader.GetStat('major'))
+    type(self).Minor.Set(self, json_reader.GetStat('minor'))
+
+
+class ModemTransmitter(CATA181GLAUKUS.Modem.Transmitter):
+  """Glaukus Manager modem transmitter status."""
+
+  DcLeakageI = tr.cwmptypes.ReadOnlyInt()
+  DcLeakageQ = tr.cwmptypes.ReadOnlyInt()
+  Mode = tr.cwmptypes.ReadOnlyInt()
+  ModeStr = tr.cwmptypes.ReadOnlyString()
+  SweepTime = tr.cwmptypes.ReadOnlyInt()
+  ToneFreq = tr.cwmptypes.ReadOnlyInt()
+  ToneSecFreq = tr.cwmptypes.ReadOnlyInt()
+
+  def __init__(self, json_reader):
+    super(ModemTransmitter, self).__init__()
+    json_reader.LoadJsonFromFile(MODEM_JSON_FILE, 'transmitter')
+    type(self).DcLeakageI.Set(self, json_reader.GetStat('dcLeakageI'))
+    type(self).DcLeakageQ.Set(self, json_reader.GetStat('dcLeakageQ'))
+    type(self).Mode.Set(self, json_reader.GetStat('mode'))
+    type(self).ModeStr.Set(self, json_reader.GetStat('modeStr'))
+    type(self).SweepTime.Set(self, json_reader.GetStat('sweepTime'))
+    type(self).ToneFreq.Set(self, json_reader.GetStat('toneFreq'))
+    type(self).ToneSecFreq.Set(self, json_reader.GetStat('toneSecFreq'))
 
 
 class ModemRxCounters(CATA181GLAUKUS.Modem.RxCounters):
@@ -266,21 +345,6 @@ class Radio(CATA181GLAUKUS.Radio):
     json_reader.LoadJsonFromFile(RADIO_JSON_FILE, 'radio')
     type(self).MajorVersion.Set(self, json_reader.GetStat('major_version'))
     type(self).MinorVersion.Set(self, json_reader.GetStat('minor_version'))
-
-
-class Report(CATA181GLAUKUS.Report):
-  """Catawampus implementation of Glaukus Manager Report statistics."""
-
-  StartSampleCaptureTimeMs = tr.cwmptypes.ReadOnlyUnsigned()
-  StopSampleCaptureTimeMs = tr.cwmptypes.ReadOnlyUnsigned()
-
-  def __init__(self, json_reader):
-    super(Report, self).__init__()
-    json_reader.LoadJsonFromFile(REPORT_JSON_FILE, 'report')
-    type(self).StartSampleCaptureTimeMs.Set(
-        self, json_reader.GetStat('sample_start_tstamp_ms'))
-    type(self).StopSampleCaptureTimeMs.Set(
-        self, json_reader.GetStat('sample_stop_tstamp_ms'))
 
 
 if __name__ == '__main__':

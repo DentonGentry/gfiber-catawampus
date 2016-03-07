@@ -27,7 +27,6 @@ import glaukus
 
 glaukus.MODEM_JSON_FILE = 'testdata/glaukus/modem.json'
 glaukus.RADIO_JSON_FILE = 'testdata/glaukus/radio.json'
-glaukus.REPORT_JSON_FILE = 'testdata/glaukus/report.json'
 
 
 class GlaukusTest(unittest.TestCase):
@@ -48,20 +47,13 @@ class GlaukusTest(unittest.TestCase):
     radio = glaukus.Radio(self.json_reader)
     tr.handle.ValidateExports(radio)
 
-  def testValidateReportExports(self):
-    report = glaukus.Report(self.json_reader)
-    tr.handle.ValidateExports(report)
-
   def testJsonReaderWithTestData(self):
     self.json_reader.LoadJsonFromFile('testdata/glaukus/test.json', 'test')
     self.assertEqual('bar', self.json_reader.GetStat('foo', 'mydefault'))
-    self.assertEqual('mydefault', self.json_reader.GetStat('doesntexist',
-                                                           'mydefault'))
 
   def testJsonFailToDecode(self):
     self.json_reader.LoadJsonFromFile('testdata/glaukus/test.json', 'fail')
-    self.assertEqual('mydefault',
-                     self.json_reader.GetStat('foo', 'mydefault'))
+    self.assertEqual('mydefault', self.json_reader.GetStat('foo', 'mydefault'))
 
   def testDecodeJsonKeyList(self):
     self.json_reader.LoadJsonFromFile('testdata/glaukus/test.json',
@@ -71,7 +63,7 @@ class GlaukusTest(unittest.TestCase):
   def testDecodeNullJsonKeyList(self):
     self.json_reader.LoadJsonFromFile('testdata/glaukus/test.json', None)
     self.assertEqual('mydefault', self.json_reader.GetStat('barre',
-                                                           'mydefault'))
+                                                           default='mydefault'))
 
   def testJsonReaderWithMissingJsonFile(self):
     self.json_reader.LoadJsonFromFile('/this/does/not/exist', 'missingfile')
@@ -79,6 +71,37 @@ class GlaukusTest(unittest.TestCase):
                      self.json_reader.GetStat('shouldntmatter',
                                               default='mydefault'))
 
+  def testNoJsonDataLoaded(self):
+    self.assertEqual('default',
+                     self.json_reader.GetStat('hi', default='default'))
+    self.assertEqual(0, self.json_reader.GetStat(None))
+
+  def testGetStatWithDottedKey(self):
+    self.json_reader.LoadJsonFromFile('testdata/glaukus/test.json')
+    self.assertEqual('bar', self.json_reader.GetStat('test.foo',
+                                                     default='mydefault'))
+
+  def testGetStatWithDoubleDottedKey(self):
+    self.json_reader.LoadJsonFromFile('testdata/glaukus/test.json')
+    self.assertEqual('hi', self.json_reader.GetStat('test.baz.barre',
+                                                    default='mydefault'))
+
+  def testGetStatNoValueNoDefaultStillReturnsSaneDefault(self):
+    self.json_reader.LoadJsonFromFile('testdata/glaukus/test.json')
+    self.assertEqual(0, self.json_reader.GetStat(None))
+
+  def testGetStatWithInvalidValue(self):
+    self.json_reader.LoadJsonFromFile('testdata/glaukus/test.json')
+    self.assertEqual('default', self.json_reader.GetStat('...', 'default'))
+
+  def testGetStatWithAnotherInvalidValue(self):
+    self.json_reader.LoadJsonFromFile('testdata/glaukus/test.json')
+    self.assertEqual('default', self.json_reader.GetStat('test.', 'default'))
+
+  def testGetStatCanReturnDict(self):
+    self.json_reader.LoadJsonFromFile('testdata/glaukus/test.json')
+    self.assertEqual({'barre': 'hi'}, self.json_reader.GetStat('test.baz',
+                                                               'default'))
 
 if __name__ == '__main__':
   unittest.main()

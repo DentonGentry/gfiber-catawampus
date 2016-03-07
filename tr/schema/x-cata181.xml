@@ -1407,6 +1407,12 @@ If both {{param|X_CATAWAMPUS-ORG_PortRangeSize}} and {{param|ExternalPortEndRang
       <parameter name="StatusStr" access="readOnly">
         <syntax><string/></syntax>
       </parameter>
+      <parameter name="ModemFirmware" access="readOnly">
+        <syntax><string/></syntax>
+      </parameter>
+      <parameter name="ModemProfile" access="readOnly">
+        <syntax><string/></syntax>
+      </parameter>
     </object>
 
     <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Modem.RxCounters." access="readOnly" minEntries="1" maxEntries="1">
@@ -1569,6 +1575,46 @@ If both {{param|X_CATAWAMPUS-ORG_PortRangeSize}} and {{param|ExternalPortEndRang
       </parameter>
     </object>
 
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Modem.Transmitter." access="readOnly" minEntries="1" maxEntries="1">
+      <description>Status of the modem transmitter.</description>
+      <parameter name="DcLeakageI" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="DcLeakageQ" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Mode" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="ModeStr" access="readOnly">
+        <syntax><string/></syntax>
+      </parameter>
+      <parameter name="SweepTime" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="ToneFreq" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="ToneSecFreq" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Modem.ModemVersion." access="readOnly" minEntries="1" maxEntries="1">
+      <parameter name="Build" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="ChipType" access="readOnly">
+        <syntax><string/></syntax>
+      </parameter>
+      <parameter name="Major" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Minor" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+    </object>
+
     <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Radio." access="readOnly" minentries="1" maxEntries="1">
       <description>Container for Glaukus Manager Radio Statistics.</description>
       <parameter name="MajorVersion" access="readOnly">
@@ -1578,18 +1624,6 @@ If both {{param|X_CATAWAMPUS-ORG_PortRangeSize}} and {{param|ExternalPortEndRang
       <parameter name="MinorVersion" access="readOnly">
         <description>Radio Subsystem Minor Version.</description>
         <syntax><string/></syntax>
-      </parameter>
-    </object>
-
-    <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Report." access="readOnly" minEntries="1" maxEntries="1">
-      <description>Container for Glaukus Manager Report Statistics.</description>
-      <parameter name="StartSampleCaptureTimeMs" access="readOnly">
-        <description>Start capture timestamp in milliseconds.</description>
-        <syntax><unsignedLong><units value="ms"/></unsignedLong></syntax>
-      </parameter>
-      <parameter name="StopSampleCaptureTimeMs" access="readOnly">
-        <description>End capture timestamp in milliseconds.</description>
-        <syntax><unsignedLong><units value="ms"/></unsignedLong></syntax>
       </parameter>
     </object>
 
