@@ -1,1 +1,70 @@
-{"radio": {"major_version": "0", "minor_version": "1"}}
+{
+  "heaterEnabled": false,
+  "hiTransceiver": {
+    "epot": {
+      "control": "auto",
+      "driver": 0,
+      "lna": 255,
+      "pa": 0
+    },
+    "icModel": "BGT80",
+    "mode": "tx",
+    "pll": {
+      "frequency": 85500000,
+      "lockCounts": 0,
+      "locked": false
+    },
+    "temp": 1083
+  },
+  "loTransceiver": {
+    "epot": {
+      "control": "auto",
+      "driver": 0,
+      "lna": 0,
+      "pa": 0
+    },
+    "icModel": "BGT70",
+    "mode": "rx",
+    "pll": {
+      "frequency": 75500000,
+      "lockCounts": 0,
+      "locked": false
+    },
+    "temp": 1010
+  },
+  "paLnaPowerEnabled": true,
+  "paLnaPowerStatus": "normal",
+  "rx": {
+    "agcDigitalGain": 42,
+    "agcDigitalGainIndex": 3,
+    "lnaCurrentMeas": 0,
+    "lnaCurrentSet": 0,
+    "rssi": 564
+  },
+  "transceiversPowerEnabled": true,
+  "tx": {
+    "dcI": 0,
+    "dcQ": 0,
+    "driverCurrentMeas": 0,
+    "driverCurrentSet": 0,
+    "paCurrentMeas": 0,
+    "paCurrentSet": 0,
+    "paTemp": 4095,
+    "txPowerControl": "auto",
+    "txPowerMeas": 4,
+    "txPowerSet": 0,
+    "vgaGain": 14
+  },
+  "version": {
+    "hardware": {
+      "major": 1,
+      "minor": 1,
+      "type": "Chimera V1 000001"
+    },
+    "software": {
+      "build": 0,
+      "major": 0,
+      "minor": 1
+    }
+  }
+}

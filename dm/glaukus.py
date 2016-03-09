@@ -336,15 +336,243 @@ class ModemStatus(CATA181GLAUKUS.Modem.Status):
 
 class Radio(CATA181GLAUKUS.Radio):
   """Catawampus implementation of Glaukus Manager Radio statistics."""
+  HeaterEnabled = tr.cwmptypes.ReadOnlyBool()
+  PaLnaPowerEnabled = tr.cwmptypes.ReadOnlyBool()
+  PaLnaPowerStatus = tr.cwmptypes.ReadOnlyString()
+  TransceiversPowerEnabled = tr.cwmptypes.ReadOnlyBool()
 
-  MajorVersion = tr.cwmptypes.ReadOnlyString()
-  MinorVersion = tr.cwmptypes.ReadOnlyString()
+  @property
+  def HiTransceiver(self):
+    return RadioHiTransceiver(self.json_reader)
+
+  @property
+  def LoTransceiver(self):
+    return RadioLoTransceiver(self.json_reader)
+
+  @property
+  def Rx(self):
+    return RadioRx(self.json_reader)
+
+  @property
+  def Tx(self):
+    return RadioTx(self.json_reader)
+
+  @property
+  def Version(self):
+    return RadioVersion(self.json_reader)
 
   def __init__(self, json_reader):
     super(Radio, self).__init__()
-    json_reader.LoadJsonFromFile(RADIO_JSON_FILE, 'radio')
-    type(self).MajorVersion.Set(self, json_reader.GetStat('major_version'))
-    type(self).MinorVersion.Set(self, json_reader.GetStat('minor_version'))
+    self.json_reader = json_reader
+    json_reader.LoadJsonFromFile(RADIO_JSON_FILE)
+    type(self).HeaterEnabled.Set(self, json_reader.GetStat('heaterEnabled'))
+    type(self).PaLnaPowerEnabled.Set(self, json_reader.GetStat(
+        'paLnaPowerEnabled'))
+    type(self).PaLnaPowerStatus.Set(self, json_reader.GetStat(
+        'paLnaPowerStatus'))
+    type(self).TransceiversPowerEnabled.Set(self, json_reader.GetStat(
+        'transceiversPowerEnabled'))
+
+
+class RadioHiTransceiver(CATA181GLAUKUS.Radio.HiTransceiver):
+  """Radio HiTransceiver."""
+  IcModel = tr.cwmptypes.ReadOnlyString()
+  Mode = tr.cwmptypes.ReadOnlyString()
+  Temp = tr.cwmptypes.ReadOnlyInt()
+
+  @property
+  def Epot(self):
+    return RadioHiEpot(self.json_reader)
+
+  @property
+  def Pll(self):
+    return RadioHiPll(self.json_reader)
+
+  def __init__(self, json_reader):
+    super(RadioHiTransceiver, self).__init__()
+    self.json_reader = json_reader
+    json_reader.LoadJsonFromFile(RADIO_JSON_FILE, 'hiTransceiver')
+    type(self).IcModel.Set(self, json_reader.GetStat('icModel'))
+    type(self).Mode.Set(self, json_reader.GetStat('mode'))
+    type(self).Temp.Set(self, json_reader.GetStat('temp'))
+
+
+class RadioHiEpot(CATA181GLAUKUS.Radio.HiTransceiver.Epot):
+  """Radio HiTransceiver Epot."""
+  Control = tr.cwmptypes.ReadOnlyString()
+  Driver = tr.cwmptypes.ReadOnlyInt()
+  Lna = tr.cwmptypes.ReadOnlyInt()
+  Pa = tr.cwmptypes.ReadOnlyInt()
+
+  def __init__(self, json_reader):
+    super(RadioHiEpot, self).__init__()
+    json_reader.LoadJsonFromFile(RADIO_JSON_FILE, 'hiTransceiver.epot')
+    type(self).Control.Set(self, json_reader.GetStat('control'))
+    type(self).Driver.Set(self, json_reader.GetStat('driver'))
+    type(self).Lna.Set(self, json_reader.GetStat('lna'))
+    type(self).Pa.Set(self, json_reader.GetStat('pa'))
+
+
+class RadioHiPll(CATA181GLAUKUS.Radio.HiTransceiver.Pll):
+  """Radio HiTransceiver Pll."""
+  Frequency = tr.cwmptypes.ReadOnlyInt()
+  LockCounts = tr.cwmptypes.ReadOnlyInt()
+  Locked = tr.cwmptypes.ReadOnlyBool()
+
+  def __init__(self, json_reader):
+    super(RadioHiPll, self).__init__()
+    json_reader.LoadJsonFromFile(RADIO_JSON_FILE, 'hiTransceiver.pll')
+    type(self).Frequency.Set(self, json_reader.GetStat('frequency'))
+    type(self).LockCounts.Set(self, json_reader.GetStat('lockCounts'))
+    type(self).Locked.Set(self, json_reader.GetStat('locked'))
+
+
+class RadioLoTransceiver(CATA181GLAUKUS.Radio.LoTransceiver):
+  """Radio LoTransceiver."""
+  IcModel = tr.cwmptypes.ReadOnlyString()
+  Mode = tr.cwmptypes.ReadOnlyString()
+  Temp = tr.cwmptypes.ReadOnlyInt()
+
+  @property
+  def Epot(self):
+    return RadioLoEpot(self.json_reader)
+
+  @property
+  def Pll(self):
+    return RadioLoPll(self.json_reader)
+
+  def __init__(self, json_reader):
+    super(RadioLoTransceiver, self).__init__()
+    self.json_reader = json_reader
+    json_reader.LoadJsonFromFile(RADIO_JSON_FILE, 'loTransceiver')
+    type(self).IcModel.Set(self, json_reader.GetStat('icModel'))
+    type(self).Mode.Set(self, json_reader.GetStat('mode'))
+    type(self).Temp.Set(self, json_reader.GetStat('temp'))
+
+
+class RadioLoEpot(CATA181GLAUKUS.Radio.LoTransceiver.Epot):
+  """Radio LoTransceiver Epot."""
+  Control = tr.cwmptypes.ReadOnlyString()
+  Driver = tr.cwmptypes.ReadOnlyInt()
+  Lna = tr.cwmptypes.ReadOnlyInt()
+  Pa = tr.cwmptypes.ReadOnlyInt()
+
+  def __init__(self, json_reader):
+    super(RadioLoEpot, self).__init__()
+    json_reader.LoadJsonFromFile(RADIO_JSON_FILE, 'loTransceiver.epot')
+    type(self).Control.Set(self, json_reader.GetStat('control'))
+    type(self).Driver.Set(self, json_reader.GetStat('driver'))
+    type(self).Lna.Set(self, json_reader.GetStat('lna'))
+    type(self).Pa.Set(self, json_reader.GetStat('pa'))
+
+
+class RadioLoPll(CATA181GLAUKUS.Radio.LoTransceiver.Pll):
+  """Radio LoTransceiver Pll."""
+  Frequency = tr.cwmptypes.ReadOnlyInt()
+  LockCounts = tr.cwmptypes.ReadOnlyInt()
+  Locked = tr.cwmptypes.ReadOnlyBool()
+
+  def __init__(self, json_reader):
+    super(RadioLoPll, self).__init__()
+    json_reader.LoadJsonFromFile(RADIO_JSON_FILE, 'loTransceiver.pll')
+    type(self).Frequency.Set(self, json_reader.GetStat('frequency'))
+    type(self).LockCounts.Set(self, json_reader.GetStat('lockCounts'))
+    type(self).Locked.Set(self, json_reader.GetStat('locked'))
+
+
+class RadioRx(CATA181GLAUKUS.Radio.Rx):
+  """Glaukus Manager Radio RX."""
+  AgcDigitalGain = tr.cwmptypes.ReadOnlyInt()
+  AgcDigitalGainIndex = tr.cwmptypes.ReadOnlyInt()
+  LnaCurrentMeas = tr.cwmptypes.ReadOnlyInt()
+  LnaCurrentSet = tr.cwmptypes.ReadOnlyInt()
+  Rssi = tr.cwmptypes.ReadOnlyInt()
+
+  def __init__(self, json_reader):
+    super(RadioRx, self).__init__()
+    json_reader.LoadJsonFromFile(RADIO_JSON_FILE, 'rx')
+    type(self).AgcDigitalGain.Set(self, json_reader.GetStat('agcDigitalGain'))
+    type(self).AgcDigitalGainIndex.Set(self, json_reader.GetStat(
+        'agcDigitalGainIndex'))
+    type(self).LnaCurrentMeas.Set(self, json_reader.GetStat('lnaCurrentMeas'))
+    type(self).LnaCurrentSet.Set(self, json_reader.GetStat('lnaCurrentSet'))
+    type(self).Rssi.Set(self, json_reader.GetStat('rssi'))
+
+
+class RadioTx(CATA181GLAUKUS.Radio.Tx):
+  """Glaukus Manager Radio TX."""
+  DcI = tr.cwmptypes.ReadOnlyInt()
+  DcQ = tr.cwmptypes.ReadOnlyInt()
+  DriverCurrentMeas = tr.cwmptypes.ReadOnlyInt()
+  DriverCurrentSet = tr.cwmptypes.ReadOnlyInt()
+  PaCurrentMeas = tr.cwmptypes.ReadOnlyInt()
+  PaCurrentSet = tr.cwmptypes.ReadOnlyInt()
+  PaTemp = tr.cwmptypes.ReadOnlyInt()
+  TxPowerControl = tr.cwmptypes.ReadOnlyString()
+  TxPowerMeas = tr.cwmptypes.ReadOnlyInt()
+  TxPowerSet = tr.cwmptypes.ReadOnlyInt()
+  VgaGain = tr.cwmptypes.ReadOnlyInt()
+
+  def __init__(self, json_reader):
+    super(RadioTx, self).__init__()
+    json_reader.LoadJsonFromFile(RADIO_JSON_FILE, 'tx')
+    type(self).DcI.Set(self, json_reader.GetStat('dcI'))
+    type(self).DcQ.Set(self, json_reader.GetStat('dcQ'))
+    type(self).DriverCurrentMeas.Set(self, json_reader.GetStat(
+        'driverCurrentMeas'))
+    type(self).DriverCurrentSet.Set(self, json_reader.GetStat(
+        'driverCurrentSet'))
+    type(self).PaCurrentMeas.Set(self, json_reader.GetStat('paCurrentMeas'))
+    type(self).PaCurrentSet.Set(self, json_reader.GetStat('paCurrentSet'))
+    type(self).PaTemp.Set(self, json_reader.GetStat('paTemp'))
+    type(self).TxPowerControl.Set(self, json_reader.GetStat('txPowerControl'))
+    type(self).TxPowerMeas.Set(self, json_reader.GetStat('txPowerMeas'))
+    type(self).TxPowerSet.Set(self, json_reader.GetStat('txPowerSet'))
+    type(self).VgaGain.Set(self, json_reader.GetStat('vgaGain'))
+
+
+class RadioVersion(CATA181GLAUKUS.Radio.Version):
+  """Glaukus Manager Radio Version."""
+
+  @property
+  def Hardware(self):
+    return RadioVersionHardware(self.json_reader)
+
+  @property
+  def Software(self):
+    return RadioVersionSoftware(self.json_reader)
+
+  def __init__(self, json_reader):
+    super(RadioVersion, self).__init__()
+    self.json_reader = json_reader
+
+
+class RadioVersionHardware(CATA181GLAUKUS.Radio.Version.Hardware):
+  """Glaukus Manager Radio Version Hardware."""
+  Major = tr.cwmptypes.ReadOnlyInt()
+  Minor = tr.cwmptypes.ReadOnlyInt()
+  Type = tr.cwmptypes.ReadOnlyString()
+
+  def __init__(self, json_reader):
+    super(RadioVersionHardware, self).__init__()
+    json_reader.LoadJsonFromFile(RADIO_JSON_FILE, 'version.hardware')
+    type(self).Major.Set(self, json_reader.GetStat('major'))
+    type(self).Minor.Set(self, json_reader.GetStat('minor'))
+    type(self).Type.Set(self, json_reader.GetStat('type'))
+
+
+class RadioVersionSoftware(CATA181GLAUKUS.Radio.Version.Software):
+  """Glaukus Manager Radio Version Software."""
+  Build = tr.cwmptypes.ReadOnlyInt()
+  Major = tr.cwmptypes.ReadOnlyInt()
+  Minor = tr.cwmptypes.ReadOnlyInt()
+
+  def __init__(self, json_reader):
+    super(RadioVersionSoftware, self).__init__()
+    json_reader.LoadJsonFromFile(RADIO_JSON_FILE, 'version.software')
+    type(self).Build.Set(self, json_reader.GetStat('build'))
+    type(self).Major.Set(self, json_reader.GetStat('major'))
+    type(self).Minor.Set(self, json_reader.GetStat('minor'))
 
 
 if __name__ == '__main__':

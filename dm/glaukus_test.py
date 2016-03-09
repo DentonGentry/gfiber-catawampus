@@ -103,5 +103,13 @@ class GlaukusTest(unittest.TestCase):
     self.assertEqual({'barre': 'hi'}, self.json_reader.GetStat('test.baz',
                                                                'default'))
 
+  def testGetStatSupportsBools(self):
+    self.json_reader.LoadJsonFromFile('testdata/glaukus/radio.json')
+    self.assertEqual(False, self.json_reader.GetStat('heaterEnabled',
+                                                     default=True))
+    self.assertEqual(True, self.json_reader.GetStat('paLnaPowerEnabled',
+                                                    default=False))
+
+
 if __name__ == '__main__':
   unittest.main()

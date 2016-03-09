@@ -1617,13 +1617,182 @@ If both {{param|X_CATAWAMPUS-ORG_PortRangeSize}} and {{param|ExternalPortEndRang
 
     <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Radio." access="readOnly" minentries="1" maxEntries="1">
       <description>Container for Glaukus Manager Radio Statistics.</description>
-      <parameter name="MajorVersion" access="readOnly">
-        <description>Radio Subsystem Major Version.</description>
+      <parameter name="HeaterEnabled" access="readOnly">
+        <syntax><boolean/></syntax>
+      </parameter>
+      <parameter name="PaLnaPowerEnabled" access="readOnly">
+        <syntax><boolean/></syntax>
+      </parameter>
+      <parameter name="PaLnaPowerStatus" access="readOnly">
         <syntax><string/></syntax>
       </parameter>
-      <parameter name="MinorVersion" access="readOnly">
-        <description>Radio Subsystem Minor Version.</description>
+      <parameter name="TransceiversPowerEnabled" access="readOnly">
+        <syntax><boolean/></syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Radio.HiTransceiver." access="readOnly" minentries="1" maxEntries="1">
+      <description>Container for Glaukus Manager Radio HiTransceiver Statistics.</description>
+      <parameter name="IcModel" access="readOnly">
         <syntax><string/></syntax>
+      </parameter>
+      <parameter name="Mode" access="readOnly">
+        <syntax><string/></syntax>
+      </parameter>
+      <parameter name="Temp" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Radio.HiTransceiver.Epot." access="readOnly" minentries="1" maxEntries="1">
+      <description>Container for Glaukus Manager Radio HiTransceiver Epot Settings.</description>
+      <parameter name="Control" access="readOnly">
+        <syntax><string/></syntax>
+      </parameter>
+      <parameter name="Driver" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Lna" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Pa" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Radio.HiTransceiver.Pll." access="readOnly" minentries="1" maxEntries="1">
+      <description>Container for Glaukus Manager Radio HiTransceiver Pll Settings.</description>
+      <parameter name="Frequency" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="LockCounts" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Locked" access="readOnly">
+        <syntax><boolean/></syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Radio.LoTransceiver." access="readOnly" minentries="1" maxEntries="1">
+      <description>Container for Glaukus Manager Radio LoTransceiver Statistics.</description>
+      <parameter name="IcModel" access="readOnly">
+        <syntax><string/></syntax>
+      </parameter>
+      <parameter name="Mode" access="readOnly">
+        <syntax><string/></syntax>
+      </parameter>
+      <parameter name="Temp" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Radio.LoTransceiver.Epot." access="readOnly" minentries="1" maxEntries="1">
+      <description>Container for Glaukus Manager Radio LoTransceiver Epot Settings.</description>
+      <parameter name="Control" access="readOnly">
+        <syntax><string/></syntax>
+      </parameter>
+      <parameter name="Driver" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Lna" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Pa" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Radio.LoTransceiver.Pll." access="readOnly" minentries="1" maxEntries="1">
+      <description>Container for Glaukus Manager Radio LoTransceiver Pll Statistics.</description>
+      <parameter name="Frequency" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="LockCounts" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Locked" access="readOnly">
+        <syntax><boolean/></syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Radio.Rx." access="readOnly" minentries="1" maxEntries="1">
+      <description>Container for Glaukus Manager Radio RX Statistics.</description>
+      <parameter name="AgcDigitalGain" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="AgcDigitalGainIndex" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="LnaCurrentMeas" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="LnaCurrentSet" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Rssi" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Radio.Tx." access="readOnly" minentries="1" maxEntries="1">
+      <description>Container for Glaukus Manager Radio TX Statistics.</description>
+      <parameter name="DcI" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="DcQ" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="DriverCurrentMeas" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="DriverCurrentSet" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="PaCurrentMeas" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="PaTemp" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="TxPowerControl" access="readOnly">
+        <syntax><string/></syntax>
+      </parameter>
+      <parameter name="TxPowerMeas" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="TxPowerSet" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="VgaGain" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Radio.Version." access="readOnly" minEntries="1" maxEntries="1"/>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Radio.Version.Hardware." access="readOnly" minentries="1" maxEntries="1">
+      <description>Container for Glaukus Manager Radio Hardware Version Information.</description>
+      <parameter name="Major" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Minor" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Type" access="readOnly">
+        <syntax><string/></syntax>
+      </parameter>
+    </object>
+
+    <object name="Device.X_CATAWAMPUS-ORG.Glaukus.Radio.Version.Software." access="readOnly" minentries="1" maxEntries="1">
+      <description>Container for Glaukus Manager Radio Hardware Version Information.</description>
+      <parameter name="Build" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Major" access="readOnly">
+        <syntax><int/></syntax>
+      </parameter>
+      <parameter name="Minor" access="readOnly">
+        <syntax><int/></syntax>
       </parameter>
     </object>
 
