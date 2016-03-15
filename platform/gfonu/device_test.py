@@ -54,6 +54,8 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
     self.old_HWVERSIONFILE = device.HWVERSIONFILE
     self.old_SWVERSIONFILE = device.SWVERSIONFILE
     self.old_REPOMANIFEST = device.REPOMANIFEST
+    self.old_PLATFORM_FILE = device.PLATFORM_FILE
+    device.PLATFORM_FILE = 'testdata/device/platform'
     self.install_cb_called = False
     self.install_cb_faultcode = None
     self.install_cb_faultstring = None
@@ -72,6 +74,12 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
   def testGetSerialNumber(self):
     did = device.DeviceId()
     self.assertEqual(did.SerialNumber, '000000000000')
+
+  def testPtpModelName(self):
+    device.PLATFORM_FILE = 'testdata/device/platform_gfch'
+    device.MODELNAMEFILE = 'testdata/device/platform_gfch'
+    did = device.DeviceId()
+    self.assertEqual(did.ModelName, 'GFCHTEST')
 
   def testModelName(self):
     did = device.DeviceId()

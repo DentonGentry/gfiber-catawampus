@@ -57,6 +57,7 @@ INTERNAL_ERROR = 9002
 # Unit tests can override these with fake data
 CONFIGDIR = '/config/tr69'
 DOWNLOADDIR = '/tmp'
+HNVRAM = 'hnvram'
 SYSVAR = 'sysvar_cmd'
 SYSVAR_ERROR = '<<ERROR CODE>>'
 GINSTALL = 'ginstall'
@@ -101,6 +102,37 @@ class DeviceId(dm.device_info.DeviceIdMeta):
     except IOError:
       return default
 
+  def _GetNvramParam(self, param, default=''):
+    """Return a parameter from NVRAM, like the serial number.
+
+    Args:
+      param: string name of the parameter to fetch. This must match the
+        predefined names supported by /bin/hnvram
+      default: value to return if the parameter is not present in NVRAM.
+
+    Returns:
+      A string value of the contents.
+    """
+    cmd = [HNVRAM, '-r', param]
+    devnull = open('/dev/null', 'w')
+    try:
+      hnvram = subprocess.Popen(cmd, stdin=devnull, stderr=devnull,
+                                stdout=subprocess.PIPE)
+      out, _ = hnvram.communicate()
+      if hnvram.returncode != 0:
+        # Treat failure to run hnvram same as not having the field populated
+        out = ''
+    except OSError:
+      out = ''
+    outlist = out.strip().split('=')
+
+    # HNVRAM does not distinguish between "value not present" and
+    # "value present, and is empty." Treat empty values as invalid.
+    if len(outlist) > 1 and outlist[1].strip():
+      return outlist[1].strip()
+    else:
+      return default
+
   def _GetSysVarParam(self, param, default):
     """Get device statistics from SYSVAR partition."""
 
@@ -138,14 +170,20 @@ class DeviceId(dm.device_info.DeviceIdMeta):
 
   @property
   def Description(self):
+    if IsPtp():
+      return 'Point-To-Point Radio Device for Google Fiber network'
     return 'Optical Network Unit for Google Fiber network'
 
   @property
   def SerialNumber(self):
+    if IsPtp():
+      return self._GetNvramParam('1ST_SERIAL_NUMBER', default='000000000000')
     return self._GetSysVarParam('SERIAL_NO', default='000000000000')
 
   @property
   def HardwareVersion(self):
+    if IsPtp():
+      return self._GetNvramParam('HW_VER', default='')
     return self._GetOneLine(HWVERSIONFILE, default='1.0')
 
   @property
@@ -251,11 +289,17 @@ class Ethernet(tr.basemodel.Device.Ethernet):
 
   def __init__(self):
     tr.basemodel.Device.Ethernet.__init__(self)
-    self.InterfaceList = {
-        '1': EthernetInterfaceOnu('eth0', ETH_STATS_DIR),
-        '2': EthernetInterfaceOnu('pon0', PON_STATS_DIR, maxbitrate=1000),
-        '3': dm.ethernet.EthernetInterfaceLinux26(ifname='man'),
-    }
+    if IsPtp():
+      self.InterfaceList = {
+          '1': dm.ethernet.EthernetInterfaceLinux26(ifname='craft0'),
+          '2': dm.ethernet.EthernetInterfaceLinux26(ifname='eth1'),
+      }
+    else:
+      self.InterfaceList = {
+          '1': EthernetInterfaceOnu('eth0', ETH_STATS_DIR),
+          '2': EthernetInterfaceOnu('pon0', PON_STATS_DIR, maxbitrate=1000),
+          '3': dm.ethernet.EthernetInterfaceLinux26(ifname='man'),
+      }
     self.VLANTerminationList = {}
     self.LinkList = {}
     self.RMONStatsList = {}
@@ -360,6 +404,13 @@ class InternetGatewayDevice(tr.basemodel.InternetGatewayDevice):
 
     self.Export(objects=['PeriodicStatistics'])
     self.PeriodicStatistics = periodic_stats
+
+
+def IsPtp():
+  with open(PLATFORM_FILE) as f:
+    if f.read().strip().startswith('GFCH'):
+      return True
+  return False
 
 
 # pylint:disable=unused-argument
