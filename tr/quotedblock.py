@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 # pylint:disable=anomalous-backslash-in-string
+# pylint:disable=g-docstring-has-escape
 """Protocol helpers for multiline sh-style-quoted blocks.
 
 Blocks are formatted as lines, separated by newline characters, each
