@@ -415,6 +415,20 @@ class HostTest(unittest.TestCase):
         found = True
     self.assertTrue(found)
 
+  def testHostnameInvalidUnicode(self):
+    host.PROC_NET_ARP = 'testdata/host/proc_net_arp'
+    host.DNSSD_HOSTNAMES = 'testdata/host/dnssd_hostnames_invalid_unicode'
+    hosts = host.Hosts()
+    self.assertEqual(3, len(hosts.HostList))
+    found = False
+    for h in hosts.HostList.values():
+      cid = h.X_CATAWAMPUS_ORG_ClientIdentification
+      if h.PhysAddress == 'f8:8f:ca:00:00:01':
+        self.assertEqual(
+            u'dnssd_hostname_invalidUTF8_\ufffd.local', cid.DnsSdName)
+        found = True
+    self.assertTrue(found)
+
   def _GetFakeCPE(self, tr98=True, tr181=True):
     igd = device = None
     device_id = platform.fakecpe.device.DeviceId()

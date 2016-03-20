@@ -575,22 +575,21 @@ class Hosts(BASE181HOSTS):
       A dict of {'1.2.3.4': 'hostname'} mappings.
     """
     try:
-      f = codecs.open(filename, 'r', 'utf-8')
+      f = codecs.open(filename, mode='r', encoding='utf-8', errors='replace')
     except IOError:
       # Nonexistent file means no hosts responded. Skip it.
       return {}
     hostnames = {}
-    with f:
-      for line in f:
-        try:
-          (ip, name) = line.split('|', 1)
-          ip = tr.helpers.NormalizeIPAddr(str(ip))
-          name = name.strip()
-          hostnames[ip] = name
-        except ValueError:
-          # line was malformed, no '|' is present
-          print 'Malformed line in %s: %s' % (filename, line)
-          continue
+    for line in f:
+      try:
+        (ip, name) = line.split('|', 1)
+        ip = tr.helpers.NormalizeIPAddr(str(ip))
+        name = name.strip()
+        hostnames[ip] = name
+      except ValueError:
+        # line was malformed, no '|' is present
+        print 'Malformed line in %s: %s' % (filename, line)
+        continue
     return hostnames
 
   def _PopulateDiscoveredHostnames(self, hosts):
