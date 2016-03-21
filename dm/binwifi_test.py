@@ -20,12 +20,10 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import json
 import os
 import shlex
 import shutil
 import tempfile
-import time
 
 import google3
 import binwifi
@@ -332,56 +330,9 @@ class BinWifiTest(unittest.TestCase):
     self.assertEqual(bw.WifiCommandFileName(),
                      os.path.join(binwifi.CONMAN_DIR[0], 'command._portal.5'))
 
-  # TODO(theannielin): Consume data from mocked /bin/wifi in this test
   def testAssociatedDevices(self):
+    binwifi.STATIONS_DIR[0] = 'testdata/binwifi/stations'
     bw = self.WlanConfiguration('wifi0', '', 'br0')
-    stations = {'00:00:01:00:00:01': {'inactive since': 900,
-                                      'authenticated': 'yes',
-                                      'tx packets': 5,
-                                      'tx failed': 7,
-                                      'tx bitrate': 10.0,
-                                      'rx packets': 3,
-                                      'rx bitrate': 11.0,
-                                      'tx bytes': 4,
-                                      'tx retries': 6,
-                                      'rx bytes': 2,
-                                      'signal': -8,
-                                      'signal avg': -9,
-                                      'authorized': 'yes',
-                                      'ifname': 'wifi0'},
-                '00:00:01:00:00:02': {'inactive since': 1000,
-                                      'authenticated': 'yes',
-                                      'tx packets': 16,
-                                      'tx failed': 18,
-                                      'tx bitrate': 21.0,
-                                      'rx packets': 14,
-                                      'rx bitrate': 22.0,
-                                      'tx bytes': 15,
-                                      'tx retries': 17,
-                                      'rx bytes': 13,
-                                      'signal': -19,
-                                      'signal avg': -20,
-                                      'authorized': 'yes',
-                                      'ifname': 'wifi0'},
-                '00:00:01:00:00:03': {'inactive since': 500,
-                                      'authenticated': 'yes',
-                                      'tx packets': 27,
-                                      'tx failed': 29,
-                                      'tx bitrate': 32.0,
-                                      'rx packets': 25,
-                                      'rx bitrate': 33.0,
-                                      'tx bytes': 26,
-                                      'tx retries': 28,
-                                      'rx bytes': 24,
-                                      'signal': -30,
-                                      'signal avg': -31,
-                                      'authorized': 'yes',
-                                      'ifname': 'wifi0'}}
-    time.time = lambda: 1000  # return 1000 in binwifi to make testing easier
-    for mac_addr in stations:
-      with open(os.path.join(binwifi.STATIONS_DIR[0], mac_addr), 'w') as f:
-        f.write(json.dumps(stations[mac_addr]))
-    bw.AssocDeviceListMaker()
     self.assertEqual(bw.TotalAssociations, 3)
     found = 0
     for c in bw.AssociatedDeviceList.values():

@@ -27,16 +27,13 @@ import errno
 import json
 import os
 import subprocess
-import time
 import traceback
 import netdev
-import tornado.ioloop
 import tr.cwmpbool
 import tr.cwmptypes
 import tr.experiment
 import tr.helpers
 import tr.mainloop
-import tr.pyinotify
 import tr.session
 import tr.tr098_v1_6
 import tr.x_catawampus_tr098_1_0
@@ -279,25 +276,6 @@ class _SoftBool(tr.cwmptypes.Bool):
     return value is not None
 
 
-class StationsChangeHandler(tr.pyinotify.ProcessEvent):
-  """Handler for processing changes to the /tmp/stations directory."""
-
-  def __init__(self, wlanconfig):
-    self.wlanconfig = wlanconfig
-
-  def process_IN_CREATE(self, event):
-    self.wlanconfig.AssocDeviceListMaker()
-
-  def process_IN_MODIFY(self, event):
-    self.wlanconfig.AssocDeviceListMaker()
-
-  def process_IN_DELETE(self, event):
-    wlan = self.wlanconfig
-    wlan.AssocDeviceListMaker()
-    if not wlan.AssociatedDeviceList:
-      wlan.signals = {}
-
-
 class WlanConfiguration(CATA98WIFI):
   """An implementation of tr98 WLANConfiguration for /bin/wifi."""
   encryption_modes = ['X_CATAWAMPUS-ORG_None', 'None', 'WEPEncryption',
@@ -365,9 +343,7 @@ class WlanConfiguration(CATA98WIFI):
     self.new_config = None
     self._Stats = WlanConfigurationStats(ifname=self._ifname)
     self._initialized = True
-    self.AssociatedDeviceList = {}
     self._sig_dict = {}
-    self.StationsWatchManager = tr.pyinotify.WatchManager()
 
     # Need to be implemented, but not done yet.
     self.Unexport(['BasicDataTransmitRates', 'AutoRateFallBackEnabled',
@@ -429,23 +405,12 @@ class WlanConfiguration(CATA98WIFI):
         self, TMPWAVEGUIDE[0] + '/%s.autochan_5g.init' % self.Name)
     type(self)._InitiallyRecommendedChannel_Free.attr.attr.SetFileName(
         self, TMPWAVEGUIDE[0] + '/%s.autochan_free.init' % self.Name)
-
-    # Watcher/Notifier for files being created or deleted in /tmp/stations
     if not os.path.isdir(STATIONS_DIR[0]):
       os.mkdir(STATIONS_DIR[0])
-    ioloop = tornado.ioloop.IOLoop.instance()
-    mask = tr.pyinotify.IN_CREATE | tr.pyinotify.IN_DELETE
-    mask |= tr.pyinotify.IN_MODIFY
-    self.Notifier = tr.pyinotify.TornadoAsyncNotifier(self.StationsWatchManager,
-                                                      ioloop)
-    donefile = os.path.join(STATIONS_DIR[0], 'updated.new')
-    self.StationsWatchManager.add_watch(donefile, mask,
-                                        proc_fun=StationsChangeHandler(self))
 
   def release(self):
     tr.helpers.Unlink(self.WifiCommandFileName())
     tr.helpers.Unlink(self.APEnabledFileName())
-    self.Notifier.stop()
 
   @tr.session.cache
   def _BinwifiShow(self):
@@ -479,44 +444,48 @@ class WlanConfiguration(CATA98WIFI):
     self._sig_dict = new_dict
     type(self).SignalsStr.Set(self, str(self._sig_dict))
 
-  def AssocDeviceListMaker(self):
+  @property
+  def AssociatedDeviceList(self):
     directory = STATIONS_DIR[0]
+    if not os.path.isdir(directory):
+      return
     stations = []
-    valid_stations = []
-    stations_dict = {}
-    if os.path.isdir(directory):
-      for dirfile in os.listdir(directory):
-        if os.path.isfile(os.path.join(directory, dirfile)):
-          if not dirfile.endswith('.new'):
-            try:
-              device_data = json.load(open(os.path.join(directory, dirfile)))
-            except ValueError:
-              device_data = {}
-            station = dict(PhysAddr=dirfile)
-            station.update(device_data)
-            stations.append(station)
-    for station in stations:
+    for dirfile in os.listdir(directory):
+      isfile = os.path.isfile(os.path.join(directory, dirfile))
+      if isfile and not dirfile.endswith('.new'):
+        try:
+          station = json.load(open(os.path.join(directory, dirfile)))
+        except ValueError:
+          station = {}
+        station['PhysAddr'] = dirfile
+        stations.append(station)
+    for station in list(stations):
       if (('authorized' in station and station['authorized'] != 'yes') or
           ('authenticated' in station and station['authenticated'] != 'yes')):
-        continue
+        stations.remove(station)
       if station.get('ifname') != self._ifname:
-        continue
-      valid_stations.append(station)
-    stations = valid_stations
-    AssociatedDeviceMACs = []
-    for device in self.AssociatedDeviceList.values():
-      AssociatedDeviceMACs.append(device.AssociatedDeviceMACAddress)
+        stations.remove(station)
+    self.CollectSignalStrengths(stations)
+    associated_device_list = {}
     for idx, device in enumerate(sorted(stations), start=1):
-      stations_dict[str(idx)] = device['PhysAddr']
-      if device['PhysAddr'] not in AssociatedDeviceMACs:
-        ad = AssociatedDevice(device,
-                              os.path.join(directory, device['PhysAddr']),
-                              self)
-        self.AssociatedDeviceList[str(idx)] = ad
-    for idx in self.AssociatedDeviceList.keys():  # pylint: disable=g-builtin-op
-      mac_addr = self.AssociatedDeviceList[idx].AssociatedDeviceMACAddress
-      if mac_addr not in stations_dict.values():
-        del self.AssociatedDeviceList[idx]
+      filename = os.path.join(directory, device['PhysAddr'])
+      associated_device_list[str(idx)] = AssociatedDevice(device, filename)
+    return associated_device_list
+
+  def CollectSignalStrengths(self, stations):
+    """Iterate through AssociatedDeviceList to populate self.signals.
+
+    self.signals is a dictionary of signal strengths by MAC address,
+    used in the TechUI graphs of RSSI.
+
+    Args:
+      stations: a dict from JSON files about this station.
+    """
+    new_sig_dict = dict()
+    for station in stations:
+      mac_addr = station.get('PhysAddr', '00:00:00:00:00:00')
+      new_sig_dict[mac_addr] = station.get('signal_avg', 0)
+    self.signals = new_sig_dict
 
   def GetAutoChannelEnable(self):
     acalg = self.X_CATAWAMPUS_ORG_AutoChannelAlgorithm
@@ -984,93 +953,57 @@ class WlanConfigurationStats(netdev.NetdevStatsLinux26, BASE98WIFI.Stats):
     BASE98WIFI.Stats.__init__(self)
 
 
-def CollectSignalStrength(device):
-  """Update the dictionary of signal strengths for each WlanConfiguration.
-
-  Args:
-    device: The Associated Device we need information for.
-  """
-  mac_addr = device.AssociatedDeviceMACAddress
-  directory = STATIONS_DIR[0]
-  last_sig_dict = dict(device.wlan.signals)
-  new_sig_dict = dict(device.wlan.signals)
-  # Check if file still exists if it is being deleted.
-  if os.path.isfile(os.path.join(directory, mac_addr)):
-    try:
-      device_data = json.load(open(os.path.join(directory, mac_addr)))
-    except ValueError:
-      device_data = {'signal': {}}
-    new_sig_dict[mac_addr] = device_data['signal']
-  for mac_addr in new_sig_dict.keys():  # pylint: disable=g-builtin-op
-    if mac_addr not in os.listdir(directory):
-      del new_sig_dict[mac_addr]
-  updated = False
-  for mac_addr, signal in last_sig_dict.iteritems():
-    try:
-      if new_sig_dict[mac_addr] != signal:
-        updated = True
-    except KeyError:
-      updated = True  # the device has been deleted, not in sig_dict anymore
-  if len(last_sig_dict) != len(new_sig_dict) or updated:
-    device.wlan.signals = new_sig_dict
-
-
 class AssociatedDevice(CATA98WIFI.AssociatedDevice):
   """InternetGatewayDevice.LANDevice.WLANConfiguration.AssociatedDevice."""
 
-  AssociatedDeviceAuthenticationState = tr.cwmptypes.ReadOnlyBool(True)
   AssociatedDeviceMACAddress = tr.cwmptypes.ReadOnlyMacAddr()
-  # tr-098-1-6 defines LastDataTransmitRate as a string(4). Bizarre.
-  LastDataTransmitRate = tr.cwmptypes.ReadOnlyString()
-  X_CATAWAMPUS_ORG_Active = tr.cwmptypes.ReadOnlyBool(False)
-  X_CATAWAMPUS_ORG_LastDataDownlinkRate = tr.cwmptypes.ReadOnlyUnsigned()
-  X_CATAWAMPUS_ORG_LastDataUplinkRate = tr.cwmptypes.ReadOnlyUnsigned()
-  X_CATAWAMPUS_ORG_SignalStrength = tr.cwmptypes.ReadOnlyInt()
-  X_CATAWAMPUS_ORG_SignalStrengthAverage = tr.cwmptypes.ReadOnlyInt()
   X_CATAWAMPUS_ORG_StationInfo = tr.cwmptypes.FileBacked([''],
                                                          tr.cwmptypes.String(),
                                                          delete_if_empty=False)
 
-  def __init__(self, device, filename, parent_wlan_configuration):
+  def __init__(self, params, filename):
     """Constructor.
 
     Args:
-      device: A dictionary containing information about the associated device,
-          produced by WlanConfiguration._ParseBinWifi.
+      params: A dictionary containing information about the associated device.
       filename: The path to the associated device information file, typically
           in /tmp/stations.
-      parent_wlan_configuration: The WlanConfiguration object that this device
-          is associated to.
     """
     super(AssociatedDevice, self).__init__()
-    type(self).AssociatedDeviceMACAddress.Set(self, device.get('PhysAddr', ''))
-    idle_since = device.get('inactive since', 0.0)
-    # this operation is safe from clock jumps:
-    # if the system clock jumps, the file will be rewritten with the new local
-    # time, so the comparison with time.time() will still be valid
-    idle_sec = time.time() - idle_since
-    type(self).X_CATAWAMPUS_ORG_Active.Set(self, idle_sec < 120)
-
-    bitrate = device.get('tx bitrate', 0.0)
-    kbps = int(bitrate * 1000.0)
-    type(self).X_CATAWAMPUS_ORG_LastDataUplinkRate.Set(self, kbps)
-
-    bitrate = device.get('rx bitrate', 0.0)
-    kbps = int(bitrate * 1000.0)
-    mbps = int(bitrate)
-    type(self).X_CATAWAMPUS_ORG_LastDataDownlinkRate.Set(self, kbps)
-    type(self).LastDataTransmitRate.Set(self, mbps)
-
-    dbm = device.get('signal', 0)
-    type(self).X_CATAWAMPUS_ORG_SignalStrength.Set(self, dbm)
-    dbm_avg = device.get('signal avg', 0)
-    type(self).X_CATAWAMPUS_ORG_SignalStrengthAverage.Set(self, dbm_avg)
-
+    self._params = params
+    type(self).X_CATAWAMPUS_ORG_StationInfo.SetFileName(self, filename)
+    type(self).AssociatedDeviceMACAddress.Set(self, params.get('PhysAddr', ''))
     self.Unexport(['AssociatedDeviceIPAddress', 'LastPMKId',
                    'LastRequestedUnicastCipher',
                    'LastRequestedMulticastCipher'])
 
-    type(self).X_CATAWAMPUS_ORG_StationInfo.SetFileName(self, filename)
-    self.wlan = parent_wlan_configuration
-    tr.cwmptypes.AddNotifier(type(self), 'X_CATAWAMPUS_ORG_StationInfo',
-                             CollectSignalStrength)
+  @property
+  def AssociatedDeviceAuthenticationState(self):
+    auth = self._params.get('authenticated', 'no')
+    if auth == 'yes' or auth == 'true':
+      return True
+
+  @property
+  def LastDataTransmitRate(self):
+    # tr-098-1-6 defines LastDataTransmitRate as a string(4). Bizarre.
+    return str(int(self._params.get('rx bitrate', 0.0)))
+
+  @property
+  def X_CATAWAMPUS_ORG_Active(self):
+    return bool(self._params.get('active', False))
+
+  @property
+  def X_CATAWAMPUS_ORG_LastDataDownlinkRate(self):
+    return int(self._params.get('rx bitrate', 0.0) * 1000.0)
+
+  @property
+  def X_CATAWAMPUS_ORG_LastDataUplinkRate(self):
+    return int(self._params.get('tx bitrate', 0.0) * 1000.0)
+
+  @property
+  def X_CATAWAMPUS_ORG_SignalStrength(self):
+    return int(self._params.get('signal', 0))
+
+  @property
+  def X_CATAWAMPUS_ORG_SignalStrengthAverage(self):
+    return int(self._params.get('signal_avg', 0))
