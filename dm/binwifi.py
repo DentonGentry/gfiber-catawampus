@@ -85,12 +85,12 @@ def AutoDisableWifi(roothandle):
 
 
 @tr.experiment.Experiment
-def AlwaysEnableSetupNetwork(unused_roothandle):
-  # TODO(willangley): also enable setup network on 5 GHz once the ACS pushes
-  #   configuration for it, too.
-  yield 'InternetGatewayDevice.LANDevice.2.WLANConfiguration.1.Enable', True
-  yield ('InternetGatewayDevice.LANDevice.2.WLANConfiguration.1'
-         '.SSIDAdvertisementEnabled', True)
+def AlwaysEnableSetupNetwork(roothandle):
+  for wlankey, _ in _WifiConfigs(roothandle):
+    landevice_i = int(wlankey.split('.')[2])
+    if landevice_i == 2:
+      yield (wlankey + 'Enable'), True
+      yield (wlankey + 'SSIDAdvertisementEnabled'), True
 
 
 @tr.experiment.Experiment
