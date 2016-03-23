@@ -429,6 +429,10 @@ KeyPassphraseXML = """<?xml version="1.0" encoding="utf-8"?>
           <Value xsi:type="xsd:string">password</Value>
         </ParameterValueStruct>
         <ParameterValueStruct>
+          <Name>Foo.1.Password</Name>
+          <Value xsi:type="xsd:string">password</Value>
+        </ParameterValueStruct>
+        <ParameterValueStruct>
           <Name>Foo.1.SomeOtherValue</Name>
           <Value xsi:type="xsd:string">ThisIsTheOtherValue</Value>
         </ParameterValueStruct>

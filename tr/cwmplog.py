@@ -83,7 +83,7 @@ def _StripNamespace(tag):
 
 def _SuppressSensitiveParams(name, value):
   """Don't log passwords, and other sensitive information."""
-  if 'KeyPassphrase' in name or 'WEPKey' in name:
+  if 'KeyPassphrase' in name or 'WEPKey' in name or 'Password' in name:
     value = 'XXXXXXXX'
   return (name, value)
 
