@@ -37,6 +37,7 @@ def EnableWifiblaster1470(_):
   return [('Device.X_CATAWAMPUS-ORG.Wifiblaster.Duration', .1),
           ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Fraction', 10),
           ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Interval', 3600),
+          ('Device.X_CATAWAMPUS-ORG.Wifiblaster.MeasureAll', 0),
           ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Size', 1470),
           ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Enable', True)]
 
@@ -46,6 +47,7 @@ def EnableWifiblaster800(_):
   return [('Device.X_CATAWAMPUS-ORG.Wifiblaster.Duration', .1),
           ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Fraction', 10),
           ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Interval', 3600),
+          ('Device.X_CATAWAMPUS-ORG.Wifiblaster.MeasureAll', 0),
           ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Size', 800),
           ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Enable', True)]
 
@@ -55,6 +57,7 @@ def EnableWifiblaster60(_):
   return [('Device.X_CATAWAMPUS-ORG.Wifiblaster.Duration', .1),
           ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Fraction', 10),
           ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Interval', 3600),
+          ('Device.X_CATAWAMPUS-ORG.Wifiblaster.MeasureAll', 0),
           ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Size', 60),
           ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Enable', True)]
 
@@ -64,6 +67,7 @@ def EnableWifiblasterDebug(_):
   return [('Device.X_CATAWAMPUS-ORG.Wifiblaster.Duration', 1),
           ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Fraction', 10),
           ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Interval', 3600),
+          ('Device.X_CATAWAMPUS-ORG.Wifiblaster.MeasureAll', 0),
           ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Size', 1470),
           ('Device.X_CATAWAMPUS-ORG.Wifiblaster.Enable', True)]
 
@@ -74,7 +78,7 @@ DURATION_FILE = ['/tmp/waveguide/wifiblaster.duration']
 ENABLE_FILE = ['/tmp/waveguide/wifiblaster.enable']
 FRACTION_FILE = ['/tmp/waveguide/wifiblaster.fraction']
 INTERVAL_FILE = ['/tmp/waveguide/wifiblaster.interval']
-RAPIDPOLLING_FILE = ['/tmp/waveguide/wifiblaster.rapidpolling']
+MEASUREALL_FILE = ['/tmp/waveguide/wifiblaster.measureall']
 SIZE_FILE = ['/tmp/waveguide/wifiblaster.size']
 
 
@@ -84,8 +88,7 @@ class Wifiblaster(CATA181WIFIBLASTER):
   Enable = tr.cwmptypes.FileBacked(ENABLE_FILE, tr.cwmptypes.Bool())
   Fraction = tr.cwmptypes.FileBacked(FRACTION_FILE, tr.cwmptypes.Unsigned())
   Interval = tr.cwmptypes.FileBacked(INTERVAL_FILE, tr.cwmptypes.Float())
-  RapidPollingUntil = tr.cwmptypes.FileBacked(RAPIDPOLLING_FILE,
-                                              tr.cwmptypes.Unsigned())
+  MeasureAll = tr.cwmptypes.FileBacked(MEASUREALL_FILE, tr.cwmptypes.Float())
   Size = tr.cwmptypes.FileBacked(SIZE_FILE, tr.cwmptypes.Unsigned())
 
   def __init__(self):
@@ -99,5 +102,5 @@ class Wifiblaster(CATA181WIFIBLASTER):
     self.Enable = False
     self.Fraction = 10
     self.Interval = 3600
-    self.RapidPollingUntil = 0
+    self.MeasureAll = 0
     self.Size = 1470

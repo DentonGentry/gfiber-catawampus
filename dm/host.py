@@ -548,8 +548,8 @@ class Hosts(BASE181HOSTS):
       host = hosts.get(mac, None)
       if not host:
         continue
-      blast = self._ReadWifiFile(host, WIFIBLASTER_DIR, mac)
-      host['WifiblasterResults'] = blast
+      results = self._ReadWifiFile(host, WIFIBLASTER_DIR, mac)
+      host['WifiblasterResults'] = results
 
   def _PopulateSsdpServers(self, hosts):
     """Add SsdpServer parameters wherever we can."""

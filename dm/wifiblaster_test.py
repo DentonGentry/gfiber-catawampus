@@ -35,7 +35,7 @@ class WifiblasterTest(unittest.TestCase):
     self.old_enable_file = wifiblaster.ENABLE_FILE[0]
     self.old_fraction_file = wifiblaster.FRACTION_FILE[0]
     self.old_interval_file = wifiblaster.INTERVAL_FILE[0]
-    self.old_rapidpolling_file = wifiblaster.RAPIDPOLLING_FILE[0]
+    self.old_measureall_file = wifiblaster.MEASUREALL_FILE[0]
     self.old_size_file = wifiblaster.SIZE_FILE[0]
 
     self.basedir = tempfile.mkdtemp()
@@ -43,8 +43,7 @@ class WifiblasterTest(unittest.TestCase):
     self.enable_file = os.path.join(self.basedir, 'wifiblaster.enable')
     self.fraction_file = os.path.join(self.basedir, 'wifiblaster.fraction')
     self.interval_file = os.path.join(self.basedir, 'wifiblaster.interval')
-    self.rapidpolling_file = os.path.join(
-        self.basedir, 'wifiblaster.rapidpolling')
+    self.measureall_file = os.path.join(self.basedir, 'wifiblaster.measureall')
     self.size_file = os.path.join(self.basedir, 'wifiblaster.size')
 
     wifiblaster.BASEDIR[0] = self.basedir
@@ -52,7 +51,7 @@ class WifiblasterTest(unittest.TestCase):
     wifiblaster.ENABLE_FILE[0] = self.enable_file
     wifiblaster.FRACTION_FILE[0] = self.fraction_file
     wifiblaster.INTERVAL_FILE[0] = self.interval_file
-    wifiblaster.RAPIDPOLLING_FILE[0] = self.rapidpolling_file
+    wifiblaster.MEASUREALL_FILE[0] = self.measureall_file
     wifiblaster.SIZE_FILE[0] = self.size_file
 
     self.wifiblaster = wifiblaster.Wifiblaster()
@@ -63,7 +62,7 @@ class WifiblasterTest(unittest.TestCase):
     self.wifiblaster.Enable = True
     self.wifiblaster.Fraction = 20
     self.wifiblaster.Interval = .5
-    self.wifiblaster.RapidPollingUntil = 1000
+    self.wifiblaster.MeasureAll = 1000
     self.wifiblaster.Size = 100
     self.loop.RunOnce()
     with open(self.duration_file) as f:
@@ -74,8 +73,8 @@ class WifiblasterTest(unittest.TestCase):
       self.assertEquals(int(f.read()), 20)
     with open(self.interval_file) as f:
       self.assertEquals(float(f.read()), .5)
-    with open(self.rapidpolling_file) as f:
-      self.assertEquals(int(f.read()), 1000)
+    with open(self.measureall_file) as f:
+      self.assertEquals(float(f.read()), 1000)
     with open(self.size_file) as f:
       self.assertEquals(int(f.read()), 100)
 
@@ -86,7 +85,7 @@ class WifiblasterTest(unittest.TestCase):
     wifiblaster.ENABLE_FILE[0] = self.old_enable_file
     wifiblaster.FRACTION_FILE[0] = self.old_fraction_file
     wifiblaster.INTERVAL_FILE[0] = self.old_interval_file
-    wifiblaster.RAPIDPOLLING_FILE[0] = self.old_rapidpolling_file
+    wifiblaster.MEASUREALL_FILE[0] = self.old_measureall_file
     wifiblaster.SIZE_FILE[0] = self.old_size_file
 
 
