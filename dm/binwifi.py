@@ -957,9 +957,6 @@ class AssociatedDevice(CATA98WIFI.AssociatedDevice):
   """InternetGatewayDevice.LANDevice.WLANConfiguration.AssociatedDevice."""
 
   AssociatedDeviceMACAddress = tr.cwmptypes.ReadOnlyMacAddr()
-  X_CATAWAMPUS_ORG_StationInfo = tr.cwmptypes.FileBacked([''],
-                                                         tr.cwmptypes.String(),
-                                                         delete_if_empty=False)
 
   def __init__(self, params, filename):
     """Constructor.
@@ -971,7 +968,6 @@ class AssociatedDevice(CATA98WIFI.AssociatedDevice):
     """
     super(AssociatedDevice, self).__init__()
     self._params = params
-    type(self).X_CATAWAMPUS_ORG_StationInfo.SetFileName(self, filename)
     type(self).AssociatedDeviceMACAddress.Set(self, params.get('PhysAddr', ''))
     self.Unexport(['AssociatedDeviceIPAddress', 'LastPMKId',
                    'LastRequestedUnicastCipher',
@@ -1007,3 +1003,7 @@ class AssociatedDevice(CATA98WIFI.AssociatedDevice):
   @property
   def X_CATAWAMPUS_ORG_SignalStrengthAverage(self):
     return int(self._params.get('signal_avg', 0))
+
+  @property
+  def X_CATAWAMPUS_ORG_StationInfo(self):
+    return str(self._params)
