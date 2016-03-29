@@ -463,7 +463,7 @@ class WlanConfiguration(CATA98WIFI):
       if (('authorized' in station and station['authorized'] != 'yes') or
           ('authenticated' in station and station['authenticated'] != 'yes')):
         stations.remove(station)
-      if station.get('ifname') != self._ifname:
+      elif station.get('ifname') != self._ifname:
         stations.remove(station)
     self.CollectSignalStrengths(stations)
     associated_device_list = {}
