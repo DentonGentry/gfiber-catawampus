@@ -24,14 +24,12 @@ described by http://www.broadband-forum.org/cwmp/tr-181-2-2-0.html
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import copy
-import datetime
 import re
 import subprocess
+import time
 import tornado.ioloop
 import tr.basemodel
-import tr.cwmpbool
-import tr.cwmpdate
+import tr.cwmptypes
 
 BASE181 = tr.basemodel
 BASE181TEMPERATURE = BASE181.Device.DeviceInfo.TemperatureStatus
@@ -41,10 +39,13 @@ NUMBER = re.compile(r'(\d+(?:\.\d+)?)')
 # tr-181 defines a temperature below 0 Kelvin as "Invalid temperature"
 BADCELSIUS = -274
 
+DEFAULTPOLL = 300
+UNKNOWN_TIME = tr.cwmpdate.format(0)
+
 # Unit tests can override these with fake data
 HDDTEMPERATURE = 'hdd-temperature'
 PERIODICCALL = tornado.ioloop.PeriodicCallback
-TIMENOW = datetime.datetime.now
+TIMENOW = time.gmtime
 
 
 def GetNumberFromFile(filename):
@@ -66,10 +67,6 @@ def GetNumberFromFile(filename):
   raise ValueError('No number found in %s' % filename)
 
 
-class TemperatureSensorConfig(object):
-  pass
-
-
 class TemperatureSensor(BASE181TEMPERATURE.TemperatureSensor):
   """Implements tr-181 TemperatureStatus.TemperatureSensor.
 
@@ -82,193 +79,81 @@ class TemperatureSensor(BASE181TEMPERATURE.TemperatureSensor):
      to obtain a sample from the hardware.
   """
 
-  DEFAULTPOLL = 300
+  Enable = tr.cwmptypes.TriggerBool(True)
+  HighAlarmTime = tr.cwmptypes.ReadOnlyDate(0)
+  HighAlarmValue = tr.cwmptypes.TriggerInt(BADCELSIUS)
+  LastUpdate = tr.cwmptypes.ReadOnlyDate(0)
+  LowAlarmTime = tr.cwmptypes.ReadOnlyDate(0)
+  LowAlarmValue = tr.cwmptypes.TriggerInt(BADCELSIUS)
+  MinTime = tr.cwmptypes.ReadOnlyDate(0)
+  MinValue = tr.cwmptypes.ReadOnlyInt(BADCELSIUS)
+  MaxTime = tr.cwmptypes.ReadOnlyDate(0)
+  MaxValue = tr.cwmptypes.ReadOnlyInt(BADCELSIUS)
+  Name = tr.cwmptypes.ReadOnlyString('')
+  PollingInterval = tr.cwmptypes.TriggerUnsigned(DEFAULTPOLL)
+  Reset = tr.cwmptypes.TriggerBool(False)
+  ResetTime = tr.cwmptypes.ReadOnlyDate(0)
+  Value = tr.cwmptypes.ReadOnlyInt(BADCELSIUS)
 
   def __init__(self, name, sensor, ioloop=None):
     super(TemperatureSensor, self).__init__()
     self.Unexport(['Alias'])
-    self._name = name
+    type(self).Name.Set(self, name)
     self._sensor = sensor
     self.ioloop = ioloop or tornado.ioloop.IOLoop.instance()
     self.scheduler = None
-
-    self.config = self._GetDefaultSettings()
-    self.old_config = None
     self._ResetReadings()
     self._Configure()
 
   def _ResetReadings(self):
-    unknown_time = tr.cwmpdate.format(0)
-    self._high_alarm_time = unknown_time
-    self._do_reset_high_alarm_time = False
-    self._low_alarm_time = unknown_time
-    self._do_reset_low_alarm_time = False
-    self._last_update = unknown_time
-    self._min_value = None
-    self._min_time = unknown_time
-    self._max_value = None
-    self._max_time = unknown_time
-    self._reset_time = unknown_time
-    self._value = BADCELSIUS
+    type(self).HighAlarmTime.Set(self, 0)
+    type(self).LowAlarmTime.Set(self, 0)
+    type(self).LastUpdate.Set(self, 0)
+    type(self).MaxTime.Set(self, 0)
+    type(self).MaxValue.Set(self, BADCELSIUS)
+    type(self).MinTime.Set(self, 0)
+    type(self).MinValue.Set(self, BADCELSIUS)
+    type(self).ResetTime.Set(self, 0)
+    type(self).Value.Set(self, BADCELSIUS)
 
-  def _GetDefaultSettings(self):
-    obj = TemperatureSensorConfig()
-    obj.p_enable = True
-    obj.p_polling_interval = self.DEFAULTPOLL
-    obj.p_low_alarm_value = None
-    obj.p_high_alarm_value = None
-    return obj
-
-  def StartTransaction(self):
-    self.old_config = self.config
-    self.config = copy.deepcopy(self.old_config)
-
-  def AbandonTransaction(self):
-    self.config = self.old_config
-    self.old_config = None
-
-  def CommitTransaction(self):
-    self.old_config = None
-    self._Configure()
-
-  def GetEnable(self):
-    return self.config.p_enable
-
-  def SetEnable(self, value):
-    self.config.p_enable = tr.cwmpbool.parse(value)
-
-  Enable = property(GetEnable, SetEnable, None, 'TemperatureSensor.Enable')
-
-  def GetHighAlarmValue(self):
-    if self.config.p_high_alarm_value is None:
-      return BADCELSIUS
-    else:
-      return self.config.p_high_alarm_value
-
-  def SetHighAlarmValue(self, value):
-    self.config.p_high_alarm_value = int(value)
-    self._do_reset_high_alarm_time = True
-
-  HighAlarmValue = property(GetHighAlarmValue, SetHighAlarmValue, None,
-                            'TemperatureSensor.HighAlarmValue')
-
-  @property
-  def HighAlarmTime(self):
-    return self._high_alarm_time
-
-  @property
-  def LastUpdate(self):
-    return self._last_update
-
-  def GetLowAlarmValue(self):
-    if self.config.p_low_alarm_value is None:
-      return BADCELSIUS
-    else:
-      return self.config.p_low_alarm_value
-
-  def SetLowAlarmValue(self, value):
-    self.config.p_low_alarm_value = int(value)
-    self._do_reset_low_alarm_time = True
-
-  LowAlarmValue = property(GetLowAlarmValue, SetLowAlarmValue, None,
-                           'TemperatureSensor.LowAlarmValue')
-
-  @property
-  def LowAlarmTime(self):
-    return self._low_alarm_time
-
-  @property
-  def MinTime(self):
-    return self._min_time
-
-  @property
-  def MinValue(self):
-    return BADCELSIUS if self._min_value is None else self._min_value
-
-  @property
-  def MaxTime(self):
-    return self._max_time
-
-  @property
-  def MaxValue(self):
-    return BADCELSIUS if self._max_value is None else self._max_value
-
-  @property
-  def Name(self):
-    return self._name
-
-  def GetPollingInterval(self):
-    return self.config.p_polling_interval
-
-  def SetPollingInterval(self, value):
-    v = int(value)
-    if v < 0:
-      raise ValueError('Invalid PollingInterval %d' % v)
-    if v == 0:
-      v = self.DEFAULTPOLL
-    self.config.p_polling_interval = v
-
-  PollingInterval = property(GetPollingInterval, SetPollingInterval)
-
-  def GetReset(self):
-    return False
-
-  def SetReset(self, value):
-    if tr.cwmpbool.parse(value):
+  def Triggered(self):
+    if self.Reset:
       self._ResetReadings()
-      self._reset_time = tr.cwmpdate.format(TIMENOW())
-
-  Reset = property(GetReset, SetReset, None, 'TemperatureSensor.Reset')
-
-  @property
-  def ResetTime(self):
-    return self._reset_time
+      self.Reset = False
+      type(self).ResetTime.Set(self, TIMENOW())
+    self._Configure()
 
   @property
   def Status(self):
-    return 'Enabled' if self.config.p_enable else 'Disabled'
-
-  @property
-  def Value(self):
-    return self._value
+    return 'Enabled' if self.Enable else 'Disabled'
 
   def SampleTemperature(self):
     t = self._sensor.GetTemperature()
-    self._value = t
-    now = tr.cwmpdate.format(TIMENOW())
-    self._last_update = now
-    if self._min_value is None or t < self._min_value:
-      self._min_value = t
-      self._min_time = now
-    if self._max_value is None or t > self._max_value:
-      self._max_value = t
-      self._max_time = now
-    high = self.config.p_high_alarm_value
-    if high is not None and t > high:
-      self._high_alarm_time = now
-    low = self.config.p_low_alarm_value
-    if low is not None and t < low:
-      self._low_alarm_time = now
+    type(self).Value.Set(self, t)
+    now = TIMENOW()
+    type(self).LastUpdate.Set(self, now)
+    if t < self.MinValue or self.MinValue == BADCELSIUS:
+      type(self).MinValue.Set(self, t)
+      type(self).MinTime.Set(self, now)
+    if t > self.MaxValue:
+      type(self).MaxValue.Set(self, t)
+      type(self).MaxTime.Set(self, now)
+    if t > self.HighAlarmValue:
+      type(self).HighAlarmTime.Set(self, now)
+    if t < self.LowAlarmValue:
+      type(self).LowAlarmTime.Set(self, now)
 
   def _Configure(self):
-    if self._do_reset_high_alarm_time:
-      self._high_alarm_time = tr.cwmpdate.format(0)
-      self._do_reset_high_alarm_time = False
-    if self._do_reset_low_alarm_time:
-      self._low_alarm_time = tr.cwmpdate.format(0)
-      self._do_reset_low_alarm_time = False
     if self.scheduler is not None:
       self.scheduler.stop()
       self.scheduler = None
-    if self.config.p_enable:
+    if self.Enable:
       self.scheduler = (
           PERIODICCALL(
               self.SampleTemperature,
-              self.config.p_polling_interval * 1000,
+              self.PollingInterval * 1000,
               io_loop=self.ioloop))
       self.scheduler.start()
-    # Let new alarm thresholds take effect
-    self.SampleTemperature()
 
 
 class SensorHdparm(object):
@@ -323,20 +208,17 @@ class SensorReadFromFile(object):
 class TemperatureStatus(CATA181DI.TemperatureStatus):
   """Implementation of tr-181 DeviceInfo.TemperatureStatus."""
 
+  TemperatureSensorNumberOfEntries = tr.cwmptypes.NumberOf(
+      'TemperatureSensorList')
+  X_CATAWAMPUS_ORG_FanNumberOfEntries = tr.cwmptypes.NumberOf(
+      'X_CATAWAMPUS_ORG_FanList')
+
   def __init__(self):
     super(TemperatureStatus, self).__init__()
     self.TemperatureSensorList = dict()
     self._next_sensor_number = 1
     self.X_CATAWAMPUS_ORG_FanList = dict()
     self._next_fan_number = 1
-
-  @property
-  def TemperatureSensorNumberOfEntries(self):
-    return len(self.TemperatureSensorList)
-
-  @property
-  def X_CATAWAMPUS_ORG_FanNumberOfEntries(self):
-    return len(self.X_CATAWAMPUS_ORG_FanList)
 
   def AddSensor(self, name, sensor):
     ts = TemperatureSensor(name=name, sensor=sensor)
@@ -352,14 +234,12 @@ class TemperatureStatus(CATA181DI.TemperatureStatus):
 class FanReadFileRPS(CATA181DI.TemperatureStatus.X_CATAWAMPUS_ORG_Fan):
   """Implementation of Fan object, reading rev/sec from a file."""
 
+  Name = tr.cwmptypes.ReadOnlyString('')
+
   def __init__(self, name, filename):
     super(FanReadFileRPS, self).__init__()
-    self._name = name
+    type(self).Name.Set(self, name)
     self._filename = filename
-
-  @property
-  def Name(self):
-    return self._name
 
   @property
   def RPM(self):
