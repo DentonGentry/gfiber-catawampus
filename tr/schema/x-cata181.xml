@@ -1391,6 +1391,10 @@ If both {{param|X_CATAWAMPUS-ORG_PortRangeSize}} and {{param|ExternalPortEndRang
         <description>Unix time at which to measure all clients.</description>
         <syntax><unsignedInt/></syntax>
       </parameter>
+      <parameter name="OnAssociation" access="readWrite">
+        <description>Enable WiFi performance measurement after clients associate.</description>
+        <syntax><boolean/></syntax>
+      </parameter>
       <parameter name="Size" access="readWrite">
         <description>Packet size in bytes.</description>
         <syntax><unsignedInt/></syntax>
