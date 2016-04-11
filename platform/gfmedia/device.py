@@ -501,16 +501,30 @@ class IP(tr.basemodel.Device.IP):
     if _DoesInterfaceExist('eth2'):
       self.InterfaceList[8] = dm.ipinterface.IPInterfaceLinux26(
           ifname='eth2', lowerlayers='')
-    if _DoesInterfaceExist('wlan0_portal'):
+
+    # The ACS treats Device.IP.Interface.9. as the interface for the captive
+    # portal / provisioning network. It will assign an IP address for it based
+    # on, but (hopefully!) not overlapping with, the configured primary IP
+    # address range.
+    #
+    # Nothing else will assign an IP address to the captive portal network, so
+    # this needs to be kept up to date if the on-device network design changes.
+    if _DoesInterfaceExist('br1'):
       self.InterfaceList[9] = dm.ipinterface.IPInterfaceLinux26(
+          ifname='br1', lowerlayers='')
+    if _DoesInterfaceExist('wlan0_portal'):
+      self.InterfaceList[10] = dm.ipinterface.IPInterfaceLinux26(
           ifname='wlan0_portal', lowerlayers='')
     if _DoesInterfaceExist('wlan1_portal'):
-      self.InterfaceList[10] = dm.ipinterface.IPInterfaceLinux26(
+      self.InterfaceList[11] = dm.ipinterface.IPInterfaceLinux26(
           ifname='wlan1_portal', lowerlayers='')
 
     if _DoesInterfaceExist('wcli0'):
-      self.InterfaceList[11] = dm.ipinterface.IPInterfaceLinux26(
+      self.InterfaceList[12] = dm.ipinterface.IPInterfaceLinux26(
           ifname='wcli0', lowerlayers='')
+    if _DoesInterfaceExist('wcli1'):
+      self.InterfaceList[13] = dm.ipinterface.IPInterfaceLinux26(
+          ifname='wcli1', lowerlayers='')
 
     self.ActivePortList = {}
     self.Diagnostics = IPDiagnostics()
@@ -659,7 +673,7 @@ class InternetGatewayDevice(tr.basemodel.InternetGatewayDevice):
                            'UserInterface'],
                   lists=['WANDevice', 'SmartCardReader', 'User'])
     self.LANDeviceList = {'1': LANDevice('', 'br0'),
-                          '2': LANDevice('_portal', '')}
+                          '2': LANDevice('_portal', 'br1')}
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
 
     self.DeviceInfo = dm.device_info.DeviceInfo98Linux26(device_id)
