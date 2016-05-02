@@ -24,10 +24,11 @@ __author__ = 'zixia@google.com (Ted Huang)'
 # Modified based on gfmedia/device_media.py by Denton Gentry
 
 import google3
+
+import device
 import tornado.ioloop
 import tornado.testing
 from tr.wvtest import unittest
-import device
 
 
 class MockIoloop(object):
@@ -91,6 +92,17 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
 
     device.MODELNAMEFILE = 'testdata/device/platform_err'
     self.assertEqual(did.ModelName, 'UnknownModel')
+
+  def testPtpEthernetInterfaceCount(self):
+    device.PLATFORM_FILE = 'testdata/device/platform_gfch'
+    device.MODELNAMEFILE = 'testdata/device/platform_gfch'
+    eth = device.Ethernet()
+    self.assertEqual(eth.InterfaceNumberOfEntries, 6)
+
+  def testEthernetInterfaceCount(self):
+    device.MODELNAMEFILE = 'testdata/device/platform'
+    eth = device.Ethernet()
+    self.assertEqual(eth.InterfaceNumberOfEntries, 3)
 
   def testSoftwareVersion(self):
     did = device.DeviceId()

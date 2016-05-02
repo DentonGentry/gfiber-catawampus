@@ -1,0 +1,44 @@
+{
+  "port-interface-statistics": {
+    "0/0": {
+      "broadcast_packets_received": 100,
+      "broadcast_packets_sent": 200,
+      "bytes_received": 300,
+      "bytes_sent": 400,
+      "multicast_packets_received": 500,
+      "multicast_packets_sent": 600,
+      "unicast_packets_received": 700,
+      "unicast_packets_sent": 800
+    },
+    "0/24": {
+      "broadcast_packets_received": 124,
+      "broadcast_packets_sent": 224,
+      "bytes_received": 324,
+      "bytes_sent": 424,
+      "multicast_packets_received": 524,
+      "multicast_packets_sent": 624,
+      "unicast_packets_received": 724,
+      "unicast_packets_sent": 824
+    },
+    "0/25": {
+      "broadcast_packets_received": 125,
+      "broadcast_packets_sent": 225,
+      "bytes_received": 325,
+      "bytes_sent": 425,
+      "multicast_packets_received": 525,
+      "multicast_packets_sent": 625,
+      "unicast_packets_received": 725,
+      "unicast_packets_sent": 825
+    },
+    "0/4": {
+      "broadcast_packets_received": 104,
+      "broadcast_packets_sent": 204,
+      "bytes_received": 304,
+      "bytes_sent": 404,
+      "multicast_packets_received": 504,
+      "multicast_packets_sent": 604,
+      "unicast_packets_received": 704,
+      "unicast_packets_sent": 804
+    }
+  }
+}
