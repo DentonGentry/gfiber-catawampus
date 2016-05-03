@@ -23,7 +23,6 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import datetime
 import google3
 from tr.wvtest import unittest
-import miniupnp
 import platform.fakecpe.device
 import tr.core
 import tr.handle
@@ -60,20 +59,17 @@ def FakeWifiCharacterization(unused_signature):
 class HostTest(unittest.TestCase):
 
   def setUp(self):
-    self.old_ASUS_HOSTNAMES = host.ASUS_HOSTNAMES
     self.old_DHCP_TAXONOMY_FILE = host.DHCP_TAXONOMY_FILE
     self.old_DNSSD_HOSTNAMES = host.DNSSD_HOSTNAMES
     self.old_IP6NEIGH = host.IP6NEIGH[0]
     self.old_NETBIOS_HOSTNAMES = host.NETBIOS_HOSTNAMES
     self.old_PROC_NET_ARP = host.PROC_NET_ARP
-    self.old_POLL_CMD = miniupnp.POLL_CMD
     self.old_SYS_CLASS_NET_PATH = host.SYS_CLASS_NET_PATH
     self.old_TAXONOMIZE = host.TAXONOMIZE
     self.old_WIFICHARACTERIZE = host.WIFICHARACTERIZE
     self.old_TIMENOW = host.TIMENOW
     self.old_WIFI_TAXONOMY_DIR = host.WIFI_TAXONOMY_DIR
     self.old_WIFIBLASTER_DIR = host.WIFIBLASTER_DIR
-    host.ASUS_HOSTNAMES = 'testdata/host/asus_hostnames'
     host.DHCP_TAXONOMY_FILE = 'testdata/host/dhcp-taxonomy'
     host.DNSSD_HOSTNAMES = 'testdata/host/dnssd_hostnames'
     host.IP6NEIGH[0] = 'testdata/host/ip6neigh_empty'
@@ -85,10 +81,8 @@ class HostTest(unittest.TestCase):
     host.TIMENOW = TimeNow
     host.WIFI_TAXONOMY_DIR = 'testdata/host/wifi-taxonomy'
     host.WIFIBLASTER_DIR = 'testdata/host/wifiblaster'
-    miniupnp.POLL_CMD = ['testdata/host/ssdp_poll']
 
   def tearDown(self):
-    host.ASUS_HOSTNAMES = self.old_ASUS_HOSTNAMES
     host.DHCP_TAXONOMY_FILE = self.old_DHCP_TAXONOMY_FILE
     host.DNSSD_HOSTNAMES = self.old_DNSSD_HOSTNAMES
     host.IP6NEIGH[0] = self.old_IP6NEIGH
@@ -100,7 +94,6 @@ class HostTest(unittest.TestCase):
     host.TIMENOW = self.old_TIMENOW
     host.WIFI_TAXONOMY_DIR = self.old_WIFI_TAXONOMY_DIR
     host.WIFIBLASTER_DIR = self.old_WIFIBLASTER_DIR
-    miniupnp.POLL_CMD = self.old_POLL_CMD
 
   def testValidateExports(self):
     hosts = host.Hosts()
@@ -276,26 +269,6 @@ class HostTest(unittest.TestCase):
       fp = h.X_CATAWAMPUS_ORG_ClientIdentification.DhcpTaxonomy
       self.assertEqual('', fp)
 
-  def testSsdpServers(self):
-    host.PROC_NET_ARP = 'testdata/host/proc_net_arp'
-    iflookup = {'foo0': 'Device.Foo.Interface.1',
-                'foo1': 'Device.Foo.Interface.2'}
-    hosts = host.Hosts(iflookup)
-    self.assertEqual(3, len(hosts.HostList))
-    found = 0
-    for h in hosts.HostList.values():
-      srv = h.X_CATAWAMPUS_ORG_ClientIdentification.SsdpServer
-      if h.PhysAddress == 'f8:8f:ca:00:00:01':
-        self.assertEqual('SsdpServer1', srv)
-        found |= 1
-      elif h.PhysAddress == 'f8:8f:ca:00:00:02':
-        self.assertEqual('', srv)
-        found |= 2
-      elif h.PhysAddress == 'f8:8f:ca:00:00:03':
-        self.assertEqual('SsdpServer3', srv)
-        found |= 4
-    self.assertEqual(7, found)
-
   def testWifiTaxonomyAndBlaster(self):
     host.PROC_NET_ARP = 'testdata/host/proc_net_arp2'
     dmroot = self._GetFakeCPE(tr98=False, tr181=True)
@@ -351,22 +324,18 @@ class HostTest(unittest.TestCase):
       cid = h.X_CATAWAMPUS_ORG_ClientIdentification
       if h.PhysAddress == 'f8:8f:ca:00:00:01':
         self.assertEqual('192.168.1.1', h.IPAddress)
-        self.assertEqual('model4_1', cid.AsusModel)
         self.assertEqual('dnssd_hostname4_1.local', cid.DnsSdName)
         self.assertEqual('NETBIOS_HOSTNAME4_1', cid.NetbiosName)
-        self.assertEqual('ASUS model4_1', h.HostName)
         cid = h.X_CATAWAMPUS_ORG_ClientIdentification
         found |= 1
       elif h.PhysAddress == 'f8:8f:ca:00:00:02':
         self.assertEqual('192.168.1.2', h.IPAddress)
-        self.assertEqual('', cid.AsusModel)
         self.assertEqual('dnssd_hostname4_2.local', cid.DnsSdName)
         self.assertEqual('NETBIOS_HOSTNAME4_2', cid.NetbiosName)
         self.assertEqual('dnssd_hostname4_2', h.HostName)
         found |= 2
       elif h.PhysAddress == 'f8:8f:ca:00:00:03':
         self.assertEqual('192.168.1.3', h.IPAddress)
-        self.assertEqual('', cid.AsusModel)
         self.assertEqual('', cid.DnsSdName)
         self.assertEqual('NETBIOS_HOSTNAME4_3', cid.NetbiosName)
         self.assertEqual('NETBIOS_HOSTNAME4_3', h.HostName)
@@ -382,21 +351,17 @@ class HostTest(unittest.TestCase):
       cid = h.X_CATAWAMPUS_ORG_ClientIdentification
       if h.PhysAddress == 'f8:8f:ca:00:00:01':
         self.assertEqual('fe80::fa8f:caff:fe00:1', h.IPAddress)
-        self.assertEqual('model6_1', cid.AsusModel)
         self.assertEqual('dnssd_hostname6_1.local', cid.DnsSdName)
         self.assertEqual('NETBIOS_HOSTNAME6_1', cid.NetbiosName)
-        self.assertEqual('ASUS model6_1', h.HostName)
         found |= 1
       elif h.PhysAddress == 'f8:8f:ca:00:00:02':
         self.assertEqual('fe80::fa8f:caff:fe00:2', h.IPAddress)
-        self.assertEqual('', cid.AsusModel)
         self.assertEqual('dnssd_hostname6_2.local', cid.DnsSdName)
         self.assertEqual('NETBIOS_HOSTNAME6_2', cid.NetbiosName)
         self.assertEqual('dnssd_hostname6_2', h.HostName)
         found |= 2
       elif h.PhysAddress == 'f8:8f:ca:00:00:03':
         self.assertEqual('fe80::fa8f:caff:fe00:3', h.IPAddress)
-        self.assertEqual('', cid.AsusModel)
         self.assertEqual('', cid.DnsSdName)
         self.assertEqual('NETBIOS_HOSTNAME6_3', cid.NetbiosName)
         self.assertEqual('NETBIOS_HOSTNAME6_3', h.HostName)

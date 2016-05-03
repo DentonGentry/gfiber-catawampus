@@ -32,7 +32,6 @@ import struct
 import subprocess
 import time
 import dhcp
-import miniupnp
 import tr.basemodel
 import tr.helpers
 import tr.session
@@ -71,7 +70,6 @@ SYS_CLASS_NET_PATH = '/sys/class/net'
 TIMENOW = time.time
 
 # Client identification files
-ASUS_HOSTNAMES = '/tmp/asus_hostnames'
 DHCP_TAXONOMY_FILE = '/config/dhcp.fingerprints'
 DNSSD_HOSTNAMES = '/tmp/dnssd_hostnames'
 NETBIOS_HOSTNAMES = '/tmp/netbios_hostnames'
@@ -551,17 +549,6 @@ class Hosts(BASE181HOSTS):
       results = self._ReadWifiFile(host, WIFIBLASTER_DIR, mac)
       host['WifiblasterResults'] = results
 
-  def _PopulateSsdpServers(self, hosts):
-    """Add SsdpServer parameters wherever we can."""
-    ssdp = miniupnp.GetSsdpClientInfo()
-    for host in hosts.values():
-      ip4 = host.get('ip4', [])
-      ip6 = host.get('ip6', [])
-      name = host.get('HostName', '')
-      for key in ip4 + ip6 + [name]:
-        if key in ssdp:
-          host['SsdpServer'] = ssdp[key]
-
   def _ReadHostnameFile(self, filename):
     """Read in a hostname mapping file.
 
@@ -601,7 +588,6 @@ class Hosts(BASE181HOSTS):
 
     We check the different mechanisms in an order based on how
     nice the result looks to the user.
-      ASUS - prints the model name, nicely
       dnssd - prints the hostname, but often appends trailing stuff to it.
       netbios - munges computer name to fit into 16 chars, all caps.
 
@@ -609,27 +595,22 @@ class Hosts(BASE181HOSTS):
       hosts: the dict of host objects that should have data filled in.
         The objects already in the dict will have their members changed.
     """
-    asus = self._ReadHostnameFile(ASUS_HOSTNAMES)
     dnssd = self._ReadHostnameFile(DNSSD_HOSTNAMES)
     netbios = self._ReadHostnameFile(NETBIOS_HOSTNAMES)
     for host in hosts.values():
-      asusmodel = dnssdname = netbiosname = ''
+      dnssdname = netbiosname = ''
       ip4 = host.get('ip4', [])
       ip6 = host.get('ip6', [])
       for key in ip4 + ip6:
-        asusmodel = asusmodel or asus.get(key, '')
         dnssdname = dnssdname or dnssd.get(key, '')
         netbiosname = netbiosname or netbios.get(key, '')
-      host['AsusModel'] = asusmodel
       host['DnsSdName'] = dnssdname
       host['NetbiosName'] = netbiosname
       if 'HostName' not in host or not host['HostName']:
         # Make names prettier, humans will see this one.
         if dnssdname.endswith('.local'):
           dnssdname = dnssdname[:-len('.local')]
-        if asusmodel and 'ASUS' not in asusmodel.upper():
-          asusmodel = 'ASUS ' + asusmodel
-        host['HostName'] = asusmodel or dnssdname or netbiosname
+        host['HostName'] = dnssdname or netbiosname
 
   @tr.session.cache
   def _GetHostList(self):
@@ -643,7 +624,6 @@ class Hosts(BASE181HOSTS):
     self._GetHostsFromMocaAssociatedDevices(hosts=hosts)
     self._GetHostsFromDhcpServers(hosts=hosts)
     self._PopulateDhcpTaxonomy(hosts=hosts)
-    self._PopulateSsdpServers(hosts=hosts)
     self._PopulateDiscoveredHostnames(hosts=hosts)
     self._PopulateWifiTaxonomy(hosts=hosts)
     self._PopulateWifiblaster(hosts=hosts)
@@ -684,8 +664,7 @@ class Host(CATA181HOST):
                DHCPClient='', AddressSource='None', AssociatedDevice='',
                Layer1Interface='', Layer3Interface='', HostName='',
                LeaseTimeRemaining=0, VendorClassID='',
-               ClientID='', UserClassID='',
-               DhcpTaxonomy='', SsdpServer='', AsusModel='',
+               ClientID='', UserClassID='', DhcpTaxonomy='',
                DnsSdName='', NetbiosName='', WifiblasterResults='',
                WifiChannelWidth='', WifiChipset='', WifiDeviceModel='',
                WifiNumberOfStreams=0, WifiPerformance='', WifiStandard='',
@@ -709,11 +688,9 @@ class Host(CATA181HOST):
     type(self).VendorClassID.Set(self, VendorClassID)
     cid = ClientIdentification()
     self.X_CATAWAMPUS_ORG_ClientIdentification = cid
-    type(cid).AsusModel.Set(cid, AsusModel)
     type(cid).DhcpTaxonomy.Set(cid, DhcpTaxonomy)
     type(cid).DnsSdName.Set(cid, DnsSdName)
     type(cid).NetbiosName.Set(cid, NetbiosName)
-    type(cid).SsdpServer.Set(cid, SsdpServer)
     cid.WifiblasterResults = WifiblasterResults
     type(cid).WifiChannelWidth.Set(cid, WifiChannelWidth)
     type(cid).WifiChipset.Set(cid, WifiChipset)
@@ -785,11 +762,9 @@ def _IntOrZero(s):
 class ClientIdentification(CATA181HOST.X_CATAWAMPUS_ORG_ClientIdentification):
   """X_CATAWAMPUS-ORG_ClientIdentification, for client identification."""
 
-  AsusModel = tr.cwmptypes.ReadOnlyString('')
   DhcpTaxonomy = tr.cwmptypes.ReadOnlyString('')
   DnsSdName = tr.cwmptypes.ReadOnlyString('')
   NetbiosName = tr.cwmptypes.ReadOnlyString('')
-  SsdpServer = tr.cwmptypes.ReadOnlyString('')
   WifiChannelWidth = tr.cwmptypes.ReadOnlyString('')
   WifiChipset = tr.cwmptypes.ReadOnlyString('')
   WifiDeviceModel = tr.cwmptypes.ReadOnlyString('')

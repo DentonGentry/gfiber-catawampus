@@ -1,7 +1,0 @@
-#!/bin/sh
-
-echo "|FooServer"
-echo "{}^[]\|BarServer"
-echo "http://[x??b]/a|ValueErrorServer"
-
-exit 0

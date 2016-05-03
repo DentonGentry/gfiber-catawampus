@@ -26,13 +26,11 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import os
 import subprocess
-import urlparse
 import tr.helpers
 import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
 
 BASEUPNP = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0.Device.UPnP
-POLL_CMD = ['ssdp_poll']
 RESTARTCMD = ['restart', 'upnpd']
 UPNPFILE = '/tmp/upnpd-enabled'
 
@@ -97,37 +95,3 @@ class DeviceCapabilities(BASEUPNP.Device.Capabilities):
   UPnPQoSDevice = tr.cwmptypes.ReadOnlyUnsigned(0)
   UPnPQoSPolicyHolder = tr.cwmptypes.ReadOnlyUnsigned(0)
   UPnPWLANAccessPoint = tr.cwmptypes.ReadOnlyUnsigned(0)
-
-
-def GetSsdpClientInfo():
-  """Obtain information about SSDP clients.
-
-  The SERVER: field in a SSDP message tends to be quite
-  descriptive for determining the client OS.
-    Server:NT/5.0 Upnp/1.0
-    SERVER: Windows-Vista/6.0 UPnP/1.0
-
-  Returns:
-    a dict of keys which identify the host (IPv4 address,
-    IPv6 address, or hostname) and value of the SERVER:
-    field it sent in its SSDP advertisement.
-  """
-
-  try:
-    ssdp = subprocess.Popen(POLL_CMD, stdout=subprocess.PIPE, close_fds=True)
-    out, _ = ssdp.communicate(None)
-  except (IOError, OSError, subprocess.CalledProcessError):
-    # SSDP not running, or not present on this platform.
-    return {}
-
-  result = {}
-  for line in out.splitlines():
-    try:
-      (url, server) = line.split('|')
-      p = urlparse.urlparse(url)
-    except ValueError:
-      continue
-    if p.hostname:
-      result[p.hostname] = server
-
-  return result

@@ -42,15 +42,12 @@ class MiniUPnPTest(unittest.TestCase):
     self.old_RESTARTCMD = miniupnp.RESTARTCMD
     self.restartfile = os.path.join(self.tmpdir, 'restarted')
     miniupnp.RESTARTCMD = ['testdata/miniupnp/restart', self.restartfile]
-    self.old_POLL_CMD = miniupnp.POLL_CMD
-    miniupnp.POLL_CMD = ['testdata/miniupnp/ssdp_poll']
 
   def tearDown(self):
     super(MiniUPnPTest, self).tearDown()
     shutil.rmtree(self.tmpdir)
     miniupnp.RESTARTCMD = self.old_RESTARTCMD
     miniupnp.UPNPFILE = self.old_UPNPFILE
-    miniupnp.POLL_CMD = self.old_POLL_CMD
 
   def testValidateExports(self):
     upnp = miniupnp.UPnP()
@@ -84,27 +81,6 @@ class MiniUPnPTest(unittest.TestCase):
     self.loop.RunOnce(timeout=1)
     self.assertFalse(os.path.exists(miniupnp.UPNPFILE))
     self.assertFalse(os.path.exists(self.restartfile))
-
-  def testSsdpClientInfo(self):
-    ssdp = miniupnp.GetSsdpClientInfo()
-    self.assertEqual(len(ssdp), 3)
-    found = 0
-    for (key, value) in ssdp.iteritems():
-      if key == '192.168.3.30':
-        found |= 1
-        self.assertEqual(value, 'HDHomeRun/1.0 UPnP/1.0')
-      if key == '192.168.3.31':
-        found |= 2
-        self.assertEqual(value, 'NT/5.0 Upnp/1.0')
-      if key == '192.168.3.32':
-        found |= 4
-        self.assertEqual(value, 'Windows-Vista/6.0 UPnP/1.0')
-    self.assertEqual(found, 7)
-
-  def testSsdpClientInfoMalformed(self):
-    miniupnp.POLL_CMD = ['testdata/miniupnp/ssdp_poll_invalid']
-    ssdp = miniupnp.GetSsdpClientInfo()
-    self.assertEqual(len(ssdp), 0)
 
 
 if __name__ == '__main__':
