@@ -333,16 +333,17 @@ class Device(tr.basemodel.Device):
     super(Device, self).__init__()
     self.Ethernet = Ethernet()
     self.Unexport(
-        objects=['ATM', 'Bridging', 'CaptivePortal',
+        objects=['ATM', 'Bridging', 'BulkData', 'CaptivePortal',
                  'DHCPv4', 'DHCPv6', 'DLNA', 'DNS', 'DSL', 'DSLite',
-                 'FaultMgmt', 'FAP', 'Firewall',
+                 'ETSIM2M', 'FaultMgmt', 'FAP', 'Firewall',
                  'GatewayInfo', 'Ghn', 'HPNA', 'HomePlug', 'Hosts',
-                 'IEEE8021x', 'IP', 'IPv6rd', 'LANConfigSecurity',
+                 'IEEE8021x', 'IP', 'IPsec', 'IPv6rd', 'LANConfigSecurity',
                  'MoCA', 'NAT', 'NeighborDiscovery', 'PPP', 'PTM',
                  'QoS', 'RouterAdvertisement', 'Routing', 'Security',
-                 'SelfTestDiagnostics', 'SoftwareModules', 'Services',
+                 'SelfTestDiagnostics', 'SmartCardReaders',
+                 'SoftwareModules', 'Services',
                  'Time', 'UPA', 'UPnP', 'USB', 'UserInterface', 'Users',
-                 'WiFi', 'SmartCardReaders'])
+                 'WiFi'])
     self.Unexport(lists=['InterfaceStack'])
     self.Unexport(['InterfaceStackNumberOfEntries', 'RootDataModelVersion'])
     with open(PLATFORM_FILE) as f:
