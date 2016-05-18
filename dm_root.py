@@ -38,6 +38,7 @@ import dm.management_server
 import dm.ookla
 import dm.selftest
 import dm.wifiblaster
+import dm.wisp_netmanagement
 import tr.core
 import tr.experiment
 
@@ -113,6 +114,7 @@ class DeviceModelRoot(tr.core.Exporter):
     cata.SelfTest = dm.selftest.SelfTest()
     cata.Speedtest = dm.ookla.Speedtest()
     cata.Wifiblaster = dm.wifiblaster.Wifiblaster()
+    cata.WispNetManagement = dm.wisp_netmanagement.WispNetManagement()
     self.handle.root_experiments = cata.Catawampus.Experiments
 
     # TODO(apenwarr): Legacy names. Delete after the ACS stops using these.

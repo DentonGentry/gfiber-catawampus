@@ -1784,5 +1784,13 @@ If both {{param|X_CATAWAMPUS-ORG_PortRangeSize}} and {{param|ExternalPortEndRang
       </parameter>
     </object>
 
+    <object name="Device.X_CATAWAMPUS-ORG.WispNetManagement." access="readWrite" minEntries="1" maxEntries="1">
+      <description>Container for general networking manager configuration for Wireless Service Provider products.</description>
+      <parameter name="Configuration" access="readWrite">
+        <description>Write to this parameter will trigger configuration change. It is a JSON string that controls configuration (e.g. QoS, Radio,...)</description>
+        <syntax><string/></syntax>
+      </parameter>
+    </object>
+
   </model>
 </dm:document>
