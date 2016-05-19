@@ -293,7 +293,7 @@ class Ethernet(tr.basemodel.Device.Ethernet):
     if IsPtp():
       self.InterfaceList = {
           '1': dm.ethernet.EthernetInterfaceLinux26(ifname='craft0'),
-          '2': dm.ethernet.EthernetInterfaceLinux26(ifname='eth1'),
+          '2': dm.ethernet.EthernetInterfaceLinux26(ifname='sw0'),
           '3': dm.prestera.EthernetInterfacePrestera(ifname='lan0'),
           '4': dm.prestera.EthernetInterfacePrestera(ifname='lan4'),
           '5': dm.prestera.EthernetInterfacePrestera(ifname='lan24'),
