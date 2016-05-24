@@ -59,6 +59,7 @@ INTERNAL_ERROR = 9002
 CONFIGDIR = '/config/tr69'
 DOWNLOADDIR = '/tmp'
 HNVRAM = 'hnvram'
+HNVRAM_MTD = '/dev/mtd/hnvram'
 SYSVAR = 'sysvar_cmd'
 SYSVAR_ERROR = '<<ERROR CODE>>'
 GINSTALL = 'ginstall'
@@ -178,6 +179,11 @@ class DeviceId(dm.device_info.DeviceIdMeta):
   @property
   def SerialNumber(self):
     if IsPtp():
+      return self._GetNvramParam('1ST_SERIAL_NUMBER', default='000000000000')
+
+    # GFLT300 uses HNVRAM and 1ST_SERIAL_NUMBER. Older model FJ's use sysvar,
+    # differentiate the two by checking for the presence of '/dev/mtd/hnvram'
+    if IsFiberJack() and os.path.exists(HNVRAM_MTD):
       return self._GetNvramParam('1ST_SERIAL_NUMBER', default='000000000000')
     return self._GetSysVarParam('SERIAL_NO', default='000000000000')
 
@@ -412,11 +418,19 @@ class InternetGatewayDevice(tr.basemodel.InternetGatewayDevice):
     self.PeriodicStatistics = periodic_stats
 
 
-def IsPtp():
+def IsPlatform(platform_prefix):
   with open(PLATFORM_FILE) as f:
-    if f.read().strip().startswith('GFCH'):
+    if f.read().strip().startswith(platform_prefix):
       return True
   return False
+
+
+def IsPtp():
+  return IsPlatform('GFCH')
+
+
+def IsFiberJack():
+  return IsPlatform('GFLT')
 
 
 # pylint:disable=unused-argument
