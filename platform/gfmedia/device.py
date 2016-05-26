@@ -75,6 +75,7 @@ INTERNAL_ERROR = 9002
 
 # Unit tests can override these with fake data
 ACTIVEWAN = 'activewan'
+AUXTEMP = '/tmp/gpio/aux1_temperature'
 CONFIGDIR = '/config/tr69'
 GINSTALL = 'ginstall'
 HNVRAM = 'hnvram'
@@ -578,6 +579,12 @@ class Device(tr.basemodel.Device):
     ts.AddSensor(name='CPU temperature',
                  sensor=dm.temperature.SensorReadFromFile(
                      '/tmp/gpio/cpu_temperature'))
+
+    if os.path.exists(AUXTEMP):
+      ts.AddSensor(name='AUX temperature',
+                   sensor=dm.temperature.SensorReadFromFile(
+                       AUXTEMP))
+
     for drive in ['sda', 'sdb', 'sdc', 'sdd', 'sde', 'sdf']:
       try:
         if os.stat('/sys/block/' + drive):
