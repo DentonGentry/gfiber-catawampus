@@ -41,7 +41,6 @@ class CaptivePortal(CATA181_CAPTIVE_PORTAL):
 
   def __init__(self):
     super(CaptivePortal, self).__init__()
-    self._interfaces = ['wlan0_portal', 'wlan1_portal']
 
   @property
   def Status(self):
@@ -57,8 +56,7 @@ class CaptivePortal(CATA181_CAPTIVE_PORTAL):
   @tr.mainloop.WaitUntilIdle
   def Triggered(self):
     if self.Enable and self.URL and self.AllowedList:
-      args = [CAPTIVE_PORTAL, 'start', '-i', ' '.join(self._interfaces),
-              '-a', self.AllowedList, '-u', self.URL]
+      args = [CAPTIVE_PORTAL, 'start', '-a', self.AllowedList, '-u', self.URL]
     else:
       args = [CAPTIVE_PORTAL, 'stop']
     self._runCmd(args)
