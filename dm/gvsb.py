@@ -20,6 +20,7 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
+import os
 import google3
 import tr.cwmptypes
 import tr.x_catawampus_tr181_2_0
@@ -54,9 +55,9 @@ class Gvsb(CATABASE.GVSB):
 
   def __init__(self):
     super(Gvsb, self).__init__()
-    self.EpgPrimary = ''
-    self.EpgSecondary = ''
-    self.EpgUrl = ''
-    self.GvsbChannelLineup = '0'
-    self.GvsbKick = ''
-    self.GvsbServer = ''
+    if not os.path.exists(EPGPRIMARYFILE[0]): self.EpgPrimary = ''
+    if not os.path.exists(EPGSECONDARYFILE[0]): self.EpgSecondary = ''
+    if not os.path.exists(EPGURLFILE[0]): self.EpgUrl = ''
+    if not os.path.exists(GVSBCHANNELFILE[0]): self.GvsbChannelLineup = '0'
+    if not os.path.exists(GVSBKICKFILE[0]): self.GvsbKick = ''
+    if not os.path.exists(GVSBSERVERFILE[0]): self.GvsbServer = ''

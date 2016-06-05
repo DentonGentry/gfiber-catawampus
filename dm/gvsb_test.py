@@ -168,6 +168,22 @@ class GvsbTest(unittest.TestCase):
     self.assertTrue(self._FileIsEmpty(gvsb.GVSBSERVERFILE))
     self.assertTrue(self._FileIsEmpty(gvsb.GVSBKICKFILE))
 
+  def testCwmpdRestart(self):
+    open(gvsb.EPGPRIMARYFILE[0], 'w').write('EPGPRIMARYFILE')
+    open(gvsb.EPGSECONDARYFILE[0], 'w').write('EPGSECONDARYFILE')
+    open(gvsb.EPGURLFILE[0], 'w').write('EPGURLFILE')
+    open(gvsb.GVSBCHANNELFILE[0], 'w').write('GVSBCHANNELFILE')
+    open(gvsb.GVSBSERVERFILE[0], 'w').write('GVSBSERVERFILE')
+    open(gvsb.GVSBKICKFILE[0], 'w').write('GVSBKICKFILE')
+    gv = gvsb.Gvsb()
+    self.loop.RunOnce()
+    self.assertEqual(gv.EpgPrimary, 'EPGPRIMARYFILE')
+    self.assertEqual(gv.EpgSecondary, 'EPGSECONDARYFILE')
+    self.assertEqual(gv.EpgUrl, 'EPGURLFILE')
+    self.assertEqual(gv.GvsbChannelLineup, 'GVSBCHANNELFILE')
+    self.assertEqual(gv.GvsbServer, 'GVSBSERVERFILE')
+    self.assertEqual(gv.GvsbKick, 'GVSBKICKFILE')
+
 
 if __name__ == '__main__':
   unittest.main()
