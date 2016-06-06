@@ -54,8 +54,6 @@ class CaptivePortalTest(unittest.TestCase):
     exp_cmd = [
         captive_portal.CAPTIVE_PORTAL,
         'start',
-        '-i',
-        'wlan0_portal',
         '-a',
         '1.2.3.4 5.6.7.8',
         '-u',
@@ -75,8 +73,6 @@ class CaptivePortalTest(unittest.TestCase):
     exp_cmd = [
         captive_portal.CAPTIVE_PORTAL,
         'start',
-        '-i',
-        'wlan1_portal wlan0_portal',
         '-a',
         '1.2.3.4 5.6.7.8',
         '-u',
