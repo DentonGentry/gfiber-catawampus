@@ -162,18 +162,11 @@ class Experiments(CATABASE.Experiments):
 
     # TODO(apenwarr): use transactions like api.SetParameterValues() does.
     print 'Experiments requested: %r' % self.Requested
-    sysavail = _GetSystemExperiments(REGDIR, '.available')
     sysactive = _GetSystemExperiments(ACTIVEDIR, '.active')
     sysrequested = _GetSystemExperiments(ACTIVEDIR, '.requested')
 
-    # Turns out people make a lot of case-sensitivity mistakes when trying to
-    # activate experiments.  Look them up case insensitively.
     reqstr = self.Requested
-    all_avail = set(set(registered.keys()) | sysavail)
-    avail_lookup = dict((i.lower(), i) for i in all_avail)
     requested = reqstr.split(',') if reqstr else []
-    requested = [avail_lookup.get(i.lower(), i) for i in requested]
-
     for name in requested:
       expfunc = registered.get(name)
       if not expfunc:
