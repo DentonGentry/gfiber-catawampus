@@ -891,6 +891,11 @@ class WlanConfiguration(CATA98WIFI):
     if not os.path.exists(CONMAN_DIR[0]):
       os.makedirs(CONMAN_DIR[0])
 
+    if not self.RadioEnabled:
+      tr.helpers.Unlink(self.WifiCommandFileName())
+      tr.helpers.Unlink(self.APEnabledFileName())
+      return
+
     tr.helpers.WriteFileAtomic(self.WifiCommandFileName(),
                                self._MakeBinWifiCommand())
 
