@@ -1319,6 +1319,17 @@ When the test is completed, the value of this parameter MUST be either {{enum|Co
       </parameter>
     </object>
 
+    <object name="Device.IP.Diagnostics." access="readOnly" minEntries="1" maxEntries="1">
+      <parameter name="X_CATAWAMPUS-ORG_ExtraPing4Servers" access="readWrite" activeNotify="canDeny">
+        <description>A comma-delimited list of more sites to ping using IPv4 at regular intervals.</description>
+        <syntax><string><size maxLength="8192"/></string></syntax>
+      </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_ExtraPing6Servers" access="readWrite" activeNotify="canDeny">
+        <description>A comma-delimited list of more sites to ping using IPv6 at regular intervals.</description>
+        <syntax><string><size maxLength="8192"/></string></syntax>
+      </parameter>
+    </object>
+
     <object name="Device.NAT.PortMapping.{i}." access="readWrite" numEntriesParameter="PortMappingNumberOfEntries" enableParameter="Enable" minEntries="0" maxEntries="unbounded">
       <parameter name="X_CATAWAMPUS-ORG_PortRangeSize" access="readWrite">
         <description>Maps a contiguous set of ports starting with {{param|ExternalPort}} mapped to {{param|InternalPort}},

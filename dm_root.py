@@ -31,13 +31,13 @@ import dm.glaukus
 import dm.gvsb
 import dm.hat
 import dm.inadyn
+import dm.ip_diag
 import dm.ip_diag_http
 import dm.ip_diag_ping
 import dm.isostream
 import dm.management_server
 import dm.selftest
 import dm.speedtest
-import dm.traceroute
 import dm.wifiblaster
 import dm.wisp_netmanagement
 import tr.basemodel
@@ -49,22 +49,6 @@ BASE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
 
 def _RecursiveImport(name):
   return __import__(name, fromlist=[''])
-
-
-class IPDiagnostics(tr.basemodel.Device.IP.Diagnostics):
-  """tr-181 Device.IP.Diagnostics for Google Fiber platforms."""
-
-  def __init__(self, httpdownload, isostream, speedtest):
-    super(IPDiagnostics, self).__init__()
-    self.Unexport(objects=['IPPing', 'UploadDiagnostics',
-                           'UDPEchoConfig', 'DownloadDiagnostics'])
-    self.Export(objects=['X_CATAWAMPUS-ORG_HttpDownload',
-                         'X_CATAWAMPUS-ORG_Isostream',
-                         'X_CATAWAMPUS-ORG_Speedtest'])
-    self.X_CATAWAMPUS_ORG_HttpDownload = httpdownload
-    self.X_CATAWAMPUS_ORG_Isostream = isostream
-    self.X_CATAWAMPUS_ORG_Speedtest = speedtest
-    self.TraceRoute = dm.traceroute.TraceRoute()
 
 
 class DeviceModelRoot(tr.core.Exporter):
@@ -149,9 +133,9 @@ class DeviceModelRoot(tr.core.Exporter):
 
     try:
       ip = self.Device.IP
-      ip.Diagnostics = IPDiagnostics(httpdownload=cata.HttpDownload,
-                                     isostream=cata.Isostream,
-                                     speedtest=cata.Speedtest)
+      ip.Diagnostics = dm.ip_diag.IPDiagnostics(
+          httpdownload=cata.HttpDownload, isostream=cata.Isostream,
+          speedtest=cata.Speedtest)
     except AttributeError:
       print 'No Device.IP on this platform to add extensions to.'
 

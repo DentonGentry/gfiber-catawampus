@@ -419,7 +419,9 @@ class IPDiagnostics(tr.basemodel.Device.IP.Diagnostics):
   def __init__(self):
     super(IPDiagnostics, self).__init__()
     self.Unexport(objects=['IPPing', 'UploadDiagnostics',
-                           'DownloadDiagnostics', 'UDPEchoConfig'])
+                           'DownloadDiagnostics', 'UDPEchoConfig'],
+                  params=['X_CATAWAMPUS-ORG_ExtraPing4Servers',
+                          'X_CATAWAMPUS-ORG_ExtraPing6Servers'])
     self.TraceRoute = dm.traceroute.TraceRoute()
 
 
