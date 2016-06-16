@@ -80,9 +80,12 @@ class BinWifiTest(unittest.TestCase):
 
   def GatherOutput(self, wlan_configuration):
     self.loop.RunOnce(timeout=1)
-    with open(wlan_configuration.WifiCommandFileName(), 'r+') as of:
-      command = of.read()
-      of.truncate(0)
+    command = None
+    command_filename = wlan_configuration.WifiCommandFileName()
+    if os.path.exists(command_filename):
+      with open(command_filename, 'r+') as of:
+        command = of.read()
+        of.truncate(0)
 
     ap_enabled = os.path.exists(wlan_configuration.APEnabledFileName())
 
@@ -198,7 +201,7 @@ class BinWifiTest(unittest.TestCase):
         self.assertEqual(buf.strip().splitlines(), [l for l in exp if l])
 
   def testRadioDisabled(self):
-    for (if_suffix, s_param) in SUFFIX_PARAMS:
+    for if_suffix, _ in SUFFIX_PARAMS:
       bw = self.WlanConfiguration('wifi0', if_suffix, 'br1', band='2.4')
       # The radio will only be disabled by command if it is first enabled.
       bw.StartTransaction()
@@ -210,14 +213,8 @@ class BinWifiTest(unittest.TestCase):
 
       bw.RadioEnabled = False
       ap, buf = self.GatherOutput(bw)
-      exp = [
-          'env', 'WIFI_PSK=testpassword', binwifi.BINWIFI[0],
-          'set', '-P', '-b', '2.4', '-e', 'WPA2_PSK_AES', s_param,
-          dict(BRIDGE_PARAMS)['br1'],
-          '-c', 'auto', '-s', 'Test SSID 1', '-p', 'a/b/g/n', '-M',
-      ]
       self.assertFalse(ap)
-      self.assertEqual(buf.strip().splitlines(), [l for l in exp if l])
+      self.assertEqual(buf, None)
 
   def testPSK(self):
     for i in range(1, 11):
