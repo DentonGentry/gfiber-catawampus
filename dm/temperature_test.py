@@ -24,7 +24,6 @@ import datetime
 import google3
 from tr.wvtest import unittest
 import tr.handle
-import tr.mainloop
 import temperature
 
 
@@ -45,7 +44,7 @@ class MockTime(object):
 
   @staticmethod
   def MockTimeNow():
-    return MockTime.TIME
+    return datetime.datetime.utcfromtimestamp(MockTime.TIME)
 
 
 fake_periodics = []
@@ -76,10 +75,6 @@ class TemperatureTest(unittest.TestCase):
     self.old_PERIODICCALL = temperature.PERIODICCALL
     self.old_TIMENOW = temperature.TIMENOW
     temperature.HDDTEMPERATURE = 'testdata/temperature/hdd-temperature'
-    temperature.PERIODICCALL = FakePeriodicCallback
-    temperature.TIMENOW = MockTime.MockTimeNow
-    self.loop = tr.mainloop.MainLoop()
-    del fake_periodics[:]
 
   def tearDown(self):
     temperature.HDDTEMPERATURE = self.old_HDDTEMPERATURE
@@ -125,73 +120,75 @@ class TemperatureTest(unittest.TestCase):
     t.Reset = True
     self.assertTrue(t.Enable)
     self.assertEqual(t.HighAlarmValue, TR181_BAD_TEMPERATURE)
-    self.assertEqual(t.HighAlarmTime, datetime.datetime(1970, 1, 1, 0, 0))
+    self.assertEqual(t.HighAlarmTime, '0001-01-01T00:00:00Z')
     self.assertEqual(t.LowAlarmValue, TR181_BAD_TEMPERATURE)
-    self.assertEqual(t.LowAlarmTime, datetime.datetime(1970, 1, 1, 0, 0))
+    self.assertEqual(t.LowAlarmTime, '0001-01-01T00:00:00Z')
     self.assertEqual(t.MinValue, TR181_BAD_TEMPERATURE)
-    self.assertEqual(t.MinTime, datetime.datetime(1970, 1, 1, 0, 0))
+    self.assertEqual(t.MinTime, '0001-01-01T00:00:00Z')
     self.assertEqual(t.MaxValue, TR181_BAD_TEMPERATURE)
-    self.assertEqual(t.MaxTime, datetime.datetime(1970, 1, 1, 0, 0))
-    self.assertEqual(t.LastUpdate, datetime.datetime(1970, 1, 1, 0, 0))
+    self.assertEqual(t.MaxTime, '0001-01-01T00:00:00Z')
+    self.assertEqual(t.LastUpdate, '0001-01-01T00:00:00Z')
     self.assertEqual(t.PollingInterval, 300)
     self.assertFalse(t.Reset)
     self.assertEqual(t.Status, 'Enabled')
     self.assertEqual(t.Value, TR181_BAD_TEMPERATURE)
 
   def testMinMax(self):
+    temperature.TIMENOW = MockTime.MockTimeNow
     sensor = MockSensor()
     sensor.temperature = TR181_BAD_TEMPERATURE
 
     t = temperature.TemperatureSensor(name='TestTemp', sensor=sensor)
     t.Reset = True
-    self.assertEqual(t.MaxTime, datetime.datetime(1970, 1, 1, 0, 0))
+    self.assertEqual(t.MaxTime, '0001-01-01T00:00:00Z')
     self.assertEqual(t.MaxValue, TR181_BAD_TEMPERATURE)
-    self.assertEqual(t.MinTime, datetime.datetime(1970, 1, 1, 0, 0))
+    self.assertEqual(t.MinTime, '0001-01-01T00:00:00Z')
     self.assertEqual(t.MinValue, TR181_BAD_TEMPERATURE)
     self.assertEqual(t.Value, TR181_BAD_TEMPERATURE)
 
     sensor.temperature = 90.0
     MockTime.TIME = 1341359845.0
     t.SampleTemperature()
-    self.assertEqual(t.MaxTime, datetime.datetime(2012, 7, 3, 23, 57, 25))
+    self.assertEqual(t.MaxTime, '2012-07-03T23:57:25Z')
     self.assertEqual(t.MaxValue, 90)
-    self.assertEqual(t.MinTime, datetime.datetime(2012, 7, 3, 23, 57, 25))
+    self.assertEqual(t.MinTime, '2012-07-03T23:57:25Z')
     self.assertEqual(t.MinValue, 90)
     self.assertEqual(t.Value, 90)
 
     sensor.temperature = 110.0
     MockTime.TIME = 1341359846
     t.SampleTemperature()
-    self.assertEqual(t.MaxTime, datetime.datetime(2012, 7, 3, 23, 57, 26))
+    self.assertEqual(t.MaxTime, '2012-07-03T23:57:26Z')
     self.assertEqual(t.MaxValue, 110)
-    self.assertEqual(t.MinTime, datetime.datetime(2012, 7, 3, 23, 57, 25))
+    self.assertEqual(t.MinTime, '2012-07-03T23:57:25Z')
     self.assertEqual(t.MinValue, 90)
     self.assertEqual(t.Value, 110)
 
     sensor.temperature = 80.0
     MockTime.TIME = 1341359847
     t.SampleTemperature()
-    self.assertEqual(t.MaxTime, datetime.datetime(2012, 7, 3, 23, 57, 26))
+    self.assertEqual(t.MaxTime, '2012-07-03T23:57:26Z')
     self.assertEqual(t.MaxValue, 110)
-    self.assertEqual(t.MinTime, datetime.datetime(2012, 7, 3, 23, 57, 27))
+    self.assertEqual(t.MinTime, '2012-07-03T23:57:27Z')
     self.assertEqual(t.MinValue, 80)
     self.assertEqual(t.Value, 80)
 
     t.Reset = True
-    self.assertEqual(t.MaxTime, datetime.datetime(1970, 1, 1, 0, 0))
+    self.assertEqual(t.MaxTime, '0001-01-01T00:00:00Z')
     self.assertEqual(t.MaxValue, TR181_BAD_TEMPERATURE)
-    self.assertEqual(t.MinTime, datetime.datetime(1970, 1, 1, 0, 0))
+    self.assertEqual(t.MinTime, '0001-01-01T00:00:00Z')
     self.assertEqual(t.MinValue, TR181_BAD_TEMPERATURE)
     self.assertEqual(t.Value, TR181_BAD_TEMPERATURE)
 
   def testAlarms(self):
+    temperature.TIMENOW = MockTime.MockTimeNow
     sensor = MockSensor()
 
     t = temperature.TemperatureSensor(name='TestTemp', sensor=sensor)
     self.assertEqual(t.HighAlarmValue, TR181_BAD_TEMPERATURE)
-    self.assertEqual(t.HighAlarmTime, datetime.datetime(1970, 1, 1, 0, 0))
+    self.assertEqual(t.HighAlarmTime, '0001-01-01T00:00:00Z')
     self.assertEqual(t.LowAlarmValue, TR181_BAD_TEMPERATURE)
-    self.assertEqual(t.LowAlarmTime, datetime.datetime(1970, 1, 1, 0, 0))
+    self.assertEqual(t.LowAlarmTime, '0001-01-01T00:00:00Z')
 
     t.HighAlarmValue = 100
     t.LowAlarmValue = 50
@@ -199,29 +196,30 @@ class TemperatureTest(unittest.TestCase):
     sensor.temperature = 90.0
     t.SampleTemperature()
     self.assertEqual(t.HighAlarmValue, 100)
-    self.assertEqual(t.HighAlarmTime, datetime.datetime(1970, 1, 1, 0, 0))
+    self.assertEqual(t.HighAlarmTime, '0001-01-01T00:00:00Z')
     self.assertEqual(t.LowAlarmValue, 50)
-    self.assertEqual(t.LowAlarmTime, datetime.datetime(1970, 1, 1, 0, 0))
+    self.assertEqual(t.LowAlarmTime, '0001-01-01T00:00:00Z')
 
     sensor.temperature = 110.0
     MockTime.TIME = 1341359848
     t.SampleTemperature()
-    self.assertEqual(t.HighAlarmTime, datetime.datetime(2012, 7, 3, 23, 57, 28))
-    self.assertEqual(t.LowAlarmTime, datetime.datetime(1970, 1, 1, 0, 0))
+    self.assertEqual(t.HighAlarmTime, '2012-07-03T23:57:28Z')
+    self.assertEqual(t.LowAlarmTime, '0001-01-01T00:00:00Z')
 
     sensor.temperature = 40.0
     MockTime.TIME = 1341359849
     t.SampleTemperature()
-    self.assertEqual(t.HighAlarmTime, datetime.datetime(2012, 7, 3, 23, 57, 28))
-    self.assertEqual(t.LowAlarmTime, datetime.datetime(2012, 7, 3, 23, 57, 29))
+    self.assertEqual(t.HighAlarmTime, '2012-07-03T23:57:28Z')
+    self.assertEqual(t.LowAlarmTime, '2012-07-03T23:57:29Z')
 
     t.Reset = True
     self.assertEqual(t.HighAlarmValue, 100)
-    self.assertEqual(t.HighAlarmTime, datetime.datetime(1970, 1, 1, 0, 0))
+    self.assertEqual(t.HighAlarmTime, '0001-01-01T00:00:00Z')
     self.assertEqual(t.LowAlarmValue, 50)
-    self.assertEqual(t.LowAlarmTime, datetime.datetime(1970, 1, 1, 0, 0))
+    self.assertEqual(t.LowAlarmTime, '0001-01-01T00:00:00Z')
 
   def testPeriodicCallback(self):
+    del fake_periodics[:]
     temperature.PERIODICCALL = FakePeriodicCallback
     t = temperature.TemperatureSensor(name='TestTemp', sensor=MockSensor())
     self.assertTrue(t.Enable)
@@ -231,20 +229,23 @@ class TemperatureTest(unittest.TestCase):
     self.assertEqual(fake_periodics[0].callback_time, 300)
     self.assertEqual(t.Status, 'Enabled')
 
+    t.StartTransaction()
     t.Enable = False
-    self.loop.RunOnce(timeout=1)
-    self.assertEqual(len(fake_periodics), 1)
+    t.CommitTransaction()
     self.assertEqual(t.Status, 'Disabled')
     self.assertTrue(fake_periodics[0].stop_called)
 
+    t.StartTransaction()
     t.Enable = True
     t.PollingInterval = 400
-    self.loop.RunOnce(timeout=1)
+    t.CommitTransaction()
 
-    self.assertEqual(len(fake_periodics), 3)
-    self.assertTrue(fake_periodics[2].start_called)
-    self.assertFalse(fake_periodics[2].stop_called)
-    self.assertEqual(fake_periodics[2].callback_time, 400)
+    self.assertEqual(len(fake_periodics), 2)
+    self.assertTrue(fake_periodics[1].start_called)
+    self.assertFalse(fake_periodics[1].stop_called)
+    self.assertEqual(fake_periodics[1].callback_time, 400)
+
+    del fake_periodics[0:1]
 
   def testTemperatureStatus(self):
     ts = temperature.TemperatureStatus()
