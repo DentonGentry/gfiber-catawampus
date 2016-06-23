@@ -73,6 +73,7 @@ GFLT110_OPTICAL_I2C_ADDR = 0x51
 PON_STATS_DIR = '/sys/devices/platform/neta/anistats'
 ETH_STATS_DIR = '/sys/devices/platform/neta/unistats'
 KW2THERMALFILE = '/sys/devices/platform/KW2Thermal.0/temp1_input'
+GFCH100THERMALFILE = '/sys/class/hwmon/hwmon0/temp1_input'
 
 
 class PlatformConfig(platform_config.PlatformConfigMeta):
@@ -376,10 +377,16 @@ class Device(tr.basemodel.Device):
     self.PeriodicStatistics = periodic_stats
     led = dm.device_info.LedStatusReadFromFile('LED', LEDSTATUS)
     self.DeviceInfo.AddLedStatus(led)
-    self.DeviceInfo.TemperatureStatus.AddSensor(
-        name='CPU temperature',
-        # KW2 thermal sensor reports milli-degrees C.
-        sensor=dm.temperature.SensorReadFromFile(KW2THERMALFILE, 1000))
+    if IsPtp():
+      self.DeviceInfo.TemperatureStatus.AddSensor(
+          name='CPU temperature',
+          # Armada thermal sensor reports milli-degrees C.
+          sensor=dm.temperature.SensorReadFromFile(GFCH100THERMALFILE, 1000))
+    else:
+      self.DeviceInfo.TemperatureStatus.AddSensor(
+          name='CPU temperature',
+          # KW2 thermal sensor reports milli-degrees C.
+          sensor=dm.temperature.SensorReadFromFile(KW2THERMALFILE, 1000))
 
 
 class InternetGatewayDevice(tr.basemodel.InternetGatewayDevice):
