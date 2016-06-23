@@ -872,7 +872,10 @@ class WlanConfiguration(CATA98WIFI):
       if key:
         wifi_psk = ['env', 'WIFI_PSK=%s' % validate(key)]
         break
-    return '\n'.join(wifi_psk + BINWIFI + [validate(token) for token in cmd])
+
+    cmd = [validate(token) for token in cmd]
+    print '/bin/wifi options:', cmd
+    return '\n'.join(wifi_psk + BINWIFI + cmd)
 
   def _ConmanFileName(self, prefix):
     if_suffix = ('%s.' % self._if_suffix) if self._if_suffix else ''
