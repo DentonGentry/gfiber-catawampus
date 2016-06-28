@@ -639,9 +639,22 @@ class LANDevice(tr.basemodel.InternetGatewayDevice.LANDevice):
       self.WLANConfigurationList['2'] = wifi
     elif _DoesInterfaceExist('wlan0' + if_suffix):
       # One radio, allow switching bands
-      wifi = dm.binwifi.WlanConfiguration('wlan0', if_suffix, bridge,
-                                          width_5g=40, autochan='LOW')
+      kwargs = {'width_5g': 40, 'autochan': 'LOW'}
+      # Quantenna devices cannot switch bands, and should use 802.11ac and 80
+      # MHz bandwidth.
+      if self._is_quantenna_device():
+        kwargs['standard'] = 'ac'
+        kwargs['width_5g'] = 80
+
+      wifi = dm.binwifi.WlanConfiguration('wlan0', if_suffix, bridge, **kwargs)
       self.WLANConfigurationList['1'] = wifi
+
+  def _is_quantenna_device(self):
+    try:
+      return bool(subprocess.check_output(['get-quantenna-interface']).strip())
+    except subprocess.CalledProcessError:
+      print 'calling get-quantenna-interface failed; assuming not Quantenna'
+      return False
 
 
 class InternetGatewayDevice(tr.basemodel.InternetGatewayDevice):
