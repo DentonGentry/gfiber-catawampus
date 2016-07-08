@@ -87,7 +87,6 @@ def AlwaysEnableSetupNetwork(roothandle):
     landevice_i = int(wlankey.split('.')[2])
     if landevice_i == 2:
       yield (wlankey + 'Enable'), True
-      yield (wlankey + 'SSIDAdvertisementEnabled'), True
 
 
 @tr.experiment.Experiment
