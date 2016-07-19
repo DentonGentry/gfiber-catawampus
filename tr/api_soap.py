@@ -332,8 +332,7 @@ class CPE(SoapHandler):
     return xml
 
   def SetParameterValues(self, xml, req):
-    names = [(str(p[0].encode('utf-8')),
-              str(p[1].encode('utf-8'))) for p in req.ParameterList]
+    names = [(str(p[0]), str(p[1])) for p in req.ParameterList]
     code = self.impl.SetParameterValues(names, req.ParameterKey)
     with xml['cwmp:SetParameterValuesResponse']:
       xml.Status(str(int(code)))

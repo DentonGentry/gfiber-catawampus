@@ -1,5 +1,4 @@
 #!/usr/bin/python
-# coding=utf-8
 # Copyright 2011 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -544,17 +543,6 @@ class GetParamsRpcTest(unittest.TestCase):
     self.assertEqual(
         params[3].find('Value').get(XSINS + 'type'), 'xsd:dateTime')
     self.assertEqual(params[4].find('Value').get(XSINS + 'type'), 'xsd:string')
-
-  def testSetParameterValuesUnicode(self):
-    cpe = getCpe()
-    soapxml = (
-        r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:SetParameterValues><ParameterList><ns2:ParameterValueStruct xmlns:ns2="urn:dslforum-org:cwmp-1-2"><Name>StringParameter</Name><Value xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:string">´</Value></ns2:ParameterValueStruct></ParameterList><ParameterKey>myParamKey</ParameterKey></cwmp:SetParameterValues></soapenv:Body></soapenv:Envelope>""")
-    responseXml = cpe.cpe_soap.Handle(soapxml)
-    root = ET.fromstring(str(responseXml))
-    fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
-    if fault:
-      print responseXml
-    self.assertFalse(fault)
 
   def testXmlEscaping(self):
     cpe = getCpe()
