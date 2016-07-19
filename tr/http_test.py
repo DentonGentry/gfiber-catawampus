@@ -143,6 +143,10 @@ class _TrivialHandler(tornado.web.RequestHandler):
   def get(self):
     return 'foo'
 
+  def post(self):
+    # postdata arrives as bytes, but response can go out as unicode.
+    self.write('post-foo: %s' % self.request.body.decode('utf-8'))
+
 
 class TrivialTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
 
@@ -169,15 +173,28 @@ class TrivialTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
   def test02(self):
     pass
 
-  def test_trivial(self):
+  def test_trivial_get(self):
     self.trivial_calledback = False
     self.http_client.fetch(self.get_url('/'), self.stop)
     response = self.wait()
     self.assertIsNone(response.error)
     self.assertFalse(self.trivial_calledback)
-    self.assertTrue(response.body.find('qop'))
+    self.assertEqual(response.body, '')
     for fd in self.io_loop._handlers.keys():
       self.io_loop.remove_handler(fd)
+
+  def test_trivial_post(self):
+    self.trivial_calledback = False
+    # postdata body is provided as unicode, and auto-encoded as utf-8
+    self.http_client.fetch(self.get_url('/'), self.stop,
+                           method='POST', body=u'hello\u00b4')
+    response = self.wait()
+    self.assertIsNone(response.error)
+    self.assertFalse(self.trivial_calledback)
+    for fd in self.io_loop._handlers.keys():
+      self.io_loop.remove_handler(fd)
+    # post response comes back as utf-8 encoded bytes (not auto-decoded)
+    self.assertEqual(bytes(response.body), 'post-foo: hello\xc2\xb4')
 
 
 class TestManagementServer(object):
@@ -209,7 +226,6 @@ class PingTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
     response = self.wait()
     self.assertEqual(response.error.code, 401)
     self.assertFalse(self.ping_calledback)
-    self.assertTrue(response.body.find('qop'))
 
 
 class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):

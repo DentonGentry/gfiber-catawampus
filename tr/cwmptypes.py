@@ -310,7 +310,7 @@ class Float(Attr):
 
 
 class String(Attr):
-  """An attribute that is always a string or None."""
+  """An attribute that is always a string (actually unicode) or None."""
 
   def _encode(self, value):
     """Find a suitable representation."""

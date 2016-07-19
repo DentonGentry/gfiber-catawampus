@@ -125,6 +125,7 @@ def _LogSoapETree(et, prefix=''):
       et.remove(child)
       continue
     if tag in SUPPRESSLIST:
+      # Don't include the boring keyword, just its children.
       out += '%s' % _LogSoapETree(child, prefix)
     elif child.text and child.text.strip():
       # Child is a leaf node; all on one line

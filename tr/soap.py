@@ -203,7 +203,8 @@ class NodeWrapper(object):
     try:
       return self._Get(key)
     except KeyError as e:
-      raise AttributeError(e)
+      # Note: repr(e) is ugly, and str(e) is self-quoting, so use %s.
+      raise AttributeError('%s in etree(%r)' % (str(e), self))
 
   def __getitem__(self, key):
     return self._Get(key)
@@ -211,14 +212,17 @@ class NodeWrapper(object):
   def iteritems(self):  # pylint:disable=invalid-name
     return self._list
 
-  def __str__(self):
+  def __unicode__(self):
     out = []
     for key, value in self._list:
-      value = str(value)
+      value = unicode(value)
       if '\n' in value:
         value = '\n' + re.sub(re.compile(r'^', re.M), '  ', value)
       out.append('%s: %s' % (key, value))
     return '\n'.join(out)
+
+  def __str__(self):
+    return self.__unicode__()
 
   def __repr__(self):
     return str(self._list)
@@ -234,6 +238,7 @@ def _Parse(node):
 
 
 def Parse(xmlstring):
+  xmlstring = bytes(xmlstring)  # expects bytes; ET decodes as utf-8
   root = ET.fromstring(xmlstring)
   return _Parse(root)
 

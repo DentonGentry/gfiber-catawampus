@@ -28,24 +28,6 @@ import garbage
 from wvtest import unittest
 
 
-expectedTransferComplete = """<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soap-enc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <soap:Header>
-  </soap:Header>
-  <soap:Body>
-    <cwmp:TransferComplete>
-      <CommandKey>cmdkey</CommandKey>
-      <FaultStruct>
-        <FaultCode>123</FaultCode>
-        <FaultString>faultstring</FaultString>
-      </FaultStruct>
-      <StartTime>2011-12-05T12:01:02Z</StartTime>
-      <CompleteTime>2011-12-05T12:01:03Z</CompleteTime>
-    </cwmp:TransferComplete>
-  </soap:Body>
-</soap:Envelope>"""
-
-
 SOAPNS = '{http://schemas.xmlsoap.org/soap/envelope/}'
 CWMPNS = '{urn:dslforum-org:cwmp-1-2}'
 

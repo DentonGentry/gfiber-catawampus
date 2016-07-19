@@ -39,9 +39,9 @@ def Soapify(value):
   elif isinstance(value, bool):
     return ('xsd:boolean', cwmpbool.format(value))
   elif isinstance(value, int) or isinstance(value, long):
-    return ('xsd:unsignedInt', str(value))
+    return ('xsd:unsignedInt', unicode(value))
   elif isinstance(value, float):
-    return ('xsd:double', str(value))
+    return ('xsd:double', unicode(value))
   elif isinstance(value, datetime.datetime):
     return ('xsd:dateTime', cwmpdate.format(value))
   else:
@@ -84,16 +84,16 @@ class Encode(object):
         with xml.Event(**event_attrs):
           for event in events:
             with xml.EventStruct:
-              xml.EventCode(str(event[0]))
+              xml.EventCode(unicode(event[0]))
               if event[1] is not None:
-                xml.CommandKey(str(event[1]))
+                xml.CommandKey(unicode(event[1]))
               else:
                 xml.CommandKey(None)
         if current_time is None:
           current_time = time.time()
-        xml.MaxEnvelopes(str(max_envelopes))
+        xml.MaxEnvelopes(unicode(max_envelopes))
         xml.CurrentTime(cwmpdate.format(current_time))
-        xml.RetryCount(str(retry_count))
+        xml.RetryCount(unicode(retry_count))
         soaptype = 'cwmp:ParameterValueStruct[{0}]'.format(len(parameter_list))
         parameter_list_attrs = {'soap-enc:arrayType': soaptype}
         with xml.ParameterList(**parameter_list_attrs):
@@ -128,16 +128,16 @@ class Encode(object):
         with xml.ParameterList(**parameter_list_attrs):
           for name, value in parameter_list:
             with xml.ParameterValueStruct:
-              xml.Name(str(name))
-              xml.Value(str(value))
-        xml.ParameterKey(str(parameter_key))
+              xml.Name(unicode(name))
+              xml.Value(unicode(value))
+        xml.ParameterKey(unicode(parameter_key))
     return xml
 
   def AddObject(self, object_name, parameter_key):
     with self._Envelope() as xml:
       with xml['cwmp:AddObject']:
-        xml.ObjectName(str(object_name))
-        xml.ParameterKey(str(parameter_key))
+        xml.ObjectName(unicode(object_name))
+        xml.ParameterKey(unicode(parameter_key))
     return xml
 
   def X_CATAWAMPUS_ORG_AddObjects(self, objcount_list, parameter_key):
@@ -145,26 +145,26 @@ class Encode(object):
       with xml['cwmp:X_CATAWAMPUS_ORG_AddObjects']:
         for object_name, count in objcount_list:
           with xml.Object:
-            xml.ObjectName(str(object_name))
-            xml.Count(str(count))
-        xml.ParameterKey(str(parameter_key))
+            xml.ObjectName(unicode(object_name))
+            xml.Count(unicode(count))
+        xml.ParameterKey(unicode(parameter_key))
     return xml
 
   def DeleteObject(self, object_name, parameter_key):
     with self._Envelope() as xml:
       with xml['cwmp:DeleteObject']:
-        xml.ObjectName(str(object_name))
-        xml.ParameterKey(str(parameter_key))
+        xml.ObjectName(unicode(object_name))
+        xml.ParameterKey(unicode(parameter_key))
     return xml
 
   def TransferComplete(self, command_key, faultcode, faultstring,
                        starttime=None, endtime=None):
     with self._Envelope() as xml:
       with xml['cwmp:TransferComplete']:
-        xml.CommandKey(str(command_key))
+        xml.CommandKey(unicode(command_key))
         with xml['FaultStruct']:
-          xml.FaultCode(str(faultcode))
-          xml.FaultString(str(faultstring))
+          xml.FaultCode(unicode(faultcode))
+          xml.FaultString(unicode(faultstring))
         xml.StartTime(cwmpdate.format(starttime))
         xml.CompleteTime(cwmpdate.format(endtime))
     return xml
@@ -202,7 +202,7 @@ class SoapHandler(object):
         code = soap.INTERNAL_ERROR
       else:
         code = soap.CpeFault.INTERNAL_ERROR
-      faults.append((error.parameter, code, str(error)))
+      faults.append((error.parameter, code, unicode(error)))
     return faults
 
   def Handle(self, body):
@@ -213,8 +213,9 @@ class SoapHandler(object):
     Returns:
       an xml string for the response, or None if no response is expected.
     """
-    body = str(body)
-    obj = soap.Parse(body)
+    # Data arriving from tornado web server should be non-decoded utf-8
+    body = bytes(body)
+    obj = soap.Parse(body)  # decodes as utf-8, via ElementTree
     request_id = obj.Header.get('ID', None)
     req = obj.Body[0]
     method = req.name
@@ -231,15 +232,15 @@ class SoapHandler(object):
       except api.ParameterNameError as e:
         result = soap.SimpleFault(
             xml, cpefault=soap.CpeFault.INVALID_PARAM_NAME,
-            faultstring='No such parameter: %s' % str(e.parameter))
+            faultstring='No such parameter: %s' % unicode(e.parameter))
       except KeyError as e:
         result = soap.SimpleFault(
             xml, cpefault=soap.CpeFault.INVALID_PARAM_NAME,
-            faultstring='No such parameter: %s' % str(e.args[0]))
+            faultstring='No such parameter: %s' % unicode(e.args[0]))
       except IndexError as e:
         result = soap.SimpleFault(
             xml, cpefault=soap.CpeFault.INVALID_ARGUMENTS,
-            faultstring=str(e))
+            faultstring=unicode(e))
       except NotImplementedError:
         cpefault = soap.CpeFault.METHOD_NOT_SUPPORTED
         faultstring = 'Unsupported RPC method: %s' % method
@@ -251,7 +252,7 @@ class SoapHandler(object):
         traceback.print_exc()
 
     if result is not None:
-      return xml   # the encoded XML response (pass or fail)
+      return bytes(xml)   # the utf-8 encoded XML response (pass or fail)
     else:
       return None  # no response generated
 
@@ -279,7 +280,7 @@ class ACS(SoapHandler):
     with xml['cwmp:InformResponse']:
       self.impl.Inform(None, req.DeviceId, req.Event, req.MaxEnvelopes,
                        req.CurrentTime, req.RetryCount, req.ParameterList)
-      xml.MaxEnvelopes(str(1))
+      xml.MaxEnvelopes(unicode(1))
     return xml
 
 
@@ -295,7 +296,7 @@ class CPE(SoapHandler):
 
   def GetParameterNames(self, xml, req):
     """Process a GetParameterNames request."""
-    path = str(req.ParameterPath)
+    path = unicode(req.ParameterPath)
     nextlevel = cwmpbool.parse(req.NextLevel)
     # Spec: If NextLevel is true and ParameterPath is a Parameter name
     # rather than apartial path, the CPE MUST return a fault response
@@ -303,7 +304,7 @@ class CPE(SoapHandler):
     if nextlevel is True and path and not path.endswith('.'):
       return soap.SimpleFault(
           xml, soap.CpeFault.INVALID_ARGUMENTS,
-          faultstring='No such parameter: %s' % str(path))
+          faultstring='No such parameter: %s' % unicode(path))
     names = list(self.impl.GetParameterNames(path, nextlevel))
 
     soaptype = 'ParameterInfoStruct[{0}]'.format(len(names))
@@ -318,7 +319,7 @@ class CPE(SoapHandler):
 
   def GetParameterValues(self, xml, req):
     """Process a GetParameterValues request."""
-    names = [str(i) for i in req.ParameterNames]
+    names = [unicode(i) for i in req.ParameterNames]
     values = self.impl.GetParameterValues(names)
     soaptype = 'cwmp:ParameterValueStruct[{0}]'.format(len(values))
     parameter_list_attrs = {'soap-enc:arrayType': soaptype}
@@ -332,10 +333,11 @@ class CPE(SoapHandler):
     return xml
 
   def SetParameterValues(self, xml, req):
-    names = [(str(p[0]), str(p[1])) for p in req.ParameterList]
+    # p[0] and p[1] are soap.NodeWrapper.  Coerce them into strings.
+    names = [(unicode(p[0]), unicode(p[1])) for p in req.ParameterList]
     code = self.impl.SetParameterValues(names, req.ParameterKey)
     with xml['cwmp:SetParameterValuesResponse']:
-      xml.Status(str(int(code)))
+      xml.Status(unicode(int(code)))
     return xml
 
   def _CheckObjectName(self, name):
@@ -346,8 +348,8 @@ class CPE(SoapHandler):
     self._CheckObjectName(req.ObjectName)
     idx, status = self.impl.AddObject(req.ObjectName, req.ParameterKey)
     with xml['cwmp:AddObjectResponse']:
-      xml.InstanceNumber(str(idx))
-      xml.Status(str(int(status)))
+      xml.InstanceNumber(unicode(idx))
+      xml.Status(unicode(int(status)))
     return xml
 
   def X_CATAWAMPUS_ORG_AddObjects(self, xml, req):
@@ -364,15 +366,15 @@ class CPE(SoapHandler):
         with xml.Object:
           xml.ObjectName(object_name)
           for idx in idxlist:
-            xml.InstanceNumber(str(idx))
-      xml.Status(str(int(status)))
+            xml.InstanceNumber(unicode(idx))
+      xml.Status(unicode(int(status)))
     return xml
 
   def DeleteObject(self, xml, req):
     self._CheckObjectName(req.ObjectName)
     code = self.impl.DeleteObject(req.ObjectName, req.ParameterKey)
     with xml['cwmp:DeleteObjectResponse']:
-      xml.Status(str(int(code)))
+      xml.Status(unicode(int(code)))
     return xml
 
   def SetParameterAttributes(self, xml, req):
@@ -399,12 +401,13 @@ class CPE(SoapHandler):
           delay_seconds=int(req.DelaySeconds),
           success_url=req.SuccessURL, failure_url=req.FailureURL)
     except core.ResourcesExceededError as e:
-      return soap.SimpleFault(xml, soap.CpeFault.RESOURCES_EXCEEDED, str(e))
+      return soap.SimpleFault(xml, soap.CpeFault.RESOURCES_EXCEEDED, unicode(e))
     except core.FileTransferProtocolError as e:
-      return soap.SimpleFault(xml, soap.CpeFault.FILE_TRANSFER_PROTOCOL, str(e))
+      return soap.SimpleFault(xml, soap.CpeFault.FILE_TRANSFER_PROTOCOL,
+                              unicode(e))
 
     with xml['cwmp:DownloadResponse']:
-      xml.Status(str(code))
+      xml.Status(unicode(code))
       xml.StartTime(cwmpdate.format(starttime))
       xml.CompleteTime(cwmpdate.format(endtime))
     return xml
@@ -420,7 +423,7 @@ class CPE(SoapHandler):
       for q in transfers:
         with xml['TransferList']:
           xml.CommandKey(q.CommandKey)
-          xml.State(str(q.State))
+          xml.State(unicode(q.State))
     return xml
 
   def GetAllQueuedTransfers(self, xml, req):
@@ -430,11 +433,11 @@ class CPE(SoapHandler):
       for q in transfers:
         with xml['TransferList']:
           xml.CommandKey(q.CommandKey)
-          xml.State(str(q.State))
-          xml.IsDownload(str(q.IsDownload))
-          xml.FileType(str(q.FileType))
-          xml.FileSize(str(q.FileSize))
-          xml.TargetFileName(str(q.TargetFileName))
+          xml.State(unicode(q.State))
+          xml.IsDownload(unicode(q.IsDownload))
+          xml.FileType(unicode(q.FileType))
+          xml.FileSize(unicode(q.FileSize))
+          xml.TargetFileName(unicode(q.TargetFileName))
     return xml
 
   def CancelTransfer(self, xml, req):
@@ -442,7 +445,7 @@ class CPE(SoapHandler):
       self.impl.CancelTransfer(req.CommandKey)
     except core.CancelNotPermitted as e:
       return soap.SimpleFault(xml, soap.CpeFault.DOWNLOAD_CANCEL_NOTPERMITTED,
-                              str(e))
+                              unicode(e))
     xml['cwmp:CancelTransferResponse'](None)
     return xml
 

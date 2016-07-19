@@ -28,6 +28,7 @@ import xml.etree.cElementTree as ET
 import google3
 import api
 import core
+import cwmptypes
 import handle
 import http
 from wvtest import unittest
@@ -64,6 +65,9 @@ class TestDeviceModelRootSimple(core.Exporter):
 class TestDeviceModelRoot(core.Exporter):
   """A class to hold the device models."""
 
+  BooleanParameter = cwmptypes.Bool()
+  IntegerParameter = cwmptypes.Unsigned()
+
   def __init__(self):
     core.Exporter.__init__(self)
     params = []
@@ -79,6 +83,7 @@ class TestDeviceModelRoot(core.Exporter):
     params.append('FloatParameter')
     params.append('DateTimeParameter')
     params.append('StringParameter')
+    params.append('StringParameter2')
     params.append('ReadOnlyParameter')
     params.append('InvalidXMLParameter')
     self.SubObject = TestDeviceModelObject()
@@ -96,7 +101,8 @@ class TestDeviceModelRoot(core.Exporter):
     self.IntegerParameter = 100
     self.FloatParameter = 3.14159
     self.DateTimeParameter = datetime.datetime(1999, 12, 31, 23, 59, 58)
-    self.StringParameter = 'StringParameter'
+    self.StringParameter = 'StringPV'
+    self.StringParameter2 = 'StringPV2'
     self.InvalidXMLParameter = '&<>'
 
   @property
@@ -496,6 +502,7 @@ class GetParamsRpcTest(unittest.TestCase):
     soapxml = (
         r"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:GetParameterValues><ParameterNames soapenc:arrayType="{urn:dslforum-org:cwmp-1-2}string[1]"><ns3:string xmlns="urn:dslforum-org:cwmp-1-2" xmlns:ns1="http://schemas.xmlsoap.org/soap/encoding/" xmlns:ns3="urn:dslforum-org:cwmp-1-2">Foo</ns3:string></ParameterNames></cwmp:GetParameterValues></soapenv:Body></soapenv:Envelope>""")
     responseXml = cpe.cpe_soap.Handle(soapxml)
+    print responseXml
 
     root = ET.fromstring(str(responseXml))
     name = root.find(
@@ -544,6 +551,23 @@ class GetParamsRpcTest(unittest.TestCase):
         params[3].find('Value').get(XSINS + 'type'), 'xsd:dateTime')
     self.assertEqual(params[4].find('Value').get(XSINS + 'type'), 'xsd:string')
 
+  def testSetParameterValuesUnicode(self):
+    cpe = getCpe()
+    self.assertEqual(u'StringPV', cpe.cpe.root.obj.StringParameter)
+    self.assertEqual(u'StringPV2', cpe.cpe.root.obj.StringParameter2)
+    self.assertEqual(100, cpe.cpe.root.obj.IntegerParameter)
+    soapxml = (
+        """<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cwmp="urn:dslforum-org:cwmp-1-2" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><soapenv:Header><cwmp:ID soapenv:mustUnderstand="1">TestCwmpId</cwmp:ID><cwmp:HoldRequests>0</cwmp:HoldRequests></soapenv:Header><soapenv:Body><cwmp:SetParameterValues><ParameterList><ns2:ParameterValueStruct xmlns:ns2="urn:dslforum-org:cwmp-1-2"><Name>StringParameter</Name><Value xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:string">\xc2\xb4\nX</Value></ns2:ParameterValueStruct><ns2:ParameterValueStruct xmlns:ns2="urn:dslforum-org:cwmp-1-2"><Name>IntegerParameter</Name><Value xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:integer">0</Value></ns2:ParameterValueStruct><ns2:ParameterValueStruct xmlns:ns2="urn:dslforum-org:cwmp-1-2"><Name>StringParameter2</Name><Value xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:string"></Value></ns2:ParameterValueStruct></ParameterList><ParameterKey>myParamKey</ParameterKey></cwmp:SetParameterValues></soapenv:Body></soapenv:Envelope>""")
+    responseXml = cpe.cpe_soap.Handle(soapxml)
+    root = ET.fromstring(str(responseXml))
+    fault = root.find(SOAPNS + 'Body/' + SOAPNS + 'Fault')
+    if fault:
+      print responseXml
+    self.assertFalse(fault)
+    self.assertEqual(u'\u00b4\nX', cpe.cpe.root.obj.StringParameter)
+    self.assertEqual(0, cpe.cpe.root.obj.IntegerParameter)
+    self.assertEqual(u'', cpe.cpe.root.obj.StringParameter2)
+
   def testXmlEscaping(self):
     cpe = getCpe()
     soapxml = (
@@ -568,7 +592,7 @@ class GetParamsRpcTest(unittest.TestCase):
     names = root.findall(
         SOAPNS + 'Body/' + CWMPNS +
         'GetParameterNamesResponse/ParameterList/ParameterInfoStruct/Name')
-    self.assertEqual(len(names), 15)
+    self.assertEqual(len(names), 16)
 
   def testGetFullParamName(self):
     cpe = getCpe()
