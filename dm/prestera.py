@@ -73,7 +73,7 @@ class JsonReader(object):
           path, str(self._json_data)[0:70], ex)
       return
 
-  def GetStat(self, value, default=0):
+  def GetStat(self, value, default='0'):
     """Get a statistic that was loaded from the JSON data file.
 
     Args:
@@ -126,77 +126,93 @@ class EthernetInterfaceStatsPrestera(ETHERNET.Interface.Stats):
   @property
   def BytesSent(self):
     self.json_reader.LoadJsonFromFile(PORTS_JSON_FILE, self.port_path)
-    return self.json_reader.GetStat('bytes_sent')
+    return self.json_reader.GetStat('goodOctetsSent')
 
   @property
   def BytesReceived(self):
     self.json_reader.LoadJsonFromFile(PORTS_JSON_FILE, self.port_path)
-    return self.json_reader.GetStat('bytes_received')
+    try:
+      return str(int(self.json_reader.GetStat('goodOctetsRcv')) +
+                 int(self.json_reader.GetStat('badOctetsRcv')))
+    except ValueError:
+      return '0'
 
   @property
   def PacketsSent(self):
     self.json_reader.LoadJsonFromFile(PORTS_JSON_FILE, self.port_path)
-    return self.json_reader.GetStat('packets_sent')
+    try:
+      return str(int(self.json_reader.GetStat('brdcPktsSent')) +
+                 int(self.json_reader.GetStat('mcPktsSent')) +
+                 int(self.json_reader.GetStat('ucPktsSent')))
+    except ValueError:
+      return '0'
 
   @property
   def PacketsReceived(self):
     self.json_reader.LoadJsonFromFile(PORTS_JSON_FILE, self.port_path)
-    return self.json_reader.GetStat('packets_received')
+    try:
+      return str(int(self.json_reader.GetStat('brdcPktsRcv')) +
+                 int(self.json_reader.GetStat('mcPktsRcv')) +
+                 int(self.json_reader.GetStat('ucPktsRcv')))
+    except ValueError:
+      return '0'
 
   @property
   def ErrorsSent(self):
     self.json_reader.LoadJsonFromFile(PORTS_JSON_FILE, self.port_path)
-    return self.json_reader.GetStat('errors_sent')
+    return self.json_reader.GetStat('macTransmitErr')
 
   @property
   def ErrorsReceived(self):
     self.json_reader.LoadJsonFromFile(PORTS_JSON_FILE, self.port_path)
-    return self.json_reader.GetStat('errors_received')
+    try:
+      return str(int(self.json_reader.GetStat('macRcvError')) +
+                 int(self.json_reader.GetStat('jabberPkts')) +
+                 int(self.json_reader.GetStat('oversizePkts')))
+    except ValueError:
+      return '0'
 
   @property
   def UnicastPacketsSent(self):
     self.json_reader.LoadJsonFromFile(PORTS_JSON_FILE, self.port_path)
-    return self.json_reader.GetStat('unicast_packets_sent')
+    return self.json_reader.GetStat('ucPktsSent')
 
   @property
   def UnicastPacketsReceived(self):
     self.json_reader.LoadJsonFromFile(PORTS_JSON_FILE, self.port_path)
-    return self.json_reader.GetStat('unicast_packets_received')
+    return self.json_reader.GetStat('ucPktsRcv')
 
   @property
   def DiscardPacketsSent(self):
-    self.json_reader.LoadJsonFromFile(PORTS_JSON_FILE, self.port_path)
-    return self.json_reader.GetStat('discard_packets_sent')
+    return '0'  # No analogous statistic in source.
 
   @property
   def DiscardPacketsReceived(self):
-    self.json_reader.LoadJsonFromFile(PORTS_JSON_FILE, self.port_path)
-    return self.json_reader.GetStat('discard_packets_received')
+    return '0'  # No analogous statistic in source.
 
   @property
   def MulticastPacketsSent(self):
     self.json_reader.LoadJsonFromFile(PORTS_JSON_FILE, self.port_path)
-    return self.json_reader.GetStat('multicast_packets_sent')
+    return self.json_reader.GetStat('mcPktsSent')
 
   @property
   def MulticastPacketsReceived(self):
     self.json_reader.LoadJsonFromFile(PORTS_JSON_FILE, self.port_path)
-    return self.json_reader.GetStat('multicast_packets_received')
+    return self.json_reader.GetStat('mcPktsRcv')
 
   @property
   def BroadcastPacketsSent(self):
     self.json_reader.LoadJsonFromFile(PORTS_JSON_FILE, self.port_path)
-    return self.json_reader.GetStat('broadcast_packets_sent')
+    return self.json_reader.GetStat('brdcPktsSent')
 
   @property
   def BroadcastPacketsReceived(self):
     self.json_reader.LoadJsonFromFile(PORTS_JSON_FILE, self.port_path)
-    return self.json_reader.GetStat('broadcast_packets_received')
+    return self.json_reader.GetStat('brdcPktsRcv')
 
   @property
   def UnknownProtoPacketsReceived(self):
-    self.json_reader.LoadJsonFromFile(PORTS_JSON_FILE, self.port_path)
-    return self.json_reader.GetStat('unknown_proto_packets_received')
+    return '0'  # No analogous statistic in source.
 
 
 class EthernetInterfacePrestera(ETHERNET.Interface):
