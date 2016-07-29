@@ -238,8 +238,16 @@ class Handle(object):
     o = self.obj
     assert not name.endswith('.')
     parts = name.split('.')
-    for i in parts[:-1]:
-      o = self._GetExport(o, i)
+    for i, p in enumerate(parts[:-1]):
+      try:
+        o = self._GetExport(o, p)
+      except KeyError as e:
+        # Fill in the full path to the missing element, rather than just
+        # its basename (which is often something unhelpful like '1').
+        e.args = tuple(['.'.join(tuple(parts[:i]) + tuple(e.args))])
+        raise
+      except Exception as e:
+        raise Exception(repr(e))
     return self._Sub('.'.join(parts[:-1]), o), parts[-1]
 
   def GetExport(self, name):
@@ -295,7 +303,13 @@ class Handle(object):
       assert o is not None
       for i in after:
         before = tuple(list(before) + [i])
-        cache[before] = o = o.Sub(i)
+        try:
+          cache[before] = o = o.Sub(i)
+        except KeyError as e:
+          # Fill in the full path to the missing element, rather than just
+          # its basename (which is often something unhelpful like '1').
+          e.args = tuple(['.'.join(tuple([o.basename]) + tuple(e.args))])
+          raise
       yield o, param
 
   def LookupAndFixupExports(self, names):
@@ -380,7 +394,13 @@ class Handle(object):
     """
     parent, subname = self.FindExport(name)
     # pylint:disable=protected-access
-    return parent._AddExportObject(subname, idx)
+    try:
+      return parent._AddExportObject(subname, idx)
+    except KeyError as e:
+      # Fill in the full path to the missing element, rather than just
+      # its basename (which is often something unhelpful like '1').
+      e.args = (name,)
+      raise
 
   def DeleteExportObject(self, name, idx):
     """Delete the object with index idx in the list named name.
