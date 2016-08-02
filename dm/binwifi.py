@@ -27,7 +27,6 @@ import errno
 import json
 import os
 import subprocess
-import traceback
 import netdev
 import tr.cwmpbool
 import tr.cwmptypes
@@ -414,13 +413,12 @@ class WlanConfiguration(CATA98WIFI):
   @tr.session.cache
   def _BinwifiShow(self):
     wifi_data = {}
+    wifiinfo_filename = os.path.join(WIFIINFO_DIR[0], self._ifname)
     try:
-      wifi_data = json.load(open(os.path.join(WIFIINFO_DIR[0], self._ifname)))
+      wifi_data = json.load(open(wifiinfo_filename))
       wifi_data['Band'] = self._band
-    except (IOError, OSError, subprocess.CalledProcessError):
-      print ('Unable to load wifi info from: ' +
-             os.path.join(WIFIINFO_DIR[0], self._ifname))
-      traceback.print_exc()
+    except (IOError, OSError, subprocess.CalledProcessError) as e:
+      print 'Unable to load wifi info from %s: %s' % (wifiinfo_filename, e)
       return {}
     return wifi_data
 
