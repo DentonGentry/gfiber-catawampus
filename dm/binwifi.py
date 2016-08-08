@@ -803,6 +803,10 @@ class WlanConfiguration(CATA98WIFI):
       print '_MakeBinWifiCommand: WiFi configuration not yet received.'
       return ''
 
+    if not self.new_config.SSID:
+      print '_MakeBinWifiCommand: No SSID; WiFi not configured.'
+      return ''
+
     cmd = ['set', '-P', '-b', self._band, '-e', self._GetEncryptionMode()]
     if self._if_suffix:
       cmd += ['--interface-suffix=%s' % self._if_suffix]
@@ -891,13 +895,14 @@ class WlanConfiguration(CATA98WIFI):
     if not os.path.exists(CONMAN_DIR[0]):
       os.makedirs(CONMAN_DIR[0])
 
-    if not self.RadioEnabled:
+    binwifi_command = self._MakeBinWifiCommand()
+
+    if not binwifi_command:
       tr.helpers.Unlink(self.WifiCommandFileName())
       tr.helpers.Unlink(self.APEnabledFileName())
       return
 
-    tr.helpers.WriteFileAtomic(self.WifiCommandFileName(),
-                               self._MakeBinWifiCommand())
+    tr.helpers.WriteFileAtomic(self.WifiCommandFileName(), binwifi_command)
 
     ap_enabled_filename = self.APEnabledFileName()
     if self._ReallyWantWifi():
