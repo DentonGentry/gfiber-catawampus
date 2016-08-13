@@ -48,10 +48,10 @@ td {
   left: 0;
   background: white;
   right: 0;
-  bottom: 0;
   padding: 20px;
   opacity: 0;
 }
+
 [type=radio]:checked ~ label {
   background: white;
   border-bottom: 1px solid white;
