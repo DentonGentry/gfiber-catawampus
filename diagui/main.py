@@ -292,6 +292,7 @@ class TechUI(object):
                  'host_names': {},
                  'ip_addr': {},
                  'softversion': '',
+                 'serialnumber': '',
                  'checksum': 0}
 
     self.callbacklist = []
@@ -420,6 +421,7 @@ class TechUI(object):
 
     deviceinfo = self.root.Device.DeviceInfo
     self.data['softversion'] = deviceinfo.SoftwareVersion
+    self.data['serialnumber'] = deviceinfo.SerialNumber
 
     self.UpdateMocaDict()
     self.UpdateWifiDict()
@@ -497,6 +499,7 @@ class DiagUI(object):
     else:
       self.data['acs'] = 'Never contacted'
     self.data['softversion'] = deviceinfo.SoftwareVersion
+    self.data['serialnumber'] = deviceinfo.SerialNumber
     self.data['uptime'] = deviceinfo.UpTime
     self.data['username'] = self.root.Device.ManagementServer.Username
 

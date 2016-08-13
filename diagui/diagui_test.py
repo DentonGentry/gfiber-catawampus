@@ -67,6 +67,7 @@ class DiaguiTest(unittest.TestCase):
     test_data = """acs OK (May 21 2013 18:58:41+700)
 softversion 1.16a
 uptime 76:28:39
+serialnumber 123456789
 temperature 54 C
 fiberjack Up
 wanmac 1a:2b:3c:4d:5e:6f
@@ -108,6 +109,7 @@ domain home.allenfamily.com"""
     test_data = """acs OK (May 21 2013 18:58:41+700)
 softversion 2.16a
 uptime 76:28:39
+serialnumber 987654321
 temperature 54 C
 fiberjack Up
 wanmac 1a:2b:3c:4d:5e:6f
@@ -187,6 +189,7 @@ class TechuiTest(unittest.TestCase):
                              'aa:aa:aa:aa:aa:aa': '123.456.78.90'},
                  'wifi_signal_strength': {},
                  'softversion': 'gfrg200-46-pre0-39-g056a912-th',
+                 'serialnumber': 'G0123456789',
                  'other_aps': {'f4:f5:e8:80:58:d7': -67.0},
                  'host_names': {'ec:88:92:91:3d:67': 'android',
                                 'aa:aa:aa:aa:aa:aa': 'GFiberTV'},
