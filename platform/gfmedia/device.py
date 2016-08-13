@@ -652,7 +652,7 @@ class LANDevice(tr.basemodel.InternetGatewayDevice.LANDevice):
   def _get_quantenna_interfaces(self):
     try:
       return subprocess.check_output(['get-quantenna-interfaces']).split()
-    except subprocess.CalledProcessError:
+    except (OSError, subprocess.CalledProcessError):
       print 'calling get-quantenna-interfaces failed; assuming not Quantenna'
       return []
 
