@@ -1,9 +1,6 @@
 var wifi = new SignalStrengthChart('RSSI (dBm)', 'Signal Strength',
                                    'wifi_signal_strength', 'wifi_graph',
                                    'rssi_labels', false);
-var wifiblaster = new SignalStrengthChart('Mbps', 'Estimated Throughput',
-                                   'wifiblaster_results', 'wifiblaster_graph',
-                                   'wifiblaster_labels', false);
 var moca = new SignalStrengthChart('Signal-to-noise Ratio (dB)', 'MOCA SNR',
                                    'moca_signal_strength', 'moca_graph',
                                    'moca_labels', true);

@@ -68,7 +68,7 @@ SignalStrengthChart.prototype.addPoint = function(time, sig_point) {
 var checksum = 0;
 
 function checkData(data) {
-  keys = ['wifi_signal_strength', 'wifiblaster_results', 'moca_signal_strength',
+  keys = ['wifi_signal_strength', 'moca_signal_strength',
           'moca_corrected_codewords', 'moca_uncorrected_codewords',
           'moca_bitloading', 'moca_nbas', 'other_aps', 'self_signals',
           'host_names', 'ip_addr'];

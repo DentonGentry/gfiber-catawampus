@@ -324,42 +324,6 @@ class TechuiTest(unittest.TestCase):
         techui.data['wifi_signal_strength'],
         {'66:55:44:33:22:11': -11, '11:22:33:44:55:66': -66})
 
-  def testWifiblaster(self):
-    root = dm_root.DeviceModelRoot(None, 'fakecpe', None)
-    techui = diagui.main.TechUI(root)
-
-    techui.UpdateTechUIDict()
-    self.assertEquals(techui.data['wifiblaster_results'], {})
-
-    root.Device.Hosts = FakeHostsList(2)
-
-    host1 = root.Device.Hosts.HostList['1']
-    host2 = root.Device.Hosts.HostList['2']
-
-    host1.PhysAddress = '00:11:22:33:44:55'
-    host1.IPAddress = '192.168.1.200'
-    host1.HostName = 'one-dot-two-hundred'
-
-    host2.PhysAddress = '00:11:22:33:44:56'
-    host2.IPAddress = '192.168.1.201'
-    host2.HostName = 'one-dot-two-oh-one'
-
-    (host1.
-     X_CATAWAMPUS_ORG_ClientIdentification.WifiblasterResults) = (
-         '1234567890 throughput=10000000')
-
-    (host2.
-     X_CATAWAMPUS_ORG_ClientIdentification.WifiblasterResults) = (
-         '1234567890 throughput=600123123')
-
-    techui.UpdateTechUIDict()
-    self.assertAlmostEqual(
-        techui.data['wifiblaster_results']['00:11:22:33:44:55'],
-        10)
-    self.assertAlmostEqual(
-        techui.data['wifiblaster_results']['00:11:22:33:44:56'],
-        600.123123)
-
 
 if __name__ == '__main__':
   unittest.main()

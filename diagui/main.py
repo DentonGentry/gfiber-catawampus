@@ -394,7 +394,6 @@ class TechUI(object):
 
     host_names = {}
     ip_addr = {}
-    wifiblaster_results = {}
 
     try:
       hostinfo = self.root.Device.Hosts.HostList
@@ -404,20 +403,9 @@ class TechUI(object):
     for host in hostinfo.itervalues():
       host_names[host.PhysAddress] = host.HostName
       ip_addr[host.PhysAddress] = host.IPAddress
-      try:
-        throughput = (
-            host.X_CATAWAMPUS_ORG_ClientIdentification.
-            WifiblasterLatestThroughput)
-      except AttributeError:
-        # no wifiblaster results
-        pass
-      else:
-        if throughput:
-          wifiblaster_results[host.PhysAddress] = throughput/1e6
 
     self.data['host_names'] = host_names
     self.data['ip_addr'] = ip_addr
-    self.data['wifiblaster_results'] = wifiblaster_results
 
     deviceinfo = self.root.Device.DeviceInfo
     self.data['softversion'] = deviceinfo.SoftwareVersion
@@ -501,7 +489,6 @@ class DiagUI(object):
     self.data['softversion'] = deviceinfo.SoftwareVersion
     self.data['serialnumber'] = deviceinfo.SerialNumber
     self.data['uptime'] = deviceinfo.UpTime
-    self.data['username'] = self.root.Device.ManagementServer.Username
 
     t = dict()
     try:
@@ -538,14 +525,7 @@ class DiagUI(object):
     self.data['lanmac'] = lan_mac
     self.data['wanmac'] = wan_mac
 
-    t = dict()
-    for interface in self.root.Device.MoCA.InterfaceList.itervalues():
-      for dev in interface.AssociatedDeviceList.itervalues():
-        t[dev.NodeID] = dev.MACAddress
-    self.data['wireddevices'] = t
-
     wlan = dict()
-    devices = dict()
     wpa = dict()
     self.data['ssid5'] = ''
 
@@ -564,22 +544,13 @@ class DiagUI(object):
           if wlconf.WPAAuthenticationMode == 'PSKAuthentication':
             wpa['2.4 GHz'] = '(Configured)'
           wlan[wlconf.BSSID] = '(2.4 GHz) (%s)' % wlconf.Status
-          for assoc in wlconf.AssociatedDeviceList.itervalues():
-            devices[assoc.AssociatedDeviceMACAddress] = (
-                '(2.4 GHz) (Authentication state: %s)'
-                % assoc.AssociatedDeviceAuthenticationState)
         else:
           self.data['ssid5'] = wlconf.SSID
           if wlconf.WPAAuthenticationMode == 'PSKAuthentication':
             wpa['5 GHz'] = '(Configured)'
           wlan[wlconf.BSSID] = '(5 GHz) (%s)' % wlconf.Status
-          for assoc in wlconf.AssociatedDeviceList.itervalues():
-            devices[assoc.AssociatedDeviceMACAddress] = (
-                '(5 GHz) (Authentication state: %s)'
-                % assoc.AssociatedDeviceAuthenticationState)
 
     self.data['wirelesslan'] = wlan
-    self.data['wirelessdevices'] = devices
     self.data['wpa2'] = wpa
 
     if 'ssid24' in self.data and 'ssid5' in self.data:
