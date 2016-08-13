@@ -54,6 +54,7 @@ def FakeWifiTaxonomy(unused_signature, mac):
 class HostTest(unittest.TestCase):
 
   def setUp(self):
+    self.old_ANONID = host.ANONID[0]
     self.old_DHCP_TAXONOMY_FILE = host.DHCP_TAXONOMY_FILE
     self.old_DNSSD_HOSTNAMES = host.DNSSD_HOSTNAMES
     self.old_IP6NEIGH = host.IP6NEIGH[0]
@@ -63,6 +64,7 @@ class HostTest(unittest.TestCase):
     self.old_TAXONOMIZE = host.TAXONOMIZE
     self.old_TIMENOW = host.TIMENOW
     self.old_WIFI_TAXONOMY_DIR = host.WIFI_TAXONOMY_DIR
+    host.ANONID[0] = './testdata/host/anonid'
     host.DHCP_TAXONOMY_FILE = 'testdata/host/dhcp-taxonomy'
     host.DNSSD_HOSTNAMES = 'testdata/host/dnssd_hostnames'
     host.IP6NEIGH[0] = 'testdata/host/ip6neigh_empty'
@@ -74,6 +76,7 @@ class HostTest(unittest.TestCase):
     host.WIFI_TAXONOMY_DIR = 'testdata/host/wifi-taxonomy'
 
   def tearDown(self):
+    host.ANONID[0] = self.old_ANONID
     host.DHCP_TAXONOMY_FILE = self.old_DHCP_TAXONOMY_FILE
     host.DNSSD_HOSTNAMES = self.old_DNSSD_HOSTNAMES
     host.IP6NEIGH[0] = self.old_IP6NEIGH
@@ -294,19 +297,22 @@ class HostTest(unittest.TestCase):
         self.assertEqual('192.168.1.1', h.IPAddress)
         self.assertEqual('dnssd_hostname4_1.local', cid.DnsSdName)
         self.assertEqual('NETBIOS_HOSTNAME4_1', cid.NetbiosName)
-        cid = h.X_CATAWAMPUS_ORG_ClientIdentification
+        self.assertEqual('ABCDEF', cid.Anonid)
         found |= 1
       elif h.PhysAddress == 'f8:8f:ca:00:00:02':
         self.assertEqual('192.168.1.2', h.IPAddress)
         self.assertEqual('dnssd_hostname4_2.local', cid.DnsSdName)
         self.assertEqual('NETBIOS_HOSTNAME4_2', cid.NetbiosName)
         self.assertEqual('dnssd_hostname4_2', h.HostName)
+        self.assertEqual('GHIJKL', cid.Anonid)
         found |= 2
       elif h.PhysAddress == 'f8:8f:ca:00:00:03':
         self.assertEqual('192.168.1.3', h.IPAddress)
         self.assertEqual('', cid.DnsSdName)
         self.assertEqual('NETBIOS_HOSTNAME4_3', cid.NetbiosName)
         self.assertEqual('NETBIOS_HOSTNAME4_3', h.HostName)
+        # testdata/host/anonid fails for this MAC
+        self.assertEqual('XXXXXX', cid.Anonid)
         found |= 4
     self.assertEqual(7, found)
 
@@ -321,18 +327,22 @@ class HostTest(unittest.TestCase):
         self.assertEqual('fe80::fa8f:caff:fe00:1', h.IPAddress)
         self.assertEqual('dnssd_hostname6_1.local', cid.DnsSdName)
         self.assertEqual('NETBIOS_HOSTNAME6_1', cid.NetbiosName)
+        self.assertEqual('ABCDEF', cid.Anonid)
         found |= 1
       elif h.PhysAddress == 'f8:8f:ca:00:00:02':
         self.assertEqual('fe80::fa8f:caff:fe00:2', h.IPAddress)
         self.assertEqual('dnssd_hostname6_2.local', cid.DnsSdName)
         self.assertEqual('NETBIOS_HOSTNAME6_2', cid.NetbiosName)
         self.assertEqual('dnssd_hostname6_2', h.HostName)
+        self.assertEqual('GHIJKL', cid.Anonid)
         found |= 2
       elif h.PhysAddress == 'f8:8f:ca:00:00:03':
         self.assertEqual('fe80::fa8f:caff:fe00:3', h.IPAddress)
         self.assertEqual('', cid.DnsSdName)
         self.assertEqual('NETBIOS_HOSTNAME6_3', cid.NetbiosName)
         self.assertEqual('NETBIOS_HOSTNAME6_3', h.HostName)
+        # testdata/host/anonid fails for this MAC
+        self.assertEqual('XXXXXX', cid.Anonid)
         found |= 4
     self.assertEqual(7, found)
 
@@ -359,6 +369,18 @@ class HostTest(unittest.TestCase):
       if h.PhysAddress == 'f8:8f:ca:00:00:01':
         self.assertEqual(
             u'dnssd_hostname_invalidUTF8_\ufffd.local', cid.DnsSdName)
+        found = True
+    self.assertTrue(found)
+
+  def testBadAnonidCommand(self):
+    host.PROC_NET_ARP = 'testdata/host/proc_net_arp'
+    host.ANONID[0] = '/no/such/command'
+    hosts = host.Hosts()
+    found = False
+    for h in hosts.HostList.values():
+      cid = h.X_CATAWAMPUS_ORG_ClientIdentification
+      if h.PhysAddress == 'f8:8f:ca:00:00:01':
+        self.assertEqual('XXXXXX', cid.Anonid)
         found = True
     self.assertTrue(found)
 

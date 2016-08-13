@@ -387,6 +387,14 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
 
     <object name="Device.Hosts.Host.{i}.X_CATAWAMPUS_ORG_ClientIdentification." access="readOnly" minEntries="1" maxEntries="1">
       <description>Information to identify a client device.</description>
+      <parameter name="Anonid" access="readOnly">
+        <description>An anonymized, 6 character identifier derived from the MAC address XORd with a random consensus_key shared by all Wifi APs within the BSSID. A MAC address which moves between APs in this account will have the same Anonid, but that same MAC address which roams to some other account's AP will have a different Anonid.</description>
+        <syntax>
+          <string>
+            <size maxLength="6"/>
+          </string>
+        </syntax>
+      </parameter>
       <parameter name="DhcpTaxonomy" access="readOnly">
         <description>A comma separated list of DHCP options requested by this client, in the order they were requested. Ex: 1,28,3,15,6,42</description>
         <syntax>

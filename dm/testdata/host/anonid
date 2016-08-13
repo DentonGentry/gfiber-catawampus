@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if [ "$2" = 'f8:8f:ca:00:00:01' ]; then
+  echo ABCDEF
+elif [ "$2" = 'f8:8f:ca:00:00:02' ]; then
+  echo GHIJKL
+elif [ "$2" = 'f8:8f:ca:00:00:03' ]; then
+  exit 1
+else
+  echo UVWXYZ
+fi

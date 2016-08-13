@@ -63,6 +63,7 @@ SYS_CLASS_NET_PATH = '/sys/class/net'
 TIMENOW = time.time
 
 # Client identification files
+ANONID = ['anonid']
 DHCP_TAXONOMY_FILE = '/config/dhcp.fingerprints'
 DNSSD_HOSTNAMES = '/tmp/dnssd_hostnames'
 NETBIOS_HOSTNAMES = '/tmp/netbios_hostnames'
@@ -662,6 +663,7 @@ class Host(CATA181HOST):
     type(self).VendorClassID.Set(self, VendorClassID)
     cid = ClientIdentification()
     self.X_CATAWAMPUS_ORG_ClientIdentification = cid
+    type(cid).Anonid.Set(cid, self._GetAnonIdForPhysAddress(PhysAddress))
     type(cid).DhcpTaxonomy.Set(cid, DhcpTaxonomy)
     type(cid).DnsSdName.Set(cid, DnsSdName)
     type(cid).NetbiosName.Set(cid, NetbiosName)
@@ -703,6 +705,19 @@ class Host(CATA181HOST):
       return ip6.IPAddress
     return ''
 
+  def _GetAnonIdForPhysAddress(self, macaddr):
+    """Get the anonid for a MAC, XXXXXX if it fails."""
+    cmd = ANONID + ['--addr', macaddr]
+    try:
+      anonid = subprocess.check_output(cmd)
+    except (OSError, subprocess.CalledProcessError):
+      # The anonid algorithm uses hard and soft letters,
+      # HARD-SOFT-HARD-HARD-SOFT-HARD. 'XXXXXX' is not
+      # possible as a valid anonid, it is safe to use as
+      # a default for failure cases.
+      return 'XXXXXX'
+    return anonid.strip()
+
 
 class HostIPv4Address(BASE181HOST.IPv4Address):
   IPAddress = tr.cwmptypes.ReadOnlyString('')
@@ -730,6 +745,7 @@ def _IntOrZero(s):
 class ClientIdentification(CATA181HOST.X_CATAWAMPUS_ORG_ClientIdentification):
   """X_CATAWAMPUS-ORG_ClientIdentification, for client identification."""
 
+  Anonid = tr.cwmptypes.ReadOnlyString('')
   DhcpTaxonomy = tr.cwmptypes.ReadOnlyString('')
   DnsSdName = tr.cwmptypes.ReadOnlyString('')
   NetbiosName = tr.cwmptypes.ReadOnlyString('')
