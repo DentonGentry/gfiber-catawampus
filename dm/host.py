@@ -27,7 +27,6 @@ import codecs
 import datetime
 import errno
 import os
-import re
 import struct
 import subprocess
 import time
@@ -43,18 +42,12 @@ def NullTaxonomy(unused_signature, unused_mac):
   raise NotImplementedError('NullTaxonomy is not an implementation.')
 
 
-def NullCharacterize(unused_signature):
-  raise NotImplementedError('NullCharacterize is not an implementation.')
-
-
 # unit test machines won't have taxonomy module installed.
 try:
   import taxonomy  # pylint: disable=g-import-not-at-top
   TAXONOMIZE = taxonomy.identify_wifi_device
-  WIFICHARACTERIZE = taxonomy.performance_characteristics
 except ImportError:
   TAXONOMIZE = NullTaxonomy
-  WIFICHARACTERIZE = NullCharacterize
 
 
 BASE181HOSTS = tr.basemodel.Device.Hosts
@@ -73,7 +66,6 @@ TIMENOW = time.time
 DHCP_TAXONOMY_FILE = '/config/dhcp.fingerprints'
 DNSSD_HOSTNAMES = '/tmp/dnssd_hostnames'
 NETBIOS_HOSTNAMES = '/tmp/netbios_hostnames'
-WIFIBLASTER_DIR = '/tmp/wifi/wifiblaster'
 WIFI_TAXONOMY_DIR = '/tmp/wifi/fingerprints'
 
 
@@ -530,24 +522,9 @@ class Hosts(BASE181HOSTS):
         continue
       tax = self._ReadWifiFile(host, WIFI_TAXONOMY_DIR, mac)
       host['WifiTaxonomy'] = tax
-      (chipset, model, perf) = TAXONOMIZE(tax, mac)
-      host['WifiChipset'] = chipset
+      (genus, species, _) = TAXONOMIZE(tax, mac)
+      model = ' '.join([genus, species]) if species else genus
       host['WifiDeviceModel'] = model
-      host['WifiPerformance'] = perf
-      (standard, nss, width) = WIFICHARACTERIZE(tax)
-      host['WifiStandard'] = standard
-      host['WifiNumberOfStreams'] = nss
-      host['WifiChannelWidth'] = width
-
-  def _PopulateWifiblaster(self, hosts):
-    """Add Wifi performance test results wherever we can."""
-    macs = self._GetListOfMacAddresses(WIFIBLASTER_DIR)
-    for mac in macs:
-      host = hosts.get(mac, None)
-      if not host:
-        continue
-      results = self._ReadWifiFile(host, WIFIBLASTER_DIR, mac)
-      host['WifiblasterResults'] = results
 
   def _ReadHostnameFile(self, filename):
     """Read in a hostname mapping file.
@@ -626,7 +603,6 @@ class Hosts(BASE181HOSTS):
     self._PopulateDhcpTaxonomy(hosts=hosts)
     self._PopulateDiscoveredHostnames(hosts=hosts)
     self._PopulateWifiTaxonomy(hosts=hosts)
-    self._PopulateWifiblaster(hosts=hosts)
     host_list = dict()
     for idx, host in enumerate(hosts.values(), start=1):
       host_list[str(idx)] = Host(**host)
@@ -665,10 +641,8 @@ class Host(CATA181HOST):
                Layer1Interface='', Layer3Interface='', HostName='',
                LeaseTimeRemaining=0, VendorClassID='',
                ClientID='', UserClassID='', DhcpTaxonomy='',
-               DnsSdName='', NetbiosName='', WifiblasterResults='',
-               WifiChannelWidth='', WifiChipset='', WifiDeviceModel='',
-               WifiNumberOfStreams=0, WifiPerformance='', WifiStandard='',
-               WifiTaxonomy=''):
+               DnsSdName='', NetbiosName='',
+               WifiDeviceModel='', WifiTaxonomy=''):
     super(Host, self).__init__()
     self.Unexport(['Alias'])
 
@@ -691,13 +665,7 @@ class Host(CATA181HOST):
     type(cid).DhcpTaxonomy.Set(cid, DhcpTaxonomy)
     type(cid).DnsSdName.Set(cid, DnsSdName)
     type(cid).NetbiosName.Set(cid, NetbiosName)
-    cid.WifiblasterResults = WifiblasterResults
-    type(cid).WifiChannelWidth.Set(cid, WifiChannelWidth)
-    type(cid).WifiChipset.Set(cid, WifiChipset)
     type(cid).WifiDeviceModel.Set(cid, WifiDeviceModel)
-    type(cid).WifiNumberOfStreams.Set(cid, WifiNumberOfStreams)
-    type(cid).WifiPerformance.Set(cid, WifiPerformance)
-    type(cid).WifiStandard.Set(cid, WifiStandard)
     type(cid).WifiTaxonomy.Set(cid, WifiTaxonomy)
 
   def _PopulateIpList(self, l, obj):
@@ -765,47 +733,5 @@ class ClientIdentification(CATA181HOST.X_CATAWAMPUS_ORG_ClientIdentification):
   DhcpTaxonomy = tr.cwmptypes.ReadOnlyString('')
   DnsSdName = tr.cwmptypes.ReadOnlyString('')
   NetbiosName = tr.cwmptypes.ReadOnlyString('')
-  WifiChannelWidth = tr.cwmptypes.ReadOnlyString('')
-  WifiChipset = tr.cwmptypes.ReadOnlyString('')
   WifiDeviceModel = tr.cwmptypes.ReadOnlyString('')
-  WifiNumberOfStreams = tr.cwmptypes.ReadOnlyUnsigned(0)
-  WifiPerformance = tr.cwmptypes.ReadOnlyString('')
-  WifiStandard = tr.cwmptypes.ReadOnlyString('')
   WifiTaxonomy = tr.cwmptypes.ReadOnlyString('')
-
-  @property
-  @tr.session.cache
-  def WifiblasterLatestResult(self):
-    # Strictly speaking, WifiblasterResults could contain multiple entries.
-    # But we only want to export the most recent one.
-    results = self.WifiblasterResults.strip().split('\n')
-    if results:
-      return results[-1]
-    else:
-      return ''
-
-  @property
-  def WifiblasterLatestTime(self):
-    return datetime.datetime.utcfromtimestamp(
-        _IntOrZero(self.WifiblasterLatestResult.split(' ')[0]))
-
-  @property
-  def WifiblasterLatestFrequency(self):
-    g = re.search(r'frequency=(\d+)', self.WifiblasterLatestResult)
-    if g:
-      return _IntOrZero(g.group(1))
-    return 0
-
-  @property
-  def WifiblasterLatestRSSI(self):
-    g = re.search(r'rssi=([-\d]+)', self.WifiblasterLatestResult)
-    if g:
-      return _IntOrZero(g.group(1))
-    return 0
-
-  @property
-  def WifiblasterLatestThroughput(self):
-    g = re.search(r'throughput=(\d+)', self.WifiblasterLatestResult)
-    if g:
-      return _IntOrZero(g.group(1))
-    return 0

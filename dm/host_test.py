@@ -20,7 +20,6 @@
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import datetime
 import google3
 from tr.wvtest import unittest
 import platform.fakecpe.device
@@ -48,12 +47,8 @@ class TestDeviceModelRoot(tr.core.Exporter):
 
 def FakeWifiTaxonomy(unused_signature, mac):
   if mac in ['f8:8f:ca:00:00:04', 'f8:8f:ca:00:00:05']:
-    return ('chipset', 'model', '802.11ac n:4,w:80')
+    return ('genus', 'species', 'perf')
   return ('', '', '')
-
-
-def FakeWifiCharacterization(unused_signature):
-  return ('802.11ac', 4, '80')
 
 
 class HostTest(unittest.TestCase):
@@ -66,10 +61,8 @@ class HostTest(unittest.TestCase):
     self.old_PROC_NET_ARP = host.PROC_NET_ARP
     self.old_SYS_CLASS_NET_PATH = host.SYS_CLASS_NET_PATH
     self.old_TAXONOMIZE = host.TAXONOMIZE
-    self.old_WIFICHARACTERIZE = host.WIFICHARACTERIZE
     self.old_TIMENOW = host.TIMENOW
     self.old_WIFI_TAXONOMY_DIR = host.WIFI_TAXONOMY_DIR
-    self.old_WIFIBLASTER_DIR = host.WIFIBLASTER_DIR
     host.DHCP_TAXONOMY_FILE = 'testdata/host/dhcp-taxonomy'
     host.DNSSD_HOSTNAMES = 'testdata/host/dnssd_hostnames'
     host.IP6NEIGH[0] = 'testdata/host/ip6neigh_empty'
@@ -77,10 +70,8 @@ class HostTest(unittest.TestCase):
     host.PROC_NET_ARP = '/dev/null'
     host.SYS_CLASS_NET_PATH = 'testdata/host/sys/class/net'
     host.TAXONOMIZE = FakeWifiTaxonomy
-    host.WIFICHARACTERIZE = FakeWifiCharacterization
     host.TIMENOW = TimeNow
     host.WIFI_TAXONOMY_DIR = 'testdata/host/wifi-taxonomy'
-    host.WIFIBLASTER_DIR = 'testdata/host/wifiblaster'
 
   def tearDown(self):
     host.DHCP_TAXONOMY_FILE = self.old_DHCP_TAXONOMY_FILE
@@ -90,10 +81,8 @@ class HostTest(unittest.TestCase):
     host.PROC_NET_ARP = self.old_PROC_NET_ARP
     host.SYS_CLASS_NET_PATH = self.old_SYS_CLASS_NET_PATH
     host.TAXONOMIZE = self.old_TAXONOMIZE
-    host.WIFICHARACTERIZE = self.old_WIFICHARACTERIZE
     host.TIMENOW = self.old_TIMENOW
     host.WIFI_TAXONOMY_DIR = self.old_WIFI_TAXONOMY_DIR
-    host.WIFIBLASTER_DIR = self.old_WIFIBLASTER_DIR
 
   def testValidateExports(self):
     hosts = host.Hosts()
@@ -269,7 +258,7 @@ class HostTest(unittest.TestCase):
       fp = h.X_CATAWAMPUS_ORG_ClientIdentification.DhcpTaxonomy
       self.assertEqual('', fp)
 
-  def testWifiTaxonomyAndBlaster(self):
+  def testWifiTaxonomy(self):
     host.PROC_NET_ARP = 'testdata/host/proc_net_arp2'
     dmroot = self._GetFakeCPE(tr98=False, tr181=True)
     hosts = host.Hosts(dmroot=dmroot)
@@ -281,33 +270,12 @@ class HostTest(unittest.TestCase):
       if h.PhysAddress == 'f8:8f:ca:00:00:04':
         expected = 'wifi|probe:1,2,3,4|assoc:5,6,7,8'
         self.assertEqual(ci.WifiTaxonomy.strip(), expected)
-        self.assertEqual(ci.WifiChipset.strip(), 'chipset')
-        self.assertEqual(ci.WifiDeviceModel.strip(), 'model')
-        self.assertEqual(ci.WifiPerformance.strip(), '802.11ac n:4,w:80')
-        self.assertEqual(ci.WifiStandard.strip(), '802.11ac')
-        self.assertEqual(ci.WifiNumberOfStreams, 4)
-        self.assertEqual(ci.WifiChannelWidth.strip(), '80')
-        self.assertEqual(ci.WifiblasterLatestResult,
-                         '1440647444 version=2 mac=f8:8f:ca:00:00:04 '
-                         'throughput=587176800 rssi=-39 frequency=5745 '
-                         'samples=664440000,602112000,705600000,573888000,'
-                         '682080000,602112000,686784000,301056000,499800000,'
-                         '553896000')
-        self.assertEqual(ci.WifiblasterLatestTime,
-                         datetime.datetime(2015, 8, 27, 3, 50, 44))
-        self.assertEqual(ci.WifiblasterLatestFrequency, 5745)
-        self.assertEqual(ci.WifiblasterLatestRSSI, -39)
-        self.assertEqual(ci.WifiblasterLatestThroughput, 587176800)
+        self.assertEqual(ci.WifiDeviceModel.strip(), 'genus species')
         found |= 1
       elif h.PhysAddress == 'f8:8f:ca:00:00:05':
         expected = 'wifi|probe:1,2,3,4|assoc:5,6,7,8'
         self.assertEqual(ci.WifiTaxonomy.strip(), expected)
-        self.assertEqual(ci.WifiChipset.strip(), 'chipset')
-        self.assertEqual(ci.WifiDeviceModel.strip(), 'model')
-        self.assertEqual(ci.WifiPerformance.strip(), '802.11ac n:4,w:80')
-        self.assertEqual(ci.WifiStandard.strip(), '802.11ac')
-        self.assertEqual(ci.WifiNumberOfStreams, 4)
-        self.assertEqual(ci.WifiChannelWidth.strip(), '80')
+        self.assertEqual(ci.WifiDeviceModel.strip(), 'genus species')
         # fake_dhcp_server.py says this is MyPhone, which is fine.
         self.assertEqual(h.HostName, 'MyPhone')
         found |= 2

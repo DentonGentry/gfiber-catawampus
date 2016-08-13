@@ -411,14 +411,6 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
           </string>
         </syntax>
       </parameter>
-      <parameter name="WifiChipset" access="readOnly">
-        <description>The chipset of the Wifi device if known, like 'BCM4334'</description>
-        <syntax>
-          <string>
-            <size maxLength="32"/>
-          </string>
-        </syntax>
-      </parameter>
       <parameter name="WifiDeviceModel" access="readOnly">
         <description>The type of Wifi device if known, like 'Nexus 4'</description>
         <syntax>
@@ -427,77 +419,11 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
           </string>
         </syntax>
       </parameter>
-      <parameter name="WifiPerformance" access="readOnly">
-        <description>A string describing Wifi performance characteristics, like '802.11ac n:3,w:80'</description>
-        <syntax>
-          <string>
-            <size maxLength="64"/>
-          </string>
-        </syntax>
-      </parameter>
-      <parameter name="WifiStandard" access="readOnly">
-        <description>A string describing the Wifi standard supported by the device, such as '802.11ac', '802.11n', or '802.11a/b/g'.</description>
-        <syntax>
-          <string>
-            <size maxLength="32"/>
-          </string>
-        </syntax>
-      </parameter>
-      <parameter name="WifiNumberOfStreams" access="readOnly">
-        <description>The number of spatial streams supported by this client, 0 for unknown.</description>
-        <syntax>
-          <unsignedInt/>
-        </syntax>
-      </parameter>
-      <parameter name="WifiChannelWidth" access="readOnly">
-        <description>A string describing the channel width supported by this client.</description>
-        <syntax>
-          <string>
-            <enumeration value="20"/>
-            <enumeration value="40"/>
-            <enumeration value="80"/>
-            <enumeration value="80+80"/>
-            <enumeration value="160"/>
-          </string>
-        </syntax>
-      </parameter>
       <parameter name="WifiTaxonomy" access="readOnly">
         <description>The signature of a Wifi device, the string of options present in the client's Probe and Association frames.</description>
         <syntax>
           <string>
             <size maxLength="4096"/>
-          </string>
-        </syntax>
-      </parameter>
-      <parameter name="WifiblasterLatestTime" access="readOnly">
-        <description>The time of the most recent wifiblaster test run.</description>
-        <syntax>
-          <dateTime/>
-        </syntax>
-      </parameter>
-      <parameter name="WifiblasterLatestRSSI" access="readOnly">
-        <description>Measured received signal strength from this station during last wifiblaster test, in dB.</description>
-        <syntax>
-          <int><units value="dB"/></int>
-        </syntax>
-      </parameter>
-      <parameter name="WifiblasterLatestFrequency" access="readOnly">
-        <description>Wifi channel frequency being used during last wifiblaster test, in kHz.</description>
-        <syntax>
-          <unsignedInt><units value="kHz"/></unsignedInt>
-        </syntax>
-      </parameter>
-      <parameter name="WifiblasterLatestThroughput" access="readOnly">
-        <description>Measured real throughput delivered to this station during last wifiblaster test, in bits/sec.</description>
-        <syntax>
-          <unsignedInt><units value="bps"/></unsignedInt>
-        </syntax>
-      </parameter>
-      <parameter name="WifiblasterLatestResult" access="readOnly">
-        <description>The most recent Wifi performance test result for this device, as a one-line string produced by the wifiblaster command.</description>
-        <syntax>
-          <string>
-            <size maxLength="256"/>
           </string>
         </syntax>
       </parameter>
