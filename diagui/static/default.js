@@ -74,7 +74,9 @@ DiagUI.setConnectedStatus = function(connected) {
 
 DiagUI.updateField = function(key, val) {
   var el = document.getElementById(key);
-  el.innerHTML = ''; // Clear the field.
+  if (el) {
+    el.innerHTML = ''; // Clear the field.
+  }
   // For objects, create an unordered list and append the values as list items.
   if (val && typeof val === 'object') {
     var ul = document.createElement('ul');

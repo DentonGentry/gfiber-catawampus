@@ -28,7 +28,7 @@ SELFSIGNALS_FILE = '/tmp/waveguide/signals_json/self_signals'
 APSIGNAL_FILE = '/tmp/waveguide/signals_json/ap_signals'
 SOFTWARE_VERSION_FILE = '/etc/version'
 MOCAGLOBALJSON = '/tmp/cwmp/monitoring/moca2/globals'
-JSON_DEADLINE = 5
+JSON_DEADLINE = 1
 
 
 def IOLoop():
@@ -187,7 +187,11 @@ class IsostreamJsonHandler(_JsonHandler):
     isos_dict['last_log'] = last_log_dict
     isos_dict['ClientRunning'] = isostreaminfo.ClientRunning
     self.write(json.dumps(isos_dict))
-    self.finish()
+    try:
+      self.finish()
+    except IOError:
+      # Other end already closed the connection. Not an error.
+      pass
 
 
 class IsostreamCombinedHandler(tornado.web.RequestHandler):

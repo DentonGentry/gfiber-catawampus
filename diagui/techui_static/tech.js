@@ -93,41 +93,51 @@ function getData(graph_array) {
   var payload = [];
   payload.push('checksum=' + encodeURIComponent(checksum));
   url = '/techui.json?' + payload.join('&');
-  $.getJSON(url, function(data) {
-    checkData(data);
-    checksum = data['checksum'];
-    for (var i = 0; i < graph_array.length; i++) {
-      graph = graph_array[i];
-      var time = new Date();
-      graph.addPoint(time, data[graph.key]);
-      var hostNames = {};
-      if (graph.is_moca) {
-        hostNames = graph.listOfDevices.mocaHostNames(data['host_names']);
-      } else {
-        hostNames = graph.listOfDevices.hostNames(data['host_names']);
-      }
-
-      var hostNamesArray = [];
-      for (var macAddr in hostNames) {
-        hostNamesArray.push(hostNames[macAddr]);
-      }
-      if (!graph.initialized) {
-        if (graph.signalStrengths.length == 0) {
-          graph.addPoint(time, {});
+  var request = $.ajax({
+    dataType: "json",
+    url: url,
+    timeout: 10000,
+    success: function(data) {
+      checkData(data);
+      checksum = data['checksum'];
+      for (var i = 0; i < graph_array.length; i++) {
+        graph = graph_array[i];
+        var time = new Date();
+        graph.addPoint(time, data[graph.key]);
+        var hostNames = {};
+        if (graph.is_moca) {
+          hostNames = graph.listOfDevices.mocaHostNames(data['host_names']);
+        } else {
+          hostNames = graph.listOfDevices.hostNames(data['host_names']);
         }
-        graph.initializeDygraph();
-        graph.initialized = true;
+
+        var hostNamesArray = [];
+        for (var macAddr in hostNames) {
+          hostNamesArray.push(hostNames[macAddr]);
+        }
+        if (!graph.initialized) {
+          if (graph.signalStrengths.length == 0) {
+            graph.addPoint(time, {});
+          }
+          graph.initializeDygraph();
+          graph.initialized = true;
+        }
+        else {
+          graph.g.updateOptions({file: graph.signalStrengths,
+            labels: ['time'].concat(hostNamesArray)});
+        }
       }
-      else {
-        graph.g.updateOptions({file: graph.signalStrengths,
-          labels: ['time'].concat(hostNamesArray)});
+      showDeviceTable('#device_info', data['host_names'], data['ip_addr']);
+      showBitloading(data);
+      $('#softversion').html($('<div/>').text(data['softversion']).html());
+      // Send requests at regular intervals
+      setTimeout(function() {getData(graph_array)}, 800);
+    },
+    error: function(XMLHttpRequest, textStatus, errorThrown) {
+      if (textStatus == "timeout") {
+        getData(graph_array);
       }
     }
-    showDeviceTable('#device_info', data['host_names'], data['ip_addr']);
-    showBitloading(data);
-    $('#softversion').html($('<div/>').text(data['softversion']).html());
-    // Send another request when the request succeeds
-    getData(graph_array);
   });
 }
 
@@ -148,11 +158,14 @@ function getIsostreamData(clientRunning) {
     var ipAddrs = [];
     for (var ipAddr in data) {
       ipAddrs.push(ipAddr);
-      if ('Error' in data[ipAddr]) {
-          console.error(ipAddr + ': ' + data[ipAddr]['Error']);
-      }
       if ('ClientRunning' in data[ipAddr]) {
         clientRunning = data[ipAddr]['ClientRunning'];
+      }
+      if ('Error' in data[ipAddr]) {
+          console.error(ipAddr + ': ' + data[ipAddr]['Error']);
+          if (data[ipAddr]['Error'].search('Connection Refused') != -1) {
+            clientRunning = false;
+          }
       }
       if ('last_log' in data[ipAddr] &&
           'timestamp' in data[ipAddr]['last_log']) {
