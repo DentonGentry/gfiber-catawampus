@@ -78,7 +78,10 @@ class Device(tr.core.Exporter):
     self.Hosts = host.Hosts(dmroot=dmroot, bridgename='br0')
     self.MoCA = MoCA()
     self.Export(['DHCPv4', 'Ethernet', 'Hosts', 'MoCA'])
-    self.DHCPv4.Server.PoolList['1'] = self.DHCPv4.Server.Pool()
+    pool = self.DHCPv4.Server.Pool()
+    pool.MinAddress = '192.168.1.1'
+    pool.MaxAddress = '192.168.1.255'
+    self.DHCPv4.Server.PoolList['1'] = pool
 
 
 class Ethernet(tr.core.Exporter):

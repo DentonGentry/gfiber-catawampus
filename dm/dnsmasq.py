@@ -34,7 +34,9 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import binascii
 import datetime
 import errno
+import socket
 import string
+import struct
 import subprocess
 import traceback
 
@@ -171,6 +173,24 @@ def UpdateDnsmasqConfig():
   except (IOError, OSError, subprocess.CalledProcessError):
     print 'Unable to restart dnsmasq'
     traceback.print_exc()
+
+
+def IpStringToNativeInt(ip4addr):
+  """Convert w.x.y.z IP4 address to *native* byte order integer.
+
+  IP addresses are conventionally in network byte order, which is
+  big-endian. We instead want an integer in native byte order where
+  we can do comparisons to see if an IP address is within a range.
+
+  Arguments:
+    ip4addr: a dotted quad string.
+  Returns:
+    an integer in *native* byte order, not network byte order.
+  """
+  try:
+    return struct.unpack('!I', socket.inet_pton(socket.AF_INET, ip4addr))[0]
+  except socket.error:
+    return 0
 
 
 class DHCPv4(CATA181DEV.Device.DHCPv4):
@@ -330,6 +350,10 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
   @tr.session.cache
   def ClientList(self):
     """Return a dict of known clients from dnsmasq leases file."""
+    if not self.MinAddress or not self.MaxAddress:
+      return {}
+    min_ip_i = IpStringToNativeInt(self.MinAddress)
+    max_ip_i = IpStringToNativeInt(self.MaxAddress)
     clients = {}
     try:
       line = ''
@@ -344,6 +368,10 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
             # Just skip these.
             if 'duid' not in line:
               print 'Unable to process dnsmasq lease line: %s' % line
+            continue
+          ip_i = IpStringToNativeInt(ip)
+          if not min_ip_i <= ip_i <= max_ip_i:
+            # Must be from some other pool
             continue
           mac = mac.lower()
           clientid = '' if clientid == '*' else binascii.hexlify(clientid)

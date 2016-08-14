@@ -369,6 +369,8 @@ class DnsmasqTest(unittest.TestCase):
 
   def testLeases(self):
     dh4p = self.dh4p
+    dh4p.MinAddress = '192.168.1.1'
+    dh4p.MaxAddress = '192.168.1.255'
     self.assertEqual(len(dh4p.ClientList), 3)
 
     client = dh4p.ClientList['1']
@@ -414,6 +416,20 @@ class DnsmasqTest(unittest.TestCase):
     dnsmasq.DNSMASQLEASES[0] = '/nonexistent'
     dh4p = self.dh4p
     self.assertEqual(len(dh4p.ClientList), 0)
+
+  def testLeasesMultiplePools(self):
+    dnsmasq.DNSMASQLEASES[0] = 'testdata/dnsmasq/leases.multipool'
+    pool1 = dnsmasq.Dhcp4ServerPool(name='pool1')
+    pool1.MinAddress = '192.168.1.1'
+    pool1.MaxAddress = '192.168.1.9'
+    pool2 = dnsmasq.Dhcp4ServerPool(name='pool2')
+    pool2.MinAddress = '192.168.2.1'
+    pool2.MaxAddress = '192.168.2.9'
+    serv = dnsmasq.Dhcp4Server()
+    serv.PoolList[1] = pool1
+    serv.PoolList[2] = pool2
+    self.assertEqual(2, len(pool1.ClientList))
+    self.assertEqual(3, len(pool2.ClientList))
 
 
 if __name__ == '__main__':
