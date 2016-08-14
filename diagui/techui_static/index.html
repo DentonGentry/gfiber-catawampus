@@ -55,6 +55,23 @@
         <div style="clear: both;"></div>
       </div>
     </div>
+    <div class="tab">
+      <input type="radio" id="tab-4" name="tab-group-1">
+      <label for="tab-4">Isostream</label>
+      <div class="content">
+        <form action=/startisostream method=post>
+          {% module xsrf_form_html() %}
+          <button id="isostream_button">Run Test</button>
+        </form>
+        <div id="isos_status"></div>
+        <div id="isos_offset"></div><div id="offset_labels"></div>
+        <br>
+        <div id="isos_disconn"></div><div id="disconn_labels"></div>
+        <br>
+        <div id="isos_drops"></div><div id="drops_labels"></div>
+        <div style="clear: both;"></div>
+      </div>
+    </div>
   </div>
   <script src="tech_static.js"></script>
 </body>
