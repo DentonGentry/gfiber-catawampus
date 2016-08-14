@@ -135,13 +135,18 @@ def _LogConfig(prefix, lines):
 def UpdateDnsmasqConfig():
   """Write out all configs and restart dnsmasq."""
   pools = []
+  lines = []
+  active = False
   for s in DhcpServers:
     for (idx, pool) in s.PoolList.iteritems():
+      if pool.is_enabled is not None:
+        active = True
       pool.index = idx
       pools.append(pool)
-  servers = sorted(pools, key=lambda server: server.Order)
 
-  lines = []
+  if not active:
+    print 'No DHCPv4 config received, skip writing dnsmasq.conf.'
+    return
 
   # Include the value of the ACS server URL if possible.
   if DhcpAcsUrl and DhcpAcsUrl[0]:
@@ -155,6 +160,7 @@ def UpdateDnsmasqConfig():
         '\n',
     ])
 
+  servers = sorted(pools, key=lambda server: server.Order)
   for server in servers:
     lines.extend(server.DnsmasqConfig())
 
@@ -226,7 +232,6 @@ class DHCPv4(CATA181DEV.Device.DHCPv4):
 class Dhcp4ServerPool(DHCP4SERVERPOOL):
   """tr-181 Device.DHCPv4.Server.Pool."""
 
-  Enable = tr.cwmptypes.TriggerBool(False)
   DNSServers = tr.cwmptypes.TriggerIPv4AddrList('')
   DomainName = tr.cwmptypes.TriggerString('')
   Interface = tr.cwmptypes.TriggerString('')
@@ -309,6 +314,7 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
     super(Dhcp4ServerPool, self).__init__()
     self.name = name
     self.index = None
+    self.is_enabled = None
     self.StaticAddressList = _TriggerDict()
     self.OptionList = _TriggerDict()
 
@@ -385,10 +391,22 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
         print 'Unable to process dnsmasq lease file : %s' % DNSMASQLEASES[0]
     return clients
 
+  def GetEnable(self):
+    return self.is_enabled
+
+  def SetEnable(self, value):
+    self.is_enabled = bool(value)
+    self.Triggered()
+
+  Enable = property(GetEnable, SetEnable, None,
+                    'Device.DHCPv4.Server.Pool.{x}.Enable')
+
   def Triggered(self):
     UpdateDnsmasqConfig()
 
   def ValidateConfig(self):
+    if self.is_enabled is None:
+      return False
     a = self.MinAddress
     b = self.MaxAddress
     if (a and not b) or (not a and b):
@@ -508,7 +526,6 @@ class Dhcp4ServerPool(DHCP4SERVERPOOL):
 
 class Dhcp4Server(DHCP4SERVER):
   """tr-181 Device.DHCPv4.Server."""
-  Enable = tr.cwmptypes.TriggerBool(False)
   Pool = Dhcp4ServerPool
   PoolNumberOfEntries = tr.cwmptypes.NumberOf('PoolList')
   X_CATAWAMPUS_ORG_TextConfig = tr.cwmptypes.FileBacked(
@@ -516,5 +533,18 @@ class Dhcp4Server(DHCP4SERVER):
 
   def __init__(self):
     super(Dhcp4Server, self).__init__()
+    self.is_enabled = None
     self.PoolList = _TriggerDict()
     DhcpServers.add(self)
+
+  def Triggered(self):
+    UpdateDnsmasqConfig()
+
+  def GetEnable(self):
+    return self.is_enabled
+
+  def SetEnable(self, value):
+    self.is_enabled = bool(value)
+    self.Triggered()
+
+  Enable = property(GetEnable, SetEnable, None, 'Device.DHCPv4.Server.Enable')

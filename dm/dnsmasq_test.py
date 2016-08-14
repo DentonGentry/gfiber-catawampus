@@ -85,6 +85,7 @@ class DnsmasqTest(unittest.TestCase):
 
     dmroot = tr.core.Exporter()
     unused_dh4 = dnsmasq.DHCPv4(dmroot=dmroot)
+    self.dh4p.Enable = True
 
     dmroot.Device = tr.core.Exporter()
     _mgmt = tr.cpe_management_server.CpeManagementServer(
@@ -128,6 +129,38 @@ class DnsmasqTest(unittest.TestCase):
     self.assertFalse(os.path.exists(dnsmasq.DNSMASQCONFIG[0]))
     self.loop.RunOnce(timeout=1)
     self.assertTrue(os.path.exists(dnsmasq.DNSMASQCONFIG[0]))
+
+  def testDeferWriteDnsmasqConfUntilEnable(self):
+    expected = 'dnsmasq.conf content goes here'
+    open(dnsmasq.DNSMASQCONFIG[0], 'w').write(expected)
+    self.loop.RunOnce()
+    self.assertEqual(open(dnsmasq.DNSMASQCONFIG[0]).read(), expected)
+
+    self.dh4p.MinAddress = '192.168.1.100'
+    self.dh4p.MaxAddress = '192.168.1.200'
+    # Enable is not set
+    self.loop.RunOnce()
+    self.assertEqual(open(dnsmasq.DNSMASQCONFIG[0]).read(), expected)
+
+    self.dh4p.Enable = True
+    self.loop.RunOnce()
+    self.assertNotEqual(open(dnsmasq.DNSMASQCONFIG[0]).read(), expected)
+
+  def testDeferWriteDnsmasqConfUntilDisable(self):
+    expected = 'dnsmasq.conf content goes here'
+    open(dnsmasq.DNSMASQCONFIG[0], 'w').write(expected)
+    self.loop.RunOnce()
+    self.assertEqual(open(dnsmasq.DNSMASQCONFIG[0]).read(), expected)
+
+    self.dh4p.MinAddress = '192.168.1.100'
+    self.dh4p.MaxAddress = '192.168.1.200'
+    # Enable is not set
+    self.loop.RunOnce()
+    self.assertEqual(open(dnsmasq.DNSMASQCONFIG[0]).read(), expected)
+
+    self.dh4p.Enable = False
+    self.loop.RunOnce()
+    self.assertNotEqual(open(dnsmasq.DNSMASQCONFIG[0]).read(), expected)
 
   def testChaddrMaskToDnsmasq(self):
     f = self.dh4p._MacMaskToDnsmasq
@@ -352,6 +385,7 @@ class DnsmasqTest(unittest.TestCase):
 
   def testStatus(self):
     dh4p = self.dh4p
+    dh4p.Enable = False
     dh4p.MinAddress = '1.2.3.4'
     self.assertEqual(dh4p.Status, 'Error_Misconfigured')
     dh4p.MaxAddress = '1.2.3.5'
@@ -362,7 +396,7 @@ class DnsmasqTest(unittest.TestCase):
     self.assertEqual(dh4p.Status, 'Error_Misconfigured')
 
   def testTextConfig(self):
-    dnsmasq.DNSMASQCONFIG[0] = 'testdata/dnsmasq/dnsmasq.conf'
+    dnsmasq.DNSMASQCONFIG[0] = 'testdata/dnsmasq/dnsmasq.fake.conf'
     dh4 = dnsmasq.Dhcp4Server()
     expected = 'This is not a real config, silly.'
     self.assertEqual(dh4.X_CATAWAMPUS_ORG_TextConfig, expected)
