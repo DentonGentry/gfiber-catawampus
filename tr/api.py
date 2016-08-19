@@ -65,6 +65,13 @@ class ParameterNameError(KeyError):
     super(ParameterNameError, self).__init__(msg)
     self.parameter = parameter
 
+  def __unicode__(self):
+    print 'args: %r' % (self.args,)
+    return "Can't find key: %s" % self.message
+
+  def __str__(self):
+    return self.__str__()
+
 
 class ParameterTypeError(TypeError):
   """Raised when a SetParameterValue has the wrong type."""
@@ -405,7 +412,16 @@ class CPE(TR069Service):
       else:
         keys.append(key)
         values.append(value)
-    lookup = list(self.root.LookupAndFixupExports(keys))
+    lookup = []
+    i = 0
+    try:
+      for l in self.root.LookupAndFixupExports(keys):
+        lookup.append(l)
+        i += 1
+    except KeyError as e:
+      error_list = [ParameterNameError(keys[i], e.args[0])]
+      raise SetParameterErrors(error_list=error_list,
+                               msg='Transaction Errors: %d' % len(error_list))
 
     # phase 1: grab existing values.
     oldvals = []
