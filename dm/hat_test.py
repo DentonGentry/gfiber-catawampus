@@ -99,6 +99,7 @@ class HatTests(unittest.TestCase):
     throttle = '[00:00-6:00,25,15][12:00-6:00,25,40]'
     hat_handler.FetcherThrottlingIntervals = throttle
     hat_handler.GFASUrl = 'fiber.google.com'
+    hat_handler.AdscaleMulticastAddress = '224.1.2.3:12345'
 
     self.loop.RunOnce()
     lines = open(hat.SYSTEMPROPS[0]).readlines()
@@ -123,6 +124,7 @@ class HatTests(unittest.TestCase):
     self.assertTrue('fetcher_throttling_intervals='
                     '[00:00-6:00,25,15][12:00-6:00,25,40]\n' in lines)
     self.assertTrue('gfas_url=fiber.google.com\n' in lines)
+    self.assertTrue('adscale_multicast_address=224.1.2.3:12345\n' in lines)
 
     hat_handler.HAT = False
     hat_handler.Insert = True
@@ -132,6 +134,7 @@ class HatTests(unittest.TestCase):
     hat_handler.CueToneFiredAdRequests = False
     hat_handler.FrameAccurateSplicing = True
     hat_handler.FetcherThrottlingIntervals = '[00:00-6:00,10,25]'
+    hat_handler.AdscaleMulticastAddress = '224.1.2.3:12345'
 
     self.loop.RunOnce()
     lines = open(hat.SYSTEMPROPS[0]).readlines()
@@ -155,6 +158,7 @@ class HatTests(unittest.TestCase):
     self.assertTrue('fetcher_throttling_intervals='
                     '[00:00-6:00,10,25]\n' in lines)
     self.assertTrue('gfas_url=fiber.google.com\n' in lines)
+    self.assertTrue('adscale_multicast_address=224.1.2.3:12345\n' in lines)
 
   def testContracts(self):
     hat_handler = hat.Hat()
