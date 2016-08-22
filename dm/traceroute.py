@@ -173,7 +173,7 @@ class TraceRoute(BASE_TRACEROUTE):
     print 'traceroute line: %r' % (line,)
     g = (
         re.match(
-            r'^\s*(\d+)\s+(\S+) \(([\da-fA-F:.]+)\)((\s+[\d.]+ ms)+)',
+            r'^\s*(\d+)\s+(\S+) \(\s*([\da-fA-F:.]+)\)((\s+[\d.]+ ms)+)',
             line))
     if g:
       hop = g.group(1)

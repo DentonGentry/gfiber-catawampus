@@ -46,6 +46,25 @@ class TraceRouteTest(unittest.TestCase):
     trace = traceroute.TraceRoute(self.loop.ioloop)
     tr.handle.ValidateExports(trace)
 
+  def testAlternateTraceRouteOutputFormat(self):
+    trace = traceroute.TraceRoute(self.loop.ioloop)
+    self._DoTrace(trace, 'shakespeare', 30)
+    self.assertEqual(len(trace.RouteHopsList), 6)
+    self.assertEqual(trace.RouteHopsNumberOfEntries, 6)
+    self.assertEqual(trace.RouteHopsList[1].Host, 'the.fault')
+    self.assertEqual(trace.RouteHopsList[2].Host, 'dear.brutus')
+    self.assertEqual(trace.RouteHopsList[3].Host, 'is.not')
+    self.assertEqual(trace.RouteHopsList[4].Host, 'in.our')
+    self.assertEqual(trace.RouteHopsList[5].Host, 'stars.but')
+    self.assertEqual(trace.RouteHopsList[6].Host, 'in.ourselves')
+    self.assertEqual(trace.RouteHopsList[1].HostAddress, '192.168.1.1')
+    self.assertEqual(trace.RouteHopsList[2].HostAddress, '15.99.15.99')
+    self.assertEqual(trace.RouteHopsList[3].HostAddress, '20.20.20.20')
+    self.assertEqual(trace.RouteHopsList[4].HostAddress, '40.40.40.40')
+    self.assertEqual(trace.RouteHopsList[5].HostAddress, '60.60.60.60')
+    self.assertEqual(trace.RouteHopsList[6].HostAddress, '80.80.80.80')
+    self.assertEqual(trace.DiagnosticsState, 'Complete')
+
   def testTraceRouteLocalhost(self):
     trace = traceroute.TraceRoute(self.loop.ioloop)
     self._DoTrace(trace, '127.0.0.1', 1)

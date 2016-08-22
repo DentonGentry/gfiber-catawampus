@@ -14,6 +14,18 @@ echo "traceroute to twocities.com (1.1.1.1), 30 hops max, 60 byte packets
 exit 0
 fi
 
+if [ "$target" = "shakespeare" ]; then
+echo "traceroute to juliuscaesar.com(1.2.3.4), 30 hops max, 8 byte packets
+ 1  the.fault ( 192.168.1.1)  0.245 ms  0.535 ms  0.842 ms
+ 2  dear.brutus ( 15.99.15.99)  1.982 ms  1.518 ms  1.881 ms
+ 3  is.not ( 20.20.20.20)  4.935 ms  1.550 ms  1.862 ms
+ 4  in.our ( 40.40.40.40)  1.966 ms  1.778 ms  2.074 ms
+ 5  stars.but ( 60.60.60.60)  1.955 ms  1.494 ms  1.929 ms
+ 6  in.ourselves ( 80.80.80.80)  1.903 ms  1.554 ms  1.883 ms
+"
+exit 0
+fi
+
 if [ $target = "this-name-does-not-exist" ]; then
 echo "this-name-does-not-exist: Name or service not known
 Cannot handle \"host\" cmdline arg \'this-name-does-not-exist\' on position 1 (argc 1)
