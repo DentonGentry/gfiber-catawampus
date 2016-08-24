@@ -32,16 +32,18 @@ import session
 class RemoteCommandStreamer(quotedblock.QuotedBlockStreamer):
   """A simple command protocol that lets us manipulate a TR-069 tree."""
 
-  def __init__(self, sock, address, root):
+  def __init__(self, sock, address, root, state_machine):
     """Initialize a RemoteCommandStreamer.
 
     Args:
       sock: the socket provided by mainloop.Listen
       address: the address provided by mainloop.Listen
       root: the root of the TR-069 (core.Exporter) object tree.
+      state_machine:  The http.CPEStateMachine returned by http.Listen.
     """
     quotedblock.QuotedBlockStreamer.__init__(self, sock, address)
     self.root = root
+    self.state_machine = state_machine
     self.download_manager = download.DownloadManager()
 
   def _ProcessBlock(self, lines):
@@ -165,10 +167,17 @@ class RemoteCommandStreamer(quotedblock.QuotedBlockStreamer):
         delay_seconds=0)
     return [['OK', 'Starting download.']]
 
+  def CmdWakeup(self):
+    """Trigger an ACS session."""
+    if self.state_machine is None:
+      raise Exception('No state machine to wake up')
+    self.state_machine.NewWakeupSession()
+    return [['OK', 'Starting wakeup session.']]
 
-def MakeRemoteCommandStreamer(root):
+
+def MakeRemoteCommandStreamer(root, state_machine):
   def Fn(sock, address):
-    return RemoteCommandStreamer(sock, address, root)
+    return RemoteCommandStreamer(sock, address, root, state_machine)
   return Fn
 
 
@@ -188,8 +197,8 @@ def main():
   root.Test = 'this is a test string'
   root.Export(params=['Test'], lists=['Sub'])
 
-  loop.ListenInet(('', 12999), MakeRemoteCommandStreamer(root))
-  loop.ListenUnix('/tmp/cwmpd.sock', MakeRemoteCommandStreamer(root))
+  loop.ListenInet(('', 12999), MakeRemoteCommandStreamer(root, None))
+  loop.ListenUnix('/tmp/cwmpd.sock', MakeRemoteCommandStreamer(root, None))
   loop.Start()
 
 

@@ -530,6 +530,14 @@ class CPEStateMachine(object):
     if (reason, None) not in self.event_queue:
       self._NewSession(reason)
 
+  def NewWakeupSession(self):
+    # Some external process may request a new session because e.g. the network
+    # just came up.  If we already have such a session in the queue, there's no
+    # need to add a second one.
+    reason = '6 CONNECTION REQUEST'
+    if (reason, None) not in self.event_queue:
+      self._NewSession(reason)
+
   def SetNotificationParameters(self, parameters):
     """Set the list of parameters that have changed.
 
