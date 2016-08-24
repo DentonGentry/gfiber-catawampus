@@ -49,6 +49,7 @@ import cwmpdate
 import garbage
 import handle
 import http
+import mainloop
 import session
 
 
@@ -105,6 +106,7 @@ class MockAcsConfig(object):
 
   def __init__(self, port):
     self.port = port
+    self.acs_access_attempt_count = 0
 
   def GetAcsUrl(self):
     return 'http://127.0.0.1:%d/cwmp' % self.port
@@ -113,7 +115,7 @@ class MockAcsConfig(object):
     pass
 
   def AcsAccessAttempt(self, unused_url):
-    pass
+    self.acs_access_attempt_count += 1
 
   def AcsAccessSuccess(self, unused_url):
     pass
@@ -576,6 +578,53 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
     self.assertTrue('2 PERIODIC' in inform)
     self.assertTrue('4 VALUE CHANGE' in inform)
 
+  def testAcsDisable(self):
+    http.CWMP_TMPDIR = tempfile.mkdtemp()
+    self.removedirs.append(http.CWMP_TMPDIR)
+
+    cpe_machine = self.getCpe()
+    loop = mainloop.MainLoop()
+
+    http.ACS_DISABLE_EXPIRY_SECS = 60 * 10
+    # pylint: disable=protected-access
+    acs_disabled_filename = cpe_machine._AcsDisabledFilename()
+
+    # Disable the ACS.  Make sure we logged an access attempt anyway.
+    before = cpe_machine._acs_config.acs_access_attempt_count
+    open(acs_disabled_filename, 'w')
+    loop.RunOnce()
+    cpe_machine.NewPeriodicSession()
+    cpe_machine.PingReceived()
+    self.assertEqual(len(cpe_machine.event_queue), 0)
+    after = cpe_machine._acs_config.acs_access_attempt_count
+    self.assertNotEqual(before, after)
+
+    # Now test that the file age has expired.  We have to open the file again to
+    # trigger _UpdateAcsDisabled.
+    http.ACS_DISABLE_EXPIRY_SECS = 0.1
+    open(acs_disabled_filename, 'w')
+    time.sleep(0.1)
+    loop.RunOnce()
+    cpe_machine.NewPeriodicSession()
+    cpe_machine.PingReceived()
+    self.assertEqual(len(cpe_machine.event_queue), 1)
+
+    # Clear the event queue and session, go back a step to the ACS being
+    # disabled again, then delete the file and make sure that re-enables it.
+    cpe_machine.InformResponseReceived()
+    cpe_machine.session = None
+    self.assertEqual(len(cpe_machine.event_queue), 0)
+    http.ACS_DISABLE_EXPIRY_SECS = 60 * 10
+    open(acs_disabled_filename, 'w')
+    loop.RunOnce()
+    cpe_machine.NewPeriodicSession()
+    cpe_machine.PingReceived()
+    self.assertEqual(len(cpe_machine.event_queue), 0)
+    os.unlink(acs_disabled_filename)
+    loop.RunOnce()
+    cpe_machine.NewPeriodicSession()
+    cpe_machine.PingReceived()
+    self.assertEqual(len(cpe_machine.event_queue), 1)
 
 if __name__ == '__main__':
   unittest.main()

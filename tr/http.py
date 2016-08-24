@@ -23,6 +23,7 @@ __author__ = 'apenwarr@google.com (Avery Pennarun)'
 import binascii
 import collections
 import datetime
+import os
 import random
 import socket
 import sys
@@ -42,10 +43,17 @@ import cpe_management_server
 import cwmplog
 import monohelper
 import session
+import filenotifier
+import mainloop
+import pyinotify
+
 
 PROC_IF_INET6 = '/proc/net/if_inet6'
 MAX_EVENT_QUEUE_SIZE = 64
 GETWANPORT = 'activewan'
+CWMP_TMPDIR = '/tmp/cwmp'
+DISABLE_ACS_FILE = 'disable_acs'
+ACS_DISABLE_EXPIRY_SECS = 10 * 60
 
 Url = collections.namedtuple('Url', ('method host port path'))
 
@@ -196,6 +204,15 @@ class CPEStateMachine(object):
         restrict_acs_hosts=restrict_acs_hosts)
     self.last_success_response = 0  # used by DiagUI
     self.num_599_responses = 0
+    self._acs_disabled_until = None
+
+    try:
+      notifier = filenotifier.FileNotifier(mainloop.MainLoop())
+      self.watch_acs_disabled = notifier.WatchObj(self._AcsDisabledFilename(),
+                                                  self._UpdateAcsDisabled)
+      self._UpdateAcsDisabled()
+    except pyinotify.WatchManagerError:
+      print 'cwmp temp dir (%s) does not exist' % CWMP_TMPDIR
 
   def EventQueueHandler(self):
     """Called if the event queue goes beyond the maximum threshold."""
@@ -457,7 +474,11 @@ class CPEStateMachine(object):
     self.retry_count = 0
 
   def _NewSession(self, reason):
-    if not self.session:
+    if self._AcsDisabled():
+      self._CancelSessionRetries()
+      # Touch this file so that alivemonitor doesn't kill us.
+      self._acs_config.AcsAccessAttempt(self.cpe_management_server.URL)
+    elif not self.session:
       self._CancelSessionRetries()
       self.event_queue.appendleft((reason, None))
       self.session = session.CwmpSession(
@@ -591,6 +612,23 @@ class CPEStateMachine(object):
     # This will call SendTransferComplete, so we have to already be in
     # a session.
     self.cpe.startup()
+
+  def _AcsDisabled(self):
+    return (self._acs_disabled_until is not None and
+            time.time() < self._acs_disabled_until)
+
+  def _UpdateAcsDisabled(self):
+    filename = self._AcsDisabledFilename()
+    if os.path.exists(filename):
+      self._acs_disabled_until = (os.stat(filename).st_mtime +
+                                  ACS_DISABLE_EXPIRY_SECS)
+      print ('ACS sessions suspended for %d seconds' %
+             (self._acs_disabled_until - time.time()))
+    else:
+      self._acs_disabled_until = None
+
+  def _AcsDisabledFilename(self):
+    return os.path.join(CWMP_TMPDIR, DISABLE_ACS_FILE)
 
 
 def Listen(ip, port, ping_path, acs, cpe, cpe_listener, acs_config,
