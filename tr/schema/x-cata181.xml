@@ -1038,6 +1038,14 @@ While the test is in progress, setting this parameter to {{enum|Requested}} (and
           <unsignedInt/>
         </syntax>
       </parameter>
+      <parameter name="ServerCongestionControl" access="readWrite">
+        <description>TCP congestion control to use for transmitting.</description>
+        <syntax>
+          <string>
+            <size maxLength="128"/>
+          </string>
+        </syntax>
+      </parameter>
       <parameter name="ClientRunning" access="readOnly">
         <description>True if this device is running an isostream client right now.</description>
         <syntax>

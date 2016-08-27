@@ -148,6 +148,21 @@ def WhatIfTVPrimetimeSwarm(_):
           (ISOSTREAM_KEY + 'ClientTimeLimit', 5*60)]
 
 
+@tr.experiment.Experiment
+def IsostreamCongACUBIC(_):
+  return [(ISOSTREAM_KEY + 'ServerCongestionControl', 'acubic')]
+
+
+@tr.experiment.Experiment
+def IsostreamCongTransonic(_):
+  return [(ISOSTREAM_KEY + 'ServerCongestionControl', 'transonic')]
+
+
+@tr.experiment.Experiment
+def IsostreamCongTurbulent(_):
+  return [(ISOSTREAM_KEY + 'ServerCongestionControl', 'turbulent')]
+
+
 def _KillWait(proc):
   proc.send_signal(signal.SIGTERM)
   for _ in xrange(30):
@@ -181,6 +196,7 @@ class Isostream(ISOSTREAM):
   ServerEnable = tr.cwmptypes.TriggerBool(False)
   ServerConcurrentConnections = tr.cwmptypes.Unsigned(0)
   ServerTimeLimit = tr.cwmptypes.Unsigned(60)
+  ServerCongestionControl = tr.cwmptypes.TriggerString()
   ClientEnable = tr.cwmptypes.TriggerBool(False)
   ClientEnableByScheduler = tr.cwmptypes.ReadOnlyBool(False)
   ClientRunOnSchedule = tr.cwmptypes.TriggerBool(False)
@@ -290,7 +306,8 @@ class Isostream(ISOSTREAM):
 
   @tr.mainloop.WaitUntilIdle
   def Triggered(self):
-    serversettings = (self.ServerConcurrentConnections, self.ServerTimeLimit)
+    serversettings = (self.ServerConcurrentConnections, self.ServerTimeLimit,
+                      self.ServerCongestionControl)
     if (serversettings != self.serversettings or
         self.ServerEnable != (not not self.serverproc)):
       self.serversettings = serversettings
@@ -304,6 +321,8 @@ class Isostream(ISOSTREAM):
         argv = ['run-isostream-server']
         if self.ServerConcurrentConnections:
           argv += ['-P', str(self.ServerConcurrentConnections)]
+        if self.ServerCongestionControl:
+          argv += ['-C', self.ServerCongestionControl]
         self.serverproc = subprocess.Popen(argv, close_fds=True)
         if self.ServerTimeLimit:
           def _DisableServer():
