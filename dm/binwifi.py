@@ -245,6 +245,13 @@ def ForceTvBoxWifiClient(roothandle):
   print 'ForceTvBoxWifiClient: %r does not support .ClientEnable' % model_name
 
 
+@tr.experiment.Experiment
+def Wifi24GLegacySuffix(roothandle):
+  for wlankey, wlan in _WifiConfigs(roothandle):
+    if hasattr(wlan, 'X_CATAWAMPUS_ORG_Suffix24G'):
+      yield (wlankey + 'X_CATAWAMPUS-ORG_Suffix24G'), ' (Legacy)'
+
+
 def _FreqToChan(mhz):
   if mhz / 100 == 24:
     return 1 + (mhz - 2412) / 5
@@ -750,6 +757,14 @@ class WlanConfiguration(CATA98WIFI):
       GetAutoChanType, SetAutoChanType, None,
       'WLANConfiguration.X_CATAWAMPUS-ORG_AutoChanType')
 
+  X_CATAWAMPUS_ORG_Suffix24G = tr.cwmptypes.TriggerString('')
+
+  @X_CATAWAMPUS_ORG_Suffix24G.validator
+  def ValidateSuffix24G(self, value):
+    if len(value) > 32:
+      raise ValueError('Suffix24G must be <= 32 characters')
+    return value
+
   def Triggered(self):
     """Called when a parameter is modified."""
     if self._initialized:
@@ -829,6 +844,9 @@ class WlanConfiguration(CATA98WIFI):
       cmd += ['-c', str(ch)]
     ssid = self.new_config.SSID
     if ssid:
+      if self.OperatingFrequencyBand == '2.4GHz':
+        ssid = (ssid[:32 - len(self.X_CATAWAMPUS_ORG_Suffix24G)] +
+                self.X_CATAWAMPUS_ORG_Suffix24G)
       cmd += ['-s', ssid]
     autotype = self.new_config.AutoChannelType
     if autotype:

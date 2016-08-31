@@ -159,6 +159,12 @@ For example, a value of "g,b" (or "b,g" - order is not important) means that the
           </int>
         </syntax>
       </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_Suffix24G" access="readWrite">
+        <description>2.4GHz SSID suffix.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
     </object>
 
     <object base="InternetGatewayDevice.LANDevice.{i}.WLANConfiguration.{i}.AssociatedDevice.{i}." access="readOnly" minEntries="0" maxEntries="unbounded" numEntriesParameter="TotalAssociations">
