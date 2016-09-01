@@ -324,6 +324,23 @@ class TechuiTest(unittest.TestCase):
         techui.data['wifi_signal_strength'],
         {'66:55:44:33:22:11': -11, '11:22:33:44:55:66': -66})
 
+  def testNoSignals(self):
+    techui = diagui.main.TechUI(None)
+    wlan0 = dm.fakewifi.FakeWifiWlanConfiguration()
+    wlan1 = object()
+    techui.root = dm_root.DeviceModelRoot(None, 'fakecpe', None)
+    lans = techui.root.InternetGatewayDevice.LANDeviceList
+    lans['1'].WLANConfigurationList = {
+        '1': wlan0,
+        '2': wlan1,
+    }
+    wlan0.signals = {'11:22:33:44:55:66': -66}
+
+    techui.UpdateWifiDict()
+    self.assertEquals(
+        techui.data['wifi_signal_strength'],
+        {'11:22:33:44:55:66': -66})
+
 
 if __name__ == '__main__':
   unittest.main()

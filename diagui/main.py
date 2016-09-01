@@ -309,9 +309,10 @@ class TechUI(object):
       landevlist = self.root.InternetGatewayDevice.LANDeviceList
       for dev in landevlist.itervalues():
         for wlconf in dev.WLANConfigurationList.itervalues():
-          tr.cwmptypes.AddNotifier(type(wlconf),
-                                   'SignalsStr',
-                                   lambda _: self.UpdateWifiDict())
+          if hasattr(wlconf, 'SignalsStr'):
+            tr.cwmptypes.AddNotifier(type(wlconf),
+                                     'SignalsStr',
+                                     lambda _: self.UpdateWifiDict())
     mask = tr.pyinotify.IN_MODIFY
     self.ap_wm = tr.pyinotify.WatchManager()
     self.ap_notifier = tr.pyinotify.TornadoAsyncNotifier(
@@ -374,7 +375,8 @@ class TechUI(object):
     landevlist = self.root.InternetGatewayDevice.LANDeviceList
     for dev in landevlist.itervalues():
       for wlconf in dev.WLANConfigurationList.itervalues():
-        wifi_signal_strengths.update(wlconf.signals)
+        if hasattr(wlconf, 'signals'):
+          wifi_signal_strengths.update(wlconf.signals)
     if self.SetTechUIDict('wifi_signal_strength', wifi_signal_strengths):
       self.NotifyUpdatedDict()
 
