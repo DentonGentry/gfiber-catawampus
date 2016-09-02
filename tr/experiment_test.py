@@ -140,31 +140,47 @@ class ExperimentTest(unittest.TestCase):
     self.assertEqual(Vals(), (1, 1, 'Hello'))
 
   def testSysExperiments(self):
+    # Requested system experiments at startup time are used to pre-populate
+    # the Requested field.
+    open(os.path.join(experiment.ACTIVEDIR, 'Splat1.requested'), 'w')
+    open(os.path.join(experiment.REGDIR, 'Splat2.available'), 'w')
+    open(os.path.join(experiment.ACTIVEDIR, 'Splat3.active'), 'w')
+    # ...but if a requested system experiment overlaps with a cwmpd
+    # experiment, it won't count, because cwmpd experiments don't persist
+    # across restarts.
+    open(os.path.join(experiment.ACTIVEDIR, 'TestExp2.requested'), 'w')
+
     root = core.Exporter()
     eh = experiment.ExperimentHandle(root)
     exps = experiment.Experiments(eh)
     eh.root_experiments = exps
 
-    self.assertEqual(exps.Requested, '')
-    self.assertEqual(exps.Available, 'TestExp1,TestExp2,TestExpOverlap')
+    self.assertEqual(exps.Requested, 'Splat1,Splat3')
+    self.assertEqual(exps.Available,
+                     'Splat2,TestExp1,TestExp2,TestExpOverlap')
     open(os.path.join(experiment.REGDIR, 'Foo.available'), 'w')
-    self.assertEqual(exps.Requested, '')
-    self.assertEqual(exps.Available, 'Foo,TestExp1,TestExp2,TestExpOverlap')
-    self.assertEqual(exps.Active, '')
+    self.assertEqual(exps.Requested, 'Splat1,Splat3')
+    self.assertEqual(exps.Available,
+                     'Foo,Splat2,TestExp1,TestExp2,TestExpOverlap')
+    self.assertEqual(exps.Active, '')  # Splat3 is active, but not available
     open(os.path.join(experiment.ACTIVEDIR, 'Foo.requested'), 'w')
-    self.assertEqual(exps.Available, 'Foo,TestExp1,TestExp2,TestExpOverlap')
+    self.assertEqual(exps.Available,
+                     'Foo,Splat2,TestExp1,TestExp2,TestExpOverlap')
     self.assertEqual(exps.Active, '')
     open(os.path.join(experiment.ACTIVEDIR, 'Foo.active'), 'w')
-    self.assertEqual(exps.Available, 'Foo,TestExp1,TestExp2,TestExpOverlap')
+    self.assertEqual(exps.Available,
+                     'Foo,Splat2,TestExp1,TestExp2,TestExpOverlap')
     self.assertEqual(exps.Active, 'Foo')
     os.unlink(os.path.join(experiment.REGDIR, 'Foo.available'))
-    self.assertEqual(exps.Available, 'TestExp1,TestExp2,TestExpOverlap')
+    self.assertEqual(exps.Available,
+                     'Splat2,TestExp1,TestExp2,TestExpOverlap')
     self.assertEqual(exps.Active, '')
     os.unlink(os.path.join(experiment.ACTIVEDIR, 'Foo.requested'))
     os.unlink(os.path.join(experiment.ACTIVEDIR, 'Foo.active'))
 
     open(os.path.join(experiment.REGDIR, 'Goo.available'), 'w')
-    self.assertEqual(exps.Available, 'Goo,TestExp1,TestExp2,TestExpOverlap')
+    self.assertEqual(exps.Available,
+                     'Goo,Splat2,TestExp1,TestExp2,TestExpOverlap')
     self.assertEqual(exps.Active, '')
     exps.Requested = 'Foo, Goo '
     self.assertEqual(exps.Active, '')

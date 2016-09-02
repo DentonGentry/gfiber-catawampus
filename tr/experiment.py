@@ -102,7 +102,8 @@ class Experiments(CATABASE.Experiments):
       # exception at startup time, so catch it if something goes wrong.
       req = ((_GetSystemExperiments(ACTIVEDIR, '.active') |
               _GetSystemExperiments(ACTIVEDIR, '.requested')) -
-             _GetSystemExperiments(ACTIVEDIR, '.unrequested'))
+             _GetSystemExperiments(ACTIVEDIR, '.unrequested') -
+             set(registered.keys()))
       self.Requested = ','.join(sorted(req))
     except (IOError, OSError) as e:
       traceback.print_exc()
@@ -129,7 +130,8 @@ class Experiments(CATABASE.Experiments):
   @property
   def Active(self):
     # Note: unlike Available, order of the Active object is significant,
-    # so we shouldn't sort it.
+    # so we shouldn't sort it. (But system experiments are unordered, so
+    # we sort those.)
     available = self.Available
     active = [name for name, unused_obj in self.active]
     sysactive = set()
