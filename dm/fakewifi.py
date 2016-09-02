@@ -130,6 +130,7 @@ class FakeWifiWlanConfiguration(CATA98WIFI):
   X_CATAWAMPUS_ORG_Width24G = tr.cwmptypes.ReadOnlyString('20')
   X_CATAWAMPUS_ORG_Width5G = tr.cwmptypes.ReadOnlyString('40')
   X_CATAWAMPUS_ORG_AutoDisableRecommended = tr.cwmptypes.ReadOnlyBool(False)
+  X_CATAWAMPUS_ORG_Suffix24G = tr.cwmptypes.TriggerString('')
   SignalsStr = tr.cwmptypes.ReadOnlyString('')
 
   def __init__(self):

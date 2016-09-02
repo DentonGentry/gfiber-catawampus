@@ -552,7 +552,8 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
                    'X_CATAWAMPUS-ORG_InitiallyRecommendedChannel',
                    'X_CATAWAMPUS-ORG_AutoChanType',
                    'X_CATAWAMPUS-ORG_AllowAutoDisable',
-                   'X_CATAWAMPUS-ORG_AutoDisableRecommended'])
+                   'X_CATAWAMPUS-ORG_AutoDisableRecommended',
+                   'X_CATAWAMPUS-ORG_Suffix24G'])
 
     self.AssociatedDeviceList = tr.core.AutoDict(
         'AssociatedDeviceList', iteritems=self.IterAssociations,
