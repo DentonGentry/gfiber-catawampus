@@ -35,6 +35,23 @@ def IOLoop():
   return tr.mainloop.IOLoopWrapper.instance()
 
 
+def ReadOnuStats():
+  """Read the ONU stat file and create JSON object."""
+  try:
+    stats = open(ONU_STAT_FILE).read()
+  except IOError as e:
+    if e.errno != errno.ENOENT:
+      print 'Failed to read onu stat file: %s' % e
+    return
+
+  try:
+    json_stats = json.loads(stats)
+  except ValueError as e:
+    print 'Failed to decode onu stat file: %s' % e
+    return
+  return json_stats
+
+
 def JsonGet(page, ui, update_dictionary):
   """Handle a request to get a new version of a dict when it's available.
 
@@ -295,6 +312,7 @@ class TechUI(object):
                  'self_signals': {},
                  'host_names': {},
                  'ip_addr': {},
+                 'onu_stats': {},
                  'softversion': '',
                  'serialnumber': '',
                  'checksum': 0}
@@ -421,6 +439,7 @@ class TechUI(object):
     self.UpdateWifiDict()
     self.UpdateAPDict()
     self.UpdateCheckSum()
+    self.UpdateOnuStats()
 
   def NotifyUpdatedDict(self):
     self.UpdateCheckSum()
@@ -440,6 +459,11 @@ class TechUI(object):
         if host_name.startswith('GFiberTV'):
           tv_ip_addrs.append(self.data['ip_addr'][mac_addr])
     return tv_ip_addrs
+
+  def UpdateOnuStats(self):
+    stats = ReadOnuStats()
+    if stats is not None:
+      self.SetTechUIDict('onu_stats', stats)
 
 
 class DiagUI(object):
@@ -582,25 +606,13 @@ class DiagUI(object):
     # interface.
     self.data['connected'] = not not tr.helpers.Activewan(ACTIVEWAN)
 
-    self.ReadOnuStats()
+    self.UpdateOnuStats()
     self.UpdateCheckSum()
 
-  def ReadOnuStats(self):
-    """Read the ONU stat file and store into self.data."""
-    try:
-      stats = open(ONU_STAT_FILE).read()
-    except IOError as e:
-      if e.errno != errno.ENOENT:
-        print 'Failed to read onu stat file: %s' % e
-      return
-
-    try:
-      json_stats = json.loads(stats)
-    except ValueError as e:
-      print 'Failed to decode onu stat file: %s' % e
-      return
-
-    self.data.update(json_stats)
+  def UpdateOnuStats(self):
+    stats = ReadOnuStats()
+    if stats is not None:
+      self.data.update(stats)
 
 
 class MainApplication(tornado.web.Application):

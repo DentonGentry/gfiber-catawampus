@@ -150,7 +150,7 @@ domain home.allenfamily.com"""
     app.listen(8880)
     main_loop = tr.mainloop.MainLoop()
     diagui.main.ONU_STAT_FILE = 'testdata/onu_stats1.json'
-    app.diagui.ReadOnuStats()
+    app.diagui.UpdateOnuStats()
     self.assertTrue('onu_wan_connected' in app.diagui.data)
     self.assertFalse('onu_serial' in app.diagui.data)
     self.checksum = '0'
@@ -162,7 +162,7 @@ domain home.allenfamily.com"""
     self.assertTrue(jsdata['onu_wan_connected'])
 
     diagui.main.ONU_STAT_FILE = 'testdata/onu_stats2.json'
-    app.diagui.ReadOnuStats()
+    app.diagui.UpdateOnuStats()
     response = AsynchFetch(url_temp)
     response.Wait(main_loop)
     jsdata = json.loads(response.resp.body)
@@ -174,7 +174,7 @@ domain home.allenfamily.com"""
   def testNoOnuStats(self):
     app = diagui.main.MainApplication(None, None)
     diagui.main.ONU_STAT_FILE = '/no/such/file'
-    app.diagui.ReadOnuStats()
+    app.diagui.UpdateOnuStats()
     # just checking whether there is an exception
 
 

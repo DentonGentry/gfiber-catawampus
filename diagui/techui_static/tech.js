@@ -129,6 +129,7 @@ function getData(graph_array) {
       }
       showDeviceTable('#device_info', data['host_names'], data['ip_addr']);
       showBitloading(data);
+      showChannelStats(data);
       $('#softversion').html($('<div/>').text(data['softversion']).html());
       // Send requests at regular intervals
       setTimeout(function() {getData(graph_array)}, 800);
@@ -268,5 +269,39 @@ function showBitloading(data) {
         'style="background-color:' + color + '">' + bitloading[i] + '</span>');
     }
     $('#bitloading').append('<br style="clear:both"><br>');
+  }
+}
+
+function showChannelStats(data) {
+  channel_msg = '';
+  band_msg = '';
+
+  req_chan = data['onu_stats']['onu_requested_channel'];
+  curr_chan = data['onu_stats']['onu_current_channel'];
+  if (req_chan == -1) {
+    // Either no channel received yet or fiber jack doesn't have tuneable laser
+    channel_msg = 'No channel received yet.';
+  } else {
+    if (req_chan == curr_chan) {
+      channel_msg = 'Successfully tuned to channel ' + req_chan + '.';
+    } else {
+      channel_msg = 'Failed to tune to channel ' + req_chan;
+      band_msg = 'Band ' + channelToBand(req_chan) + ' required.';
+    }
+    band_msg += ' ONT band: ' + channelToBand(curr_chan);
+  }
+  $('#onu_channel').html($('<div/>').text(channel_msg).html());
+  $('#onu_band').html($('<div/>').text(band_msg).html());
+}
+
+function channelToBand(channel) {
+  if (5 <= channel && channel <= 8) {
+    return 1;
+  } else if (9 <= channel && channel <= 12) {
+    return 2;
+  } else if (13 <= channel && channel <= 16) {
+    return 3;
+  } else {
+    return '[invalid_channel: ' + channel + ']';
   }
 }
