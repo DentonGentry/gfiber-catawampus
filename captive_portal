@@ -17,21 +17,43 @@
 
 __author__ = 'willangley@google.com (Will Angley)'
 
+import fnmatch
+import os
 import subprocess
 import sys
+import urlparse
 import google3
 import bup.options
+import tr.helpers
 
 optspec = """
 captive_portal start [options...]
 captive_portal restart [options...]
 captive_portal stop
 --
-a,allowed-ips= list of allowed IPs/subnets []
-d,dry-run      don't modify iptables
-p,port=        port on which HTTP bouncer will listen [8888]
-u,url=         redirect URL []
+a,allowed-ips=       list of allowed IPs/subnets []
+d,dry-run            don't modify iptables
+e,extra-tls-hosts=   list of extra allowed TLS hosts []
+p,port=              port on which HTTP bouncer will listen [8888]
+u,url=               redirect URL []
 """
+
+sniproxy_conf = """# -- captive_portal filtering config --
+resolver {
+  nameserver 127.0.0.1
+}
+
+listen 8443 {
+  protocol tls
+  table https_hosts
+}
+
+table https_hosts {
+%(tls_host_lines)s
+}
+"""
+
+SNIPROXY_CONFIG_FILE = ['/tmp/sniproxy.conf']
 
 
 def iptables(*args):
@@ -92,6 +114,48 @@ def stop_http_bouncer():
   subprocess.call(['pkillwait', 'http_bouncer'])
 
 
+def tls_host_lines(tls_hosts):
+  """Make sniproxy config lines allowing hosts or wildcards in tls_hosts."""
+  config_fragments = []
+  for host in tls_hosts:
+    # wildcards are easier to work with, but sniproxy needs regexps
+    if '*' in host:
+      host_with_gunk = fnmatch.translate(host)
+      host = '%s$' % host_with_gunk[:-len(fnmatch.translate(''))]
+      host = host.replace('\\', '\\\\')
+
+    config_fragments.append('  %s *:443' % host)
+
+  return '\n'.join(config_fragments)
+
+
+def start_sniproxy():
+  """Start sniproxy, with a custom config if requested on the command line."""
+  tls_hosts = []
+  if opt.url:
+    redirect_host = urlparse.urlparse(opt.url).netloc
+    tls_hosts.append(redirect_host)
+
+  if opt.extra_tls_hosts:
+    tls_hosts += opt.extra_tls_hosts.split()
+
+  if tls_hosts:
+    tr.helpers.WriteFileAtomic(
+        SNIPROXY_CONFIG_FILE[0],
+        sniproxy_conf % {
+            'tls_host_lines': tls_host_lines(tls_hosts)})
+  else:
+    # sniproxy will fall back to a config baked into the image in this case.
+    if os.path.exists(SNIPROXY_CONFIG_FILE[0]):
+      os.unlink(SNIPROXY_CONFIG_FILE[0])
+
+  return subprocess.call(['start', 'sniproxy'])
+
+
+def stop_sniproxy():
+  subprocess.call(['stop', 'sniproxy'])
+
+
 if __name__ == '__main__':
   o = bup.options.Options(optspec)
   (opt, unused_flags, extra) = o.parse(sys.argv[1:])
@@ -101,19 +165,23 @@ if __name__ == '__main__':
 
   exitcode = 0
   command = extra[0]
-  if command in ['start', 'restart']:
-    stop_http_bouncer()
-    stop_iptables()
 
-    if opt.allowed_ips:
-      exitcode |= start_allowed_ips()
-    if opt.port and opt.url:
-      exitcode |= start_http_bouncer()
-  elif command == 'stop':
+  if command in ['start', 'restart', 'stop']:
     stop_http_bouncer()
     stop_iptables()
+    stop_sniproxy()
   else:
     o.fatal('Could not understand command: %s' % command)
 
+  if command in ['start', 'restart']:
+    if opt.allowed_ips:
+      exitcode |= start_allowed_ips()
+
+    if opt.port and opt.url:
+      exitcode |= start_http_bouncer()
+
+  # We want sniproxy to be running config for autoprovisioning,
+  # even if the captive portal is otherwise off.
+  exitcode |= start_sniproxy()
   sys.exit(exitcode)
 

@@ -54,10 +54,12 @@ class CaptivePortalTest(unittest.TestCase):
     exp_cmd = [
         captive_portal.CAPTIVE_PORTAL,
         'start',
+        '-u',
+        'https://youtube.com',
         '-a',
         '1.2.3.4 5.6.7.8',
-        '-u',
-        'https://youtube.com'
+        '-e',
+        '*.gfsvc.com fonts.googleapis.com fonts.gstatic.com'
     ]
     self.assertEquals(exp_cmd, cp._command)
     self.assertEquals(cp.Status, 'Enabled')
@@ -73,10 +75,12 @@ class CaptivePortalTest(unittest.TestCase):
     exp_cmd = [
         captive_portal.CAPTIVE_PORTAL,
         'start',
+        '-u',
+        'https://youtube.com',
         '-a',
         '1.2.3.4 5.6.7.8',
-        '-u',
-        'https://youtube.com'
+        '-e',
+        '*.gfsvc.com fonts.googleapis.com fonts.gstatic.com'
     ]
     self.assertEquals(exp_cmd, cp._command)
     self.assertEquals(cp.Status, 'Enabled')
