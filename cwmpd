@@ -96,12 +96,6 @@ def main():
   handle = root.handle
   notifier = tr.filenotifier.FileNotifier(loop)
   tr.cwmptypes.SetFileBackedNotifier(notifier)
-  if opt.rcmd_port:
-    loop.ListenInet((opt.listenip, opt.rcmd_port),
-                    tr.rcommand.MakeRemoteCommandStreamer(handle))
-  if opt.unix_path:
-    loop.ListenUnix(opt.unix_path,
-                    tr.rcommand.MakeRemoteCommandStreamer(handle))
 
   if opt.port:
     acs = cpe = None
@@ -150,6 +144,12 @@ def main():
                               lambda *args: _GotData(loop, *args),
                               loop.ioloop.READ)
 
+  if opt.rcmd_port:
+    loop.ListenInet((opt.listenip, opt.rcmd_port),
+                    tr.rcommand.MakeRemoteCommandStreamer(handle, cpe_machine))
+  if opt.unix_path:
+    loop.ListenUnix(opt.unix_path,
+                    tr.rcommand.MakeRemoteCommandStreamer(handle, cpe_machine))
   if opt.diagui:
     inst = diagui.main.MainApplication(root, cpe_machine,
                                        run_techui=opt.techui)

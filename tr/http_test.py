@@ -542,6 +542,21 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
     cpe_machine.NewPeriodicSession()
     m.ReplayAll()
 
+  def testNewWakeupSession(self):
+    cpe_machine = self.getCpe()
+
+    # Create mocks of ioloop, and stubout the time function.
+    m = mox.Mox()
+    m.StubOutWithMock(cpe_machine, 'Run')
+    cpe_machine.Run()
+    m.ReplayAll()
+
+    self.assertFalse(('6 CONNECTION REQUEST', None) in cpe_machine.event_queue)
+    cpe_machine.NewWakeupSession()
+    self.assertTrue(('6 CONNECTION REQUEST', None) in cpe_machine.event_queue)
+    cpe_machine.NewWakeupSession()
+    m.ReplayAll()
+
   def testEventQueue(self):
     cpe_machine = self.getCpe()
     m = mox.Mox()
