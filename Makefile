@@ -69,6 +69,7 @@ LINT_TASKS?=12
 # the runtime.  For added fun, gpylint has bugs if you specify files from
 # more than one directory at once, so break it out by directory.
 lint: \
+    captive_portal.lint \
     cwmp.lint \
     cwmpd.lint \
     $(patsubst %,%.dirlint,$(LINT_DIRS))
