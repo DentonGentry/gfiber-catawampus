@@ -1,0 +1,119 @@
+#!/usr/bin/env python
+# Copyright 2016 Google Inc. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+"""Command-line client to start the captive portal."""
+
+__author__ = 'willangley@google.com (Will Angley)'
+
+import subprocess
+import sys
+import google3
+import bup.options
+
+optspec = """
+captive_portal start [options...]
+captive_portal restart [options...]
+captive_portal stop
+--
+a,allowed-ips= list of allowed IPs/subnets []
+d,dry-run      don't modify iptables
+p,port=        port on which HTTP bouncer will listen [8888]
+u,url=         redirect URL []
+"""
+
+
+def iptables(*args):
+  if opt.dry_run:
+    return 0
+  return subprocess.call(['iptables'] + list(args))
+
+
+def ip6tables(*args):
+  if opt.dry_run:
+    return 0
+  return subprocess.call(['ip6tables'] + list(args))
+
+
+def ip46tables(*args):
+  return iptables(*args) | ip6tables(*args)
+
+
+def start_allowed_ips():
+  """Configure iptables to allow traffic to whitelisted IP addresses."""
+  code = 0
+
+  for dest in opt.allowed_ips.split():
+    # IPv4 only because our version of TR-069 is too
+    code |= iptables('-t', 'filter', '-A', 'acs-captive-portal-filter',
+                     '-d', dest, '-j', 'ACCEPT')
+    code |= iptables('-t', 'nat', '-A', 'acs-captive-portal-nat', '-d', dest,
+                     '-j', 'ACCEPT')
+
+  return code
+
+
+def stop_iptables():
+  iptables('-t', 'nat', '-F', 'acs-captive-portal-nat')
+  ip46tables('-t', 'filter', '-F', 'acs-captive-portal-input')
+  ip46tables('-t', 'filter', '-F', 'acs-captive-portal-filter')
+
+
+def start_http_bouncer():
+  """Start the HTTP bouncer and NAT outbound traffic through it."""
+  http_bouncer = subprocess.Popen(['http_bouncer', '-p', str(opt.port),
+                                   '-u', opt.url])
+
+  if http_bouncer.poll():
+    print >>sys.stderr, 'Bouncer failed to start!'
+    return http_bouncer.returncode
+
+  code = ip46tables('-t', 'filter', '-A', 'acs-captive-portal-input',
+                    '-p', 'tcp', '--dport', str(opt.port), '-j', 'ACCEPT')
+  # TODO(willangley): should this also work on IPv6?
+  code |= iptables('-t', 'nat', '-A', 'acs-captive-portal-nat', '-p', 'tcp',
+                   '--dport', '80', '-j', 'REDIRECT',
+                   '--to-ports', str(opt.port))
+  return code
+
+
+def stop_http_bouncer():
+  subprocess.call(['pkillwait', 'http_bouncer'])
+
+
+if __name__ == '__main__':
+  o = bup.options.Options(optspec)
+  (opt, unused_flags, extra) = o.parse(sys.argv[1:])
+
+  if len(extra) != 1:
+    o.fatal('Got %d commands, want exactly 1.' % len(extra))
+
+  exitcode = 0
+  command = extra[0]
+  if command in ['start', 'restart']:
+    stop_http_bouncer()
+    stop_iptables()
+
+    if opt.allowed_ips:
+      exitcode |= start_allowed_ips()
+    if opt.port and opt.url:
+      exitcode |= start_http_bouncer()
+  elif command == 'stop':
+    stop_http_bouncer()
+    stop_iptables()
+  else:
+    o.fatal('Could not understand command: %s' % command)
+
+  sys.exit(exitcode)
+
