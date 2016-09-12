@@ -21,13 +21,13 @@
 __author__ = 'estrulyov@google.com (Eugene Strulyov)'
 
 import google3
+import dm.captive_portal
 from tr.wvtest import unittest
 import tr.session
-import captive_portal
 
 
 # Test version of CaptivePortal that overrides _runCmd() method
-class CaptivePortal(captive_portal.CaptivePortal):
+class CaptivePortal(dm.captive_portal.CaptivePortal):
 
   def __init__(self, interfaces):
     super(CaptivePortal, self).__init__()
@@ -52,7 +52,7 @@ class CaptivePortalTest(unittest.TestCase):
     self.loop.RunOnce(timeout=1)
 
     exp_cmd = [
-        captive_portal.CAPTIVE_PORTAL,
+        dm.captive_portal.CAPTIVE_PORTAL,
         'start',
         '-u',
         'https://youtube.com',
@@ -73,7 +73,7 @@ class CaptivePortalTest(unittest.TestCase):
     self.loop.RunOnce(timeout=1)
 
     exp_cmd = [
-        captive_portal.CAPTIVE_PORTAL,
+        dm.captive_portal.CAPTIVE_PORTAL,
         'start',
         '-u',
         'https://youtube.com',
@@ -98,7 +98,7 @@ class CaptivePortalTest(unittest.TestCase):
     self.loop.RunOnce(timeout=1)
 
     exp_cmd = [
-        captive_portal.CAPTIVE_PORTAL,
+        dm.captive_portal.CAPTIVE_PORTAL,
         'stop',
     ]
     self.assertEquals(exp_cmd, cp._command)
