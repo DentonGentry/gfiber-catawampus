@@ -32,6 +32,7 @@ captive_portal restart [options...]
 captive_portal stop
 --
 a,allowed-ips=       list of allowed IPs/subnets []
+A,authorizer-url=    authorizer URL to query []
 d,dry-run            don't modify iptables
 e,extra-tls-hosts=   list of extra allowed TLS hosts []
 p,port=              port on which HTTP bouncer will listen [8888]
@@ -114,6 +115,21 @@ def stop_http_bouncer():
   subprocess.call(['pkillwait', 'http_bouncer'])
 
 
+def start_authorizer():
+  """Start the authorizer."""
+  authorizer = subprocess.Popen(['authorizer', '-u', opt.authorizer_url])
+
+  if authorizer.poll():
+    print >>sys.stderr, 'Authorizer failed to start!'
+    return authorizer.returncode
+
+  return 0
+
+
+def stop_authorizer():
+  subprocess.call(['pkillwait', 'authorizer'])
+
+
 def tls_host_lines(tls_hosts):
   """Make sniproxy config lines allowing hosts or wildcards in tls_hosts."""
   config_fragments = []
@@ -167,6 +183,7 @@ if __name__ == '__main__':
   command = extra[0]
 
   if command in ['start', 'restart', 'stop']:
+    stop_authorizer()
     stop_http_bouncer()
     stop_iptables()
     stop_sniproxy()
@@ -179,6 +196,9 @@ if __name__ == '__main__':
 
     if opt.port and opt.url:
       exitcode |= start_http_bouncer()
+
+    if opt.authorizer_url:
+      exitcode |= start_authorizer()
 
   # We want sniproxy to be running config for autoprovisioning,
   # even if the captive portal is otherwise off.
