@@ -1,0 +1,4 @@
+#!/bin/sh
+
+echo iperf3: $*
+exit 0

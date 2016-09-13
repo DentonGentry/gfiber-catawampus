@@ -33,6 +33,7 @@ import dm.hat
 import dm.inadyn
 import dm.ip_diag
 import dm.ip_diag_http
+import dm.ip_diag_iperf3
 import dm.ip_diag_ping
 import dm.isostream
 import dm.management_server
@@ -111,6 +112,7 @@ class DeviceModelRoot(tr.core.Exporter):
     cata.GVSB = dm.gvsb.Gvsb()
     cata.HAT = dm.hat.Hat()
     cata.HttpDownload = dm.ip_diag_http.DiagHttpDownload()
+    cata.Iperf3 = dm.ip_diag_iperf3.DiagIperf3()
     cata.Isostream = dm.isostream.Isostream()
     cata.Ping = dm.ip_diag_ping.DiagPing()
     cata.SelfTest = dm.selftest.SelfTest()
