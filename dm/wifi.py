@@ -93,8 +93,8 @@ class PreSharedKey98(WLANDEV.PreSharedKey):
     """Compute WPA2 key from a passphrase."""
     if self.passphrase is None:
       return None
-    return pbkdf2.pbkdf2_hex(self.passphrase, salt=salt,
-                             iterations=4096, keylen=32)
+    b = bytearray(self.passphrase, encoding='ascii', errors='ignore')
+    return pbkdf2.pbkdf2_hex(b, salt=salt, iterations=4096, keylen=32)
 
   def SetPreSharedKey(self, value):
     self.key = value
@@ -108,6 +108,13 @@ class PreSharedKey98(WLANDEV.PreSharedKey):
       'WLANConfiguration.{i}.PreSharedKey.{i}.PreSharedKey')
 
   def SetKeyPassphrase(self, value):
+    # 802.11i-2004, Annex H.4.1: Each character in the pass-phrase must have an
+    # encoding in the range of 32 to 126 (decimal), inclusive.
+    try:
+      bytearray(value, encoding='ascii')
+    except UnicodeEncodeError:
+      # Turn this into a INVALID_PARAM_VALUE(9007) CWMP Fault
+      raise ValueError('WPA Passphrase must be ascii')
     self.passphrase = value
     self.key = None
     self.key_pbkdf2 = None

@@ -47,6 +47,17 @@ class WifiTest(unittest.TestCase):
     self.assertEqual(
         key, '0dc0d6eb90555ed6419756b9a15ec3e3209b63df707dd508d14581f8982721af')
 
+  def testUnicodePBKDF2(self):
+    psk = wifi.PreSharedKey98()
+    psk.passphrase = u'\xc2\xb4\nX'
+    key = psk.GetKey('SSID')
+    self.assertEqual(
+        key, '508cee82b5e379fff82ab7bc8f0e81cebf051c13e1613be9865ba5e0e53bd291')
+
+  def testUnicodeKeyPassphrase(self):
+    psk = wifi.PreSharedKey98()
+    self.assertRaises(ValueError, psk.KeyPassphrase, u'\xc2\xb4\nX')
+
   def testWEPKeyValidate(self):
     wk = wifi.WEPKey98()
     tr.handle.ValidateExports(wk)
