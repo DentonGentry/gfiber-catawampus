@@ -86,6 +86,27 @@ def AlwaysEnableSetupNetwork(roothandle):
     landevice_i = int(wlankey.split('.')[2])
     if landevice_i == 2:
       yield (wlankey + 'Enable'), True
+      yield (wlankey + 'SSIDAdvertisementEnabled'), False
+      yield (wlankey + 'X_CATAWAMPUS-ORG_OverrideSSID'), 'GFiberSetupAutomation'
+
+
+@tr.experiment.Experiment
+def AlwaysEnableFiberManagedWifi(roothandle):
+  """Enable a filtered guest network for early access users."""
+  for wlankey, _ in _WifiConfigs(roothandle):
+    landevice_i = int(wlankey.split('.')[2])
+    if landevice_i == 2:
+      yield (wlankey + 'Enable'), True
+      yield (wlankey + 'SSIDAdvertisementEnabled'), True
+      yield (wlankey + 'X_CATAWAMPUS-ORG_OverrideSSID'), 'Google Fiber Wi-Fi'
+
+  yield ('Device.CaptivePortal.URL',
+         'https://fiber-managed-wifi-tos.appspot.com/?id=%(mac)s')
+  yield ('Device.CaptivePortal.X_CATAWAMPUS-ORG_AuthorizerURL',
+         'https://fiber-managed-wifi-tos.appspot.com/tos-accepted?id=%(mac)s')
+  yield ('Device.CaptivePortal.X_CATAWAMPUS-ORG_ExtraTLSHosts',
+         '*.gfsvc.com fonts.googleapis.com fonts.gstatic.com')
+  yield 'Device.CaptivePortal.Enable', True
 
 
 @tr.experiment.Experiment
@@ -758,6 +779,7 @@ class WlanConfiguration(CATA98WIFI):
       'WLANConfiguration.X_CATAWAMPUS-ORG_AutoChanType')
 
   X_CATAWAMPUS_ORG_Suffix24G = tr.cwmptypes.TriggerString('')
+  X_CATAWAMPUS_ORG_OverrideSSID = tr.cwmptypes.TriggerString('')
 
   @X_CATAWAMPUS_ORG_Suffix24G.validator
   def ValidateSuffix24G(self, value):
@@ -844,6 +866,9 @@ class WlanConfiguration(CATA98WIFI):
       cmd += ['-c', str(ch)]
     ssid = self.new_config.SSID
     if ssid:
+      if self.X_CATAWAMPUS_ORG_OverrideSSID:
+        ssid = self.X_CATAWAMPUS_ORG_OverrideSSID
+
       if self.OperatingFrequencyBand == '2.4GHz':
         ssid = (ssid[:32 - len(self.X_CATAWAMPUS_ORG_Suffix24G)] +
                 self.X_CATAWAMPUS_ORG_Suffix24G)

@@ -10894,7 +10894,7 @@ The CPE MUST permit the captive portal URL to be set to {{empty}}, which has the
           </string>
         </syntax>
       </parameter>
-      <parameter name="X_CATAWAMPUS_ORG_AuthorizerURL" access="readWrite">
+      <parameter name="X_CATAWAMPUS-ORG_AuthorizerURL" access="readWrite">
         <description>Optional URL of an authorization service. If specified will be queried when users try to join the captive portal network.</description>
         <syntax>
           <string>
@@ -10902,7 +10902,7 @@ The CPE MUST permit the captive portal URL to be set to {{empty}}, which has the
           </string>
         </syntax>
       </parameter>
-      <parameter name="X_CATAWAMPUS_ORG_ExtraTLSHosts" access="readWrite">
+      <parameter name="X_CATAWAMPUS-ORG_ExtraTLSHosts" access="readWrite">
         <description>{{list}} List items represent hosts to which TLS (port 443, usually HTTPS) traffic will be allowed to, even if they are not in the AllowedList.
 Each entry in the list may either be a domain name, or a domain name with a wildcard.</description>
         <syntax>
