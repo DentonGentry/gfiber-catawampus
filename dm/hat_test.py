@@ -93,6 +93,7 @@ class HatTests(unittest.TestCase):
     hat_handler.DiskSpaceCleanupIntervalSecs = 180
     hat_handler.HatCatalogPollingIntervalSecs = 600
     hat_handler.AdFetchMaxLeadTimeSecs = 0
+    hat_handler.AdCreativeGracePeriodSecs = 0
     hat_handler.MinImpressionViewDurationPts = 450000
     hat_handler.CueToneFiredAdRequests = True
     hat_handler.FrameAccurateSplicing = False
@@ -119,6 +120,7 @@ class HatTests(unittest.TestCase):
     self.assertTrue('disk_space_cleanup_interval_secs=180\n' in lines)
     self.assertTrue('hat_catalog_polling_interval_secs=600\n' in lines)
     self.assertTrue('ad_fetch_max_lead_time_secs=0\n' in lines)
+    self.assertTrue('ad_creative_grace_period_secs=0\n' in lines)
     self.assertTrue('min_impression_view_duration_pts=450000\n' in lines)
     self.assertTrue('cue_tone_fired_ad_requests=1\n' in lines)
     self.assertTrue('frame_accurate_splicing=0\n' in lines)
@@ -132,6 +134,7 @@ class HatTests(unittest.TestCase):
     hat_handler.Insert = True
     hat_handler.MinRepeatHatReportIntervalSecs = 600
     hat_handler.AdFetchMaxLeadTimeSecs = 3601
+    hat_handler.AdCreativeGracePeriodSecs = 42
     hat_handler.DiskSpaceHighWatermarkPercent = 90
     hat_handler.CueToneFiredAdRequests = False
     hat_handler.FrameAccurateSplicing = True
@@ -155,6 +158,7 @@ class HatTests(unittest.TestCase):
     self.assertTrue('disk_space_cleanup_interval_secs=180\n' in lines)
     self.assertTrue('hat_catalog_polling_interval_secs=600\n' in lines)
     self.assertTrue('ad_fetch_max_lead_time_secs=3601\n' in lines)
+    self.assertTrue('ad_creative_grace_period_secs=42\n' in lines)
     self.assertTrue('min_impression_view_duration_pts=450000\n' in lines)
     self.assertTrue('cue_tone_fired_ad_requests=0\n' in lines)
     self.assertTrue('frame_accurate_splicing=1\n' in lines)

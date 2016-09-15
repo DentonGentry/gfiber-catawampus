@@ -51,6 +51,7 @@ class Hat(CATABASE.HAT):
   DiskSpaceCleanupIntervalSecs = tr.cwmptypes.TriggerUnsigned()
   HatCatalogPollingIntervalSecs = tr.cwmptypes.TriggerUnsigned()
   AdFetchMaxLeadTimeSecs = tr.cwmptypes.TriggerUnsigned()
+  AdCreativeGracePeriodSecs = tr.cwmptypes.TriggerUnsigned()
   MinImpressionViewDurationPts = tr.cwmptypes.TriggerInt()
   CueToneFiredAdRequests = tr.cwmptypes.TriggerBool()
   FrameAccurateSplicing = tr.cwmptypes.TriggerBool()
@@ -111,6 +112,8 @@ class Hat(CATABASE.HAT):
                               'hat_catalog_polling_interval_secs')
       self.printIfSetUnsigned(f, self.AdFetchMaxLeadTimeSecs,
                               'ad_fetch_max_lead_time_secs')
+      self.printIfSetUnsigned(f, self.AdCreativeGracePeriodSecs,
+                              'ad_creative_grace_period_secs')
       self.printIfSetSigned(f, self.MinImpressionViewDurationPts,
                             'min_impression_view_duration_pts')
       self.printIfSetBool(f, self.CueToneFiredAdRequests,
