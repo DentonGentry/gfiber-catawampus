@@ -38,6 +38,7 @@ class CaptivePortal(CATA181_CAPTIVE_PORTAL):
   AllowedList = tr.cwmptypes.TriggerString('')
   Enable = tr.cwmptypes.TriggerBool(False)
   URL = tr.cwmptypes.TriggerString('')
+  X_CATAWAMPUS_ORG_AuthorizerURL = tr.cwmptypes.TriggerString('')
   X_CATAWAMPUS_ORG_ExtraTLSHosts = tr.cwmptypes.TriggerString(
       '*.gfsvc.com fonts.googleapis.com fonts.gstatic.com')
 
@@ -61,6 +62,8 @@ class CaptivePortal(CATA181_CAPTIVE_PORTAL):
       args = [CAPTIVE_PORTAL, 'start', '-u', self.URL]
       if self.AllowedList:
         args += ['-a', self.AllowedList]
+      if self.X_CATAWAMPUS_ORG_AuthorizerURL:
+        args += ['-A', self.X_CATAWAMPUS_ORG_AuthorizerURL]
       if self.X_CATAWAMPUS_ORG_ExtraTLSHosts:
         args += ['-e', self.X_CATAWAMPUS_ORG_ExtraTLSHosts]
     else:
