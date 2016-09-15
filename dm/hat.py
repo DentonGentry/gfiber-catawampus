@@ -58,6 +58,7 @@ class Hat(CATABASE.HAT):
   GFASUrl = tr.cwmptypes.TriggerString()
   FetcherThrottlingIntervals = tr.cwmptypes.TriggerString()
   AdscaleMulticastAddress = tr.cwmptypes.TriggerString()
+  InteractiveAds = tr.cwmptypes.TriggerBool()
 
   HATContracts = tr.cwmptypes.FileBacked(
       CONTRACTS, tr.cwmptypes.String(), delete_if_empty=True,
@@ -121,6 +122,8 @@ class Hat(CATABASE.HAT):
       self.printIfSetString(f, self.GFASUrl, 'gfas_url')
       self.printIfSetString(f, self.AdscaleMulticastAddress,
                             'adscale_multicast_address')
+      self.printIfSetBool(f, self.InteractiveAds,
+                          'interactive_ads')
 
   @tr.mainloop.WaitUntilIdle
   def Triggered(self):
