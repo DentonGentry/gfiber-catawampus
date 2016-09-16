@@ -159,6 +159,12 @@ For example, a value of "g,b" (or "b,g" - order is not important) means that the
           </int>
         </syntax>
       </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_OverrideSSID" access="readWrite">
+        <description>Use this instead of the SSID provided by the ACS. Intended for use in experiments.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
       <parameter name="X_CATAWAMPUS-ORG_Suffix24G" access="readWrite">
         <description>2.4GHz SSID suffix.</description>
         <syntax>

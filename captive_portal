@@ -54,6 +54,7 @@ table https_hosts {
 }
 """
 
+RUNFILES_DIR = ['/tmp/run']
 SNIPROXY_CONFIG_FILE = ['/tmp/sniproxy.conf']
 
 
@@ -71,6 +72,22 @@ def ip6tables(*args):
 
 def ip46tables(*args):
   return iptables(*args) | ip6tables(*args)
+
+
+def pidfile(name):
+  return os.path.join(RUNFILES_DIR[0], '%s.pid' % name)
+
+
+def babysit(name, *args):
+  """Start a command under the babysitter."""
+  baby = subprocess.Popen(('babysit', '60', 'startpid', pidfile(name), name)
+                          + args)
+
+  if baby.poll():
+    print >>sys.stderr, '%s failed to start!' % name
+    return baby.returncode
+
+  return 0
 
 
 def start_allowed_ips():
@@ -95,15 +112,13 @@ def stop_iptables():
 
 def start_http_bouncer():
   """Start the HTTP bouncer and NAT outbound traffic through it."""
-  http_bouncer = subprocess.Popen(['http_bouncer', '-p', str(opt.port),
-                                   '-u', opt.url])
+  code = babysit('http_bouncer', '-p', str(opt.port), '-u', opt.url)
 
-  if http_bouncer.poll():
-    print >>sys.stderr, 'Bouncer failed to start!'
-    return http_bouncer.returncode
+  if code:
+    return code
 
-  code = ip46tables('-t', 'filter', '-A', 'acs-captive-portal-input',
-                    '-p', 'tcp', '--dport', str(opt.port), '-j', 'ACCEPT')
+  code |= ip46tables('-t', 'filter', '-A', 'acs-captive-portal-input',
+                     '-p', 'tcp', '--dport', str(opt.port), '-j', 'ACCEPT')
   # TODO(willangley): should this also work on IPv6?
   code |= iptables('-t', 'nat', '-A', 'acs-captive-portal-nat', '-p', 'tcp',
                    '--dport', '80', '-j', 'REDIRECT',
@@ -112,22 +127,16 @@ def start_http_bouncer():
 
 
 def stop_http_bouncer():
-  subprocess.call(['pkillwait', 'http_bouncer'])
+  subprocess.call(['killpid', pidfile('http_bouncer')])
 
 
 def start_authorizer():
   """Start the authorizer."""
-  authorizer = subprocess.Popen(['authorizer', '-u', opt.authorizer_url])
-
-  if authorizer.poll():
-    print >>sys.stderr, 'Authorizer failed to start!'
-    return authorizer.returncode
-
-  return 0
+  return babysit('authorizer', '-u', opt.authorizer_url)
 
 
 def stop_authorizer():
-  subprocess.call(['pkillwait', 'authorizer'])
+  subprocess.call(['killpid', pidfile('authorizer')])
 
 
 def tls_host_lines(tls_hosts):
