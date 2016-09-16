@@ -105,30 +105,34 @@ class HatTests(unittest.TestCase):
 
     self.loop.RunOnce()
     lines = open(hat.SYSTEMPROPS[0]).readlines()
-    self.assertEqual(len(lines), 21)
-    self.assertTrue('hat=1\n' in lines)
-    self.assertTrue('hat_insertion=0\n' in lines)
-    self.assertTrue('dvr_replacement=0\n' in lines)
-    self.assertTrue('test_cue_tones=1\n' in lines)
-    self.assertTrue('hat_request_max_delay_secs=120\n' in lines)
-    self.assertTrue('min_channel_dwell_time_secs=10\n' in lines)
-    self.assertTrue('min_repeat_hat_report_interval_secs=7200\n' in lines)
-    self.assertTrue('min_active_viewing_heuristic_secs=3600\n' in lines)
-    self.assertTrue('disk_space_limit_gb=60\n' in lines)
-    self.assertTrue('disk_space_low_watermark_percent=50\n' in lines)
-    self.assertTrue('disk_space_high_watermark_percent=70\n' in lines)
-    self.assertTrue('disk_space_cleanup_interval_secs=180\n' in lines)
-    self.assertTrue('hat_catalog_polling_interval_secs=600\n' in lines)
-    self.assertTrue('ad_fetch_max_lead_time_secs=0\n' in lines)
-    self.assertTrue('ad_creative_grace_period_secs=0\n' in lines)
-    self.assertTrue('min_impression_view_duration_pts=450000\n' in lines)
-    self.assertTrue('cue_tone_fired_ad_requests=1\n' in lines)
-    self.assertTrue('frame_accurate_splicing=0\n' in lines)
-    self.assertTrue('fetcher_throttling_intervals='
-                    '[00:00-6:00,25,15][12:00-6:00,25,40]\n' in lines)
-    self.assertTrue('gfas_url=fiber.google.com\n' in lines)
-    self.assertTrue('adscale_multicast_address=224.1.2.3:12345\n' in lines)
-    self.assertTrue('interactive_ads=0\n' in lines)
+    expected = ['hat=1\n',
+                'hat_insertion=0\n',
+                'dvr_replacement=0\n',
+                'test_cue_tones=1\n',
+                'hat_request_max_delay_secs=120\n',
+                'min_channel_dwell_time_secs=10\n',
+                'min_repeat_hat_report_interval_secs=7200\n',
+                'min_active_viewing_heuristic_secs=3600\n',
+                'disk_space_limit_gb=60\n',
+                'disk_space_low_watermark_percent=50\n',
+                'disk_space_high_watermark_percent=70\n',
+                'disk_space_cleanup_interval_secs=180\n',
+                'hat_catalog_polling_interval_secs=600\n',
+                'ad_fetch_max_lead_time_secs=0\n',
+                'ad_creative_grace_period_secs=0\n',
+                'min_impression_view_duration_pts=450000\n',
+                'cue_tone_fired_ad_requests=1\n',
+                'frame_accurate_splicing=0\n',
+                'fetcher_throttling_intervals='
+                '[00:00-6:00,25,15][12:00-6:00,25,40]\n',
+                'gfas_url=fiber.google.com\n',
+                'adscale_multicast_address=224.1.2.3:12345\n',
+                'interactive_ads=0\n',
+               ]
+    for ex in expected:
+      self.assertTrue(ex in lines)
+      lines.remove(ex)
+    self.assertEqual(0, len(lines))
 
     hat_handler.HAT = False
     hat_handler.Insert = True
