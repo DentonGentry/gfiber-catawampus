@@ -264,9 +264,13 @@ update_acs_file() {
       elif [ "$name" = "manual" ]; then
         # manual URLs are always blessed
         atomic "$file.blessed" "$url"
-      elif [ "$(readword $file.blessed)" != "$url" ] &&
-           [ "$(readword $file)" != "$url" ] &&
-           [ "$(readword $file.timed_out)" != "$url" ]; then
+      elif [ "$(readword $file.blessed)" = "$url" ]; then
+        # desired URL is already the blessed one, perhaps from earlier,
+        # so remove any URLs we were trying instead that aren't blessed yet.
+        rm -f "$file" "$file.redir" "$file.timed_out"
+      elif [ "$(readword $file.timed_out)" = "$url" ]; then
+        log "Ignoring, already timed out: $url"
+      elif [ "$(readword $file)" != "$url" ]; then
         rm -f "$file.redir"
         atomic "$file" "$url"
       fi

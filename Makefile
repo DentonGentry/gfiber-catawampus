@@ -41,6 +41,7 @@ test_only: all $(SUBTESTS)
 	tr/vendor/wvtest/wvtestrun $(MAKE) runtests
 
 runtests: all *_test.py
+	./extras/set-acs.test
 	set -e; \
 	for d in $(filter %_test.py,$^); do \
 		echo; \

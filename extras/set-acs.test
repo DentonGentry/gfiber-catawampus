@@ -110,6 +110,12 @@ WVPASS set-acs dhcp http://1
 WVPASSEQ "$(set-acs print)" http://1
 
 WVPASS set-acs bless http://1
+WVPASS set-acs dhcp http://2
+WVPASSEQ "$(set-acs print)" http://2
+
+WVPASS set-acs dhcp http://1  # undo new setting, fall back to earlier bless
+WVPASSEQ "$(set-acs print)" http://1
+
 WVPASS set-acs cwmp http://2
 WVPASSEQ "$(set-acs print)" http://2
 
