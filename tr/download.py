@@ -458,18 +458,21 @@ class DownloadManager(object):
                                 filename=None, **kwargs)
     session.RunAtEnd(self._DelayedReboot)
 
-  def _MakeDirsIgnoreError(self, directory):
+  def _MakeDirsIgnoreError(self, directory, perms):
     """Make sure a directory exists."""
     try:
-      os.makedirs(directory, 0755)
+      mask = os.umask(0)
+      os.makedirs(directory, perms)
     except OSError:
       pass
+    finally:
+      os.umask(mask)
 
   def SetDirectories(self, config_dir, download_dir):
     self.config_dir = os.path.join(config_dir, 'state')
     self.download_dir = os.path.join(download_dir, 'dnld')
-    self._MakeDirsIgnoreError(self.config_dir)
-    self._MakeDirsIgnoreError(self.download_dir)
+    self._MakeDirsIgnoreError(self.config_dir, 0775)
+    self._MakeDirsIgnoreError(self.download_dir, 0755)
 
 
 def main():
