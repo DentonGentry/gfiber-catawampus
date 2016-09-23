@@ -91,7 +91,7 @@ username allenfamily
 domain home.allenfamily.com"""
 
     url_temp = self.url_string + self.checksum
-    app = diagui.main.MainApplication(None, None)
+    app = diagui.main.MainApplication(None, None, run_diagui=True)
     app.listen(8880)
     app.diagui.data = dict(line.decode('utf-8').strip().split(None, 1)
                            for line in test_data.split('\n'))
@@ -146,7 +146,7 @@ domain home.allenfamily.com"""
                         response1_new.resp.body)
 
   def testOnuStats(self):
-    app = diagui.main.MainApplication(None, None)
+    app = diagui.main.MainApplication(None, None, run_diagui=True)
     app.listen(8880)
     main_loop = tr.mainloop.MainLoop()
     diagui.main.ONU_STAT_FILE = 'testdata/onu_stats1.json'
@@ -172,7 +172,7 @@ domain home.allenfamily.com"""
     self.assertEqual(jsdata['onu_serial'], '12345')
 
   def testNoOnuStats(self):
-    app = diagui.main.MainApplication(None, None)
+    app = diagui.main.MainApplication(None, None, run_diagui=True)
     diagui.main.ONU_STAT_FILE = '/no/such/file'
     app.diagui.UpdateOnuStats()
     # just checking whether there is an exception
@@ -183,7 +183,8 @@ class TechuiTest(unittest.TestCase):
 
   def testMainApp(self):
     url = 'http://localhost:8880/techui.json?checksum=0'
-    app = diagui.main.MainApplication(None, None, True)
+    app = diagui.main.MainApplication(None, None, run_diagui=True,
+                                      run_techui=True)
     fake_data = {'moca_bitloading': {},
                  'ip_addr': {'ec:88:92:91:3d:67': '111.111.11.1',
                              'aa:aa:aa:aa:aa:aa': '123.456.78.90'},
@@ -340,6 +341,18 @@ class TechuiTest(unittest.TestCase):
     self.assertEquals(
         techui.data['wifi_signal_strength'],
         {'11:22:33:44:55:66': -66})
+
+
+class LicenseuiTest(unittest.TestCase):
+  """Make sure server can retrieve encrypted license file."""
+
+  def testLicenseExists(self):
+    app = diagui.main.MainApplication(None, None, run_licenseui=True)
+    app.listen(8880)
+    main_loop = tr.mainloop.MainLoop()
+    response = AsynchFetch('http://localhost:8880/license/LICENSES.zip')
+    response.Wait(main_loop)
+    self.assertNotEqual(response.resp.body, None)
 
 
 if __name__ == '__main__':

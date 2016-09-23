@@ -64,6 +64,7 @@ restrict-acs-hosts= Domain names allowed for ACS URL.  Default=unrestricted.  Ex
 diagui        Listen for diagui requests on diagui-port
 diagui-port=  Port to listen on (0=random) [80]
 techui        Also handle TechUI requests on the diagui-port
+licenseui     Listen for license requests on the diagui-port
 factory       Listen for factory requests on factory-port
 factory-port= Port to listen on (0=random) [8883]
 """
@@ -150,9 +151,10 @@ def main():
   if opt.unix_path:
     loop.ListenUnix(opt.unix_path,
                     tr.rcommand.MakeRemoteCommandStreamer(handle, cpe_machine))
-  if opt.diagui:
-    inst = diagui.main.MainApplication(root, cpe_machine,
-                                       run_techui=opt.techui)
+  if opt.diagui or opt.licenseui:
+    inst = diagui.main.MainApplication(root, cpe_machine, run_diagui=opt.diagui,
+                                       run_techui=opt.techui,
+                                       run_licenseui=opt.licenseui)
     inst.listen(opt.diagui_port)
   if opt.factory:
     inst = factory.FactoryFactory()
