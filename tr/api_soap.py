@@ -192,17 +192,23 @@ class SoapHandler(object):
     for error in errors:
       if isinstance(error, api.ParameterTypeError):
         code = soap.CpeFault.INVALID_PARAM_TYPE
+        parameter = error.parameter
       elif isinstance(error, api.ParameterValueError):
         code = soap.CpeFault.INVALID_PARAM_VALUE
+        parameter = error.parameter
       elif isinstance(error, api.ParameterNameError):
         code = soap.CpeFault.INVALID_PARAM_NAME
+        parameter = error.parameter
       elif isinstance(error, api.ParameterNotWritableError):
         code = soap.CpeFault.NON_WRITABLE_PARAM
+        parameter = error.parameter
       elif isinstance(error, api.ParameterInternalError):
-        code = soap.INTERNAL_ERROR
+        code = soap.CpeFault.INTERNAL_ERROR
+        parameter = error.parameter
       else:
         code = soap.CpeFault.INTERNAL_ERROR
-      faults.append((error.parameter, code, unicode(error)))
+        parameter = 'Unknown object type'
+      faults.append((parameter, code, unicode(error)))
     return faults
 
   def Handle(self, body):
