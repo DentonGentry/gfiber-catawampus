@@ -23,6 +23,7 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 import datetime
 import xml.etree.cElementTree as ET
 import google3
+import api
 import api_soap
 import garbage
 from wvtest import unittest
@@ -85,6 +86,26 @@ class ApiSoapTest(unittest.TestCase):
     # Do not "fix" the test. XML escaping is handled at a higher
     # layer, see testXmlEscaping in acs_integration_test.py.
     self.assertEqual(api_soap.Soapify('&&&'), ('xsd:string', '&&&'))
+
+  def testFaultList(self):
+    sh = api_soap.SoapHandler(None)
+    errors = [api.ParameterTypeError('', ''),
+              api.ParameterValueError('', ''),
+              api.ParameterNameError('', ''),
+              api.ParameterNotWritableError('', ''),
+              api.ParameterInternalError('', ''),
+              object()]
+    faults = sh._ExceptionListToFaultList(errors)
+    expected = [(9006, 'Client'),  # INVALID_PARAM_TYPE
+                (9007, 'Client'),  # INVALID_PARAM_VALUE
+                (9005, 'Client'),  # INVALID_PARAM_NAME
+                (9008, 'Client'),  # NON_WRITABLE_PARAM
+                (9002, 'Server'),  # INTERNAL_ERROR
+                (9002, 'Server')]  # INTERNAL_ERROR
+    self.assertEqual(len(faults), len(expected))
+    for fault in faults:
+      self.assertEqual(expected[0], fault[1])
+      expected = expected[1:]
 
 
 if __name__ == '__main__':
