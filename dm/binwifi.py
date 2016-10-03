@@ -46,6 +46,7 @@ ISOSTREAM_KEY = 'Device.X_CATAWAMPUS-ORG.Isostream.'
 # Unit tests can override these.
 BINWIFI = ['wifi']
 CONMAN_DIR = ['/config/conman']
+CONMAN_TMP_DIR = ['/tmp/conman']
 STATIONS_DIR = ['/tmp/stations']
 TMPWAVEGUIDE = ['/tmp/waveguide']
 WIFIINFO_DIR = ['/tmp/wifi/wifiinfo']
@@ -922,9 +923,11 @@ class WlanConfiguration(CATA98WIFI):
     return '\n'.join(wifi_psk + BINWIFI + cmd)
 
   def _ConmanFileName(self, prefix):
-    if_suffix = ('%s.' % self._if_suffix) if self._if_suffix else ''
-    return os.path.join(CONMAN_DIR[0],
-                        '%s.%s%s' % (prefix, if_suffix, self._band))
+    if self._if_suffix:
+      return os.path.join(CONMAN_TMP_DIR[0],
+                          '%s.%s.%s' % (prefix, self._if_suffix, self._band))
+    else:
+      return os.path.join(CONMAN_DIR[0], '%s.%s' % (prefix, self._band))
 
   def WifiCommandFileName(self):
     return self._ConmanFileName('command')
@@ -935,6 +938,8 @@ class WlanConfiguration(CATA98WIFI):
   @tr.mainloop.WaitUntilIdle
   def ExportWifiPolicy(self):
     """Export /bin/wifi command and wifi policy."""
+    if not os.path.exists(CONMAN_TMP_DIR[0]):
+      os.makedirs(CONMAN_TMP_DIR[0])
     if not os.path.exists(CONMAN_DIR[0]):
       os.makedirs(CONMAN_DIR[0])
 

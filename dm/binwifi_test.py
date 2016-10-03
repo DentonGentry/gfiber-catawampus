@@ -54,6 +54,8 @@ class BinWifiTest(unittest.TestCase):
     netdev.PROC_NET_DEV = 'testdata/binwifi/proc_net_dev'
     self.old_CONMAN_DIR = binwifi.CONMAN_DIR[0]
     binwifi.CONMAN_DIR[0] = os.path.join(self.tmpdir, 'conman')
+    self.old_CONMAN_TMP_DIR = binwifi.CONMAN_TMP_DIR[0]
+    binwifi.CONMAN_TMP_DIR[0] = os.path.join(self.tmpdir, 'conman_tmp')
     self.old_STATIONS_DIR = binwifi.STATIONS_DIR[0]
     binwifi.STATIONS_DIR[0] = os.path.join(self.tmpdir, 'stations')
     self.old_TMPWAVEGUIDE = binwifi.TMPWAVEGUIDE[0]
@@ -73,6 +75,7 @@ class BinWifiTest(unittest.TestCase):
     binwifi.BINWIFI = self.old_BINWIFI
     netdev.PROC_NET_DEV = self.old_PROC_NET_DEV
     binwifi.CONMAN_DIR[0] = self.old_CONMAN_DIR
+    binwifi.CONMAN_TMP_DIR[0] = self.old_CONMAN_TMP_DIR
     binwifi.STATIONS_DIR[0] = self.old_STATIONS_DIR
     binwifi.TMPWAVEGUIDE[0] = self.old_TMPWAVEGUIDE
     binwifi.WIFIINFO_DIR[0] = self.old_WIFIINFO_DIR
@@ -331,7 +334,8 @@ class BinWifiTest(unittest.TestCase):
                      os.path.join(binwifi.CONMAN_DIR[0], 'access_point.5'))
     bw._if_suffix = '_portal'
     self.assertEqual(bw.WifiCommandFileName(),
-                     os.path.join(binwifi.CONMAN_DIR[0], 'command._portal.5'))
+                     os.path.join(binwifi.CONMAN_TMP_DIR[0],
+                                  'command._portal.5'))
 
   def testAssociatedDevices(self):
     binwifi.STATIONS_DIR[0] = 'testdata/binwifi/stations'
