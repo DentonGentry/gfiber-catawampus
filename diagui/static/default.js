@@ -74,9 +74,10 @@ DiagUI.setConnectedStatus = function(connected) {
 
 DiagUI.updateField = function(key, val) {
   var el = document.getElementById(key);
-  if (el) {
-    el.innerHTML = ''; // Clear the field.
+  if (el == null) {
+    return;
   }
+  el.innerHTML = ''; // Clear the field.
   // For objects, create an unordered list and append the values as list items.
   if (val && typeof val === 'object') {
     var ul = document.createElement('ul');
@@ -114,6 +115,7 @@ DiagUI.getDiagInfo = function() {
       DiagUI.updateField('ssid', DiagUI.info.ssid24 || 'Network Box');
       DiagUI.updateField('acs', DiagUI.info.acs);
       DiagUI.updateField('softversion', DiagUI.info.softversion);
+      DiagUI.updateField('serialnumber', DiagUI.info.serialnumber);
       DiagUI.updateField('uptime', DiagUI.info.uptime);
       DiagUI.updateField('temperature', DiagUI.info.temperature);
       DiagUI.updateField('wanmac', DiagUI.info.wanmac);
@@ -121,14 +123,11 @@ DiagUI.getDiagInfo = function() {
       DiagUI.updateField('lanip', DiagUI.info.lanip);
       DiagUI.updateField('subnetmask', DiagUI.info.subnetmask);
       DiagUI.updateField('lanmac', DiagUI.info.lanmac);
-      DiagUI.updateField('wireddevices', DiagUI.info.wireddevices);
       DiagUI.updateField('ssid24', DiagUI.info.ssid24);
       DiagUI.updateField('ssid5', DiagUI.info.ssid5);
       DiagUI.updateField('wpa2', DiagUI.info.wpa2);
       DiagUI.updateField('wirelesslan', DiagUI.info.wirelesslan);
-      DiagUI.updateField('wirelessdevices', DiagUI.info.wirelessdevices);
       DiagUI.updateField('upnp', DiagUI.info.upnp);
-      DiagUI.updateField('username', DiagUI.info.username);
       DiagUI.updateField('onu_serial', DiagUI.info.onu_serial);
       DiagUI.updateField('onu_wan_connected', DiagUI.info.onu_wan_connected);
       DiagUI.updateField('onu_acs_contacted', DiagUI.info.onu_acs_contacted);
