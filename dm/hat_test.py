@@ -102,6 +102,7 @@ class HatTests(unittest.TestCase):
     hat_handler.GFASUrl = 'fiber.google.com'
     hat_handler.AdscaleMulticastAddress = '224.1.2.3:12345'
     hat_handler.InteractiveAds = False
+    hat_handler.MarketId = 'marketId'
 
     self.loop.RunOnce()
     lines = open(hat.SYSTEMPROPS[0]).readlines()
@@ -128,6 +129,7 @@ class HatTests(unittest.TestCase):
                 'gfas_url=fiber.google.com\n',
                 'adscale_multicast_address=224.1.2.3:12345\n',
                 'interactive_ads=0\n',
+                'market_id=marketId\n',
                ]
     for ex in expected:
       self.assertTrue(ex in lines)
@@ -145,6 +147,7 @@ class HatTests(unittest.TestCase):
     hat_handler.FetcherThrottlingIntervals = '[00:00-6:00,10,25]'
     hat_handler.AdscaleMulticastAddress = '224.1.2.3:12345'
     hat_handler.InteractiveAds = True
+    hat_handler.MarketId = 'marketId'
 
     self.loop.RunOnce()
     lines = open(hat.SYSTEMPROPS[0]).readlines()
@@ -171,6 +174,7 @@ class HatTests(unittest.TestCase):
     self.assertTrue('gfas_url=fiber.google.com\n' in lines)
     self.assertTrue('adscale_multicast_address=224.1.2.3:12345\n' in lines)
     self.assertTrue('interactive_ads=1\n' in lines)
+    self.assertTrue('market_id=marketId\n' in lines)
 
   def testContracts(self):
     hat_handler = hat.Hat()

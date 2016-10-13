@@ -916,6 +916,12 @@ The {{enum|Misconfigured_NoServiceName}} value indicates that the ServiceName is
           <boolean/>
         </syntax>
       </parameter>
+      <parameter name="MarketId" access="readWrite">
+        <description>TMA (market id) for the customer.</description>
+        <syntax>
+          <string/>
+        </syntax>
+      </parameter>
     </object>
 
     <object name="Device.X_CATAWAMPUS-ORG.SelfTest." access="readOnly" minEntries="1" maxEntries="1">
