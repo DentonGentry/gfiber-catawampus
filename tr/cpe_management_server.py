@@ -160,10 +160,13 @@ class CpeManagementServer(object):
       url: The URL to which to add query parameters.
 
     Returns:
+      None if url is None.
       url, with query parameters added.
     """
+    if url is None:
+      return None
     options = []
-    if not self._WantACSAutoprovisioning() and url is not None:
+    if not self._WantACSAutoprovisioning() and 'options=noautoprov' not in url:
       options.append('noautoprov')
 
     if options:

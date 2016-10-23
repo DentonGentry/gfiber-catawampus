@@ -145,6 +145,14 @@ class CpeManagementServerTest(unittest.TestCase):
       self.assertEqual(pc.acs_url_list[0], 'http://example.com/?foo=bar')
       self.assertEqual(cpe_ms.URL,
                        'http://example.com/?foo=bar&options=noautoprov')
+
+      # Test URL which already contains noautoprov.
+      cpe_ms.URL = 'http://example.com/?foo=bar&options=noautoprov'
+      self.assertEqual(pc.acs_url_list[0],
+                       'http://example.com/?foo=bar&options=noautoprov')
+      self.assertEqual(cpe_ms.URL,
+                       'http://example.com/?foo=bar&options=noautoprov')
+
     finally:
       shutil.rmtree(conman_dir)
 
