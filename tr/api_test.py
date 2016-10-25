@@ -61,13 +61,29 @@ class Word(core.Exporter):
     return value
 
 
+class IndexErrorDict(object):
+
+  def __init__(self):
+    self.fault = False
+    self.item = Word()
+
+  def iteritems(self):
+    return [(1, self.item), (2, self.item)]
+
+  def __getitem__(self, _):
+    if self.fault:
+      raise IndexError('unit test')
+    return self.item
+
+
 class TestObject(core.Exporter):
 
   def __init__(self):
     core.Exporter.__init__(self)
-    self.Export(lists=['Thingy', 'AutoThingy'])
+    self.Export(lists=['Thingy', 'AutoThingy', 'IndexErrorThingy'])
     self.ThingyList = {}
     self.Thingy = Word
+    self.IndexErrorThingyList = IndexErrorDict()
     self.NumAutoThingies = 5
 
   @property
@@ -276,6 +292,26 @@ class ParameterAttrsTest(unittest.TestCase):
     root.AutoThingyList['3'].word = 'word1'
     cpe.parameter_attrs.CheckForTriggers()
     self.assertEqual(1, len(set_notification_arg[0]))
+
+  def testIndexError(self):
+    root = TestObject()
+    cpe = api.CPE(handle.Handle(root))
+
+    cpe.parameter_attrs.set_notification_parameters_cb = SetNotification
+    cpe.parameter_attrs.new_value_change_session_cb = NewSession
+
+    f = FakeAttrs()
+    f.Name = 'IndexErrorThingy.3'
+    f.Notification = 2
+    f.NotificationChange = 'true'
+    cpe.SetParameterAttributes(f)
+    self.assertEqual(len(cpe.parameter_attrs.params), 1)
+    root.NumAutoThingies = 1
+
+    # Check that this doesn't raise an exception
+    root.IndexErrorThingyList.fault = True
+    cpe.parameter_attrs.CheckForTriggers()
+    self.assertEqual(0, len(set_notification_arg[0]))
 
   def testSetAttrErrors(self):
     root = TestSimpleRoot()

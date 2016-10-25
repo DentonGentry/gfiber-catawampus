@@ -278,7 +278,7 @@ class ParameterAttributes(object):
           accumulated = ExpensiveNotifications.get(paramname, 0.0)
           accumulated += end - start
           ExpensiveNotifications[paramname] = accumulated
-      except KeyError:
+      except (KeyError, IndexError):
         # ACS sets notifications for ephemeral objects like Device.Hosts.Host.
         # The object doesn't exist right now, it clearly has no notifications.
         continue
