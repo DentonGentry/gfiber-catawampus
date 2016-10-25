@@ -7,10 +7,11 @@ PYTHON?=python
 INSTALL?=install
 
 install:
-	$(INSTALL) -d $(DSTDIR) $(DSTDIR)/diagui $(DSTDIR)/diagui/static  $(DSTDIR)/diagui/Testdata $(DSTDIR)/diagui/techui_static
+	$(INSTALL) -d $(DSTDIR) $(DSTDIR)/diagui $(DSTDIR)/diagui/static  $(DSTDIR)/diagui/Testdata $(DSTDIR)/diagui/techui_static $(DSTDIR)/diagui/license_static
 	$(INSTALL) -D -m 0644 *.html $(DSTDIR)/diagui
 	$(INSTALL) -D -m 0644 static/*.css static/*.js  static/*.png static/*.ico static/*.ttf $(DSTDIR)/diagui/static
 	$(INSTALL) -D -m 0644 techui_static/* $(DSTDIR)/diagui/techui_static
+	$(INSTALL) -D -m 0644 license_static/* $(DSTDIR)/diagui/license_static
 	$(INSTALL) -D -m 0644 Testdata/testdata $(DSTDIR)/diagui/Testdata
 	$(INSTALL) -D -m 0644 *.py $(DSTDIR)/diagui
 

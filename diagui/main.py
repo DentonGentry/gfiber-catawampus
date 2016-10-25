@@ -22,6 +22,7 @@ import tr.pyinotify
 
 # For unit test overrides.
 ONU_STAT_FILE = '/tmp/cwmp/monitoring/onu/onustats.json'
+LICENSES_FILE = '/usr/share/LICENSES.zip'
 ACTIVEWAN = 'activewan'
 AP_DIR = '/tmp/waveguide/signals_json'
 SELFSIGNALS_FILE = '/tmp/waveguide/signals_json/self_signals'
@@ -133,7 +134,8 @@ class TechUIHandler(tornado.web.RequestHandler):
   """Display technical UI."""
 
   def get(self):
-    self.render('techui_static/index.html')
+    self.render('techui_static/index.html',
+                run_licenseui=self.application.run_licenseui)
 
 
 class StartIsostreamHandler(tornado.web.RequestHandler):
@@ -271,7 +273,8 @@ class DiagnosticsHandler(tornado.web.RequestHandler):
 
   def get(self):
     print 'diagui GET diagnostics HTML page'
-    self.render('template.html', run_techui=self.application.run_techui)
+    self.render('template.html', run_techui=self.application.run_techui,
+                run_licenseui=self.application.run_licenseui)
 
 
 class DiagUIRestartHandler(tornado.web.RequestHandler):
@@ -466,6 +469,37 @@ class TechUI(object):
       self.SetTechUIDict('onu_stats', stats)
 
 
+class LicenseUI(object):
+  """Class for the License UI."""
+
+  def __init__(self, root):
+    self.root = root
+
+
+class LicenseUIHandler(tornado.web.RequestHandler):
+  """Displays license tab of diagui."""
+
+  def get(self):
+    print 'diagui GET licenses HTML page'
+    self.render('license_static/index.html',
+                run_diagui=self.application.run_diagui,
+                run_techui=self.application.run_techui)
+
+
+class LicenseFileHandler(tornado.web.RequestHandler):
+  """Displays the zipped license file."""
+
+  def get(self):
+    try:
+      lf = open(LICENSES_FILE).read()
+    except IOError as e:
+      if e.errno != errno.ENOENT:
+        print 'Failed to read onu stat file: %s' % e
+      return
+
+    self.write(lf)
+
+
 class DiagUI(object):
   """Class for the diagnostics UI."""
 
@@ -618,11 +652,24 @@ class DiagUI(object):
 class MainApplication(tornado.web.Application):
   """Defines settings for the server and notifier."""
 
-  def __init__(self, root, cpemach, run_techui=False):
+  def __init__(self, root, cpemach, run_diagui=False, run_techui=False,
+               run_licenseui=False):
     self.root = root
-    self.diagui = DiagUI(root, cpemach)
+    self.run_diagui = run_diagui
     self.run_techui = run_techui
-    self.techui = TechUI(root)
+    self.run_licenseui = run_licenseui
+
+    if not run_diagui and not run_licenseui:
+      print 'Either diagui or licenseui must be enabled'
+      return
+
+    if run_diagui:
+      self.diagui = DiagUI(root, cpemach)
+    if run_techui:
+      self.techui = TechUI(root)
+    if run_licenseui:
+      self.licenseui = LicenseUI(root)
+
     self.pathname = os.path.dirname(__file__)
     staticpath = os.path.join(self.pathname, 'static')
     self.settings = {
@@ -631,11 +678,22 @@ class MainApplication(tornado.web.Application):
         'xsrf_cookies': True,
     }
 
-    handlers = [
-        (r'/', DiagnosticsHandler),
-        (r'/content.json', DiagUIJsonHandler),
-        (r'/restart', DiagUIRestartHandler),
-    ]
+    # Who handles root domain requests
+    if run_diagui:
+      handlers = [
+          (r'/', DiagnosticsHandler),
+      ]
+    else:
+      handlers = [
+          (r'/', tornado.web.RedirectHandler,
+           {'url': '/license/index.html'}),
+      ]
+
+    if run_diagui:
+      handlers += [
+          (r'/content.json', DiagUIJsonHandler),
+          (r'/restart', DiagUIRestartHandler),
+      ]
 
     if run_techui:
       handlers += [
@@ -649,6 +707,16 @@ class MainApplication(tornado.web.Application):
           (r'/isostream', IsostreamHandler),
           (r'/isostream.json', IsostreamJsonHandler),
           (r'/isostreamcombined.json', IsostreamCombinedHandler),
+      ]
+
+    if run_licenseui:
+      handlers += [
+          (r'/license/?', tornado.web.RedirectHandler,
+           {'url': '/license/index.html'}),
+          (r'/license/index.html', LicenseUIHandler),
+          (r'/license/LICENSES.zip', LicenseFileHandler),
+          (r'/license/(.*)', tornado.web.StaticFileHandler,
+           {'path': os.path.join(self.pathname, 'license_static')}),
       ]
 
     super(MainApplication, self).__init__(handlers, **self.settings)

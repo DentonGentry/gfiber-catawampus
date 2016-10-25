@@ -1,0 +1,47 @@
+<!doctype html>
+<html class=init>
+<meta charset=utf-8>
+<meta name=viewport content="initial-scale=1, minimum-scale=1, width=device-width">
+<title>License Information</title>
+<script src="../static/jquery-2.1.4.min.js"></script>
+<link rel=icon href=../static/favicon.ico>
+<link rel=stylesheet href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700&amp;lang=en">
+<link rel=stylesheet href=../static/default.css>
+<header>
+  <section>
+    <h1><a href=https://fiber.google.com/myfiber/><img src=../static/logo.png alt="Google Fiber"></a></h1>
+    <nav>
+      <ul>
+        {% if run_diagui %}
+        <li><a href=/>Network Box</a></li>
+        {% end %}
+        {% if run_techui %}
+        <li><a href=/tech>Technical Diagnostics</a></li>
+        {% end %}
+        <li class=active><a href=/license_static>Licenses</a></li>
+      </ul>
+    </nav>
+    <a id=help href=tel:+18667777550 aria-label="Call Google Fiber Customer Support on (866) 777-7550">(866) 777-7550</a>
+  </section>
+</header>
+<div id=main role=main style='text-align: left'>
+  <h2 id=ssid>License Information</h2>
+  <section>
+    <pre id=license-text style='margin-left: 46px'>Loading licenses...</pre>
+  </section>
+  <div id=error class=overlay role=alertdialog aria-labelledby=error-label>
+    <div>
+      <h2 id=error-label>Lost contact with the device</h2>
+      <p>Call Google Fiber Customer Support on (866) 777-7550
+    </div>
+  </div>
+  <div id=loading class=overlay role=alertdialog aria-label=Loading></div>
+</div>
+<footer>
+  <ul>
+    <li><a href=https://fiber.google.com/legal/>Privacy &amp; Terms</a>
+  </ul>
+</footer>
+<script src=jszip.min.js></script>
+<script src=jszip-utils.min.js></script>
+<script src=license.js></script>
