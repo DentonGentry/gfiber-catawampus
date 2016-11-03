@@ -113,6 +113,10 @@ class DeviceModelRoot(tr.core.Exporter):
     cata.HAT = dm.hat.Hat()
     cata.HttpDownload = dm.ip_diag_http.DiagHttpDownload()
     cata.Iperf3 = dm.ip_diag_iperf3.DiagIperf3()
+    cata.IperfNumberOfEntries = 10
+    cata.IperfList = {}
+    for i in range(1, cata.IperfNumberOfEntries + 1):
+      cata.IperfList[str(i)] = dm.ip_diag_iperf3.DiagIperf3()
     cata.Isostream = dm.isostream.Isostream()
     cata.Ping = dm.ip_diag_ping.DiagPing()
     cata.SelfTest = dm.selftest.SelfTest()
