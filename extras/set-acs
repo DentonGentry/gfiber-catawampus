@@ -194,23 +194,28 @@ set_timed_out() {
   # is permanent.
   local url="$1"
   log "finding source for '$url'"
-  find_source_for_url "$url" | while read name file; do
-    log "timeout: $name=$file"
-    if [ "$(readword "$file")" = "$url" ]; then
-      mv "$file" "$file.timed_out"
-    elif [ "$(readword "$file.redir")" = "$url" ]; then
-      # If a redirect from an ACS URL doesn't work, we just forget it;
-      # we don't store the fact that it was timed out. That's because we'll
-      # fall back to the original ACS URL, which will probably just try to
-      # redirect us again, and we'll have to obey, even if it times out
-      # repeatedly. (If the redirected-to URL is permanently broken,
-      # probably the redirecting-from URL will stop pointing us there sooner
-      # or later, but that's not for us to decide.)
-      rm -f "$file.redir"
-    elif [ "$(readword "$file.blessed.redir")" = "$url" ]; then
-      rm -f "$file.blessed.redir"
-    fi
-  done
+  find_source_for_url "$url" | {
+    while read name file; do
+      log "timeout: $name=$file"
+      if [ "$(readword "$file")" = "$url" ]; then
+        mv "$file" "$file.timed_out"
+      elif [ "$(readword "$file.redir")" = "$url" ]; then
+        # If a redirect from an ACS URL doesn't work, we just forget it;
+        # we don't store the fact that it was timed out. That's because we'll
+        # fall back to the original ACS URL, which will probably just try to
+        # redirect us again, and we'll have to obey, even if it times out
+        # repeatedly. (If the redirected-to URL is permanently broken,
+        # probably the redirecting-from URL will stop pointing us there sooner
+        # or later, but that's not for us to decide.)
+        rm -f "$file.redir"
+      elif [ "$(readword "$file.blessed.redir")" = "$url" ]; then
+        rm -f "$file.blessed.redir"
+      fi
+      exit 0
+    done
+    log "timeout: error: not using url '$url'"
+    exit 1
+  }
 }
 
 set_all_not_timed_out() {
@@ -225,25 +230,30 @@ bless() {
   # declare that we have successfully connected to this URL.  From now on it
   # can never time out, and lower-priority URLs will never be tried.
   local url="$1"
-  find_source_for_url "$url" | while read name file; do
-    log "bless: $name=$url"
-    if [ "$(readword "$file.redir")" = "$url" ]; then
-      # blessing a redirect from unblessed base URL.  This blesses both
-      # the source and destination URLs, since we know they must have both
-      # worked at least well enough to get this far.
-      mv "$file.redir" "$file.blessed.redir.blessed"
-      mv "$file" "$file.blessed"
-    elif [ "$(readword "$file.blessed.redir")" = "$url" ]; then
-      # blessing a redirect from a blessed base URL.
-      rm -f "$file" "$file.redir"
-      mv "$file.blessed.redir" "$file.blessed.redir.blessed"
-    elif [ "$(readword "$file.blessed")" != "$url" ]; then
-      # blessing a fresh non-redirected URL
-      rm -f "$file" "$file.redir" \
-          "$file.blessed.redir" "$file.blessed.redir.blessed"
-      atomic "$file.blessed" "$url"
-    fi
-  done
+  find_source_for_url "$url" | {
+    while read name file; do
+      log "bless: $name=$url"
+      if [ "$(readword "$file.redir")" = "$url" ]; then
+        # blessing a redirect from unblessed base URL.  This blesses both
+        # the source and destination URLs, since we know they must have both
+        # worked at least well enough to get this far.
+        mv "$file.redir" "$file.blessed.redir.blessed"
+        mv "$file" "$file.blessed"
+      elif [ "$(readword "$file.blessed.redir")" = "$url" ]; then
+        # blessing a redirect from a blessed base URL.
+        rm -f "$file" "$file.redir"
+        mv "$file.blessed.redir" "$file.blessed.redir.blessed"
+      elif [ "$(readword "$file.blessed")" != "$url" ]; then
+        # blessing a fresh non-redirected URL
+        rm -f "$file" "$file.redir" \
+            "$file.blessed.redir" "$file.blessed.redir.blessed"
+        atomic "$file.blessed" "$url"
+      fi
+      exit 0
+    done
+    log "bless: error: not using url '$url'"
+    exit 1
+  }
 }
 
 update_acs_file() {

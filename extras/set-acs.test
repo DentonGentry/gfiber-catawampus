@@ -49,6 +49,8 @@ WVPASSEQ "$(set-acs print)" http://fake-find-acs  # cached
 
 WVPASS set-acs bounce
 WVPASSEQ "$(set-acs print)" http://spork
+WVFAIL set-acs bless http://unspork    # can't bless an URL we're not using
+WVFAIL set-acs timeout http://respork  # also don't time one out
 
 export find_acs='false'  # pretend the server is not responding
 WVPASSEQ "$(set-acs print)" http://spork  # cached
