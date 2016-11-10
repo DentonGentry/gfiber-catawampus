@@ -22,7 +22,6 @@
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import datetime
-import os
 import shutil
 import tempfile
 
@@ -117,9 +116,7 @@ class CpeManagementServerTest(unittest.TestCase):
 
   def testAcsUrl(self):
     conman_dir = tempfile.mkdtemp()
-    autoprov_filepath = os.path.join(conman_dir, 'acs_autoprovisioning')
     try:
-      open(autoprov_filepath, 'w')
       pc = MockAcsConfig()
       cpe_ms = ms.CpeManagementServer(acs_config=pc, port=0, ping_path='',
                                       conman_dir=conman_dir)
@@ -136,15 +133,11 @@ class CpeManagementServerTest(unittest.TestCase):
       self.assertEqual(pc.acs_url_list[0], 'http://example.com/')
       self.assertEqual(cpe_ms.URL, 'http://example.com/')
 
-      # Now disable ACS autoprovisioning.
-      os.unlink(autoprov_filepath)
-      self.assertEqual(cpe_ms.URL, 'http://example.com/?options=noautoprov')
-
       # Test URLs which already contain GET params.
       cpe_ms.URL = 'http://example.com/?foo=bar'
       self.assertEqual(pc.acs_url_list[0], 'http://example.com/?foo=bar')
       self.assertEqual(cpe_ms.URL,
-                       'http://example.com/?foo=bar&options=noautoprov')
+                       'http://example.com/?foo=bar')
 
       # Test URL which already contains noautoprov.
       cpe_ms.URL = 'http://example.com/?foo=bar&options=noautoprov'
@@ -302,7 +295,7 @@ class CpeManagementServerTest(unittest.TestCase):
     cpe_ms = ms.CpeManagementServer(acs_config=mock_config, port=5,
                                     ping_path='/',
                                     restrict_acs_hosts='.gfsvc.com')
-    self.assertEqual('https://foo.prod.gfsvc.com?options=noautoprov',
+    self.assertEqual('https://foo.prod.gfsvc.com',
                      cpe_ms.URL)
     self.assertEqual(2, len(mock_config.acs_url_list))
     mock_config.acs_url_list = ['http://foo1.com',
