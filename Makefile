@@ -97,7 +97,7 @@ install: diagui/install tr/vendor/i2c/install
 		$(DSTDIR)/platform $(DSTDIR)/platform/gfmedia $(DSTDIR)/platform/gfonu \
 		$(DSTDIR)/platform/fakecpe $(DSTDIR)/dm
 	$(INSTALL) -D -m 0755 captive_portal cwmp cwmpd $(DSTDIR)
-	$(INSTALL) -D -m 0755 extras/set-acs $(DSTBINDIR)
+	$(INSTALL) -D -m 0755 extras/set-acs extras/set-acs.test $(DSTBINDIR)
 	$(INSTALL) -D -m 0644 *.py $(DSTDIR)
 	$(INSTALL) -D -m 0644 tr/*.py $(DSTDIR)/tr
 	$(INSTALL) -D -m 0644 dm/*.py $(DSTDIR)/dm
