@@ -40,7 +40,6 @@ class Hat(CATABASE.HAT):
   HAT = tr.cwmptypes.TriggerBool()
   DVRReplacement = tr.cwmptypes.TriggerBool()
   Insert = tr.cwmptypes.TriggerBool()
-  TestCueTones = tr.cwmptypes.TriggerBool()
   HatRequestMaxDelaySecs = tr.cwmptypes.TriggerUnsigned()
   MinChannelDwellTimeSecs = tr.cwmptypes.TriggerUnsigned()
   MinRepeatHatReportIntervalSecs = tr.cwmptypes.TriggerUnsigned()
@@ -93,7 +92,6 @@ class Hat(CATABASE.HAT):
       self.printIfSetBool(f, self.HAT, 'hat')
       self.printIfSetBool(f, self.DVRReplacement, 'dvr_replacement')
       self.printIfSetBool(f, self.Insert, 'hat_insertion')
-      self.printIfSetBool(f, self.TestCueTones, 'test_cue_tones')
       self.printIfSetUnsigned(f, self.HatRequestMaxDelaySecs,
                               'hat_request_max_delay_secs')
       self.printIfSetUnsigned(f, self.MinChannelDwellTimeSecs,

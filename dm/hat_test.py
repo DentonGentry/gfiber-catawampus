@@ -109,7 +109,6 @@ class HatTests(unittest.TestCase):
     expected = ['hat=1\n',
                 'hat_insertion=0\n',
                 'dvr_replacement=0\n',
-                'test_cue_tones=1\n',
                 'hat_request_max_delay_secs=120\n',
                 'min_channel_dwell_time_secs=10\n',
                 'min_repeat_hat_report_interval_secs=7200\n',
@@ -154,7 +153,6 @@ class HatTests(unittest.TestCase):
     self.assertTrue('hat=0\n' in lines)
     self.assertTrue('hat_insertion=1\n' in lines)
     self.assertTrue('dvr_replacement=0\n' in lines)
-    self.assertTrue('test_cue_tones=1\n' in lines)
     self.assertTrue('hat_request_max_delay_secs=120\n' in lines)
     self.assertTrue('min_channel_dwell_time_secs=10\n' in lines)
     self.assertTrue('min_repeat_hat_report_interval_secs=600\n' in lines)
