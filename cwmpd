@@ -97,53 +97,45 @@ def main():
   handle = root.handle
   notifier = tr.filenotifier.FileNotifier(loop)
   tr.cwmptypes.SetFileBackedNotifier(notifier)
+  acs = cpe = None
 
-  if opt.port:
-    acs = cpe = None
-    if opt.fake_acs:
-      acs = tr.api.ACS()
-      if not opt.acs_url:
-        opt.acs_url = 'http://localhost:%d/acs' % opt.port
-    if opt.cpe:
-      cpe = tr.api.CPE(handle)
-      if not opt.cpe_listener:
-        print 'CPE API is client mode only.'
+  if opt.fake_acs:
+    if not opt.port:
+      o.fatal("Can't use --fake-acs without --port")
+    acs = tr.api.ACS()
+    if not opt.acs_url:
+      opt.acs_url = 'http://localhost:%d/acs' % opt.port
+  if opt.cpe:
+    cpe = tr.api.CPE(handle)
+    if not opt.cpe_listener:
+      print 'CPE API is client mode only.'
 
-    if cpe:
-      # Arguments to pass to Tornado HTTPClient.fetch
-      fetch_args = {'user_agent': 'catawampus-tr69'}
-      if opt.ca_certs:
-        fetch_args['ca_certs'] = opt.ca_certs
-        fetch_args['validate_cert'] = True
-      if opt.client_cert and opt.client_key:
-        fetch_args['client_cert'] = opt.client_cert
-        fetch_args['client_key'] = opt.client_key
+  if cpe:
+    # Arguments to pass to Tornado HTTPClient.fetch
+    fetch_args = {'user_agent': 'catawampus-tr69'}
+    if opt.ca_certs:
+      fetch_args['ca_certs'] = opt.ca_certs
+      fetch_args['validate_cert'] = True
+    if opt.client_cert and opt.client_key:
+      fetch_args['client_cert'] = opt.client_cert
+      fetch_args['client_key'] = opt.client_key
 
-      pc = root.get_platform_config(ioloop=loop.ioloop)
-      cpe.download_manager.SetDirectories(config_dir=pc.ConfigDir(),
-                                          download_dir=pc.DownloadDir())
-      cpe_machine = tr.http.Listen(ip=opt.ip, port=opt.port,
-                                   ping_path=opt.ping_path,
-                                   acs=acs, cpe=cpe,
-                                   restrict_acs_hosts=opt.restrict_acs_hosts,
-                                   cpe_listener=opt.cpe_listener,
-                                   acs_config=tr.acs_config.AcsConfig(),
-                                   acs_url=opt.acs_url,
-                                   fetch_args=fetch_args)
-      ms = cpe_machine.GetManagementServer()
-      root.add_management_server(ms)
-      root.configure_tr157(cpe_machine)
-      cpe_machine.Startup()
-    else:
-      cpe_machine = None
-
-    if opt.close_stdio:
-      nullf = open('/dev/null', 'w+')
-      os.dup2(nullf.fileno(), 1)
-      nullf.close()
-      loop.ioloop.add_handler(sys.stdin.fileno(),
-                              lambda *args: _GotData(loop, *args),
-                              loop.ioloop.READ)
+    pc = root.get_platform_config(ioloop=loop.ioloop)
+    cpe.download_manager.SetDirectories(config_dir=pc.ConfigDir(),
+                                        download_dir=pc.DownloadDir())
+    cpe_machine = tr.http.Listen(ip=opt.ip, port=opt.port,
+                                 ping_path=opt.ping_path,
+                                 acs=acs, cpe=cpe,
+                                 restrict_acs_hosts=opt.restrict_acs_hosts,
+                                 cpe_listener=opt.cpe_listener,
+                                 acs_config=tr.acs_config.AcsConfig(),
+                                 acs_url=opt.acs_url,
+                                 fetch_args=fetch_args)
+    ms = cpe_machine.GetManagementServer()
+    root.add_management_server(ms)
+    root.configure_tr157(cpe_machine)
+  else:
+    cpe_machine = None
 
   if opt.rcmd_port:
     loop.ListenInet((opt.listenip, opt.rcmd_port),
@@ -162,6 +154,17 @@ def main():
     print 'Listening for factoryui on port %d' % (opt.factory_port,)
     inst = factory.FactoryFactory()
     inst.listen(opt.factory_port)
+
+  if cpe_machine:
+    cpe_machine.Startup()
+
+  if opt.close_stdio:
+    nullf = open('/dev/null', 'w+')
+    os.dup2(nullf.fileno(), 1)
+    nullf.close()
+    loop.ioloop.add_handler(sys.stdin.fileno(),
+                            lambda *args: _GotData(loop, *args),
+                            loop.ioloop.READ)
 
   loop.Start()
 
