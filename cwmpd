@@ -152,11 +152,14 @@ def main():
     loop.ListenUnix(opt.unix_path,
                     tr.rcommand.MakeRemoteCommandStreamer(handle, cpe_machine))
   if opt.diagui or opt.licenseui:
-    inst = diagui.main.MainApplication(root, cpe_machine, run_diagui=opt.diagui,
+    inst = diagui.main.MainApplication(root, cpe_machine,
+                                       run_diagui=opt.diagui,
                                        run_techui=opt.techui,
                                        run_licenseui=opt.licenseui)
+    print 'Listening for diagui on port %d' % (opt.diagui_port,)
     inst.listen(opt.diagui_port)
   if opt.factory:
+    print 'Listening for factoryui on port %d' % (opt.factory_port,)
     inst = factory.FactoryFactory()
     inst.listen(opt.factory_port)
 
