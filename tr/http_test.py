@@ -45,6 +45,7 @@ import tornado.util
 import tornado.web
 
 import api
+import cpe_management_server
 import cwmpdate
 import garbage
 import handle
@@ -102,11 +103,12 @@ class WrapHttpClient(object):
     self.realclient.handle_callback_exception(callback)
 
 
-class MockAcsConfig(object):
+class FakeAcsConfig(object):
 
   def __init__(self, port):
     self.port = port
     self.acs_access_attempt_count = 0
+    self.success_url = None
 
   def GetAcsUrl(self):
     return 'http://127.0.0.1:%d/cwmp' % self.port
@@ -117,8 +119,8 @@ class MockAcsConfig(object):
   def AcsAccessAttempt(self, unused_url):
     self.acs_access_attempt_count += 1
 
-  def AcsAccessSuccess(self, unused_url):
-    pass
+  def AcsAccessSuccess(self, url):
+    self.success_url = url
 
 
 class LinearHttpHandler(tornado.web.RequestHandler):
@@ -174,6 +176,29 @@ class TrivialTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
 
   def test02(self):
     pass
+
+  def test_query_params(self):
+    self.assertEqual(http.AddQueryParams('http://whatever/thing', True),
+                     'http://whatever/thing')
+    self.assertEqual(http.AddQueryParams('http://whatever/thing', False),
+                     'http://whatever/thing?options=noautoprov')
+    self.assertEqual(http.AddQueryParams('http://whatever', False),
+                     'http://whatever?options=noautoprov')
+    self.assertEqual(http.AddQueryParams('//whatever', False),
+                     '//whatever?options=noautoprov')
+    self.assertEqual(http.AddQueryParams('http://whatever:112', False),
+                     'http://whatever:112?options=noautoprov')
+    self.assertEqual(http.AddQueryParams('http://whatever:112?x^&y', False),
+                     'http://whatever:112?x^&y&options=noautoprov')
+    self.assertEqual(http.AddQueryParams('http://what:112?options=x', False),
+                     'http://what:112?options=x&options=noautoprov')
+    # Doesn't add a new options=noautoprov or reorder options
+    self.assertEqual(http.AddQueryParams('//w?x&options=noautoprov&y', False),
+                     '//w?x&options=noautoprov&y')
+    # Doesn't remove noautoprov even if autoprov=True (we only add options,
+    # never remove)
+    self.assertEqual(http.AddQueryParams('//w?x&options=noautoprov&y', True),
+                     '//w?x&options=noautoprov&y')
 
   def test_trivial_get(self):
     self.trivial_calledback = False
@@ -236,6 +261,11 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
     self.gccheck = garbage.GcChecker()
     self.old_HTTPCLIENT = session.HTTPCLIENT
     self.old_GETWANPORT = http.GETWANPORT
+    self.want_auto_prov = False
+    self.old_WantACSAutoprovisioning = (
+        cpe_management_server.CpeManagementServer.WantACSAutoprovisioning)
+    cpe_management_server.CpeManagementServer.WantACSAutoprovisioning = (
+        lambda(_): self.want_auto_prov)
 
     def _WrapWrapper(**kwargs):
       return WrapHttpClient(self.old_HTTPCLIENT, self.stop, **kwargs)
@@ -257,6 +287,9 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
   def tearDown(self):
     session.HTTPCLIENT = self.old_HTTPCLIENT
     http.GETWANPORT = self.old_GETWANPORT
+    cpe_management_server.CpeManagementServer.WantACSAutoprovisioning = (
+        self.old_WantACSAutoprovisioning)
+
     SetMonotime(self.old_monotime)
     for d in self.removedirs:
       shutil.rmtree(d)
@@ -309,7 +342,7 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
     cpe_machine = http.Listen(ip=None, port=0,
                               ping_path='/ping/http_test',
                               acs=None, cpe=cpe, cpe_listener=False,
-                              acs_config=MockAcsConfig(self.get_http_port()),
+                              acs_config=FakeAcsConfig(self.get_http_port()),
                               ioloop=self.io_loop)
     return cpe_machine
 
@@ -383,6 +416,8 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
     h.send_error(404)
     self.wait(timeout=20)  # wait for client request to finish and setup retry
     self.advance_time += 10
+    # not success, don't bless URL
+    self.assertEqual(cpe_machine._acs_config.success_url, None)
     h = self.NextHandler()
 
     root = ET.fromstring(h.request.body)
@@ -420,40 +455,71 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
                      'AnotherCookie=987654321; CWMPSID=0123456789abcdef')
     h.finish()
     self.wait()
+    # success, bless the URL
+    self.assertEqual(cpe_machine._acs_config.success_url,
+                     cpe_machine._acs_config.GetAcsUrl())
 
   def testRedirect(self):
     SetMonotime(self.advanceTime)
     cpe_machine = self.getCpe()
     cpe_machine.Startup()
+    orig_url = cpe_machine._acs_config.GetAcsUrl()
 
     h = self.NextHandler()
     urlbase = 'http://127.0.0.1:%d' % self.get_http_port()
     self.assertEqual(h.request.method, 'POST')
     self.assertEqual(h.request.path, '/cwmp')
+    # want_auto_prov defaults to False
+    self.assertEqual(h.request.query, 'options=noautoprov')
     h.redirect(urlbase + '/redir7', status=307)
     self.assertTrue('<soap' in h.request.body)
 
     h = self.NextHandler()
     self.assertEqual(h.request.method, 'POST')
     self.assertEqual(h.request.path, '/redir7')
+    # After an HTTP redirect, we don't add our noautoprov option anymore
+    # (it's handled at the HTTP layer; the redirector is supposed to keep it
+    # if it wants it).
+    self.assertEqual(h.request.query, '')
     h.redirect(urlbase + '/redir1', status=301)
     self.assertTrue('<soap' in h.request.body)
+
+    # Session still not complete: success should not be declared yet
+    self.assertIsNone(cpe_machine._acs_config.success_url)
 
     h = self.NextHandler()
     self.assertEqual(h.request.method, 'POST')
     self.assertEqual(h.request.path, '/redir1')
+    self.assertEqual(h.request.query, '')
     h.redirect(urlbase + '/redir2', status=302)
     self.assertTrue('<soap' in h.request.body)
 
     h = self.NextHandler()
     self.assertEqual(h.request.method, 'POST')
     self.assertEqual(h.request.path, '/redir2')
+    self.assertEqual(h.request.query, '')
     self.assertTrue('<soap' in h.request.body)
     h.finish()
+    self.wait()
+
+    # Session still not complete: success should not be declared yet
+    self.assertIsNone(cpe_machine._acs_config.success_url)
+
+    h = self.NextHandler()
+    self.assertEqual(h.request.method, 'POST')
+    self.assertEqual(h.request.path, '/redir2')
+    self.assertEqual(h.request.query, '')
+    h.finish()
+    self.wait()
+
+    # success, bless the *original* URL.
+    # (HTTP redirect targets are never blessed)
+    self.assertEqual(cpe_machine._acs_config.success_url, orig_url)
 
   def testRedirectSession(self):
     """Test that a redirect persists for the entire session."""
     SetMonotime(self.advanceTime)
+    self.want_auto_prov = True
     cpe_machine = self.getCpe()
     cpe_machine.Startup()
 
@@ -461,6 +527,7 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
     urlbase = 'http://127.0.0.1:%d' % self.get_http_port()
     self.assertEqual(h.request.method, 'POST')
     self.assertEqual(h.request.path, '/cwmp')
+    self.assertEqual(h.request.query, '')
     h.redirect(urlbase + '/redirected', status=307)
 
     h = self.NextHandler()
@@ -614,8 +681,8 @@ class HttpTest(tornado.testing.AsyncHTTPTestCase, unittest.TestCase):
     after = cpe_machine._acs_config.acs_access_attempt_count
     self.assertNotEqual(before, after)
 
-    # Now test that the file age has expired.  We have to open the file again to
-    # trigger _UpdateAcsDisabled.
+    # Now test that the file age has expired.  We have to open the file again
+    # to trigger _UpdateAcsDisabled.
     http.ACS_DISABLE_EXPIRY_SECS = 0.1
     open(acs_disabled_filename, 'w')
     time.sleep(0.1)

@@ -133,49 +133,14 @@ class CpeManagementServer(object):
     # If we don't find a valid host, raise an exception.
     raise ValueError('The ACS Host is not permissible: %r' % (value,))
 
-  def _WantACSAutoprovisioning(self):
-    """Whether to enable ACS autoprovisioning.
-
-    We only really care about doing this when a non-provisioned device connects
-    to the ACS wirelessly (since it might connect via another user's RG).  We
-    default to disabling it, since the problem is easier to detect and fix, and
-    impacts fewer users, if we fail to provision a device than if we provision
-    it to the wrong account.
-
-    Returns:
-      Whether to enable ACS autoprovisioning.
-    """
+  def WantACSAutoprovisioning(self):
+    """Whether to enable ACS autoprovisioning."""
+    # Defaults to off, since that's the safest failure mode.  We'd rather
+    # fail to autoprovision when there's a bug (easy to detect the bug)
+    # rather than accidentally autoprovisioning when we don't want it (weird
+    # edge cases that are hard to detect).
     return os.path.exists(os.path.join(self._conman_dir,
                                        'acs_autoprovisioning'))
-
-  def _AddQueryParams(self, url):
-    """Add URL query parameters.
-
-    URL query parameters added:
-
-    * noautoprov, when applicable.  This tells the ACS not to autoprovision the
-      device.
-
-    Args:
-      url: The URL to which to add query parameters.
-
-    Returns:
-      None if url is None.
-      url, with query parameters added.
-    """
-    if url is None:
-      return None
-    options = []
-    if not self._WantACSAutoprovisioning() and 'options=noautoprov' not in url:
-      options.append('noautoprov')
-
-    if options:
-      parsed_url = urlparse.urlparse(url)
-      query = parsed_url.query
-      query += '%soptions=%s' % ('&' if query else '', ','.join(options))
-      url = parsed_url._replace(query=query).geturl()
-
-    return url
 
   def _GetURL(self):
     """Return the ACS URL to use (internal only)."""
@@ -212,8 +177,7 @@ class CpeManagementServer(object):
     # value has changed.
     if url and self.MostRecentURL != url:
       self.MostRecentURL = url
-
-    return self._AddQueryParams(url)
+    return url
 
   def SetURL(self, value):
     self.ValidateAcsUrl(value)

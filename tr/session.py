@@ -65,7 +65,8 @@ class CwmpSession(object):
   def __init__(self, acs_url, ioloop=None):
     self.http = HTTPCLIENT(max_simultaneous_connections=1,
                            io_loop=ioloop or tornado.ioloop.IOLoop.instance())
-    self.acs_url = acs_url
+    self.acs_url = self.orig_acs_url = acs_url
+    self.qualified_acs_url = None
     self.cookies = None
     self.my_ip = None
     self.ping_received = False

@@ -29,6 +29,7 @@ import socket
 import sys
 import time
 import urllib
+import urlparse
 
 from curtain import digest
 import helpers
@@ -146,6 +147,31 @@ class Handler(tornado.web.RequestHandler):
 
 REDIRECT_ON_301 = 1
 REDIRECT_ON_302 = 2
+
+
+def AddQueryParams(url, want_autoprov):
+  """Add URL query parameters to an ACS URL.
+
+  Args:
+    url: The URL to which to add query parameters.
+    want_autoprov: whether we want ACS autoprovisioning.  Note: if the
+        original URL already disabled autoprovisioning, we don't explicitly
+        enable it.  We only add flags, we don't remove them.
+
+  Returns:
+    url, with query parameters added or replaced based on args.
+  """
+  if not want_autoprov:
+    parsed_url = urlparse.urlparse(url)
+    args = parsed_url.query and parsed_url.query.split('&') or []
+    for arg in args:
+      if arg == 'options=noautoprov':
+        break
+    else:
+      args.append('options=noautoprov')
+    url = parsed_url._replace(query='&'.join(args)).geturl()
+
+  return url
 
 
 def CurlCreator(oldcreator, *args, **kwargs):
@@ -369,7 +395,7 @@ class CPEStateMachine(object):
       print 'Idle CWMP session, terminating.'
       self.outstanding = None
       ping_received = self.session.close()
-      self._acs_config.AcsAccessSuccess(self.session.acs_url)
+      self._acs_config.AcsAccessSuccess(self.session.orig_acs_url)
       self.session = None
       self.retry_count = 0  # Successful close
       if self._changed_parameters:
@@ -404,8 +430,9 @@ class CPEStateMachine(object):
     print 'CPE POST (at %s):' % time.ctime()
     print 'ACS URL: %s\n' % self.session.acs_url
     print self.cwmplogger.LogSoapXML(self.outstanding)
+
     req = tornado.httpclient.HTTPRequest(
-        url=self.session.acs_url, method='POST', headers=headers,
+        url=self.session.qualified_acs_url, method='POST', headers=headers,
         body=self.outstanding, follow_redirects=True, max_redirects=5,
         request_timeout=30.0, use_gzip=True, allow_ipv6=True,
         **self.fetch_args)
@@ -432,10 +459,10 @@ class CPEStateMachine(object):
         # TODO(dgentry): $SPEC3 3.7.1.6 ACS Fault 8005 == retry same request
       else:
         self.session.state_update(acs_to_cpe_empty=True)
-      if self.session.acs_url != response.effective_url:
+      if self.session.qualified_acs_url != response.effective_url:
         url = response.effective_url
         print 'Redirecting to %s for remainder of CWMP session' % url
-        self.session.acs_url = url
+        self.session.qualified_acs_url = self.session.acs_url = url
     else:
       print 'HTTP ERROR {0!s}: {1}'.format(response.code, response.error)
       self._ScheduleRetrySession()
@@ -459,11 +486,18 @@ class CPEStateMachine(object):
     self.start_session_timeout = self.ioloop.add_timeout(
         datetime.timedelta(seconds=wait), self._SessionWaitTimer)
 
+  def _CwmpSession(self):
+    s = session.CwmpSession(acs_url=self.cpe_management_server.URL,
+                            ioloop=self.ioloop)
+    s.qualified_acs_url = s.acs_url and AddQueryParams(
+        s.acs_url,
+        self.cpe_management_server.WantACSAutoprovisioning())
+    return s
+
   def _SessionWaitTimer(self):
     """Handler for the CWMP Retry timer, to start a new session."""
     self.start_session_timeout = None
-    self.session = session.CwmpSession(
-        acs_url=self.cpe_management_server.URL, ioloop=self.ioloop)
+    self.session = self._CwmpSession()
     self.Run()
 
   def _CancelSessionRetries(self):
@@ -481,8 +515,7 @@ class CPEStateMachine(object):
     elif not self.session:
       self._CancelSessionRetries()
       self.event_queue.appendleft((reason, None))
-      self.session = session.CwmpSession(
-          acs_url=self.cpe_management_server.URL, ioloop=self.ioloop)
+      self.session = self._CwmpSession()
       self.Run()
 
   def _NewTimeoutPingSession(self):
