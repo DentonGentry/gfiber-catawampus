@@ -88,6 +88,8 @@ class RunserverTest(unittest.TestCase):
         client.kill()
 
   def testRunserver(self):
+    self._DoTest([])
+    self._DoTest(['--port=0'])
     self._DoTest(['--no-cpe'])
     self._DoTest(['--no-cpe', '--diagui', '--diagui-port=0'])
     self._DoTest(['--no-cpe',
