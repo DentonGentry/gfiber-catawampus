@@ -34,13 +34,16 @@ EXTRAPINGFILE6 = ['/tmp/extra_ping6_servers']
 # This is the Alexa US top 25 of 6/2016, omitting the sites which do not
 # respond to ICMP ping: amazon.com, ebay.com, netflix.com, live.com,
 # chase.com, paypal.com, msn.com, bankofamerica.com, cnn.com
-ALEXA_V4_US = ('google.com,facebook.com,youtube.com,yahoo.com,wikipedia.org,'
-               'twitter.com,reddit.com,linkedin.com,craigslist.com,'
-               'pinterest.com,bing.com,imgur.com,go.com,instagram.com,'
-               'diply.com,tumblr.com')
+# Also omitting tumblr.com, which responds to test pings but blocks
+# pings in larger volumes.
+ALEXA_V4_US = ('www.google.com,www.facebook.com,www.youtube.com,www.yahoo.com,'
+               'www.wikipedia.org,www.twitter.com,www.reddit.com,'
+               'www.linkedin.com,www.craigslist.com,www.pinterest.com,'
+               'www.bing.com,www.imgur.com,www.go.com,www.instagram.com,'
+               'www.diply.com')
 # Also omit sites which do not respond to IPv6 ping.
-ALEXA_V6_US = ('google.com,facebook.com,youtube.com,yahoo.com,wikipedia.org,'
-               'linkedin.com,diply.com')
+ALEXA_V6_US = ('www.google.com,www.facebook.com,www.youtube.com,www.yahoo.com,'
+               'www.wikipedia.org,www.linkedin.com,www.diply.com')
 
 
 @tr.experiment.Experiment
