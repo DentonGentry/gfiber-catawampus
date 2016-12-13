@@ -189,8 +189,9 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
     self.assertTrue(self.install_cb_faultstring)
 
   def testValidateExports(self):
-    tr.handle.ValidateExports(device.LANDevice('', 'br0'))
-    tr.handle.ValidateExports(device.LANDevice('portal', ''))
+    radio_list = {'radio0': device.Radio(), 'radio1': device.Radio()}
+    tr.handle.ValidateExports(device.LANDevice('', 'br0', radio_list))
+    tr.handle.ValidateExports(device.LANDevice('portal', '', radio_list))
     tr.handle.ValidateExports(device.Ethernet())
     # TODO(apenwarr): instantiate the entire schema here for proper testing.
     #   It's a pain because many subsections may need fake data.
