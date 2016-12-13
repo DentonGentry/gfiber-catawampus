@@ -81,6 +81,26 @@ class AutoObject(core.Exporter):
       self.Count = self.gcount[0]
 
 
+class IndexErrorAutoObject(core.Exporter):
+
+  def __init__(self):
+    core.Exporter.__init__(self)
+    self.SubList = core.AutoDict('SubList',
+                                 iteritems=self._itersubs,
+                                 getitem=self._getsub)
+    self.Export(lists=['Sub'])
+
+  def _itersubs(self):
+    for i in range(3):
+      yield i, i
+
+  def _getsub(self, key):
+    if isinstance(key, int):
+      raise IndexError('Testing IndexError for an integer index')
+    else:
+      return int(key)
+
+
 class CoreTest(unittest.TestCase):
 
   def setUp(self):
@@ -268,6 +288,13 @@ class CoreTest(unittest.TestCase):
     h = handle.Handle(root)
     with self.assertRaises(AttributeError):
       h.SetExportParam('ReadParam', 6)
+    self.gccheck.Check()
+
+  def testIndexError(self):
+    """Test for b/33414470."""
+    root = IndexErrorAutoObject()
+    h = handle.Handle(root)
+    self.assertEqual(h.GetExport('Sub.1'), 1)
     self.gccheck.Check()
 
 

@@ -222,7 +222,7 @@ class Handle(object):
     iname = _Int(name)
     try:
       return parent[iname]
-    except KeyError:
+    except (KeyError, IndexError):
       pass
     return parent[name]
 
