@@ -556,10 +556,6 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
                    'X_CATAWAMPUS-ORG_OverrideSSID',
                    'X_CATAWAMPUS-ORG_Suffix24G'])
 
-    self.AssociatedDeviceList = tr.core.AutoDict(
-        'AssociatedDeviceList', iteritems=self.IterAssociations,
-        getitem=self.GetAssociationByIndex)
-
     self.PreSharedKeyList = {}
     for i in range(1, 2):
       # tr-98 spec deviation: spec says 10 PreSharedKeys objects,
@@ -1043,15 +1039,14 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
       tr.handle.ValidateExports(ad)
     return ad
 
-  def IterAssociations(self):
+  @property
+  def AssociatedDeviceList(self):
     """Retrieves a list of all associated STAs."""
     stations = self.wl.GetAssociatedDevices()
+    associated_device_list = {}
     for idx, mac in enumerate(stations, start=1):
-      yield idx, self.GetAssociation(mac)
-
-  def GetAssociationByIndex(self, index):
-    stations = self.wl.GetAssociatedDevices()
-    return self.GetAssociation(stations[index])
+      associated_device_list[str(idx)] = self.GetAssociation(mac)
+    return associated_device_list
 
 
 class BrcmWlanConfigurationStats(netdev.NetdevStatsLinux26, BASE98WIFI.Stats):

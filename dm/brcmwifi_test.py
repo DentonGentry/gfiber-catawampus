@@ -710,6 +710,12 @@ class BrcmWifiTest(unittest.TestCase):
       seen.add(mac)
     self.assertEqual(len(seen), 3)
 
+  def testAssociatedDeviceUnicodeIndex(self):
+    bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
+    al = bw.AssociatedDeviceList
+    h = tr.handle.Handle(al)
+    self.assertTrue(h.GetExport(u'1'))
+
   def testKeyPassphrase(self):
     bw = brcmwifi.BrcmWifiWlanConfiguration('wifi0')
     bw.KeyPassphrase = 'testpassword'
