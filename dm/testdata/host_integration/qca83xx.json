@@ -1,0 +1,30 @@
+{
+  "Ports": [
+    {
+      "PortName": "lan0:1",
+      "LinkSpeed": 1000,
+      "LinkDuplex": "Full",
+      "LinkStatus": "Up",
+      "LastChanged": 1483070000,
+      "BytesReceived": 1,
+      "ErrorsReceived": 2,
+      "UnicastPacketsReceived": 3,
+      "MulticastPacketsReceived": 4,
+      "BroadcastPacketsReceived": 5,
+      "BytesSent": 6,
+      "ErrorsSent": 7,
+      "UnicastPacketsSent": 8,
+      "MulticastPacketsSent": 9,
+      "BroadcastPacketsSent": 10
+    },
+    {}
+  ],
+  "Fdb": [
+    {
+      "PhysAddress": "00:01:02:33:00:01",
+      "PortList": [ "lan0:1" ]
+    },
+    {}
+  ],
+  "dummy": {}
+}

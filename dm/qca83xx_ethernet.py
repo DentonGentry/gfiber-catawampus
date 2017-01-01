@@ -24,40 +24,70 @@ in http://www.broadband-forum.org/cwmp/tr-181-2-2-0.html
 
 __author__ = 'dgentry@google.com (Denton Gentry)'
 
-import sys
+import datetime
+import json
 import tr.basemodel
 import tr.cwmptypes
-
-
-QCAPORT = None
-try:
-  import qca83xx  # pylint:disable=g-import-not-at-top
-  QCAPORT = qca83xx.Port
-except ImportError:
-  sys.stderr.write('No qca83xx module; continuing for unit test support.')
+import tr.session
 
 
 ETHERNET = tr.basemodel.Device.Ethernet
+QCA83XX_JSON = ['/tmp/qca83xx.json']
 
 
 class EthernetInterfaceStatsQca83xx(ETHERNET.Interface.Stats):
   """tr181 Ethernet.Interface.{i}.Stats implementation for qca83xx."""
 
+  BroadcastPacketsReceived = tr.cwmptypes.ReadOnlyUnsigned(0)
+  BroadcastPacketsSent = tr.cwmptypes.ReadOnlyUnsigned(0)
+  BytesReceived = tr.cwmptypes.ReadOnlyUnsigned(0)
+  BytesSent = tr.cwmptypes.ReadOnlyUnsigned(0)
+  DiscardPacketsReceived = tr.cwmptypes.ReadOnlyUnsigned(0)
+  DiscardPacketsSent = tr.cwmptypes.ReadOnlyUnsigned(0)
+  ErrorsReceived = tr.cwmptypes.ReadOnlyUnsigned(0)
+  ErrorsSent = tr.cwmptypes.ReadOnlyUnsigned(0)
+  MulticastPacketsReceived = tr.cwmptypes.ReadOnlyUnsigned(0)
+  MulticastPacketsSent = tr.cwmptypes.ReadOnlyUnsigned(0)
+  PacketsReceived = tr.cwmptypes.ReadOnlyUnsigned(0)
+  PacketsSent = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UnicastPacketsReceived = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UnicastPacketsSent = tr.cwmptypes.ReadOnlyUnsigned(0)
+  UnknownProtoPacketsReceived = tr.cwmptypes.ReadOnlyUnsigned(0)
+  X_CATAWAMPUS_ORG_DiscardFrameCnts = tr.cwmptypes.ReadOnlyUnsigned(0)
+
   def __init__(self, stats):
     super(EthernetInterfaceStatsQca83xx, self).__init__()
-    self.stats = stats
+    self.Unexport(['X_CATAWAMPUS-ORG_DiscardFrameCnts',
+                   'X_CATAWAMPUS-ORG_DiscardPacketsReceivedHipri'])
+    type(self).BytesReceived.Set(self, stats.get('BytesReceived', 0))
+    rx_unicast_pkts = stats.get('UnicastPacketsReceived', 0)
+    rx_multicast_pkts = stats.get('MulticastPacketsReceived', 0)
+    rx_broadcast_pkts = stats.get('BroadcastPacketsReceived', 0)
+    rx_pkts = rx_unicast_pkts + rx_multicast_pkts + rx_broadcast_pkts
+    type(self).PacketsReceived.Set(self, rx_pkts)
+    type(self).UnicastPacketsReceived.Set(self, rx_unicast_pkts)
+    type(self).MulticastPacketsReceived.Set(self, rx_multicast_pkts)
+    type(self).BroadcastPacketsReceived.Set(self, rx_broadcast_pkts)
+    type(self).ErrorsReceived.Set(self, stats.get('ErrorsReceived', 0))
 
-  def __getattr__(self, name):
-    return self.stats.get(name, 0)
+    type(self).BytesSent.Set(self, stats.get('BytesSent', 0))
+    tx_unicast_pkts = stats.get('UnicastPacketsSent', 0)
+    tx_multicast_pkts = stats.get('MulticastPacketsSent', 0)
+    tx_broadcast_pkts = stats.get('BroadcastPacketsSent', 0)
+    tx_pkts = tx_unicast_pkts + tx_multicast_pkts + tx_broadcast_pkts
+    type(self).PacketsSent.Set(self, tx_pkts)
+    type(self).UnicastPacketsSent.Set(self, tx_unicast_pkts)
+    type(self).MulticastPacketsSent.Set(self, tx_multicast_pkts)
+    type(self).BroadcastPacketsSent.Set(self, tx_broadcast_pkts)
+    type(self).ErrorsSent.Set(self, stats.get('ErrorsSent', 0))
 
 
 class EthernetInterfaceQca83xx(ETHERNET.Interface):
   """Handling for a QCA83xx switch port.
 
   Args:
-    portnum: the 0-based port number on the switch chip.
+    portnum: the 1-based port number on the switch chip.
     mac: the MAC address of this port. The QCA83xx doesn't know it.
-    ifname: the Linux netdev handling this switch port
     upstream: whether the port faces the WAN (unlikely).
   """
 
@@ -67,120 +97,124 @@ class EthernetInterfaceQca83xx(ETHERNET.Interface):
   Name = tr.cwmptypes.ReadOnlyString('')
   Upstream = tr.cwmptypes.ReadOnlyBool(False)
 
-  def __init__(self, portnum, mac, ifname, upstream=False):
+  def __init__(self, portnum, mac, upstream=False):
     super(EthernetInterfaceQca83xx, self).__init__()
     self._portnum = portnum
-    self._port = QCAPORT(portnum)
-    self._ifname = ifname
-    self.Unexport(['Alias', 'X_CATAWAMPUS-ORG_ActualBitRate',
-                   'X_CATAWAMPUS-ORG_ActualDuplexMode'])
+    self.Unexport(['Alias'])
     type(self).MACAddress.Set(self, mac)
-    type(self).Name.Set(self, 'qca83xx_' + str(portnum))
+    type(self).Name.Set(self, 'lan0:' + str(portnum))
     type(self).Upstream.Set(self, upstream)
     self.stats = {}
 
+  @tr.session.cache
+  def _GetJsonPortInfo(self):
+    """Read in information about this port from JSON.
+
+      The Ports section of the file looks like:
+      # cat /tmp/qca83xx.json
+      {
+        "Ports": [
+          {
+            "PortName": "lan0:1",
+            "LinkSpeed": 0,
+            "LinkDuplex": "Unknown",
+            "LinkStatus": "Down",
+            "LastChanged": 0,
+            "BytesReceived": 0,
+            "ErrorsReceived": 0,
+            "UnicastPacketsReceived": 0,
+            "MulticastPacketsReceived": 0,
+            "BroadcastPacketsReceived": 0,
+            "BytesSent": 0,
+            "ErrorsSent": 0,
+            "UnicastPacketsSent": 0,
+            "MulticastPacketsSent": 0,
+            "BroadcastPacketsSent": 0,
+            "CableStatus": "OK",
+            "CableLength": 0
+          },
+
+    Returns:
+        a dict of the contents of this port in the JSON file.
+    """
+    try:
+      js = json.load(open(QCA83XX_JSON[0]))
+    except (IOError, ValueError):
+      return {}
+    ports = js.get('Ports', [])
+    for port in ports:
+      if port.get('PortName', '') == self.Name:
+        return port
+    return {}
+
   @property
   def LastChange(self):
-    return tr.cwmpdate.format(0)
+    seconds_since_epoch = self._GetJsonPortInfo().get('LastChanged', 0)
+    dt = datetime.datetime.utcfromtimestamp(seconds_since_epoch)
+    return tr.cwmpdate.format(dt)
 
   @property
   def Status(self):
-    if self._port.IsLinkUp():
+    linkstatus = self._GetJsonPortInfo().get('LinkStatus', 'Error')
+    if linkstatus == 'Up':
       return 'Up'
-    for (cable_status, unused_cable_len) in self._port.CableDiag():
-      if cable_status == 'shorted':
-        return 'Error'
+    cablestatus = self._GetJsonPortInfo().get('CableStatus', 'OK')
+    if cablestatus == 'SH' or cablestatus == 'IV':
+      return 'Error'
     return 'Down'
 
   @property
   def Stats(self):
-    s = self._UpdateStats()
-    return EthernetInterfaceStatsQca83xx(s)
+    return EthernetInterfaceStatsQca83xx(self._GetJsonPortInfo())
 
-  def GetMaxBitRate(self):
-    return self._port.Speed()
+  @property
+  def MaxBitRate(self):
+    return self._GetJsonPortInfo().get('LinkSpeed', 0)
 
-  def SetMaxBitRate(self, val):
-    self._port.Speed(speed=int(val))
+  @property
+  def X_CATAWAMPUS_ORG_ActualBitRate(self):
+    return self._GetJsonPortInfo().get('LinkSpeed', 0)
 
-  MaxBitRate = property(GetMaxBitRate, SetMaxBitRate, None,
-                        'Device.Ethernet.Interface.MaxBitRate')
+  @property
+  def DuplexMode(self):
+    return self._GetJsonPortInfo().get('LinkDuplex', 'Half')
 
-  def GetDuplexMode(self):
-    return self._port.Duplex()
-
-  def SetDuplexMode(self, val):
-    self._port.Duplex(duplex=val)
-
-  DuplexMode = property(GetDuplexMode, SetDuplexMode, None,
-                        'Device.Ethernet.Interface.DuplexMode')
+  @property
+  def X_CATAWAMPUS_ORG_ActualDuplexMode(self):
+    return self._GetJsonPortInfo().get('LinkDuplex', 'Half')
 
   def GetAssociatedDevices(self):
     """Return a list of known clients of this interface.
 
+      The Fdb section of the JSON file looks like:
+      "Fdb": [
+        {
+          "PhysAddress": "00:01:02:03:04:05",
+          "PortList": [ "lan0:2" ]
+        },
+        {
+          "PhysAddress": "00:01:02:03:04:06",
+          "PortList": [ "lan0:3" ]
+        },
+
     Returns:
-      a list of dicts, where the dict contains:
-      1. a 'PhysAddress' key with the MAC address.
-      2. an 'IPv4Address' key with a list of IP addresses
-         for this mac known by ARP. This list may be empty.
+      a list of dicts, where the dict contains a
+      'PhysAddress' key with the MAC address.
     """
+    js = {}
     result = []
-    for entry in self._port.Fdb():
-      mac = entry['PhysAddress']
-      octets = mac.split(':')
-      b1 = int(octets[0], 16)
-      if not b1 & 0x01:
-        # only report unicast addresses, not multicast
-        result.append({'PhysAddress': mac})
+    try:
+      js = json.load(open(QCA83XX_JSON[0]))
+    except (IOError, ValueError):
+      return {}
+    fdb = js.get('Fdb', [])
+    for station in fdb:
+      macaddr = station.get('PhysAddress', '')
+      portlist = station.get('PortList', [])
+      if macaddr and self.Name in portlist:
+        octets = macaddr.split(':')
+        b1 = int(octets[0], 16)
+        if not b1 & 0x01:
+          # only report unicast addresses, not multicast
+          result.append({'PhysAddress': macaddr})
     return result
-
-  def _UpdateStats(self):
-    """Accumulate MIB counters from the hardware.
-
-    The QCA83xx clears its MIB counters on read, so we accumulate them
-    in software. The hardware has a large number of counters for various
-    events, which map to a somewhat smaller number of tr-181 Stats.
-
-    Returns:
-      a dict of statistics.
-    """
-    st = self.stats
-    hs = self._port.Stats()
-    self._UpdateStat(st, hs, 'BytesSent', 'TxBytes')
-    self._UpdateStat(st, hs, 'BytesReceived', 'RxGoodBytes')
-    self._UpdateStat(st, hs, 'PacketsSent', 'TxBroadcastPackets')
-    self._UpdateStat(st, hs, 'PacketsSent', 'TxMulticastPackets')
-    self._UpdateStat(st, hs, 'PacketsSent', 'TxUnicastPackets')
-    self._UpdateStat(st, hs, 'PacketsReceived', 'RxBroadcastPackets')
-    self._UpdateStat(st, hs, 'PacketsReceived', 'RxMulticastPackets')
-    self._UpdateStat(st, hs, 'PacketsReceived', 'RxUnicastPackets')
-    self._UpdateStat(st, hs, 'ErrorsSent', 'TxUnderRuns')
-    self._UpdateStat(st, hs, 'ErrorsSent', 'TxOverSizePackets')
-    self._UpdateStat(st, hs, 'ErrorsSent', 'TxLateCollisions')
-    self._UpdateStat(st, hs, 'ErrorsSent', 'TxExcessiveDeferrals')
-    self._UpdateStat(st, hs, 'ErrorsReceived', 'RxFcsErrors')
-    self._UpdateStat(st, hs, 'ErrorsReceived', 'RxAlignmentErrors')
-    self._UpdateStat(st, hs, 'ErrorsReceived', 'RxRuntPackets')
-    self._UpdateStat(st, hs, 'ErrorsReceived', 'RxFragments')
-    self._UpdateStat(st, hs, 'ErrorsReceived', 'RxTooLongPackets')
-    self._UpdateStat(st, hs, 'ErrorsReceived', 'RxOverFlows')
-    self._UpdateStat(st, hs, 'UnicastPacketsSent', 'TxUnicastPackets')
-    self._UpdateStat(st, hs, 'UnicastPacketsReceived', 'RxUnicastPackets')
-    self._UpdateStat(st, hs, 'MulticastPacketsSent', 'TxMulticastPackets')
-    self._UpdateStat(st, hs, 'MulticastPacketsReceived', 'RxMulticastPackets')
-    self._UpdateStat(st, hs, 'BroadcastPacketsSent', 'TxBroadcastPackets')
-    self._UpdateStat(st, hs, 'BroadcastPacketsReceived', 'RxBroadcastPackets')
-    return st
-
-  def _UpdateStat(self, swstats, hwstats, swname, hwname):
-    """Update accumulator from hardware counter.
-
-    Args:
-      swstats: a dict containing the accumulated values
-      hwstats: a dict of values read from hardware counters
-      swname: name of the tr-181 Stat to accumulate into
-      hwname: name of the hardware counter to accumulate from
-    """
-    s = swstats.get(swname, 0L)
-    h = long(hwstats.get(hwname, 0))
-    swstats[swname] = s + h

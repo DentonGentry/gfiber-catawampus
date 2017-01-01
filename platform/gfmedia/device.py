@@ -358,7 +358,7 @@ class Ethernet(tr.basemodel.Device.Ethernet):
     if QCASWITCHPORT is not None:
       mac = PYNETIFCONF('lan0').get_mac()
       for port in range(1, 5):
-        q = QCASWITCHPORT(portnum=port, mac=mac, ifname='lan0')
+        q = QCASWITCHPORT(portnum=port, mac=mac)
         self.InterfaceList[2 + port] = q
 
     if _DoesInterfaceExist('br0'):

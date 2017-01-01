@@ -1,0 +1,105 @@
+{
+  "Ports": [
+    {
+      "PortName": "lan0:1",
+      "LinkSpeed": 1000,
+      "LinkDuplex": "Full",
+      "LinkStatus": "Up",
+      "LastChanged": 1483074480,
+      "BytesReceived": 36000000000000000,
+      "ErrorsReceived": 99,
+      "UnicastPacketsReceived": 31,
+      "MulticastPacketsReceived": 39,
+      "BroadcastPacketsReceived": 34,
+      "BytesSent": 17000000000000000,
+      "ErrorsSent": 98,
+      "UnicastPacketsSent": 25,
+      "MulticastPacketsSent": 15,
+      "BroadcastPacketsSent": 19,
+      "CableStatus": "OK",
+      "CableLength": 13
+    },
+    {
+      "PortName": "lan0:2",
+      "LinkSpeed": 100,
+      "LinkDuplex": "Full",
+      "LinkStatus": "Up",
+      "LastChanged": 0,
+      "BytesReceived": 0,
+      "ErrorsReceived": 0,
+      "UnicastPacketsReceived": 0,
+      "MulticastPacketsReceived": 0,
+      "BroadcastPacketsReceived": 0,
+      "BytesSent": 0,
+      "ErrorsSent": 0,
+      "UnicastPacketsSent": 0,
+      "MulticastPacketsSent": 0,
+      "BroadcastPacketsSent": 0,
+      "CableStatus": "OK",
+      "CableLength": 7
+    },
+    {
+      "PortName": "lan0:3",
+      "LinkSpeed": 0,
+      "LinkDuplex": "Full",
+      "LinkStatus": "Down",
+      "LastChanged": 0,
+      "BytesReceived": 0,
+      "ErrorsReceived": 0,
+      "UnicastPacketsReceived": 0,
+      "MulticastPacketsReceived": 0,
+      "BroadcastPacketsReceived": 0,
+      "BytesSent": 0,
+      "ErrorsSent": 0,
+      "UnicastPacketsSent": 0,
+      "MulticastPacketsSent": 0,
+      "BroadcastPacketsSent": 0,
+      "CableStatus": "SH",
+      "CableLength": 7
+    },
+    {
+      "PortName": "lan0:4",
+      "LinkSpeed": 10,
+      "LinkDuplex": "Full",
+      "LinkStatus": "Down",
+      "LastChanged": 0,
+      "BytesReceived": 0,
+      "ErrorsReceived": 0,
+      "UnicastPacketsReceived": 0,
+      "MulticastPacketsReceived": 0,
+      "BroadcastPacketsReceived": 0,
+      "BytesSent": 0,
+      "ErrorsSent": 0,
+      "UnicastPacketsSent": 0,
+      "MulticastPacketsSent": 0,
+      "BroadcastPacketsSent": 0,
+      "CableStatus": "OK",
+      "CableLength": 0
+    },
+    {}
+  ],
+  "Fdb": [
+    {
+      "PhysAddress": "f8:8f:ca:00:00:01",
+      "PortList": [ "lan0:1" ]
+    },
+    {
+      "PhysAddress": "f8:8f:ca:00:00:02",
+      "PortList": [ "lan0:1" ]
+    },
+    {
+      "PhysAddress": "f8:8f:ca:00:00:03",
+      "PortList": [ "lan0:1" ]
+    },
+    {
+      "PhysAddress": "b0:34:95:05:da:9c",
+      "PortList": [ "lan0:4" ]
+    },
+    {
+      "PhysAddress": "f2:00:00:00:00:00",
+      "PortList": [ ]
+    },
+    {}
+  ],
+  "dummy": {}
+}

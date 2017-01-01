@@ -33,30 +33,27 @@ class QcaEthernetTest(unittest.TestCase):
   """Tests for qca83xx_ethernet.py."""
 
   def setUp(self):
-    self.old_QCAPORT = qca83xx_ethernet.QCAPORT
+    self.old_QCA83XX_JSON = qca83xx_ethernet.QCA83XX_JSON
+    qca83xx_ethernet.QCA83XX_JSON[0] = 'testdata/qca83xx_ethernet/qca83xx.json'
     self.mac = 'f8:8f:ca:ff:ff:02'
     MOCKPORTSETFIELDS.clear()
 
   def tearDown(self):
-    qca83xx_ethernet.QCAPORT = self.old_QCAPORT
+    qca83xx_ethernet.QCA83XX_JSON = self.old_QCA83XX_JSON
     self.eth = None
 
   def testValidateExports(self):
-    qca83xx_ethernet.QCAPORT = MockPortStats
-    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac,
-                                                    ifname='foo0')
+    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac)
     tr.handle.ValidateExports(eth)
 
   def testStats(self):
-    qca83xx_ethernet.QCAPORT = MockPortStats
-    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac,
-                                                    ifname='foo0')
+    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac)
     self.assertEqual(eth.Stats.BytesSent, 17000000000000000L)
     self.assertEqual(eth.Stats.BytesReceived, 36000000000000000L)
     self.assertEqual(eth.Stats.PacketsSent, 15 + 19 + 25)
     self.assertEqual(eth.Stats.PacketsReceived, 31 + 34 + 39)
-    self.assertEqual(eth.Stats.ErrorsSent, 24 + 14 + 13 + 23)
-    self.assertEqual(eth.Stats.ErrorsReceived, 37 + 41 + 30 + 40 + 29 + 35)
+    self.assertEqual(eth.Stats.ErrorsSent, 98)
+    self.assertEqual(eth.Stats.ErrorsReceived, 99)
     self.assertEqual(eth.Stats.UnicastPacketsSent, 25)
     self.assertEqual(eth.Stats.UnicastPacketsReceived, 31)
     self.assertEqual(eth.Stats.MulticastPacketsSent, 15)
@@ -68,45 +65,58 @@ class QcaEthernetTest(unittest.TestCase):
     self.assertEqual(eth.Stats.UnknownProtoPacketsReceived, 0)
 
   def testFields(self):
-    qca83xx_ethernet.QCAPORT = MockPortStats
-    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac,
-                                                    ifname='foo0')
+    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=2, mac=self.mac)
     self.assertEqual(eth.MaxBitRate, 100)
-    self.assertEqual(eth.DuplexMode, 'full')
+    self.assertEqual(eth.DuplexMode, 'Full')
     self.assertEqual(eth.Status, 'Up')
     self.assertEqual(eth.MACAddress, self.mac)
     self.assertFalse(eth.Upstream)
 
   def testStatus(self):
-    qca83xx_ethernet.QCAPORT = MockPortLinkFault
-    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac,
-                                                    ifname='foo0')
+    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=3, mac=self.mac)
     self.assertEqual(eth.Status, 'Error')
-    qca83xx_ethernet.QCAPORT = MockPortLinkDown
-    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac,
-                                                    ifname='foo0')
+    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=4, mac=self.mac)
     self.assertEqual(eth.Status, 'Down')
 
-  def testWrite(self):
-    qca83xx_ethernet.QCAPORT = MockPortLinkDown
-    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac,
-                                                    ifname='foo0')
-    eth.DuplexMode = 'full'
-    self.assertTrue('duplex' in MOCKPORTSETFIELDS)
-    self.assertEqual(MOCKPORTSETFIELDS['duplex'], 'full')
-    eth.MaxBitRate = 1000
-    self.assertTrue('speed' in MOCKPORTSETFIELDS)
-    self.assertEqual(MOCKPORTSETFIELDS['speed'], 1000)
-
   def testGetAssociatedDevices(self):
-    qca83xx_ethernet.QCAPORT = MockPortLinkDown
-    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac,
-                                                    ifname='foo0')
+    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac)
     ac = eth.GetAssociatedDevices()
     self.assertEqual(len(ac), 3)
     self.assertEqual(ac[0]['PhysAddress'], 'f8:8f:ca:00:00:01')
     self.assertEqual(ac[1]['PhysAddress'], 'f8:8f:ca:00:00:02')
     self.assertEqual(ac[2]['PhysAddress'], 'f8:8f:ca:00:00:03')
+
+  def testEmptyFile(self):
+    qca83xx_ethernet.QCA83XX_JSON[0] = 'testdata/qca83xx_ethernet/empty'
+    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac)
+    ac = eth.GetAssociatedDevices()
+    self.assertEqual(len(ac), 0)
+    self.assertEqual(eth.Stats.BytesSent, 0)
+    self.assertEqual(eth.Stats.BytesReceived, 0)
+
+  def testEmptyJson(self):
+    qca83xx_ethernet.QCA83XX_JSON[0] = 'testdata/qca83xx_ethernet/empty.json'
+    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac)
+    ac = eth.GetAssociatedDevices()
+    self.assertEqual(len(ac), 0)
+    self.assertEqual(eth.Stats.BytesSent, 0)
+    self.assertEqual(eth.Stats.BytesReceived, 0)
+
+  def testCorruptJson(self):
+    qca83xx_ethernet.QCA83XX_JSON[0] = 'testdata/qca83xx_ethernet/empty.json'
+    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac)
+    ac = eth.GetAssociatedDevices()
+    self.assertEqual(len(ac), 0)
+    self.assertEqual(eth.Stats.BytesSent, 0)
+    self.assertEqual(eth.Stats.BytesReceived, 0)
+
+  def testMissingFile(self):
+    qca83xx_ethernet.QCA83XX_JSON[0] = '/nosuchfile'
+    eth = qca83xx_ethernet.EthernetInterfaceQca83xx(portnum=1, mac=self.mac)
+    ac = eth.GetAssociatedDevices()
+    self.assertEqual(len(ac), 0)
+    self.assertEqual(eth.Stats.BytesSent, 0)
+    self.assertEqual(eth.Stats.BytesReceived, 0)
 
 
 class MockPortLinkDown(object):
