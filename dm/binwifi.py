@@ -347,7 +347,7 @@ class WlanConfiguration(CATA98WIFI):
       encryption_modes, init='AESEncryption')
   SignalsStr = tr.cwmptypes.ReadOnlyString()
 
-  def __init__(self, ifname, if_suffix, bridge, band=None, standard='n',
+  def __init__(self, ifname, if_suffix, bridge, radio, band=None, standard='n',
                width_2_4g=0, width_5g=0, autochan=None):
     super(WlanConfiguration, self).__init__()
     self._initialized = False
@@ -356,6 +356,8 @@ class WlanConfiguration(CATA98WIFI):
     type(self).Name.Set(self, self._ifname)
     self._band = band if band else '5'
     self._bridge = bridge
+    self._radio = radio
+    self._radio.InterfaceList.add(self)
     self._fixed_band = band
     if standard == 'ac':
       type(self).SupportedStandards.Set(self, 'a,b,g,n,ac')
@@ -458,7 +460,7 @@ class WlanConfiguration(CATA98WIFI):
       atype = self.X_CATAWAMPUS_ORG_AutoChanType
       self.new_config.AutoChannelType = self._autochan or atype
       self.new_config.AutoChannelEnable = self.AutoChannelEnable
-      self.new_config.Channel = self.Channel
+      self.new_config.Channel = self._radio.Channel
       self.new_config.SSID = self.SSID
 
   @property
@@ -560,7 +562,7 @@ class WlanConfiguration(CATA98WIFI):
     ivalue = int(value)
     if not self.ValidateChannel(ivalue):
       raise ValueError('Invalid Channel: %d' % ivalue)
-    self.new_config.Channel = ivalue
+    self._radio.Channel = ivalue
     self.AutoChannelEnable = 'False'
     self.Triggered()
 
@@ -862,7 +864,7 @@ class WlanConfiguration(CATA98WIFI):
       else:  # LEGACY
         ch = 'auto'
     else:
-      ch = self.new_config.Channel
+      ch = self._radio.Channel
     if ch:
       cmd += ['-c', str(ch)]
     ssid = self.new_config.SSID
