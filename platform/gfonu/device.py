@@ -32,6 +32,7 @@ import google3
 import dm.device_info
 import dm.ds6923_optical
 import dm.ethernet
+import dm.ghn
 import dm.igd_time
 import dm.mrvl88601_netstats
 import dm.periodic_statistics
@@ -343,7 +344,7 @@ class Device(tr.basemodel.Device):
         objects=['ATM', 'Bridging', 'BulkData', 'CaptivePortal',
                  'DHCPv4', 'DHCPv6', 'DLNA', 'DNS', 'DSL', 'DSLite',
                  'ETSIM2M', 'FaultMgmt', 'FAP', 'Firewall',
-                 'GatewayInfo', 'Ghn', 'HPNA', 'HomePlug', 'Hosts',
+                 'GatewayInfo', 'HPNA', 'HomePlug', 'Hosts',
                  'IEEE8021x', 'IP', 'IPsec', 'IPv6rd', 'LANConfigSecurity',
                  'MoCA', 'NAT', 'NeighborDiscovery', 'PPP', 'PTM',
                  'QoS', 'RouterAdvertisement', 'Routing', 'Security',
@@ -353,11 +354,19 @@ class Device(tr.basemodel.Device):
                  'WiFi'])
     self.Unexport(lists=['InterfaceStack'])
     self.Unexport(['InterfaceStackNumberOfEntries', 'RootDataModelVersion'])
+
     with open(PLATFORM_FILE) as f:
-      if f.read().strip() == 'GFLT110' or f.read().strip() == 'GFLT120':
+      name = f.read().strip()
+
+      if name == 'GFLT110' or name == 'GFLT120':
         self.Optical = dm.ds6923_optical.Ds6923Optical(GFLT110_OPTICAL_I2C_ADDR)
       else:
         self.Unexport(objects=['Optical'])
+
+      if name == 'GFLT400':
+        self.Ghn = dm.ghn.Ghn()
+      else:
+        self.Unexport(objects=['Ghn'])
 
     # DeficeInfo is defined under tr181.Device_v2_4,
     # not tr181.Device_v2_4.Device, so still need to Export here
