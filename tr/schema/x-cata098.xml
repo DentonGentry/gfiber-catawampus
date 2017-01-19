@@ -133,6 +133,12 @@ For example, a value of "g,b" (or "b,g" - order is not important) means that the
           <boolean/>
         </syntax>
       </parameter>
+      <parameter name="X_CATAWAMPUS-ORG_ClientIsolation" access="readWrite">
+        <description>If ClientIsolation is True, CPE will isolate clients on the network from each other.</description>
+        <syntax>
+          <boolean/>
+        </syntax>
+      </parameter>
       <parameter name="X_CATAWAMPUS-ORG_AutoChannelAlgorithm" access="readWrite">
         <description>If LEGACY, use old-style /bin/wifi autochannel recommendation.  If INITIAL, use boot-time waveguide recommendation.  If DYNAMIC, use real-time waveguide recommendation.</description>
         <syntax>

@@ -88,6 +88,7 @@ def AlwaysEnableSetupNetwork(roothandle):
     if landevice_i == 2:
       yield (wlankey + 'Enable'), True
       yield (wlankey + 'SSIDAdvertisementEnabled'), False
+      yield (wlankey + 'X_CATAWAMPUS-ORG_ClientIsolation'), True
       yield (wlankey + 'X_CATAWAMPUS-ORG_OverrideSSID'), 'GFiberSetupAutomation'
 
 
@@ -99,6 +100,7 @@ def AlwaysEnableFiberManagedWifi(roothandle):
     if landevice_i == 2:
       yield (wlankey + 'Enable'), True
       yield (wlankey + 'SSIDAdvertisementEnabled'), True
+      yield (wlankey + 'X_CATAWAMPUS-ORG_ClientIsolation'), True
       yield (wlankey + 'X_CATAWAMPUS-ORG_OverrideSSID'), 'Google Fiber Wi-Fi'
 
   yield ('Device.CaptivePortal.URL',
@@ -670,6 +672,8 @@ class WlanConfiguration(CATA98WIFI):
   X_CATAWAMPUS_ORG_AutoChannelAlgorithm = tr.cwmptypes.TriggerEnum(
       ['LEGACY', 'INITIAL', 'DYNAMIC'], 'LEGACY')
 
+  X_CATAWAMPUS_ORG_ClientIsolation = tr.cwmptypes.TriggerBool(False)
+
   _RecommendedChannel_2G = tr.cwmptypes.Trigger(
       tr.cwmptypes.ReadOnly(
           tr.cwmptypes.FileBacked(
@@ -853,6 +857,9 @@ class WlanConfiguration(CATA98WIFI):
 
     if not self.SSIDAdvertisementEnabled:
       cmd += ['-H']
+    if self.X_CATAWAMPUS_ORG_ClientIsolation:
+      cmd += ['-C']
+
     if self.new_config.AutoChannelEnable:
       acalg = self.X_CATAWAMPUS_ORG_AutoChannelAlgorithm
       if acalg == 'INITIAL':

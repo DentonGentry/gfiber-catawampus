@@ -127,6 +127,7 @@ class FakeWifiWlanConfiguration(CATA98WIFI):
   X_CATAWAMPUS_ORG_AutoChannelAlgorithm = tr.cwmptypes.Enum(
       ['LEGACY', 'INITIAL', 'DYNAMIC'], 'LEGACY')
   X_CATAWAMPUS_ORG_AutoChanType = tr.cwmptypes.ReadOnlyString('NONDFS')
+  X_CATAWAMPUS_ORG_ClientIsolation = tr.cwmptypes.Bool(False)
   X_CATAWAMPUS_ORG_Width24G = tr.cwmptypes.ReadOnlyString('20')
   X_CATAWAMPUS_ORG_Width5G = tr.cwmptypes.ReadOnlyString('40')
   X_CATAWAMPUS_ORG_AutoDisableRecommended = tr.cwmptypes.ReadOnlyBool(False)

@@ -499,6 +499,20 @@ class BinWifiTest(unittest.TestCase):
     # Same output as 'b'
     self.assertTrue('-p a/b' in ' '.join(buf.splitlines()))
 
+  def testClientIsolation(self):
+    bw = self.WlanConfiguration(
+        'wifi0', '_portal', 'br1', band='5', width_5g=80)
+    bw.StartTransaction()
+    bw.RadioEnabled = True
+    bw.Enable = True
+    bw.SSID = 'Test SSID 1'
+    _, buf = self.GatherOutput(bw)
+    self.assertFalse('-C' in ' '.join(buf.splitlines()))
+
+    bw.X_CATAWAMPUS_ORG_ClientIsolation = True
+    _, buf = self.GatherOutput(bw)
+    self.assertTrue('-C' in ' '.join(buf.splitlines()))
+
   def testWidth(self):
     bw = self.WlanConfiguration(
         'wifi0', '', 'br0', band='5', width_5g=80)

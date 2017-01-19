@@ -553,6 +553,7 @@ class BrcmWifiWlanConfiguration(CATA98WIFI):
                    'X_CATAWAMPUS-ORG_AutoChanType',
                    'X_CATAWAMPUS-ORG_AllowAutoDisable',
                    'X_CATAWAMPUS-ORG_AutoDisableRecommended',
+                   'X_CATAWAMPUS-ORG_ClientIsolation',
                    'X_CATAWAMPUS-ORG_OverrideSSID',
                    'X_CATAWAMPUS-ORG_Suffix24G'])
 
