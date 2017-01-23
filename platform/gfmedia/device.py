@@ -76,7 +76,7 @@ INTERNAL_ERROR = 9002
 # Unit tests can override these with fake data
 ACTIVEWAN = 'activewan'
 AUXTEMP = '/tmp/gpio/aux1_temperature'
-CONFIGDIR = '/config/tr69'
+CONFIGDIR = '/fiber/config/tr69'
 GINSTALL = 'ginstall'
 HNVRAM = 'hnvram'
 ISNETWORKBOX = 'is-network-box'

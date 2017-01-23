@@ -31,7 +31,7 @@ import mainloop
 import x_catawampus_tr181_2_0
 
 REGDIR = helpers.Path('/tmp/experiments')
-ACTIVEDIR = helpers.Path('/config/experiments')
+ACTIVEDIR = helpers.Path('/fiber/config/experiments')
 
 BASE = x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
 CATABASE = BASE.Device.X_CATAWAMPUS_ORG

@@ -54,7 +54,7 @@ INSTALL_FIRMWARE_IMAGE = 'install_firmware'
 INSTALL_JFFS_IMAGE = 'install_jffs'
 ITERIFS = pynetlinux.ifconfig.iterifs
 JFFS_VERSION_FILE = '/jffs/jffs-version.txt'
-CONFIGDIR = '/config/tr69'
+CONFIGDIR = '/fiber/config/tr69'
 DOWNLOADDIR = '/mnt/share/download'
 
 
