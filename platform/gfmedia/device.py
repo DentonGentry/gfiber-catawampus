@@ -607,20 +607,6 @@ class Device(tr.basemodel.Device):
         iflookup=iflookup, bridgename='br0', dmroot=tr.handle.Handle(dmroot))
 
 
-class Radio(object):
-  """Holds radio-level properties shared by interfaces on that radio."""
-
-  Channel = tr.cwmptypes.TriggerInt()
-
-  def __init__(self):
-    self.InterfaceList = set()
-
-  def Triggered(self):
-    print self.InterfaceList
-    for interface in self.InterfaceList:
-      interface.Triggered()
-
-
 class LANDevice(tr.basemodel.InternetGatewayDevice.LANDevice):
   """tr-98 InternetGatewayDevice for Google Fiber media platforms."""
 
@@ -631,7 +617,7 @@ class LANDevice(tr.basemodel.InternetGatewayDevice.LANDevice):
   LANUSBInterfaceNumberOfEntries = tr.cwmptypes.NumberOf(
       'LANUSBInterfaceConfigList')
 
-  def __init__(self, if_suffix, bridge, radio_list):
+  def __init__(self, if_suffix, bridge):
     super(LANDevice, self).__init__()
     self.Unexport(['Alias'])
     self.Unexport(objects=['Hosts', 'LANHostConfigManagement'])
@@ -645,11 +631,9 @@ class LANDevice(tr.basemodel.InternetGatewayDevice.LANDevice):
     if (_DoesInterfaceExist('wlan0' + if_suffix)
         and _DoesInterfaceExist('wlan1' + if_suffix)):
       # Two radios, instantiate both with fixed bands
-      wifi = dm.binwifi.WlanConfiguration('wlan0', if_suffix, bridge,
-                                          radio_list['radio0'], '2.4')
+      wifi = dm.binwifi.WlanConfiguration('wlan0', if_suffix, bridge, '2.4')
       self.WLANConfigurationList['1'] = wifi
-      wifi = dm.binwifi.WlanConfiguration('wlan1', if_suffix, bridge,
-                                          radio_list['radio1'], '5',
+      wifi = dm.binwifi.WlanConfiguration('wlan1', if_suffix, bridge, '5',
                                           standard='ac', width_5g=80,
                                           autochan='HIGH')
       self.WLANConfigurationList['2'] = wifi
@@ -662,8 +646,7 @@ class LANDevice(tr.basemodel.InternetGatewayDevice.LANDevice):
         kwargs['standard'] = 'ac'
         kwargs['width_5g'] = 80
 
-      wifi = dm.binwifi.WlanConfiguration('wlan0', if_suffix, bridge,
-                                          radio_list['radio0'], **kwargs)
+      wifi = dm.binwifi.WlanConfiguration('wlan0', if_suffix, bridge, **kwargs)
       self.WLANConfigurationList['1'] = wifi
 
   def _get_quantenna_interfaces(self):
@@ -698,9 +681,8 @@ class InternetGatewayDevice(tr.basemodel.InternetGatewayDevice):
                            'UPnP', 'USBHosts',
                            'UserInterface'],
                   lists=['WANDevice', 'SmartCardReader', 'User'])
-    self.RadioList = {'radio0': Radio(), 'radio1': Radio()}
-    self.LANDeviceList = {'1': LANDevice('', 'br0', self.RadioList),
-                          '2': LANDevice('_portal', 'br1', self.RadioList)}
+    self.LANDeviceList = {'1': LANDevice('', 'br0'),
+                          '2': LANDevice('_portal', 'br1')}
     self.ManagementServer = tr.core.TODO()  # higher level code splices this in
 
     self.DeviceInfo = dm.device_info.DeviceInfo98Linux26(device_id)
