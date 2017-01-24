@@ -23,7 +23,6 @@ __author__ = 'dgentry@google.com (Denton Gentry)'
 
 import google3
 import device
-import dm.netdev
 import tornado.ioloop
 import tornado.testing
 import tr.handle
@@ -61,8 +60,6 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
     self.old_VERSIONFILE = device.VERSIONFILE
     device.ACTIVEWAN = 'testdata/device/activewan'
     device.PYNETIFCONF = MockPynetInterface
-    self.old_PROC_NET_DEV = dm.netdev.PROC_NET_DEV
-    dm.netdev.PROC_NET_DEV = 'testdata/device/proc_net_dev'
     self.install_cb_called = False
     self.install_cb_faultcode = None
     self.install_cb_faultstring = None
@@ -82,7 +79,6 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
     device.REBOOT = self.old_REBOOT
     device.REPOMANIFEST = self.old_REPOMANIFEST
     device.VERSIONFILE = self.old_VERSIONFILE
-    dm.netdev.PROC_NET_DEV = self.old_PROC_NET_DEV
 
   def testGetSerialNumber(self):
     device.HNVRAM = 'testdata/device/hnvram'
@@ -193,16 +189,11 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
     self.assertTrue(self.install_cb_faultstring)
 
   def testValidateExports(self):
-    radio_list = {'radio0': device.Radio(), 'radio1': device.Radio()}
-    for interfaces in (['wlan0', 'wlan0_portal'],
-                       ['wlan0', 'wlan0_portal', 'wlan1', 'wlan1_portal'],
-                       []):
-      MockPynetInterface.INTERFACES = interfaces
-      tr.handle.ValidateExports(device.LANDevice('', 'br0', radio_list))
-      tr.handle.ValidateExports(device.LANDevice('portal', '', radio_list))
-      tr.handle.ValidateExports(device.Ethernet())
-      # TODO(apenwarr): instantiate the entire schema here for proper testing.
-      #   It's a pain because many subsections may need fake data.
+    tr.handle.ValidateExports(device.LANDevice('', 'br0'))
+    tr.handle.ValidateExports(device.LANDevice('portal', ''))
+    tr.handle.ValidateExports(device.Ethernet())
+    # TODO(apenwarr): instantiate the entire schema here for proper testing.
+    #   It's a pain because many subsections may need fake data.
 
   def testActiveWan(self):
     device.ACTIVEWAN = 'testdata/device/activewan'
@@ -218,16 +209,11 @@ class DeviceTest(tornado.testing.AsyncTestCase, unittest.TestCase):
 
 class MockPynetInterface(object):
 
-  INTERFACES = []
-
   def __init__(self, ifname):
     self.ifname = ifname
 
   def get_index(self):
-    try:
-      return self.INTERFACES.index(self.ifname)
-    except ValueError:
-      raise IOError('No such interface in test')
+    raise IOError('No such interface in test')
 
 
 if __name__ == '__main__':
