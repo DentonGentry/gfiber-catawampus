@@ -1,0 +1,6 @@
+Inter-|   Receive                                                |  Transmit
+ face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
+ wlan0: 1 100 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+ wlan0_portal: 1 100 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+ wlan1: 1 100 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+ wlan1_portal: 1 100 3 4 5 6 7 8 9 10 11 12 13 14 15 16
