@@ -64,7 +64,7 @@ TIMENOW = time.time
 
 # Client identification files
 ANONID = ['anonid']
-DHCP_TAXONOMY_FILE = '/config/dhcp.fingerprints'
+DHCP_TAXONOMY_FILE = '/fiber/config/dhcp.fingerprints'
 DNSSD_HOSTNAMES = '/tmp/dnssd_hostnames'
 NETBIOS_HOSTNAMES = '/tmp/netbios_hostnames'
 WIFI_TAXONOMY_DIR = '/tmp/wifi/fingerprints'

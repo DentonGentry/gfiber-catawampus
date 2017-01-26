@@ -36,7 +36,7 @@ BASE = tr.x_catawampus_tr181_2_0.X_CATAWAMPUS_ORG_Device_v2_0
 CATA181NETMANAGEMENT = BASE.Device.X_CATAWAMPUS_ORG.WispNetManagement
 
 # These can be overridden by unit tests.
-CFG_JSON_FILE = '/config/chimera-cfg.json'
+CFG_JSON_FILE = '/fiber/config/chimera-cfg.json'
 
 
 class WispNetManagement(CATA181NETMANAGEMENT):

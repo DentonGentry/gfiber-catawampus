@@ -57,7 +57,7 @@ PLATFORM_FILE = '/etc/platform'
 INTERNAL_ERROR = 9002
 
 # Unit tests can override these with fake data
-CONFIGDIR = '/config/tr69'
+CONFIGDIR = '/fiber/config/tr69'
 DOWNLOADDIR = '/tmp'
 HNVRAM = 'hnvram'
 HNVRAM_MTD = '/dev/mtd/hnvram'

@@ -54,8 +54,8 @@ DHCP4SERVERPOOL = DHCP4SERVER.Pool
 DASH_TO_UNDERSCORE = string.maketrans('-', '_')
 
 # unit tests can override these
-DNSMASQCONFIG = ['/config/dnsmasq/cwmp.conf']
-DNSMASQLEASES = ['/config/dhcp.leases']
+DNSMASQCONFIG = ['/fiber/config/dnsmasq/cwmp.conf']
+DNSMASQLEASES = ['/fiber/config/dhcp.leases']
 LOGCONFIG = True
 RESTARTCMD = ['restart', 'dnsmasq']
 

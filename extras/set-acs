@@ -112,7 +112,7 @@ FINDACS_FAIL_HOLDOFF=$((5*60))
 FINDACS_OK_HOLDOFF=$((59*60))
 
 
-[ -n "$configdir" ] || configdir=/config/tr69
+[ -n "$configdir" ] || configdir=/fiber/config/tr69
 [ -n "$cwmpdir" ] || cwmpdir=/tmp/cwmp
 [ -n "$find_acs" ] || find_acs=find-acs
 [ -n "$nowcmd" ] || nowcmd='date +%s'
